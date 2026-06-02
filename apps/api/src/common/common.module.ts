@@ -6,6 +6,6 @@ import { PermissionsGuard } from './guards/permissions.guard';
 @Module({
   imports: [PermissionsModule],
   providers: [PermissionsGuard],
-  exports: [PermissionsGuard],
+  exports: [PermissionsGuard, PermissionsModule],
 })
 export class CommonModule {}

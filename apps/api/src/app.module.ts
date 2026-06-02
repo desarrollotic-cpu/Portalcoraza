@@ -18,7 +18,7 @@ import { UsersModule } from './modules/users/users.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
-      synchronize: process.env.NODE_ENV === 'development',
+      synchronize: false,
       ssl:
         process.env.DATABASE_URL?.includes('supabase')
           ? { rejectUnauthorized: false }

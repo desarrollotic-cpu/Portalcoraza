@@ -19,7 +19,7 @@ export class AuditLog {
   @Column({ length: 80 })
   action!: string;
 
-  @Column({ name: 'entity_type', nullable: true, length: 80 })
+  @Column({ name: 'entity_type', type: 'varchar', nullable: true, length: 80 })
   entityType!: string | null;
 
   @Column({ name: 'entity_id', type: 'uuid', nullable: true })
@@ -31,7 +31,7 @@ export class AuditLog {
   @Column({ name: 'new_value', type: 'jsonb', nullable: true })
   newValue!: Record<string, unknown> | null;
 
-  @Column({ name: 'ip_address', nullable: true, length: 45 })
+  @Column({ name: 'ip_address', type: 'varchar', nullable: true, length: 45 })
   ipAddress!: string | null;
 
   @Column({ name: 'user_agent', type: 'text', nullable: true })

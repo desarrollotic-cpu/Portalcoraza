@@ -47,7 +47,7 @@ export class Post {
   @Column({ type: 'text', nullable: true })
   address!: string | null;
 
-  @Column({ name: 'client_name', nullable: true, length: 200 })
+  @Column({ name: 'client_name', type: 'varchar', nullable: true, length: 200 })
   clientName!: string | null;
 
   @Column({ type: 'text', nullable: true })

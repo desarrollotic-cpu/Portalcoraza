@@ -20,7 +20,7 @@ export class User {
   @Column({ name: 'password_hash' })
   passwordHash!: string;
 
-  @Column({ name: 'full_name', nullable: true })
+  @Column({ name: 'full_name', type: 'varchar', nullable: true })
   fullName!: string | null;
 
   @Column({ name: 'role_id', type: 'uuid' })
