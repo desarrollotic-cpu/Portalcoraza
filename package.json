@@ -1,0 +1,19 @@
+{
+  "name": "system-coraza",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma administrativa y operativa - vigilancia y seguridad privada",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "api:dev": "npm run start:dev -w @coraza/api",
+    "api:build": "npm run build -w @coraza/api",
+    "web:dev": "npm run start -w @coraza/web",
+    "web:build": "npm run build -w @coraza/web",
+    "install:all": "npm install"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

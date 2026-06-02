@@ -1,0 +1,26 @@
+// System Coraza — paleta azul minimalista
+:root {
+  --coraza-blue-950: #0a2540;
+  --coraza-blue-900: #0f3d6e;
+  --coraza-blue-800: #1565a8;
+  --coraza-blue-700: #1d7bc4;
+  --coraza-blue-600: #2b8fd9;
+  --coraza-blue-500: #4ba3e3;
+  --coraza-blue-100: #e8f4fc;
+  --coraza-blue-50: #f4f9fd;
+
+  --coraza-bg: var(--coraza-blue-50);
+  --coraza-surface: #ffffff;
+  --coraza-sidebar: var(--coraza-blue-950);
+  --coraza-primary: var(--coraza-blue-700);
+  --coraza-primary-hover: var(--coraza-blue-800);
+  --coraza-accent: var(--coraza-blue-600);
+  --coraza-border: #d4e8f7;
+  --coraza-text: #0f2942;
+  --coraza-text-muted: #5b7a94;
+  --coraza-text-on-dark: #e8f4fc;
+  --coraza-error: #c62828;
+  --coraza-radius: 8px;
+  --coraza-shadow: 0 4px 24px rgba(15, 61, 110, 0.08);
+  --coraza-shadow-lg: 0 12px 40px rgba(10, 37, 64, 0.12);
+}

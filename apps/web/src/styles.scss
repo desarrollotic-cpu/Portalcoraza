@@ -1,0 +1,32 @@
+@use 'styles/theme';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    'Segoe UI',
+    system-ui,
+    -apple-system,
+    sans-serif;
+  color: var(--coraza-text);
+  background: var(--coraza-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+input,
+button {
+  font-family: inherit;
+}
+
+input:focus {
+  outline: 2px solid var(--coraza-blue-500);
+  outline-offset: 1px;
+  border-color: var(--coraza-blue-500);
+}
