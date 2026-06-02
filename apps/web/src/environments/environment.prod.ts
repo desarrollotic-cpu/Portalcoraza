@@ -1,6 +1,6 @@
 export const environment = {
   production: true,
-  apiUrl: '/api/v1',
+  apiUrl: 'https://portalcoraza.onrender.com/api/v1',
   supabase: {
     url: 'https://duxpqkldgdnfcabpkogl.supabase.co',
     publishableKey:
