@@ -3,6 +3,13 @@
  * Uso: npx ts-node scripts/seed-admin.ts
  * Requiere DATABASE_URL en .env
  */
+import * as dns from 'dns';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+dns.setDefaultResultOrder('ipv4first');
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
+
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
 import { Role } from '../src/modules/roles/entities/role.entity';
@@ -16,7 +23,7 @@ async function main() {
     type: 'postgres',
     url: process.env.DATABASE_URL,
     entities: [Role, User],
-    ssl: process.env.DATABASE_URL?.includes('supabase')
+    ssl: (process.env.DATABASE_URL?.includes('supabase') || process.env.DATABASE_URL?.includes('pooler'))
       ? { rejectUnauthorized: false }
       : false,
   });

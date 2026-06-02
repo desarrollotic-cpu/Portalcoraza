@@ -1,26 +1,89 @@
-// System Coraza — paleta azul minimalista
-:root {
-  --coraza-blue-950: #0a2540;
-  --coraza-blue-900: #0f3d6e;
-  --coraza-blue-800: #1565a8;
-  --coraza-blue-700: #1d7bc4;
-  --coraza-blue-600: #2b8fd9;
-  --coraza-blue-500: #4ba3e3;
-  --coraza-blue-100: #e8f4fc;
-  --coraza-blue-50: #f4f9fd;
+// System Coraza — design tokens (paleta oficial)
 
-  --coraza-bg: var(--coraza-blue-50);
-  --coraza-surface: #ffffff;
-  --coraza-sidebar: var(--coraza-blue-950);
-  --coraza-primary: var(--coraza-blue-700);
-  --coraza-primary-hover: var(--coraza-blue-800);
-  --coraza-accent: var(--coraza-blue-600);
-  --coraza-border: #d4e8f7;
-  --coraza-text: #0f2942;
-  --coraza-text-muted: #5b7a94;
-  --coraza-text-on-dark: #e8f4fc;
-  --coraza-error: #c62828;
+:root {
+  /* Primario */
+  --primary-main: #5c6bc0;
+  --primary-dark: #3f51b5;
+  --primary-light: #8e99d6;
+  --primary-50: #e8eaf6;
+
+  /* Acento */
+  --accent-main: #42a5f5;
+  --accent-bg: #e3f2fd;
+
+  /* Fondo / superficie */
+  --bg-page: #f5f7fa;
+  --surface: #ffffff;
+
+  /* Texto */
+  --text-primary: #37474f;
+  --text-secondary: #78909c;
+  --text-disabled: #b0bec5;
+  --text-on-primary: #ffffff;
+
+  /* Bordes */
+  --border: #e8edf2;
+
+  /* Éxito */
+  --success-light: #66bb6a;
+  --success: #4caf50;
+  --success-dark: #2e7d32;
+
+  /* Advertencia */
+  --warning-light: #ffa726;
+  --warning: #ff9800;
+  --warning-dark: #f57c00;
+
+  /* Error */
+  --error: #f44336;
+  --error-light: #ef5350;
+  --error-dark: #d32f2f;
+  --error-alt: #e53935;
+
+  /* Neutros */
+  --neutral-900: #333333;
+  --neutral-700: #666666;
+  --neutral-500: #999999;
+  --neutral-300: #e0e0e0;
+  --neutral-100: #f5f5f5;
+  --neutral-50: #f8f9fa;
+  --neutral-border: #dee2e6;
+
+  /* Gradientes */
+  --gradient-indigo: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --gradient-indigo-soft: linear-gradient(
+    160deg,
+    #5c6bc0 0%,
+    #7986cb 50%,
+    #9fa8da 100%
+  );
+  --gradient-login: linear-gradient(
+    160deg,
+    #e8eaf6 0%,
+    #c5cae9 50%,
+    #9fa8da 100%
+  );
+
+  /* Alias semánticos (uso en componentes) */
+  --coraza-bg: var(--bg-page);
+  --coraza-surface: var(--surface);
+  --coraza-sidebar: var(--primary-dark);
+  --coraza-primary: var(--primary-main);
+  --coraza-primary-hover: var(--primary-dark);
+  --coraza-primary-dark: var(--primary-dark);
+  --coraza-primary-light: var(--primary-light);
+  --coraza-primary-50: var(--primary-50);
+  --coraza-accent: var(--accent-main);
+  --coraza-accent-bg: var(--accent-bg);
+  --coraza-border: var(--border);
+  --coraza-text: var(--text-primary);
+  --coraza-text-muted: var(--text-secondary);
+  --coraza-text-disabled: var(--text-disabled);
+  --coraza-text-on-dark: var(--primary-50);
+  --coraza-success: var(--success);
+  --coraza-warning: var(--warning);
+  --coraza-error: var(--error);
   --coraza-radius: 8px;
-  --coraza-shadow: 0 4px 24px rgba(15, 61, 110, 0.08);
-  --coraza-shadow-lg: 0 12px 40px rgba(10, 37, 64, 0.12);
+  --coraza-shadow: 0 4px 20px rgba(63, 81, 181, 0.08);
+  --coraza-shadow-lg: 0 12px 36px rgba(63, 81, 181, 0.12);
 }

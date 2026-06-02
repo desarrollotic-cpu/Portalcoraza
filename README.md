@@ -27,10 +27,13 @@ Portal_Coraza/
 
 ### 1. Base de datos
 
-En el SQL Editor de Supabase, ejecuta en orden:
+**Opción automática (recomendada):** pon tu contraseña en `apps/api/.env` y ejecuta:
 
-1. `supabase/migrations/001_core_schema.sql`
-2. `supabase/seed/001_roles_permissions.sql`
+```bash
+npm run db:setup
+```
+
+**Opción manual:** SQL Editor de Supabase — `001_core_schema.sql` y `001_roles_permissions.sql`
 
 ### 2. API
 
@@ -54,7 +57,9 @@ cd apps/api
 npx ts-node scripts/seed-admin.ts
 ```
 
-Credenciales por defecto: `admin@coraza.local` / `Coraza2026!`
+Credenciales por defecto: `admin@coraza.local` / `Coraza2026!` (rol **GERENCIA**, permisos completos Fase 1)
+
+Si ya habías ejecutado el seed antiguo (GERENCIA solo lectura), ejecuta también `supabase/seed/002_gerencia_full_permissions.sql`.
 
 ### 3. Frontend
 

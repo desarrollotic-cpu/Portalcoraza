@@ -55,9 +55,7 @@ interface Associate {
   styles: `
     header h2 {
       margin: 0;
-    }
-    header h2 {
-      color: var(--coraza-blue-900);
+      color: var(--primary-dark);
       font-weight: 600;
     }
     header p {
@@ -80,17 +78,17 @@ interface Associate {
       border-bottom: 1px solid var(--coraza-border);
     }
     th {
-      background: var(--coraza-blue-50);
+      background: var(--primary-50);
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: var(--coraza-blue-800);
+      color: var(--primary-dark);
       font-weight: 600;
     }
     .badge {
       font-size: 0.75rem;
-      background: var(--coraza-blue-100);
-      color: var(--coraza-blue-800);
+      background: var(--accent-bg);
+      color: var(--primary-dark);
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
     }

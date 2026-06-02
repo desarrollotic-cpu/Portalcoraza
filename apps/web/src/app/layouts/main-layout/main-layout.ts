@@ -30,8 +30,8 @@ import { AuthService } from '../../core/services/auth.service';
       min-height: 100vh;
     }
     .sidebar {
-      background: var(--coraza-sidebar);
-      color: var(--coraza-text-on-dark);
+      background: var(--gradient-indigo-soft);
+      color: var(--text-on-primary);
       padding: 1.5rem 1rem;
       display: flex;
       flex-direction: column;
@@ -41,7 +41,7 @@ import { AuthService } from '../../core/services/auth.service';
       font-weight: 600;
       font-size: 1.05rem;
       letter-spacing: 0.02em;
-      color: #fff;
+      color: var(--text-on-primary);
     }
     nav {
       display: flex;
@@ -49,20 +49,21 @@ import { AuthService } from '../../core/services/auth.service';
       gap: 0.25rem;
     }
     nav a {
-      color: rgba(232, 244, 252, 0.75);
+      color: rgba(255, 255, 255, 0.82);
       text-decoration: none;
       padding: 0.55rem 0.75rem;
       border-radius: var(--coraza-radius);
       font-size: 0.9rem;
       transition: background 0.15s ease, color 0.15s ease;
     }
-    nav a.active,
     nav a:hover {
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-on-primary);
     }
     nav a.active {
-      background: var(--coraza-primary);
+      background: var(--primary-dark);
+      color: var(--text-on-primary);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
     .user {
       margin-top: auto;
@@ -70,16 +71,15 @@ import { AuthService } from '../../core/services/auth.service';
       flex-direction: column;
       gap: 0.5rem;
       font-size: 0.8rem;
-      color: var(--coraza-text-muted);
-      filter: brightness(1.4);
     }
     .user span {
-      color: var(--coraza-text-on-dark);
+      color: var(--primary-50);
+      opacity: 0.95;
     }
     .user button {
       background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: var(--coraza-text-on-dark);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: var(--text-on-primary);
       padding: 0.4rem 0.6rem;
       border-radius: var(--coraza-radius);
       cursor: pointer;
@@ -87,11 +87,11 @@ import { AuthService } from '../../core/services/auth.service';
       transition: background 0.15s ease;
     }
     .user button:hover {
-      background: rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.1);
     }
     .content {
       padding: 1.5rem 2rem;
-      background: var(--coraza-bg);
+      background: var(--bg-page);
     }
   `,
 })

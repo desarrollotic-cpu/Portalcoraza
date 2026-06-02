@@ -8,7 +8,8 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "seed:admin": "ts-node -r dotenv/config scripts/seed-admin.ts"
+    "seed:admin": "ts-node scripts/seed-admin.ts",
+    "db:setup": "ts-node scripts/setup-database.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",
@@ -36,6 +37,7 @@
     "@types/bcrypt": "^5.0.2",
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^10.0.0",
     "dotenv": "^16.4.5",

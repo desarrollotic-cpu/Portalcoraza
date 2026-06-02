@@ -34,11 +34,15 @@ WHERE r.code = 'RRHH' AND p.code IN (
 )
 ON CONFLICT DO NOTHING;
 
--- GERENCIA: lectura amplia
+-- GERENCIA: administrador del sistema (Fase 1)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.code = 'GERENCIA' AND p.code IN (
-  'users.view', 'roles.view', 'associates.view', 'posts.view', 'audit.view'
+  'users.view', 'users.create', 'users.edit',
+  'roles.view', 'roles.manage',
+  'associates.view', 'associates.create', 'associates.edit', 'associates.retire',
+  'posts.view', 'posts.create', 'posts.edit',
+  'audit.view'
 )
 ON CONFLICT DO NOTHING;
 

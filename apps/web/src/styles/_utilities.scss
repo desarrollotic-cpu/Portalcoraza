@@ -1,0 +1,22 @@
+// Utilidades de estado (opcional en componentes)
+.text-success {
+  color: var(--success);
+}
+.text-warning {
+  color: var(--warning);
+}
+.text-error {
+  color: var(--error);
+}
+.bg-success {
+  background: var(--success-light);
+  color: var(--success-dark);
+}
+.bg-warning {
+  background: var(--warning-light);
+  color: var(--warning-dark);
+}
+.bg-error {
+  background: var(--error-light);
+  color: var(--error-dark);
+}

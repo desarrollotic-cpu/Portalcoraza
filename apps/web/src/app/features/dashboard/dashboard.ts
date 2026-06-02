@@ -23,7 +23,7 @@ import { AuthService } from '../../core/services/auth.service';
   styles: `
     h2 {
       margin-top: 0;
-      color: var(--coraza-blue-900);
+      color: var(--primary-dark);
       font-weight: 600;
     }
     .role {
@@ -45,7 +45,7 @@ import { AuthService } from '../../core/services/auth.service';
     article h3 {
       margin: 0 0 0.5rem;
       font-size: 1rem;
-      color: var(--coraza-blue-800);
+      color: var(--primary-main);
     }
     article p {
       margin: 0;

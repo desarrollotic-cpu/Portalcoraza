@@ -11,7 +11,8 @@
     "api:build": "npm run build -w @coraza/api",
     "web:dev": "npm run start -w @coraza/web",
     "web:build": "npm run build -w @coraza/web",
-    "install:all": "npm install"
+    "install:all": "npm install",
+    "db:setup": "npm run db:setup -w @coraza/api"
   },
   "engines": {
     "node": ">=20"

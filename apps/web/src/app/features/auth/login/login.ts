@@ -54,7 +54,7 @@ import { AuthService } from '../../../core/services/auth.service';
       margin: 0;
       font-size: 1.5rem;
       font-weight: 600;
-      color: var(--coraza-blue-900);
+      color: var(--primary-dark);
     }
     .subtitle {
       margin: 0 0 0.5rem;
@@ -73,7 +73,7 @@ import { AuthService } from '../../../core/services/auth.service';
       border: 1px solid var(--coraza-border);
       border-radius: var(--coraza-radius);
       font-size: 1rem;
-      background: var(--coraza-blue-50);
+      background: var(--primary-50);
     }
     button {
       margin-top: 0.5rem;
