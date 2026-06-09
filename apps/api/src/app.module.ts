@@ -5,6 +5,10 @@ import { CommonModule } from './common/common.module';
 import { AssociatesModule } from './modules/associates/associates.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DeliveriesModule } from './modules/deliveries/deliveries.module';
+import { DocumentalModule } from './modules/documental/documental.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { RolesModule } from './modules/roles/roles.module';
@@ -29,6 +33,10 @@ import { UsersModule } from './modules/users/users.module';
     RolesModule,
     PermissionsModule,
     AssociatesModule,
+    InventoryModule,
+    DeliveriesModule,
+    SchedulingModule,
+    DocumentalModule,
     PostsModule,
     AuditModule,
   ],

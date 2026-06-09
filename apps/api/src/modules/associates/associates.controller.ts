@@ -35,6 +35,12 @@ export class AssociatesController {
     return this.associatesService.findOne(id);
   }
 
+  @Get(':id/history')
+  @RequirePermissions('associates.view')
+  history(@Param('id') id: string) {
+    return this.associatesService.history(id);
+  }
+
   @Post()
   @RequirePermissions('associates.create')
   create(

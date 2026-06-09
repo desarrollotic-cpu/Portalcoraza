@@ -5,15 +5,12 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { JwtPayload } from '../../modules/auth/interfaces/jwt-payload.interface';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { PermissionsService } from '../../modules/permissions/permissions.service';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(
-    private reflector: Reflector,
-    private permissionsService: PermissionsService,
-  ) {}
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const required = this.reflector.getAllAndOverride<string[]>(
@@ -25,9 +22,8 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const { user } = context.switchToHttp().getRequest();
-    const permissions =
-      await this.permissionsService.getPermissionCodesForUser(user.sub);
+    const { user } = context.switchToHttp().getRequest<{ user: JwtPayload }>();
+    const permissions = user?.permissions ?? [];
 
     const hasAll = required.every((p) => permissions.includes(p));
     if (!hasAll) {

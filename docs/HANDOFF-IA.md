@@ -4,6 +4,38 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 ---
 
+## ACTUALIZACION OPENSpec (2026-06-09)
+
+Estado real del change activo `system-coraza-v2`:
+
+- Change path: `openspec/changes/system-coraza-v2/`
+- Fuente de verdad de avance: `openspec/changes/system-coraza-v2/tasks.md`
+- Bitacora de continuidad: `openspec/changes/system-coraza-v2/progress.md`
+
+Avance confirmado:
+
+- Completado: 0.x, 1.x, 3.x, 5.x, 6.x
+- Completado con pendientes manuales/tecnicos: 2.x (faltan 2.7 y 2.8), 4.x (falta 4.3 SDK oficial)
+- Pendiente por iniciar: 7.x en adelante
+
+Pendientes manuales fuera de codigo:
+
+- 2.7 Crear bucket `delivery-signatures` con politicas en Supabase
+- 2.8 Activar Realtime para tabla `notifications`
+
+Pendiente tecnico de backend:
+
+- 4.3 Reemplazar carga de firma por API HTTP directa hacia SDK oficial de Supabase Storage
+
+Protocolo obligatorio para continuar desde otro ID de desarrollo:
+
+1. Leer `proposal.md`, `design.md`, `tasks.md`, `progress.md` del change activo
+2. Implementar solo el bloque pendiente siguiente
+3. Actualizar `tasks.md` al cerrar cada tarea
+4. Actualizar `progress.md` al cerrar cada bloque
+
+---
+
 ## 1. Qué es el proyecto
 
 **System Coraza** — plataforma web modular para gestión administrativa y operativa de una empresa de vigilancia y seguridad privada.

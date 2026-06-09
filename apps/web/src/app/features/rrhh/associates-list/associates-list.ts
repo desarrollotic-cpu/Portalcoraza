@@ -1,23 +1,17 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { environment } from '../../../../environments/environment';
-
-interface Associate {
-  id: string;
-  documentNumber: string | null;
-  firstName: string | null;
-  lastName: string | null;
-  status: string;
-  email: string | null;
-}
+import { RouterLink } from '@angular/router';
+import { Associate, AssociatesApiService } from '../associates-api.service';
 
 @Component({
   selector: 'app-associates-list',
+  imports: [RouterLink],
   template: `
     <section>
       <header>
         <h2>Asociados</h2>
-        <p>Gestión centralizada (RRHH). Solo lectura en esta vista inicial.</p>
+        <p>Gestión centralizada (RRHH).</p>
+        <a routerLink="/rrhh/asociados/nuevo">Crear asociado</a>
       </header>
 
       @if (loading()) {
@@ -32,6 +26,7 @@ interface Associate {
               <th>Nombre</th>
               <th>Estado</th>
               <th>Correo</th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -41,10 +36,21 @@ interface Associate {
                 <td>{{ fullName(a) }}</td>
                 <td><span class="badge">{{ a.status }}</span></td>
                 <td>{{ a.email ?? '—' }}</td>
+                <td class="actions-cell">
+                  <a [routerLink]="['/rrhh/asociados', a.id]">Ver historia</a>
+                  <a [routerLink]="['/rrhh/asociados', a.id, 'editar']">Editar</a>
+                  <button
+                    type="button"
+                    (click)="retire(a)"
+                    [disabled]="a.status === 'RETIRADO'"
+                  >
+                    Retirar
+                  </button>
+                </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="4">No hay asociados registrados.</td>
+                <td colspan="5">No hay asociados registrados.</td>
               </tr>
             }
           </tbody>
@@ -95,17 +101,23 @@ interface Associate {
     .error {
       color: var(--coraza-error);
     }
+    .actions-cell {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
   `,
 })
 export class AssociatesList implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly associatesApi = inject(AssociatesApiService);
 
   readonly associates = signal<Associate[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.http.get<Associate[]>(`${environment.apiUrl}/associates`).subscribe({
+    this.associatesApi.list().subscribe({
       next: (data) => {
         this.associates.set(data);
         this.loading.set(false);
@@ -124,5 +136,25 @@ export class AssociatesList implements OnInit {
   fullName(a: Associate): string {
     const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
     return name || '—';
+  }
+
+  retire(a: Associate): void {
+    if (a.status === 'RETIRADO') {
+      return;
+    }
+
+    const ok = window.confirm('¿Confirmas retirar este asociado?');
+    if (!ok) {
+      return;
+    }
+
+    this.associatesApi.retire(a.id).subscribe({
+      next: (updated) => {
+        this.associates.update((items) =>
+          items.map((item) => (item.id === updated.id ? updated : item)),
+        );
+      },
+      error: () => this.error.set('No se pudo retirar el asociado'),
+    });
   }
 }

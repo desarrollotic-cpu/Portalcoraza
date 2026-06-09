@@ -48,6 +48,15 @@ export class AuthService {
     return !!this.getAccessToken();
   }
 
+  hasPermission(code: string): boolean {
+    const user = this.currentUser();
+    if (!user) {
+      return false;
+    }
+
+    return user.permissions.includes(code);
+  }
+
   private clearSession(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -60,7 +69,18 @@ export class AuthService {
     const raw = localStorage.getItem(USER_KEY);
     if (!raw) return null;
     try {
-      return JSON.parse(raw) as AuthUser;
+      const parsed = JSON.parse(raw) as Partial<AuthUser>;
+      if (!parsed.id || !parsed.email || !parsed.role) {
+        return null;
+      }
+
+      return {
+        id: parsed.id,
+        email: parsed.email,
+        fullName: parsed.fullName ?? null,
+        role: parsed.role,
+        permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
+      };
     } catch {
       return null;
     }
