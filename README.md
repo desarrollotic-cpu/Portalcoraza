@@ -4,6 +4,8 @@ Plataforma web modular para gestión administrativa y operativa de vigilancia y 
 
 **Repositorio:** [github.com/desarrollotic-cpu/Portalcoraza](https://github.com/desarrollotic-cpu/Portalcoraza)
 
+> **¿Retomas el proyecto?** Lee [`docs/CONTINUAR-DESARROLLO.md`](docs/CONTINUAR-DESARROLLO.md) — incluye el mensaje para pegar al agente de Cursor.
+
 ## Estructura
 
 ```
@@ -87,14 +89,16 @@ Prefijo: `http://localhost:3000/api/v1`
 
 **Regla de negocio:** solo usuarios con `associates.create` (rol RRHH) pueden crear asociados.
 
-## Roadmap
+## Roadmap (system-coraza-v2)
 
-- **Fase 1** (actual): Auth, roles, permisos, asociados, puestos
-- Fase 2: Dashboard avanzado, dotación
-- Fase 3: Programación
-- Fase 4: Documental
-- Fase 5: Unidades residenciales
-- Fase 6: Notificaciones Realtime, auditoría avanzada
+Estado detallado en `openspec/changes/system-coraza-v2/tasks.md`.
+
+- ✅ Backend completo (inventario → notificaciones)
+- ✅ Frontend: RRHH, dotación, programación, documental, login
+- 🔲 Siguiente: **frontend residencial (12.x)**
+- 🔲 Pendiente: notificaciones UI, admin, verificación final
+
+Ver [`docs/CONTINUAR-DESARROLLO.md`](docs/CONTINUAR-DESARROLLO.md) para handoff entre desarrolladores.
 
 ## Stack oficial
 

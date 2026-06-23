@@ -2,6 +2,8 @@
 
 Documento para continuar el desarrollo con otra IA o desarrollador.
 
+> **Inicio rápido para compañeros:** [`docs/CONTINUAR-DESARROLLO.md`](CONTINUAR-DESARROLLO.md) — mensaje listo para copiar al agente de Cursor.
+
 ---
 
 ## ACTUALIZACION OPENSpec (2026-06-23)

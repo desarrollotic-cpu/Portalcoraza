@@ -1,5 +1,7 @@
 ## 0. Prerequisitos — Refactors de base
 
+> Checklist completo del change. Handoff: [`docs/CONTINUAR-DESARROLLO.md`](../../docs/CONTINUAR-DESARROLLO.md)
+
 - [x] 0.1 Agregar `permissions: string[]` a `JwtPayload` interface en `apps/api/src/modules/auth/interfaces/jwt-payload.interface.ts`
 - [x] 0.2 Modificar `PermissionsService.getPermissionCodesForUser()` para que sea usable en `auth.service.ts` al hacer login
 - [x] 0.3 Modificar `AuthService.login()` backend para incluir `permissions[]` en el JWT payload y en el response `user`

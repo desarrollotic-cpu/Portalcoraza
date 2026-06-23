@@ -1,5 +1,7 @@
 # Progress Log — system-coraza-v2
 
+> Handoff para compañeros: [`docs/CONTINUAR-DESARROLLO.md`](../../docs/CONTINUAR-DESARROLLO.md)
+
 ## Corte de estado
 
 - Fecha: 2026-06-23
