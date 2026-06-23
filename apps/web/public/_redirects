@@ -1,1 +1,2 @@
-/*    /index.html   200
+# SPA routing is configured in render.yaml (rewrite /* -> /index.html).
+# Do not add a catch-all here — it can block /videos/* and /images/* on some hosts.
