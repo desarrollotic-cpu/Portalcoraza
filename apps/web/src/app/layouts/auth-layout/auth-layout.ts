@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -9,11 +9,23 @@ import { RouterOutlet } from '@angular/router';
       <section class="auth-left">
         <router-outlet />
       </section>
-      <aside class="auth-brand" aria-hidden="true">
+      <aside class="auth-brand" [class.auth-brand--fallback]="useImageFallback()" aria-hidden="true">
+        <video
+          class="brand-video"
+          autoplay
+          muted
+          loop
+          playsinline
+          poster="/images/coraza-logo.png"
+          (error)="useImageFallback.set(true)"
+        >
+          <source src="/videos/coraza-logo.webm" type="video/webm" />
+          <source src="/videos/coraza-logo.mp4" type="video/mp4" />
+        </video>
         <img
-          class="brand-logo"
+          class="brand-logo brand-fallback"
           src="/images/coraza-logo.png"
-          alt="Coraza"
+          alt=""
           (error)="onLogoError($event)"
         />
       </aside>
@@ -48,11 +60,28 @@ import { RouterOutlet } from '@angular/router';
       background: var(--gradient-login);
     }
 
+    .brand-video,
     .brand-logo {
       width: min(520px, 72%);
       max-height: min(420px, 60vh);
       object-fit: contain;
       filter: drop-shadow(0 12px 28px rgba(15, 23, 42, 0.18));
+    }
+
+    .brand-video {
+      display: block;
+    }
+
+    .brand-fallback {
+      display: none;
+    }
+
+    .auth-brand--fallback .brand-video {
+      display: none;
+    }
+
+    .auth-brand--fallback .brand-fallback {
+      display: block;
     }
 
     @media (max-width: 900px) {
@@ -75,6 +104,8 @@ import { RouterOutlet } from '@angular/router';
   `,
 })
 export class AuthLayout {
+  readonly useImageFallback = signal(false);
+
   onLogoError(event: Event): void {
     const img = event.target as HTMLImageElement;
     img.style.display = 'none';
