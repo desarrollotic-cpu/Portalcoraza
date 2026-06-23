@@ -33,7 +33,7 @@ import { RouterOutlet } from '@angular/router';
       align-items: stretch;
       justify-content: center;
       min-height: 100vh;
-      padding: 2rem 3rem;
+      padding: 2.5rem 3.5rem 2.5rem 4rem;
       background: var(--coraza-surface);
       border-right: 1px solid var(--coraza-border);
       box-shadow: 4px 0 24px rgba(15, 23, 42, 0.06);
