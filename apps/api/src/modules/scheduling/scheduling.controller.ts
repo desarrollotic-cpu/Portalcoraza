@@ -47,7 +47,7 @@ export class SchedulingController {
   }
 
   @Delete('shifts/:id')
-  @RequirePermissions('scheduling.delete')
+  @RequirePermissions('scheduling.edit')
   remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.schedulingService.remove(id, user.sub);
   }

@@ -12,8 +12,8 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [ReactiveFormsModule],
   template: `
     <form class="card" [formGroup]="form" (ngSubmit)="submit()">
-      <h1>System Coraza</h1>
-      <p class="subtitle">Gestión administrativa y operativa</p>
+      <h1>Iniciar sesión</h1>
+      <p class="subtitle">Portal administrativo Coraza</p>
 
       @if (error()) {
         <p class="error">{{ error() }}</p>
@@ -40,12 +40,12 @@ import { AuthService } from '../../../core/services/auth.service';
   `,
   styles: `
     .card {
-      width: min(400px, 92vw);
-      background: var(--coraza-surface);
-      padding: 2rem;
-      border-radius: 12px;
-      border: 1px solid var(--coraza-border);
-      box-shadow: var(--coraza-shadow-lg);
+      width: 100%;
+      max-width: 360px;
+      background: transparent;
+      padding: 0;
+      border: none;
+      box-shadow: none;
       display: flex;
       flex-direction: column;
       gap: 1rem;

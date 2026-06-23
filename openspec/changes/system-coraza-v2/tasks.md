@@ -104,18 +104,18 @@
 
 ## 10. Frontend — Feature Programación
 
-- [ ] 10.1 Crear servicio `SchedulingApiService` en `features/programacion/`
-- [ ] 10.2 Crear componente `programacion/schedule-matrix/schedule-matrix.ts` como vista principal mensual tipo Excel
-- [ ] 10.3 Mantener componente `programacion/schedule-calendar/schedule-calendar.ts` como vista complementaria
-- [ ] 10.4 Crear componente `programacion/shift-form/shift-form.ts` para asignar turno (asociado, puesto, tipo, jornada, fecha)
-- [ ] 10.5 Agregar rutas `/programacion` con `permissionGuard`
+- [x] 10.1 Crear servicio `SchedulingApiService` en `features/programacion/`
+- [x] 10.2 Crear componente `programacion/schedule-matrix/schedule-matrix.ts` como vista principal mensual tipo Excel
+- [x] 10.3 Mantener componente `programacion/schedule-calendar/schedule-calendar.ts` como vista complementaria
+- [x] 10.4 Crear componente `programacion/shift-form/shift-form.ts` para asignar turno (asociado, puesto, tipo, jornada, fecha)
+- [x] 10.5 Agregar rutas `/programacion` con `permissionGuard`
 
 ## 11. Frontend — Feature Documental
 
-- [ ] 11.1 Crear servicio `DocumentalApiService` en `features/documental/`
-- [ ] 11.2 Crear componente `documental/documents-list/documents-list.ts` con búsqueda por código y tipo
-- [ ] 11.3 Crear componente `documental/document-form/document-form.ts` para registrar/editar metadata
-- [ ] 11.4 Agregar rutas `/documental` con `permissionGuard`
+- [x] 11.1 Crear servicio `DocumentalApiService` en `features/documental/`
+- [x] 11.2 Crear componente `documental/documents-list/documents-list.ts` con búsqueda por código y tipo
+- [x] 11.3 Crear componente `documental/document-form/document-form.ts` para registrar/editar metadata
+- [x] 11.4 Agregar rutas `/documental` con `permissionGuard`
 
 ## 12. Frontend — Feature Residencial
 

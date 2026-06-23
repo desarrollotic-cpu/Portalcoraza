@@ -25,19 +25,19 @@ export class DocumentalController {
   constructor(private readonly documentalService: DocumentalService) {}
 
   @Get('types')
-  @RequirePermissions('documental.types.view')
+  @RequirePermissions('documental.view')
   listTypes() {
     return this.documentalService.listTypes();
   }
 
   @Post('types')
-  @RequirePermissions('documental.types.create')
+  @RequirePermissions('documental.manage')
   createType(@Body() dto: CreateDocumentTypeDto, @CurrentUser() user: JwtPayload) {
     return this.documentalService.createType(dto, user.sub);
   }
 
   @Patch('types/:id')
-  @RequirePermissions('documental.types.edit')
+  @RequirePermissions('documental.manage')
   updateType(
     @Param('id') id: string,
     @Body() dto: UpdateDocumentTypeDto,
@@ -47,13 +47,13 @@ export class DocumentalController {
   }
 
   @Get('records')
-  @RequirePermissions('documental.records.view')
+  @RequirePermissions('documental.view')
   listRecords(@Query('code') code?: string) {
     return this.documentalService.listRecords(code);
   }
 
   @Post('records')
-  @RequirePermissions('documental.records.create')
+  @RequirePermissions('documental.create')
   createRecord(
     @Body() dto: CreateDocumentRecordDto,
     @CurrentUser() user: JwtPayload,
@@ -62,7 +62,7 @@ export class DocumentalController {
   }
 
   @Patch('records/:id')
-  @RequirePermissions('documental.records.edit')
+  @RequirePermissions('documental.create')
   updateRecord(
     @Param('id') id: string,
     @Body() dto: UpdateDocumentRecordDto,

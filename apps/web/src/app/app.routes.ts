@@ -96,6 +96,61 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dotacion/delivery-form/delivery-form').then((m) => m.DeliveryForm),
       },
+      {
+        path: 'programacion',
+        canActivate: [permissionGuard],
+        data: { permission: 'scheduling.view' },
+        loadComponent: () =>
+          import('./features/programacion/schedule-matrix/schedule-matrix').then(
+            (m) => m.ScheduleMatrix,
+          ),
+      },
+      {
+        path: 'programacion/calendario',
+        canActivate: [permissionGuard],
+        data: { permission: 'scheduling.view' },
+        loadComponent: () =>
+          import('./features/programacion/schedule-calendar/schedule-calendar').then(
+            (m) => m.ScheduleCalendar,
+          ),
+      },
+      {
+        path: 'programacion/turno/nuevo',
+        canActivate: [permissionGuard],
+        data: { permission: 'scheduling.create' },
+        loadComponent: () =>
+          import('./features/programacion/shift-form/shift-form').then((m) => m.ShiftForm),
+      },
+      {
+        path: 'programacion/turno/:id/editar',
+        canActivate: [permissionGuard],
+        data: { permission: 'scheduling.edit' },
+        loadComponent: () =>
+          import('./features/programacion/shift-form/shift-form').then((m) => m.ShiftForm),
+      },
+      {
+        path: 'documental',
+        canActivate: [permissionGuard],
+        data: { permission: 'documental.view' },
+        loadComponent: () =>
+          import('./features/documental/documents-list/documents-list').then(
+            (m) => m.DocumentsList,
+          ),
+      },
+      {
+        path: 'documental/nuevo',
+        canActivate: [permissionGuard],
+        data: { permission: 'documental.create' },
+        loadComponent: () =>
+          import('./features/documental/document-form/document-form').then((m) => m.DocumentForm),
+      },
+      {
+        path: 'documental/:id/editar',
+        canActivate: [permissionGuard],
+        data: { permission: 'documental.create' },
+        loadComponent: () =>
+          import('./features/documental/document-form/document-form').then((m) => m.DocumentForm),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
