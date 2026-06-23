@@ -23,18 +23,20 @@ import { RouterOutlet } from '@angular/router';
     .auth-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: minmax(360px, 440px) 1fr;
+      grid-template-columns: minmax(420px, 38vw) 1fr;
       background: var(--gradient-login);
     }
 
     .auth-left {
       display: flex;
+      flex-direction: column;
+      align-items: stretch;
       justify-content: flex-start;
-      align-items: flex-start;
-      padding: 10vh 2.5rem 2rem 3.5rem;
+      padding: 10vh 3rem 2rem 3.5rem;
       background: var(--coraza-surface);
       border-right: 1px solid var(--coraza-border);
       box-shadow: 4px 0 24px rgba(15, 23, 42, 0.06);
+      min-width: 0;
     }
 
     .auth-brand {

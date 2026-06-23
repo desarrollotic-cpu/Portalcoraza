@@ -39,49 +39,58 @@ import { AuthService } from '../../../core/services/auth.service';
     </form>
   `,
   styles: `
+    :host {
+      display: block;
+      width: 100%;
+    }
+
     .card {
       width: 100%;
-      max-width: 360px;
+      max-width: none;
       background: transparent;
       padding: 0;
       border: none;
       box-shadow: none;
       display: flex;
       flex-direction: column;
-      gap: 1rem;
+      gap: 1.25rem;
     }
     h1 {
       margin: 0;
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       font-weight: 600;
       color: var(--primary-dark);
     }
     .subtitle {
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.75rem;
       color: var(--coraza-text-muted);
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
     label {
       display: flex;
       flex-direction: column;
-      gap: 0.35rem;
-      font-size: 0.85rem;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 500;
       color: var(--coraza-text);
     }
     input {
-      padding: 0.6rem 0.75rem;
+      width: 100%;
+      padding: 0.9rem 1rem;
       border: 1px solid var(--coraza-border);
       border-radius: var(--coraza-radius);
-      font-size: 1rem;
+      font-size: 1.05rem;
       background: var(--primary-50);
     }
     button {
-      margin-top: 0.5rem;
-      padding: 0.7rem;
+      width: 100%;
+      margin-top: 0.75rem;
+      padding: 0.95rem 1rem;
       background: var(--coraza-primary);
       color: #fff;
       border: none;
       border-radius: var(--coraza-radius);
+      font-size: 1.05rem;
       font-weight: 600;
       cursor: pointer;
       transition: background 0.15s ease;
