@@ -74,24 +74,24 @@
 
 ## 7. Backend — Módulo Residencial
 
-- [ ] 7.1 Crear entidades TypeORM: `ResidentialUnit`, `Resident`, `Owner`, `Tenant`, `Visitor`, `Vehicle`, `VisitorParkingSlot`, `MailRecord`, `Package`, `Reservation`, `VirtualLog`, `ResidentialIncident`
-- [ ] 7.2 Implementar filtrado residencial por todos los `post_id` asignados al usuario autenticado
-- [ ] 7.3 Implementar `ResidentialService` para unidades, residentes, propietarios y arrendatarios
-- [ ] 7.4 Implementar `VisitorsService` con registro de entrada/salida y escritura al `virtual_log`
-- [ ] 7.4.1 Implementar control de parqueaderos visitantes con cupos totales, ocupados y disponibles en tiempo real
-- [ ] 7.5 Implementar `PackagesService` con notificación al recibir paquete
-- [ ] 7.6 Implementar `VehiclesService` CRUD básico
-- [ ] 7.7 Implementar `ReservationsService` con validación de conflicto de horario y flujo de aprobación configurable por recurso
-- [ ] 7.8 Implementar `IncidentsService` para novedades residenciales con estados, prioridades, responsable, historial y auditoría
-- [ ] 7.9 Crear `ResidentialController` con endpoints y permisos
-- [ ] 7.10 Registrar `ResidentialModule` en `AppModule`
+- [x] 7.1 Crear entidades TypeORM: `ResidentialUnit`, `Resident`, `Owner`, `Tenant`, `Visitor`, `Vehicle`, `VisitorParkingSlot`, `MailRecord`, `Package`, `Reservation`, `VirtualLog`, `ResidentialIncident`
+- [x] 7.2 Implementar filtrado residencial por todos los `post_id` asignados al usuario autenticado
+- [x] 7.3 Implementar `ResidentialService` para unidades, residentes, propietarios y arrendatarios
+- [x] 7.4 Implementar `VisitorsService` con registro de entrada/salida y escritura al `virtual_log`
+- [x] 7.4.1 Implementar control de parqueaderos visitantes con cupos totales, ocupados y disponibles en tiempo real
+- [x] 7.5 Implementar `PackagesService` con notificación al recibir paquete
+- [x] 7.6 Implementar `VehiclesService` CRUD básico
+- [x] 7.7 Implementar `ReservationsService` con validación de conflicto de horario y flujo de aprobación configurable por recurso
+- [x] 7.8 Implementar `IncidentsService` para novedades residenciales con estados, prioridades, responsable, historial y auditoría
+- [x] 7.9 Crear `ResidentialController` con endpoints y permisos
+- [x] 7.10 Registrar `ResidentialModule` en `AppModule`
 
 ## 8. Backend — Notificaciones Realtime
 
-- [ ] 8.1 Crear `NotificationsService` con método `send(userId, title, body, module)`
-- [ ] 8.2 Inyectar `NotificationsService` en los módulos que generan notificaciones (rrhh, inventory, scheduling, residential, documental)
-- [ ] 8.3 Crear endpoints `GET /notifications` y `PATCH /notifications/:id/read`
-- [ ] 8.4 Registrar `NotificationsModule` en `AppModule`
+- [x] 8.1 Crear `NotificationsService` con método `send(userId, title, body, module)`
+- [x] 8.2 Inyectar `NotificationsService` en los módulos que generan notificaciones (rrhh, inventory, scheduling, residential, documental)
+- [x] 8.3 Crear endpoints `GET /notifications` y `PATCH /notifications/:id/read`
+- [x] 8.4 Registrar `NotificationsModule` en `AppModule`
 
 ## 9. Frontend — Feature Dotación (Inventario)
 

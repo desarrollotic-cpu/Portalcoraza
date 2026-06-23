@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateDocumentRecordDto } from './dto/create-document-record.dto';
 import { CreateDocumentTypeDto } from './dto/create-document-type.dto';
 import { UpdateDocumentRecordDto } from './dto/update-document-record.dto';
@@ -21,6 +22,7 @@ export class DocumentalService {
     @InjectRepository(DocumentRecord)
     private readonly recordsRepo: Repository<DocumentRecord>,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   listTypes() {
@@ -103,6 +105,13 @@ export class DocumentalService {
       entityId: saved.id,
       newValue: saved as unknown as Record<string, unknown>,
     });
+
+    await this.notificationsService.sendToRole(
+      'GERENCIA',
+      'Nuevo documento registrado',
+      `${saved.code} — ${saved.title}`,
+      'documental',
+    );
 
     return saved;
   }

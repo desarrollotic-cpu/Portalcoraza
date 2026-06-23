@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
 import { InventoryCategory } from './entities/inventory-category.entity';
@@ -17,6 +18,7 @@ import { InventoryVariant } from './entities/inventory-variant.entity';
       InventoryMovement,
     ]),
     AuditModule,
+    NotificationsModule,
   ],
   controllers: [InventoryController],
   providers: [InventoryService],

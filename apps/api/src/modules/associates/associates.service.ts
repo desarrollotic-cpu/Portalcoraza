@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AssociateHistory } from './entities/associate-history.entity';
 import { Associate, AssociateStatus } from './entities/associate.entity';
 import { CreateAssociateDto } from './dto/create-associate.dto';
@@ -15,6 +16,7 @@ export class AssociatesService {
     @InjectRepository(AssociateHistory)
     private readonly historyRepo: Repository<AssociateHistory>,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   findAll(status?: AssociateStatus) {
@@ -88,11 +90,18 @@ export class AssociatesService {
   }
 
   async retire(id: string, userId: string) {
-    return this.update(
-      id,
-      { status: AssociateStatus.RETIRADO },
-      userId,
-    );
+    const existing = await this.findOne(id);
+    const saved = await this.update(id, { status: AssociateStatus.RETIRADO }, userId);
+
+    const name = [existing.firstName, existing.lastName].filter(Boolean).join(' ') || 'Sin nombre';
+    const title = `Asociado retirado: ${name}`;
+    const body = existing.documentNumber
+      ? `Documento ${existing.documentNumber}`
+      : null;
+    await this.notificationsService.sendToRole('RRHH', title, body, 'rrhh');
+    await this.notificationsService.sendToRole('GERENCIA', title, body, 'rrhh');
+
+    return saved;
   }
 
   async history(id: string) {

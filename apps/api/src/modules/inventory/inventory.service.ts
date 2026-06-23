@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateInventoryCategoryDto } from './dto/create-inventory-category.dto';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
@@ -33,6 +34,7 @@ export class InventoryService {
     @InjectRepository(InventoryMovement)
     private readonly movementsRepo: Repository<InventoryMovement>,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   listCategories() {
@@ -277,6 +279,11 @@ export class InventoryService {
           threshold: variant.item.lowStockThreshold,
         },
       });
+
+      const title = `Stock bajo: ${variant.sku}`;
+      const body = `Quedan ${stockNext} unidades (umbral: ${variant.item.lowStockThreshold})`;
+      await this.notificationsService.sendToRole('ALMACENISTA', title, body, 'inventory');
+      await this.notificationsService.sendToRole('GERENCIA', title, body, 'inventory');
     }
 
     return {

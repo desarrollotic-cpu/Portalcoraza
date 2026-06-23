@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { SchedulingController } from './scheduling.controller';
 import { SchedulingService } from './scheduling.service';
 import { ShiftSchedule } from './entities/shift-schedule.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ShiftSchedule]), AuditModule],
+  imports: [TypeOrmModule.forFeature([ShiftSchedule]), AuditModule, NotificationsModule],
   controllers: [SchedulingController],
   providers: [SchedulingService],
   exports: [SchedulingService],

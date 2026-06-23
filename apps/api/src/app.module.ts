@@ -7,6 +7,8 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { DocumentalModule } from './modules/documental/documental.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { ResidentialModule } from './modules/residential/residential.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -37,6 +39,8 @@ import { UsersModule } from './modules/users/users.module';
     DeliveriesModule,
     SchedulingModule,
     DocumentalModule,
+    ResidentialModule,
+    NotificationsModule,
     PostsModule,
     AuditModule,
   ],

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateShiftScheduleDto } from './dto/create-shift-schedule.dto';
 import { ListShiftSchedulesDto } from './dto/list-shift-schedules.dto';
 import { UpdateShiftScheduleDto } from './dto/update-shift-schedule.dto';
@@ -17,6 +18,7 @@ export class SchedulingService {
     @InjectRepository(ShiftSchedule)
     private readonly schedulesRepo: Repository<ShiftSchedule>,
     private readonly auditService: AuditService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(dto: CreateShiftScheduleDto, userId: string) {
@@ -37,6 +39,13 @@ export class SchedulingService {
         entityId: saved.id,
         newValue: saved as unknown as Record<string, unknown>,
       });
+
+      await this.notificationsService.sendToRole(
+        'GERENCIA',
+        'Nuevo turno programado',
+        `Turno ${saved.shiftType} el ${saved.shiftDate}`,
+        'scheduling',
+      );
 
       return saved;
     } catch (error) {
