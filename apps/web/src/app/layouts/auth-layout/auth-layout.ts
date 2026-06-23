@@ -31,8 +31,9 @@ import { RouterOutlet } from '@angular/router';
       display: flex;
       flex-direction: column;
       align-items: stretch;
-      justify-content: flex-start;
-      padding: 10vh 3rem 2rem 3.5rem;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem 3rem;
       background: var(--coraza-surface);
       border-right: 1px solid var(--coraza-border);
       box-shadow: 4px 0 24px rgba(15, 23, 42, 0.06);
@@ -65,7 +66,8 @@ import { RouterOutlet } from '@angular/router';
 
       .auth-left {
         min-height: 100vh;
-        padding: 8vh 1.5rem 2rem;
+        justify-content: center;
+        padding: 2rem 1.5rem;
         border-right: none;
         box-shadow: none;
       }

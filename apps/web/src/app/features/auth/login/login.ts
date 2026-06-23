@@ -40,13 +40,14 @@ import { AuthService } from '../../../core/services/auth.service';
   `,
   styles: `
     :host {
-      display: block;
+      display: flex;
       width: 100%;
+      justify-content: center;
     }
 
     .card {
       width: 100%;
-      max-width: none;
+      max-width: 100%;
       background: transparent;
       padding: 0;
       border: none;
@@ -60,11 +61,13 @@ import { AuthService } from '../../../core/services/auth.service';
       font-size: 1.75rem;
       font-weight: 600;
       color: var(--primary-dark);
+      text-align: center;
     }
     .subtitle {
       margin: 0 0 0.75rem;
       color: var(--coraza-text-muted);
       font-size: 1rem;
+      text-align: center;
     }
     label {
       display: flex;
