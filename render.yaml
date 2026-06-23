@@ -1,0 +1,17 @@
+# PortalCoraza — Render Blueprint
+# API: ya desplegada en portalcoraza.onrender.com (Web Service Node)
+# Este archivo agrega el frontend Angular como Static Site.
+
+services:
+  - type: web
+    name: portalcoraza-web
+    runtime: static
+    buildCommand: npm install && npm run web:build
+    staticPublishPath: apps/web/dist/web/browser
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

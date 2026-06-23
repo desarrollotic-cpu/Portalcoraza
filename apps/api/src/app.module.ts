@@ -16,6 +16,10 @@ import { PostsModule } from './modules/posts/posts.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 
+function isSupabaseDatabaseUrl(url?: string): boolean {
+  if (!url) return false;
+  return url.includes('supabase') || url.includes('pooler');
+}
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -25,10 +29,9 @@ import { UsersModule } from './modules/users/users.module';
       url: process.env.DATABASE_URL,
       autoLoadEntities: true,
       synchronize: false,
-      ssl:
-        process.env.DATABASE_URL?.includes('supabase')
-          ? { rejectUnauthorized: false }
-          : false,
+      ssl: isSupabaseDatabaseUrl(process.env.DATABASE_URL)
+        ? { rejectUnauthorized: false }
+        : false,
     }),
     AuthModule,
     UsersModule,

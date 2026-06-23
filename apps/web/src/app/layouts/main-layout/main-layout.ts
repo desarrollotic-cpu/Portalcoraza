@@ -12,6 +12,9 @@ import { AuthService } from '../../core/services/auth.service';
         <nav>
           <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
           <a routerLink="/rrhh/asociados" routerLinkActive="active">Asociados</a>
+          @if (auth.hasPermission('inventory.view')) {
+            <a routerLink="/dotacion" routerLinkActive="active">Dotación</a>
+          }
         </nav>
         <div class="user">
           <span>{{ auth.currentUser()?.fullName ?? auth.currentUser()?.email }}</span>

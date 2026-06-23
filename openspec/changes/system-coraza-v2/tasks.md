@@ -95,12 +95,12 @@
 
 ## 9. Frontend — Feature Dotación (Inventario)
 
-- [ ] 9.1 Crear servicio `InventoryApiService` en `features/dotacion/`
-- [ ] 9.2 Crear componente `dotacion/inventory-list/inventory-list.ts` con listado de ítems y stock
-- [ ] 9.3 Crear componente `dotacion/inventory-form/inventory-form.ts` para crear/editar ítems y variantes
-- [ ] 9.4 Crear componente `dotacion/deliveries-list/deliveries-list.ts` con listado de entregas
-- [ ] 9.5 Crear componente `dotacion/delivery-form/delivery-form.ts` con selección de asociado, ítems y canvas de firma
-- [ ] 9.6 Agregar rutas `/dotacion` en `app.routes.ts` con `permissionGuard`
+- [x] 9.1 Crear servicio `InventoryApiService` en `features/dotacion/`
+- [x] 9.2 Crear componente `dotacion/inventory-list/inventory-list.ts` con listado de ítems y stock
+- [x] 9.3 Crear componente `dotacion/inventory-form/inventory-form.ts` para crear/editar ítems y variantes
+- [x] 9.4 Crear componente `dotacion/deliveries-list/deliveries-list.ts` con listado de entregas
+- [x] 9.5 Crear componente `dotacion/delivery-form/delivery-form.ts` con selección de asociado, ítems y canvas de firma
+- [x] 9.6 Agregar rutas `/dotacion` en `app.routes.ts` con `permissionGuard`
 
 ## 10. Frontend — Feature Programación
 

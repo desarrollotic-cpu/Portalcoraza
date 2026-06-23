@@ -1,6 +1,10 @@
+import * as dns from 'dns';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+
+// Render y otros hosts IPv4-only: priorizar IPv4 al resolver Supabase direct/pooler
+dns.setDefaultResultOrder('ipv4first');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);

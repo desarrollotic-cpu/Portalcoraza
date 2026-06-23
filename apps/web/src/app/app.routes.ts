@@ -54,6 +54,48 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/rrhh/associate-detail/associate-detail').then((m) => m.AssociateDetail),
       },
+      {
+        path: 'dotacion',
+        canActivate: [permissionGuard],
+        data: { permission: 'inventory.view' },
+        loadComponent: () =>
+          import('./features/dotacion/inventory-list/inventory-list').then((m) => m.InventoryList),
+      },
+      {
+        path: 'dotacion/inventario/nuevo',
+        canActivate: [permissionGuard],
+        data: { permission: 'inventory.create' },
+        loadComponent: () =>
+          import('./features/dotacion/inventory-form/inventory-form').then((m) => m.InventoryForm),
+      },
+      {
+        path: 'dotacion/inventario/:id/editar',
+        canActivate: [permissionGuard],
+        data: { permission: 'inventory.edit' },
+        loadComponent: () =>
+          import('./features/dotacion/inventory-form/inventory-form').then((m) => m.InventoryForm),
+      },
+      {
+        path: 'dotacion/entregas',
+        canActivate: [permissionGuard],
+        data: { permission: 'deliveries.view' },
+        loadComponent: () =>
+          import('./features/dotacion/deliveries-list/deliveries-list').then((m) => m.DeliveriesList),
+      },
+      {
+        path: 'dotacion/entregas/nueva',
+        canActivate: [permissionGuard],
+        data: { permission: 'deliveries.create' },
+        loadComponent: () =>
+          import('./features/dotacion/delivery-form/delivery-form').then((m) => m.DeliveryForm),
+      },
+      {
+        path: 'dotacion/entregas/:id/firmar',
+        canActivate: [permissionGuard],
+        data: { permission: 'deliveries.sign' },
+        loadComponent: () =>
+          import('./features/dotacion/delivery-form/delivery-form').then((m) => m.DeliveryForm),
+      },
     ],
   },
   { path: '**', redirectTo: 'dashboard' },
