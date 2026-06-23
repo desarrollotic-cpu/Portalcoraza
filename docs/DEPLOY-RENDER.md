@@ -52,6 +52,42 @@ Credenciales por defecto (si corriste seed): `admin@coraza.local` / `Coraza2026!
 
 ---
 
+## Assets del login (video y logo)
+
+Los archivos estáticos viven en `apps/web/public/` y Angular los copia a `apps/web/dist/web/browser/` al hacer build.
+
+| Archivo | Ruta en repo | URL en producción |
+|---------|--------------|-------------------|
+| Video animado | `apps/web/public/videos/coraza-logo.mp4` | `/videos/coraza-logo.mp4` |
+| Logo PNG (opcional) | `apps/web/public/images/coraza-logo.png` | `/images/coraza-logo.png` |
+
+**Requisitos del video:**
+
+- Nombre exacto: `coraza-logo.mp4` (minúsculas, sin doble extensión)
+- Formato: MP4 (H.264), sin audio, idealmente &lt; 3 MB
+- Se reproduce en loop, muted, autoplay en el panel derecho del login
+
+**Verificar que el video se sirve:**
+
+1. Tras deploy, abre: `https://portalcoraza-web.onrender.com/videos/coraza-logo.mp4`
+2. Debe reproducir/descargar el MP4 — **no** la página HTML del SPA
+3. Si devuelve HTML → revisa **Publish Directory** (`apps/web/dist/web/browser`)
+
+**SPA routing vs assets estáticos:**
+
+- El rewrite `/* → /index.html` está en `render.yaml` (Render sirve archivos existentes antes del rewrite)
+- **No** usar catch-all en `apps/web/public/_redirects` (`/* /index.html`) — puede bloquear `/videos/*` en algunos hosts
+- El routing SPA de Angular queda cubierto por `render.yaml`
+
+**Troubleshooting video invisible en login:**
+
+1. Confirmar que `coraza-logo.mp4` está en git y en el build (`dist/web/browser/videos/`)
+2. Probar URL directa del video (arriba)
+3. Hard refresh: Ctrl+F5
+4. Si falla el video, el layout muestra texto "Coraza" como fallback
+
+---
+
 ## API — variables de entorno
 
 Este error en Render casi siempre significa que **`DATABASE_URL` en Render no coincide** con la cadena del dashboard de Supabase (host del pooler o usuario incorrectos).

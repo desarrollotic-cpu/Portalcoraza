@@ -4,7 +4,7 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 ---
 
-## ACTUALIZACION OPENSpec (2026-06-09)
+## ACTUALIZACION OPENSpec (2026-06-23)
 
 Estado real del change activo `system-coraza-v2`:
 
@@ -12,25 +12,37 @@ Estado real del change activo `system-coraza-v2`:
 - Fuente de verdad de avance: `openspec/changes/system-coraza-v2/tasks.md`
 - Bitacora de continuidad: `openspec/changes/system-coraza-v2/progress.md`
 
+**Producción Render (activo):**
+
+| Servicio | URL |
+|----------|-----|
+| API | `https://portalcoraza.onrender.com` |
+| Web | `https://portalcoraza-web.onrender.com` |
+| Login | `https://portalcoraza-web.onrender.com/auth/login` |
+
+Credenciales seed: `admin@coraza.local` / `Coraza2026!` (GERENCIA)
+
 Avance confirmado:
 
-- Completado: 0.x, 1.x, 3.x, 5.x, 6.x
-- Completado con pendientes manuales/tecnicos: 2.x (faltan 2.7 y 2.8), 4.x (falta 4.3 SDK oficial)
-- Pendiente por iniciar: 7.x en adelante
+- Backend completado: 0.x–8.x (inventario, entregas, programación, documental, residencial, notificaciones)
+- Frontend completado: 1.x RRHH, 9.x dotación, 10.x programación, 11.x documental, 15.x login/branding
+- Deploy: `render.yaml`, Static Site `portalcoraza-web`, Publish Directory `apps/web/dist/web/browser`
+- Login: split layout + video `coraza-logo.mp4` en panel derecho
 
-Pendientes manuales fuera de codigo:
+Pendiente inmediato:
 
-- 2.7 Crear bucket `delivery-signatures` con politicas en Supabase
-- 2.8 Activar Realtime para tabla `notifications`
-
-Pendiente tecnico de backend:
-
-- 4.3 Reemplazar carga de firma por API HTTP directa hacia SDK oficial de Supabase Storage
+- 12.x Frontend residencial
+- 13.x Notificaciones Realtime + admin + dashboard widgets
+- 14.x Verificación final
+- 2.7 Bucket `delivery-signatures` (manual Supabase)
+- 2.8 Realtime en `notifications` (manual Supabase)
+- 4.3 SDK oficial Supabase Storage para firmas
+- 15.7 PNG `coraza-logo.png` (opcional, usuario)
 
 Protocolo obligatorio para continuar desde otro ID de desarrollo:
 
 1. Leer `proposal.md`, `design.md`, `tasks.md`, `progress.md` del change activo
-2. Implementar solo el bloque pendiente siguiente
+2. Implementar solo el bloque pendiente siguiente (12.x residencial)
 3. Actualizar `tasks.md` al cerrar cada tarea
 4. Actualizar `progress.md` al cerrar cada bloque
 
@@ -82,16 +94,26 @@ Portal_Coraza/
 
 ### Web (`apps/web`)
 
-- Login, dashboard, listado asociados (lectura)
-- Layout con sidebar, tema en `src/styles/_theme.scss`
-- `environment.ts` con `supabase.url` y `publishableKey`
-- Rutas lazy: `/auth/login`, `/dashboard`, `/rrhh/asociados`
+- Login rediseñado (split layout, video animado, formulario estilo Material)
+- Dashboard, RRHH (asociados CRUD + detalle + historial)
+- Dotación: inventario, entregas, firma canvas
+- Programación: matriz Excel, calendario, formulario turnos
+- Documental: listado + formulario metadata-only
+- Layout con sidebar condicional por permisos (`inventory.view`, `scheduling.view`, `documental.view`)
+- Tema en `src/styles/_theme.scss`
+- Assets login: `public/videos/coraza-logo.mp4`, `public/images/` (PNG opcional)
+- Rutas lazy con `permissionGuard` en `app.routes.ts`
 
-### Base de datos (SQL en repo, **no confirmado aplicado en Supabase**)
+### Base de datos
 
-- `supabase/migrations/001_core_schema.sql` — tablas core
-- `supabase/seed/001_roles_permissions.sql` — 6 roles + permisos
-- `supabase/seed/002_gerencia_full_permissions.sql` — parche GERENCIA
+- Migraciones 001–007 en repo (`supabase/migrations/`)
+- Seeds roles/permisos + admin
+- Producción: Supabase Session pooler en Render API
+
+### Despliegue
+
+- API + Static Site en Render (ver `docs/DEPLOY-RENDER.md`)
+- Repo GitHub: `desarrollotic-cpu/Portalcoraza`
 
 ### Roles iniciales
 
@@ -109,19 +131,18 @@ Portal_Coraza/
 
 ---
 
-## 4. Qué NO está hecho / bloqueado
+## 4. Qué NO está hecho / pendiente
 
 | Ítem | Estado |
 |------|--------|
-| SQL ejecutado en Supabase | **Pendiente** (o no verificado) |
-| Usuario admin en BD | **Pendiente** |
-| Login end-to-end funcionando | **Pendiente** (depende de BD + API) |
-| `npm run db:setup` desde agente Cursor | **Falló** — ver sección 6 |
-| Push a GitHub | **Falló** — usuario `jhoncode1994` sin permiso 403 en org `desarrollotic-cpu` |
-| UI CRUD usuarios / asociados / puestos | **Pendiente** |
-| Angular Material | No instalado (estilos SCSS propios) |
-| Supabase CLI | No instalada en Windows del usuario |
-| Fases 2–6 (dotación, programación, etc.) | No iniciadas |
+| Frontend residencial (12.x) | **Pendiente** |
+| Notificaciones Realtime UI (13.x) | **Pendiente** |
+| Admin usuarios/roles UI (13.x) | **Pendiente** |
+| Verificación E2E (14.x) | **Pendiente** |
+| Bucket `delivery-signatures` (2.7) | **Manual Supabase** |
+| Realtime `notifications` (2.8) | **Manual Supabase** |
+| SDK oficial firma entregas (4.3) | **Pendiente** |
+| PNG logo estático `coraza-logo.png` | **Opcional** |
 
 ---
 
@@ -182,11 +203,11 @@ npm run web:dev    # http://localhost:4200
 
 ### D. Desarrollo siguiente (producto)
 
-1. Pantalla admin: crear usuarios (RRHH, etc.) — API `POST /users` ya existe
-2. CRUD asociados (solo RRHH crea — regla de negocio)
-3. CRUD puestos
-4. Commit + push a GitHub (resolver permisos org)
-5. Rotar contraseña BD (fue expuesta en chat con el usuario)
+1. **12.x Residencial** — unidades, visitantes, paquetes, reservas
+2. **13.x** — Realtime notificaciones, admin, widgets dashboard
+3. **14.x** — Verificación final
+4. Tareas manuales Supabase: bucket firmas (2.7), Realtime (2.8)
+5. Opcional: subir `coraza-logo.png` para logo estático en formulario
 
 ---
 
@@ -217,6 +238,7 @@ npm run web:dev    # http://localhost:4200
 - `docs/ARCHITECTURE.md` — principios
 - `docs/SUPABASE.md` — Supabase
 - `docs/COMO-OBTENER-CLAVE-SUPABASE.md` — contraseña BD
+- `docs/DEPLOY-RENDER.md` — despliegue Render + assets login (video/logo)
 - `docs/HANDOFF-IA.md` — este archivo
 
 ---
@@ -224,13 +246,16 @@ npm run web:dev    # http://localhost:4200
 ## 11. Mensaje corto para pegar a otra IA
 
 ```
-Continúa System Coraza en Portal_Coraza (monorepo NestJS + Angular 21 + Supabase duxpqkldgdnfcabpkogl).
+Continúa System Coraza (monorepo NestJS + Angular + Supabase).
 
-HECHO: Fase 1 API (auth JWT, RBAC, associates, posts, audit), frontend login/dashboard/lista asociados, SQL migrations/seeds, .env con DATABASE_URL, script npm run db:setup.
+PRODUCCIÓN: API portalcoraza.onrender.com | Web portalcoraza-web.onrender.com
+Login: admin@coraza.local / Coraza2026!
 
-BLOQUEADO: db:setup no corrió desde agente (DNS EAI_AGAIN). Tablas y admin@coraza.local probablemente NO existen en Supabase aún.
+HECHO: Backend 0.x–8.x completo. Frontend: RRHH, dotación, programación, documental, login con video.
+Change activo: openspec/changes/system-coraza-v2/ — leer tasks.md + progress.md.
 
-HAZ PRIMERO: npm run db:setup en terminal local O ejecutar SQL en Supabase + seed:admin. Luego api:dev + web:dev y verificar login.
+SIGUIENTE: 12.x Frontend residencial, luego 13.x notificaciones/admin.
 
-SIGUIENTE: UI CRUD usuarios/asociados/puestos, push a github.com/desarrollotic-cpu/Portalcoraza, no commitear .env.
+PENDIENTE MANUAL: Supabase bucket delivery-signatures (2.7), Realtime notifications (2.8).
+Assets login: apps/web/public/videos/coraza-logo.mp4 (deployed). PNG opcional en public/images/.
 ```

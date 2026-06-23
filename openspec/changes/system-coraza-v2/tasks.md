@@ -117,6 +117,16 @@
 - [x] 11.3 Crear componente `documental/document-form/document-form.ts` para registrar/editar metadata
 - [x] 11.4 Agregar rutas `/documental` con `permissionGuard`
 
+## 15. Frontend — Login y branding (2026-06-23)
+
+- [x] 15.1 Rediseñar `auth-layout` con split: formulario izquierda, brand/video derecha
+- [x] 15.2 Rediseñar `login.ts`: saludo, inputs underline, botón píldora, toggle contraseña
+- [x] 15.3 Ajustar proporciones del formulario (ancho, centrado vertical)
+- [x] 15.4 Agregar soporte video animado en panel derecho (`/videos/coraza-logo.mp4`)
+- [x] 15.5 Subir asset `apps/web/public/videos/coraza-logo.mp4`
+- [x] 15.6 Corregir carga del video en Render ( `_redirects` + `play()` programático)
+- [ ] 15.7 Agregar `apps/web/public/images/coraza-logo.png` (logo estático / poster — opcional, pendiente del usuario)
+
 ## 12. Frontend — Feature Residencial
 
 - [ ] 12.1 Crear servicio `ResidentialApiService` en `features/residential/`

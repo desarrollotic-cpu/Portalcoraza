@@ -272,6 +272,18 @@ Estos campos no se usan operativamente en fase 1.
 ### Rollback
 Todas las fases son aditivas. Rollback = no ejecutar la fase / hacer `DROP TABLE` de tablas nuevas. El core existente no se modifica destructivamente en ningún punto.
 
+### Decisión UX — Pantalla de login (2026-06-23)
+
+**Layout:** split vertical — formulario a la izquierda (~38vw, fondo blanco), branding a la derecha (degradado índigo).
+
+**Formulario:** estilo limpio tipo Material (labels + línea inferior en inputs, botón píldora full-width, toggle de contraseña). Centrado vertical en el panel izquierdo.
+
+**Branding derecho:** video animado `coraza-logo.mp4` en loop (muted, autoplay). Fallback a texto "Coraza" si el asset no carga.
+
+**Assets:** `apps/web/public/videos/coraza-logo.mp4` (obligatorio para animación); `apps/web/public/images/coraza-logo.png` (opcional, logo pequeño en formulario y poster del video).
+
+**Deploy:** Static Site Render; Publish Directory `apps/web/dist/web/browser`. No usar catch-all en `_redirects` que intercepte `/videos/*`.
+
 ---
 
 ## Validaciones de cierre de fase 1
