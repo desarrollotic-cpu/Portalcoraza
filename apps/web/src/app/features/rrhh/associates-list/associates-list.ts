@@ -1,11 +1,12 @@
-import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { DeliveryDialog } from '../../dotacion/delivery-dialog/delivery-dialog';
 import { Associate, AssociatesApiService } from '../associates-api.service';
 
 @Component({
   selector: 'app-associates-list',
-  imports: [RouterLink],
+  imports: [RouterLink, DeliveryDialog],
   template: `
     <section>
       <header>
@@ -39,6 +40,9 @@ import { Associate, AssociatesApiService } from '../associates-api.service';
                 <td class="actions-cell">
                   <a [routerLink]="['/rrhh/asociados', a.id]">Ver historia</a>
                   <a [routerLink]="['/rrhh/asociados', a.id, 'editar']">Editar</a>
+                  @if (auth.hasPermission('deliveries.create') && a.status !== 'RETIRADO') {
+                    <button type="button" (click)="openDelivery(a)">Entregar dotación</button>
+                  }
                   <button
                     type="button"
                     (click)="retire(a)"
@@ -57,6 +61,14 @@ import { Associate, AssociatesApiService } from '../associates-api.service';
         </table>
       }
     </section>
+
+    <app-delivery-dialog
+      [open]="deliveryOpen()"
+      [associateId]="deliveryAssociateId()"
+      [subjectLabel]="deliverySubject()"
+      (completed)="onDeliveryCompleted()"
+      (dismissed)="closeDelivery()"
+    />
   `,
   styles: `
     header h2 {
@@ -109,12 +121,15 @@ import { Associate, AssociatesApiService } from '../associates-api.service';
   `,
 })
 export class AssociatesList implements OnInit {
-  private readonly http = inject(HttpClient);
   private readonly associatesApi = inject(AssociatesApiService);
+  readonly auth = inject(AuthService);
 
   readonly associates = signal<Associate[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly deliveryOpen = signal(false);
+  readonly deliveryAssociateId = signal<string | null>(null);
+  readonly deliverySubject = signal('');
 
   ngOnInit(): void {
     this.associatesApi.list().subscribe({
@@ -131,11 +146,6 @@ export class AssociatesList implements OnInit {
         );
       },
     });
-  }
-
-  fullName(a: Associate): string {
-    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
-    return name || '—';
   }
 
   retire(a: Associate): void {
@@ -156,5 +166,26 @@ export class AssociatesList implements OnInit {
       },
       error: () => this.error.set('No se pudo retirar el asociado'),
     });
+  }
+
+  openDelivery(a: Associate): void {
+    this.deliveryAssociateId.set(a.id);
+    this.deliverySubject.set(this.fullName(a));
+    this.deliveryOpen.set(true);
+  }
+
+  closeDelivery(): void {
+    this.deliveryOpen.set(false);
+    this.deliveryAssociateId.set(null);
+    this.deliverySubject.set('');
+  }
+
+  onDeliveryCompleted(): void {
+    this.closeDelivery();
+  }
+
+  fullName(a: Associate): string {
+    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
+    return name || '—';
   }
 }

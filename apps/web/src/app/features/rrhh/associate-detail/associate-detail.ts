@@ -1,6 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { DeliveryDialog } from '../../dotacion/delivery-dialog/delivery-dialog';
+import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import {
   Associate,
   AssociateHistoryItem,
@@ -9,7 +12,7 @@ import {
 
 @Component({
   selector: 'app-associate-detail',
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, DeliveryDialog, DeliveryHistory],
   template: `
     <section>
       @if (error()) {
@@ -21,6 +24,9 @@ import {
           <h2>{{ fullName() }}</h2>
           <div class="actions">
             <a [routerLink]="['/rrhh/asociados', associate()!.id, 'editar']">Editar</a>
+            @if (auth.hasPermission('deliveries.create') && associate()!.status !== 'RETIRADO') {
+              <button type="button" (click)="openDelivery()">Entregar dotación</button>
+            }
             <button (click)="retire()" [disabled]="associate()!.status === 'RETIRADO'">Retirar</button>
           </div>
         </header>
@@ -28,7 +34,14 @@ import {
         <p><strong>Documento:</strong> {{ associate()!.documentNumber ?? '—' }}</p>
         <p><strong>Estado:</strong> {{ associate()!.status }}</p>
 
-        <h3>Historial</h3>
+        @if (auth.hasPermission('deliveries.view')) {
+          <app-delivery-history
+            [associateId]="associate()!.id"
+            title="Entregas de dotación"
+          />
+        }
+
+        <h3>Historial RRHH</h3>
         <table>
           <thead>
             <tr>
@@ -53,12 +66,21 @@ import {
         </table>
       }
     </section>
+
+    <app-delivery-dialog
+      [open]="deliveryOpen()"
+      [associateId]="associate()?.id ?? null"
+      [subjectLabel]="fullName()"
+      (completed)="onDeliveryCompleted()"
+      (dismissed)="closeDelivery()"
+    />
   `,
   styles: `
-    .head { display:flex; justify-content:space-between; align-items:center; gap:1rem; }
-    .actions { display:flex; gap:0.5rem; }
+    .head { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap: wrap; }
+    .actions { display:flex; gap:0.5rem; flex-wrap: wrap; }
     table { width:100%; border-collapse: collapse; margin-top:0.5rem; }
     th, td { border-bottom:1px solid var(--coraza-border); padding:0.5rem; text-align:left; }
+    h3 { margin: 1.5rem 0 0.5rem; color: var(--primary-dark); }
     .error { color: var(--coraza-error); }
   `,
 })
@@ -66,10 +88,12 @@ export class AssociateDetail implements OnInit {
   private readonly api = inject(AssociatesApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
 
   readonly associate = signal<Associate | null>(null);
   readonly history = signal<AssociateHistoryItem[]>([]);
   readonly error = signal<string | null>(null);
+  readonly deliveryOpen = signal(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -95,6 +119,18 @@ export class AssociateDetail implements OnInit {
       return '';
     }
     return [a.firstName, a.lastName].filter(Boolean).join(' ') || 'Asociado';
+  }
+
+  openDelivery(): void {
+    this.deliveryOpen.set(true);
+  }
+
+  closeDelivery(): void {
+    this.deliveryOpen.set(false);
+  }
+
+  onDeliveryCompleted(): void {
+    this.closeDelivery();
   }
 
   retire(): void {

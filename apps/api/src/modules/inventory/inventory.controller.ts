@@ -20,6 +20,7 @@ import { CreateInventoryVariantDto } from './dto/create-inventory-variant.dto';
 import { UpdateInventoryCategoryDto } from './dto/update-inventory-category.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { UpdateInventoryVariantDto } from './dto/update-inventory-variant.dto';
+import { ValidateStockDto } from './dto/validate-stock.dto';
 import { InventoryService } from './inventory.service';
 
 @Controller('inventory')
@@ -106,5 +107,21 @@ export class InventoryController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.inventoryService.createMovement(dto, user.sub);
+  }
+
+  @Get('variants/available-stock')
+  @RequirePermissions('inventory.view')
+  availableStock(
+    @Query('category') category: string,
+    @Query('talla') talla?: string,
+    @Query('genero') genero?: string,
+  ) {
+    return this.inventoryService.getAvailableStock(category, talla, genero);
+  }
+
+  @Post('validate-stock')
+  @RequirePermissions('inventory.view')
+  validateStock(@Body() dto: ValidateStockDto) {
+    return this.inventoryService.validateStock(dto);
   }
 }

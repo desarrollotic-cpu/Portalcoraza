@@ -26,6 +26,7 @@ Ejecuta en orden:
 
 1. `supabase/migrations/001_core_schema.sql`
 2. `supabase/seed/001_roles_permissions.sql`
+3. `supabase/seed/003_business_permissions.sql` (rol SUPERVISOR + permisos de negocio consolidados)
 
 **Opción B — Supabase CLI**
 

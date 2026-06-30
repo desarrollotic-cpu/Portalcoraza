@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
+import { RevertDeliveryDto } from './dto/revert-delivery.dto';
 import { SignDeliveryDto } from './dto/sign-delivery.dto';
 import { DeliveriesService } from './deliveries.service';
 
@@ -23,8 +24,11 @@ export class DeliveriesController {
 
   @Get()
   @RequirePermissions('deliveries.view')
-  list(@Query('associateId') associateId?: string) {
-    return this.deliveriesService.list(associateId);
+  list(
+    @Query('associateId') associateId?: string,
+    @Query('postId') postId?: string,
+  ) {
+    return this.deliveriesService.list({ associateId, postId });
   }
 
   @Post()
@@ -41,5 +45,15 @@ export class DeliveriesController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.deliveriesService.sign(id, dto, user.sub);
+  }
+
+  @Post(':id/revert')
+  @RequirePermissions('deliveries.create')
+  revert(
+    @Param('id') id: string,
+    @Body() dto: RevertDeliveryDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.deliveriesService.revert(id, dto, user.sub);
   }
 }

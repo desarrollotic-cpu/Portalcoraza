@@ -11,6 +11,7 @@ import { CreateInventoryCategoryDto } from './dto/create-inventory-category.dto'
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
 import { CreateInventoryVariantDto } from './dto/create-inventory-variant.dto';
+import { ValidateStockDto } from './dto/validate-stock.dto';
 import { UpdateInventoryCategoryDto } from './dto/update-inventory-category.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
 import { UpdateInventoryVariantDto } from './dto/update-inventory-variant.dto';
@@ -291,5 +292,113 @@ export class InventoryService {
       stockCurrent: stockNext,
       lowStockTriggered: stockNext < variant.item.lowStockThreshold,
     };
+  }
+
+  async getAvailableStock(category: string, talla?: string, genero?: string) {
+    const variant = await this.findVariantForDelivery(category, talla, genero);
+    if (!variant) {
+      return { quantity: 0, variantId: null };
+    }
+    return { quantity: variant.stockCurrent, variantId: variant.id };
+  }
+
+  async validateStock(dto: ValidateStockDto) {
+    const validations = await Promise.all(
+      dto.elementos.map(async (elemento) => {
+        const variant = await this.findVariantForDelivery(
+          elemento.category,
+          elemento.talla,
+          elemento.genero,
+        );
+        const available = variant?.stockCurrent ?? 0;
+        return {
+          category: elemento.category,
+          talla: elemento.talla ?? null,
+          genero: this.normalizeGenero(elemento.genero),
+          quantity: elemento.quantity,
+          available,
+          variantId: variant?.id ?? null,
+          valid: available >= elemento.quantity && available > 0,
+        };
+      }),
+    );
+
+    return {
+      valid: validations.every((v) => v.valid),
+      validations,
+    };
+  }
+
+  private normalizeGenero(genero?: string | null): string | null {
+    if (!genero || genero === 'N/A' || genero === '') {
+      return null;
+    }
+    return genero;
+  }
+
+  private async findVariantForDelivery(
+    category: string,
+    talla?: string,
+    genero?: string,
+  ): Promise<InventoryVariant | null> {
+    const normalizedGenero = this.normalizeGenero(genero);
+    const categoryKey = category.toLowerCase().trim();
+
+    const variants = await this.variantsRepo
+      .createQueryBuilder('variant')
+      .innerJoinAndSelect('variant.item', 'item')
+      .innerJoinAndSelect('item.category', 'category')
+      .where(
+        '(LOWER(category.code) = :category OR LOWER(item.name) LIKE :namePattern)',
+        { category: categoryKey, namePattern: `%${categoryKey}%` },
+      )
+      .andWhere('variant.stock_current >= 0')
+      .getMany();
+
+    const filtered = variants.filter((variant) => {
+      const attrs = variant.attributes ?? {};
+      const variantTalla = String(attrs['talla'] ?? '').trim();
+      const variantGenero = this.normalizeGenero(
+        attrs['genero'] != null ? String(attrs['genero']) : null,
+      );
+
+      if (talla) {
+        if (variantTalla !== talla) {
+          return false;
+        }
+        if (normalizedGenero) {
+          return variantGenero === normalizedGenero;
+        }
+        return variantGenero === null;
+      }
+
+      return !variantTalla;
+    });
+
+    if (filtered.length === 0) {
+      return null;
+    }
+
+    if (talla && !normalizedGenero) {
+      filtered.sort((a, b) => {
+        const aGenero = this.normalizeGenero(
+          a.attributes?.['genero'] != null ? String(a.attributes['genero']) : null,
+        );
+        const bGenero = this.normalizeGenero(
+          b.attributes?.['genero'] != null ? String(b.attributes['genero']) : null,
+        );
+        if (aGenero === null && bGenero !== null) {
+          return -1;
+        }
+        if (aGenero !== null && bGenero === null) {
+          return 1;
+        }
+        return b.stockCurrent - a.stockCurrent;
+      });
+    } else {
+      filtered.sort((a, b) => b.stockCurrent - a.stockCurrent);
+    }
+
+    return filtered.find((v) => v.stockCurrent > 0) ?? filtered[0] ?? null;
   }
 }

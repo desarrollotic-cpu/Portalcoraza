@@ -87,14 +87,14 @@ export const routes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'deliveries.create' },
         loadComponent: () =>
-          import('./features/dotacion/delivery-form/delivery-form').then((m) => m.DeliveryForm),
+          import('./features/dotacion/delivery-new/delivery-new').then((m) => m.DeliveryNew),
       },
       {
         path: 'dotacion/entregas/:id/firmar',
         canActivate: [permissionGuard],
         data: { permission: 'deliveries.sign' },
         loadComponent: () =>
-          import('./features/dotacion/delivery-form/delivery-form').then((m) => m.DeliveryForm),
+          import('./features/dotacion/delivery-sign/delivery-sign').then((m) => m.DeliverySign),
       },
       {
         path: 'programacion',
@@ -150,6 +150,50 @@ export const routes: Routes = [
         data: { permission: 'documental.create' },
         loadComponent: () =>
           import('./features/documental/document-form/document-form').then((m) => m.DocumentForm),
+      },
+      {
+        path: 'residential',
+        canActivate: [permissionGuard],
+        data: { permission: 'residential.view' },
+        loadComponent: () =>
+          import('./features/residential/units-list/units-list').then((m) => m.UnitsList),
+      },
+      {
+        path: 'residential/visitantes',
+        canActivate: [permissionGuard],
+        data: { permission: 'residential.visitors' },
+        loadComponent: () =>
+          import('./features/residential/visitors-log/visitors-log').then((m) => m.VisitorsLog),
+      },
+      {
+        path: 'residential/paquetes',
+        canActivate: [permissionGuard],
+        data: { permission: 'residential.packages' },
+        loadComponent: () =>
+          import('./features/residential/packages/packages').then((m) => m.Packages),
+      },
+      {
+        path: 'residential/reservas',
+        canActivate: [permissionGuard],
+        data: { permission: 'residential.reservations' },
+        loadComponent: () =>
+          import('./features/residential/reservations/reservations').then((m) => m.Reservations),
+      },
+      {
+        path: 'admin/usuarios',
+        canActivate: [permissionGuard],
+        data: { permission: 'users.view' },
+        loadComponent: () =>
+          import('./features/admin/users-list/users-list').then((m) => m.UsersList),
+      },
+      {
+        path: 'admin/roles',
+        canActivate: [permissionGuard],
+        data: { permission: 'roles.view' },
+        loadComponent: () =>
+          import('./features/admin/roles-permissions/roles-permissions').then(
+            (m) => m.RolesPermissions,
+          ),
       },
     ],
   },

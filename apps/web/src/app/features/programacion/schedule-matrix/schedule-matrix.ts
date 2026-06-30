@@ -1,11 +1,14 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
+import { DeliveryDialog } from '../../dotacion/delivery-dialog/delivery-dialog';
+import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
 import { SchedulingApiService, ShiftSchedule } from '../scheduling-api.service';
 
 @Component({
   selector: 'app-schedule-matrix',
-  imports: [RouterLink],
+  imports: [RouterLink, DeliveryDialog, DeliveryHistory],
   template: `
     <section>
       <header>
@@ -27,6 +30,9 @@ import { SchedulingApiService, ShiftSchedule } from '../scheduling-api.service';
           </label>
           <a routerLink="/programacion/calendario">Vista calendario</a>
           <a routerLink="/programacion/turno/nuevo">Asignar turno</a>
+          @if (auth.hasPermission('deliveries.create') && postId()) {
+            <button type="button" (click)="openPostDelivery()">Entregar dotación al puesto</button>
+          }
         </div>
       </header>
 
@@ -76,8 +82,23 @@ import { SchedulingApiService, ShiftSchedule } from '../scheduling-api.service';
           <span class="badge rest">R Descanso</span>
           <span class="hint">Clic en celda para asignar o editar turno</span>
         </div>
+
+        @if (auth.hasPermission('deliveries.view') && postId()) {
+          <app-delivery-history
+            [postId]="postId()"
+            title="Entregas de dotación al puesto"
+          />
+        }
       }
     </section>
+
+    <app-delivery-dialog
+      [open]="deliveryOpen()"
+      [postId]="postId() || null"
+      [subjectLabel]="selectedPostName()"
+      (completed)="onDeliveryCompleted()"
+      (dismissed)="closeDelivery()"
+    />
   `,
   styles: `
     header h2 { margin: 0; color: var(--primary-dark); font-weight: 600; }
@@ -108,6 +129,7 @@ export class ScheduleMatrix implements OnInit {
   private readonly api = inject(SchedulingApiService);
   private readonly associatesApi = inject(AssociatesApiService);
   private readonly router = inject(Router);
+  readonly auth = inject(AuthService);
 
   readonly posts = signal<{ id: string; name: string }[]>([]);
   readonly associates = signal<Associate[]>([]);
@@ -116,6 +138,7 @@ export class ScheduleMatrix implements OnInit {
   readonly month = signal(this.currentMonth());
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
+  readonly deliveryOpen = signal(false);
 
   readonly days = computed(() => {
     const [year, mon] = this.month().split('-').map(Number);
@@ -199,6 +222,24 @@ export class ScheduleMatrix implements OnInit {
   associateName(a: Associate): string {
     const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
     return name || a.documentNumber || '—';
+  }
+
+  selectedPostName(): string {
+    const id = this.postId();
+    return this.posts().find((p) => p.id === id)?.name ?? '';
+  }
+
+  openPostDelivery(): void {
+    if (!this.postId()) return;
+    this.deliveryOpen.set(true);
+  }
+
+  closeDelivery(): void {
+    this.deliveryOpen.set(false);
+  }
+
+  onDeliveryCompleted(): void {
+    this.closeDelivery();
   }
 
   private loadShifts(): void {

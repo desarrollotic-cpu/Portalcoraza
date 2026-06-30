@@ -70,13 +70,9 @@ Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA)
 
 ### Pendiente (orden recomendado)
 
-1. **12.x** — Frontend residencial (unidades, visitantes, paquetes, reservas) ← **siguiente**
-2. **13.x** — Notificaciones Realtime + admin + widgets dashboard
-3. **14.x** — Verificación final E2E
-4. **2.7** — Bucket `delivery-signatures` en Supabase (manual)
-5. **2.8** — Realtime en tabla `notifications` (manual)
-6. **4.3** — SDK oficial Supabase Storage para firmas de entregas
-7. **15.7** — PNG opcional `apps/web/public/images/coraza-logo.png`
+1. **Cierre Supabase + E2E** — migraciones, seed 003, bucket firmas, Realtime, `.env`, pruebas manuales
+2. **4.3** — SDK Supabase Storage (opcional)
+3. **15.7** — PNG opcional
 
 ---
 
@@ -124,7 +120,8 @@ apps/web/src/app/features/
 ├── dotacion/            ✅
 ├── programacion/        ✅
 ├── documental/          ✅
-└── residential/         ❌ pendiente 12.x
+└── residential/         ✅
+└── admin/               ✅
 ```
 
 Backend residencial ya existe en `apps/api/src/modules/residential/` — el frontend es lo que falta.

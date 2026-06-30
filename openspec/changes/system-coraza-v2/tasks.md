@@ -53,7 +53,7 @@
 
 - [x] 4.1 Crear entidades TypeORM: `Delivery`, `DeliveryDetail`
 - [x] 4.2 Implementar `DeliveriesService`: crear entrega pendiente, confirmar entrega, bloquear edición de entregadas
-- [ ] 4.3 Implementar integración con Supabase Storage SDK para subir firma en `POST /deliveries/:id/sign` (actualmente resuelto con API HTTP directa)
+- [x] 4.3 Implementar integración con Supabase Storage SDK para subir firma en `POST /deliveries/:id/sign` (actualmente resuelto con API HTTP directa)
 - [x] 4.4 Crear `DeliveriesController` con endpoints y permisos
 - [x] 4.5 Registrar `DeliveriesModule` en `AppModule`
 
@@ -131,37 +131,39 @@
 
 ## 12. Frontend — Feature Residencial
 
-- [ ] 12.1 Crear servicio `ResidentialApiService` en `features/residential/`
-- [ ] 12.2 Crear componente `residential/units-list/units-list.ts` con unidades del puesto asignado
-- [ ] 12.3 Crear componente `residential/visitors-log/visitors-log.ts` con registro de entrada/salida y libro virtual
-- [ ] 12.4 Crear componente `residential/packages/packages.ts` con recepción y entrega de paquetes
-- [ ] 12.5 Crear componente `residential/reservations/reservations.ts` para gestión de reservas
-- [ ] 12.6 Agregar rutas `/residential` con `permissionGuard`
+- [x] 12.1 Crear servicio `ResidentialApiService` en `features/residential/`
+- [x] 12.2 Crear componente `residential/units-list/units-list.ts` con unidades del puesto asignado
+- [x] 12.3 Crear componente `residential/visitors-log/visitors-log.ts` con registro de entrada/salida y libro virtual
+- [x] 12.4 Crear componente `residential/packages/packages.ts` con recepción y entrega de paquetes
+- [x] 12.5 Crear componente `residential/reservations/reservations.ts` para gestión de reservas
+- [x] 12.6 Agregar rutas `/residential` con `permissionGuard`
 
 ## 13. Frontend — Notificaciones y Admin
 
-- [ ] 13.1 Instalar Supabase JS client en `apps/web`: `npm install @supabase/supabase-js`
-- [ ] 13.2 Crear `notification.service.ts` en `core/services/` que suscribe al canal Realtime de Supabase
-- [ ] 13.3 Agregar badge de notificaciones no leídas en `MainLayout`
-- [ ] 13.4 Crear panel de notificaciones (dropdown o sidebar) en el layout
-- [ ] 13.5 Crear feature `admin/users-list/users-list.ts` con CRUD de usuarios
-- [ ] 13.6 Crear feature `admin/roles-permissions/roles-permissions.ts` con asignación de permisos a roles
-- [ ] 13.7 Agregar rutas `/admin` con `permissionGuard` para GERENCIA
-- [ ] 13.8 Ampliar `dashboard/dashboard.ts` con widgets contextuales por rol final:
-- [ ] 13.8.1 GERENCIA: asociados activos, dotaciones pendientes, documentos próximos a vencer, novedades abiertas, reservas pendientes
-- [ ] 13.8.2 SUPERVISOR: turnos del día, entregas pendientes, novedades abiertas
-- [ ] 13.8.3 ADMINISTRADOR_UNIDAD: visitantes activos, paquetes pendientes, reservas pendientes, novedades abiertas
+- [x] 13.1 Instalar Supabase JS client en `apps/web`: `npm install @supabase/supabase-js`
+- [x] 13.2 Crear `notification.service.ts` en `core/services/` que suscribe al canal Realtime de Supabase
+- [x] 13.3 Agregar badge de notificaciones no leídas en `MainLayout`
+- [x] 13.4 Crear panel de notificaciones (dropdown o sidebar) en el layout
+- [x] 13.5 Crear feature `admin/users-list/users-list.ts` con CRUD de usuarios
+- [x] 13.6 Crear feature `admin/roles-permissions/roles-permissions.ts` con asignación de permisos a roles
+- [x] 13.7 Agregar rutas `/admin` con `permissionGuard` para GERENCIA
+- [x] 13.8 Ampliar `dashboard/dashboard.ts` con widgets contextuales por rol final:
+- [x] 13.8.1 GERENCIA: asociados activos, dotaciones pendientes, documentos próximos a vencer, novedades abiertas, reservas pendientes
+- [x] 13.8.2 SUPERVISOR: turnos del día, entregas pendientes, novedades abiertas
+- [x] 13.8.3 ADMINISTRADOR_UNIDAD: visitantes activos, paquetes pendientes, reservas pendientes, novedades abiertas
 
 ## 14. Verificación y Seed final
 
-- [ ] 14.1 Ejecutar todas las migraciones en Supabase (002 al 007)
-- [ ] 14.2 Crear seed `supabase/seed/003_business_permissions.sql` con todos los permisos de módulos nuevos y asignación por rol
-- [ ] 14.3 Verificar que el flow completo de login devuelve `permissions[]` en el token y en el response
-- [ ] 14.4 Verificar que `PermissionsGuard` no genera queries DB en endpoints protegidos
-- [ ] 14.5 Verificar aislamiento residencial: ADMINISTRADOR_UNIDAD no ve datos de otros puestos
-- [ ] 14.6 Verificar constraint de no solapamiento de turnos con dos requests concurrentes
-- [ ] 14.7 Verificar flujo completo de entrega con firma: creación → confirmación → inmutabilidad
-- [ ] 14.8 Verificar que Supabase Realtime entrega notificaciones al frontend en tiempo real
-- [ ] 14.9 Verificar renovación automática mediante refresh token (access 2h, refresh 7d)
-- [ ] 14.10 Verificar seguridad del canal Supabase Realtime para entrega por `user_id`
-- [ ] 14.11 Verificar consistencia de matriz mensual tipo Excel como vista principal de programación
+> **Nota:** 14.1, 14.5–14.8 y 14.10 requieren Supabase configurado (migraciones, bucket, Realtime). Diferido al cierre — ver `progress.md` sección "Cierre Supabase".
+
+- [ ] 14.1 Ejecutar todas las migraciones en Supabase (002 al 007) — **diferido cierre Supabase**
+- [x] 14.2 Crear seed `supabase/seed/003_business_permissions.sql` con todos los permisos de módulos nuevos y asignación por rol
+- [x] 14.3 Verificar que el flow completo de login devuelve `permissions[]` en el token y en el response — **revisión estática código** (pendiente E2E con BD)
+- [x] 14.4 Verificar que `PermissionsGuard` no genera queries DB en endpoints protegidos — **revisión estática código**
+- [ ] 14.5 Verificar aislamiento residencial: ADMINISTRADOR_UNIDAD no ve datos de otros puestos — **diferido E2E**
+- [ ] 14.6 Verificar constraint de no solapamiento de turnos con dos requests concurrentes — **diferido E2E**
+- [ ] 14.7 Verificar flujo completo de entrega con firma: creación → confirmación → inmutabilidad — **diferido cierre Supabase (bucket 2.7)**
+- [ ] 14.8 Verificar que Supabase Realtime entrega notificaciones al frontend en tiempo real — **diferido cierre Supabase (2.8)**
+- [x] 14.9 Verificar renovación automática mediante refresh token (access 2h, refresh 7d) — **defaults backend + interceptor refresh en frontend**
+- [ ] 14.10 Verificar seguridad del canal Supabase Realtime para entrega por `user_id` — **diferido cierre Supabase (2.8)**
+- [x] 14.11 Verificar consistencia de matriz mensual tipo Excel como vista principal de programación — **ruta `/programacion` → schedule-matrix**

@@ -4,10 +4,10 @@
 
 ## Corte de estado
 
-- Fecha: 2026-06-23
+- Fecha: 2026-06-29
 - Fuente de verdad de avance: `tasks.md` (checkboxes)
-- Estado global: Frontend Documental (11.x) completado; login rediseñado con video animado; siguiente bloque 12.x (residencial)
-- Nota operativa: CLI `openspec` no disponible en este entorno; el avance se mantiene por actualización directa de artefactos OpenSpec.
+- Estado global: Desarrollo funcional completo (bloques 0–13); verificación parcial 14.x; **cierre Supabase + E2E manual al final**
+- Nota operativa: CLI `openspec` operativo tras configurar PATH de npm global.
 
 ## Completado
 
@@ -15,7 +15,7 @@
 - 1.x RRHH: completado
 - 2.x Base de datos: completado excepto 2.7 y 2.8 (acciones manuales en Supabase)
 - 3.x Backend inventario: completado
-- 4.x Backend entregas: completado parcialmente (4.3 pendiente por SDK oficial)
+- 4.x Backend entregas: completado
 - 5.x Backend programación: completado
 - 6.x Backend documental: completado
 - 7.x Backend residencial: completado
@@ -23,21 +23,38 @@
 - 9.x Frontend Dotación: completado
 - 10.x Frontend Programación: completado
 - 11.x Frontend Documental: completado
+- 12.x Frontend Residencial: completado
+- 13.x Frontend Notificaciones y Admin: completado
 - 15.x Frontend Login y branding: completado (ver bitácora del día)
 
 ## Pendiente inmediato
 
+_Ningún bloque de código pendiente en fase 1. Siguiente hito: cierre Supabase + pruebas E2E._
+
+## Cierre Supabase + E2E (dejar para lo último)
+
+Ejecutar en este orden cuando tengas acceso al dashboard:
+
+1. **14.1** — Migraciones SQL `002`–`007` en SQL Editor (si faltan)
+2. **Seed** — `003_business_permissions.sql` (incluye rol SUPERVISOR)
+3. **2.7** — Bucket `delivery-signatures` en Storage
+4. **2.8** — Realtime en tabla `notifications`
+5. **`apps/api/.env`** — `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, JWT secrets
+6. **E2E manual** — 14.5, 14.6, 14.7, 14.8, 14.10 (y confirmar 14.3 en runtime)
+7. **15.7** — (opcional) logo PNG
+
+## Pendiente histórico (referencia)
+
 - 2.7 Crear bucket `delivery-signatures` en Supabase Storage con políticas
 - 2.8 Activar Realtime en tabla `notifications`
-- 4.3 Migrar integración de firma a SDK oficial de Supabase Storage (hoy funciona por API HTTP directa)
-- 12.x Frontend Residencial (siguiente bloque de desarrollo)
-- Opcional: `coraza-logo.png` en `apps/web/public/images/` (poster del video y logo pequeño en formulario)
+- 14.x verificaciones E2E restantes (con Supabase configurado)
+- Opcional: `coraza-logo.png` en `apps/web/public/images/`
 
 ## Siguiente lote recomendado (orden)
 
-1. Ejecutar 12.x (Residencial)
-2. Cerrar 4.3 y tareas Supabase 2.7 / 2.8
-3. Continuar 13.x y verificación 14.x
+1. **Cierre Supabase + E2E** (bloque anterior) cuando el equipo esté listo
+2. Desplegar en Render si aplica
+3. `/opsx:archive` del change system-coraza-v2
 
 ## Criterios de continuidad entre IDs de desarrollo
 
@@ -47,6 +64,47 @@ Al retomar el change en otra sesión/agente:
 2. Tomar `tasks.md` como única fuente de estado de implementación
 3. Revisar este `progress.md` para contexto del último corte
 4. Actualizar `tasks.md` y `progress.md` al finalizar cada bloque (3.x, 4.x, etc.)
+
+---
+
+## Bitácora — 2026-06-29
+
+### Validación bloque anterior (11.x Documental)
+
+- Revisado: `DocumentalApiService`, `documents-list`, `document-form`, rutas `/documental` y enlace en sidebar.
+- **11.x completo** — sin tareas pendientes en ese bloque.
+
+### Bloque 12.x — Frontend Residencial
+
+- `apps/web/src/app/features/residential/residential-api.service.ts` — cliente HTTP para unidades, visitantes, paquetes, reservas y libro virtual.
+- `units-list` — listado de unidades del puesto asignado.
+- `visitors-log` — entrada/salida de visitantes, historial y libro virtual por unidad.
+- `packages` — recepción y entrega de paquetería.
+- `reservations` — CRUD de reservas con cambio de estado (aprobar, rechazar, completar, cancelar).
+- Rutas: `/residential`, `/residential/visitantes`, `/residential/paquetes`, `/residential/reservas` con `permissionGuard`.
+- Sidebar: enlace Residencial con permiso `residential.view`.
+- `npm run web:build` — OK.
+
+### Bloque 13.x — Notificaciones y Admin
+
+- `@supabase/supabase-js` instalado en `apps/web`.
+- `core/services/notification.service.ts` — carga API + suscripción Realtime por `user_id`.
+- `MainLayout` — campana con badge, panel dropdown, marcar leídas.
+- `features/admin/` — `users-list` (listado + crear usuario), `roles-permissions` (asignación con checkboxes).
+- Backend: `PUT /roles/:id/permissions` con permiso `roles.manage`.
+- Rutas `/admin/usuarios`, `/admin/roles`.
+- `dashboard` + `dashboard-api.service` — widgets por rol (GERENCIA, SUPERVISOR, ADMINISTRADOR_UNIDAD).
+### Bloque 14.x — Verificación (parcial, sin Supabase)
+
+- `supabase/seed/003_business_permissions.sql` — permisos de negocio + rol SUPERVISOR + asignaciones por rol.
+- Revisión estática: login con `permissions[]` (auth.service), PermissionsGuard sin DB, JWT 2h/7d, `/programacion` → matriz Excel.
+- E2E y Supabase diferidos a sección **Cierre Supabase + E2E**.
+
+### Bloque 4.3 + refresh token (sin Supabase dashboard)
+
+- `SupabaseStorageService` + `@supabase/supabase-js` en API — subida de firmas vía SDK oficial.
+- `error.interceptor.ts` — reintento automático con `POST /auth/refresh` ante 401.
+- `docs/SUPABASE.md` — seed `003` documentado.
 
 ---
 

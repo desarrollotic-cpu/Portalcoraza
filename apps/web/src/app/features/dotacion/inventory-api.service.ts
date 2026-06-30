@@ -36,13 +36,27 @@ export interface DeliveryDetail {
 
 export interface Delivery {
   id: string;
-  associateId: string;
+  associateId: string | null;
+  postId: string | null;
   status: string;
   signatureUrl: string | null;
   isImmutable: boolean;
   deliveredAt: string | null;
+  observations: string | null;
+  revertedAt: string | null;
+  revertReason: string | null;
   createdAt: string;
   details: DeliveryDetail[];
+}
+
+export interface StockValidation {
+  category: string;
+  talla: string | null;
+  genero: string | null;
+  quantity: number;
+  available: number;
+  variantId: string | null;
+  valid: boolean;
 }
 
 export interface CreateItemPayload {
@@ -68,7 +82,9 @@ export interface CreateVariantPayload {
 }
 
 export interface CreateDeliveryPayload {
-  associateId: string;
+  associateId?: string;
+  postId?: string;
+  observations?: string;
   items: { variantId: string; quantity: number }[];
 }
 
@@ -116,8 +132,32 @@ export class InventoryApiService {
     return this.http.post(`${this.inventoryUrl}/movements`, payload);
   }
 
-  listDeliveries(associateId?: string): Observable<Delivery[]> {
-    const query = associateId ? `?associateId=${encodeURIComponent(associateId)}` : '';
+  availableStock(category: string, talla?: string, genero?: string): Observable<{ quantity: number; variantId: string | null }> {
+    const params = new URLSearchParams({ category });
+    if (talla) params.set('talla', talla);
+    if (genero) params.set('genero', genero);
+    return this.http.get<{ quantity: number; variantId: string | null }>(
+      `${this.inventoryUrl}/variants/available-stock?${params.toString()}`,
+    );
+  }
+
+  validateStock(elementos: {
+    category: string;
+    talla?: string;
+    genero?: string;
+    quantity: number;
+  }[]): Observable<{ valid: boolean; validations: StockValidation[] }> {
+    return this.http.post<{ valid: boolean; validations: StockValidation[] }>(
+      `${this.inventoryUrl}/validate-stock`,
+      { elementos },
+    );
+  }
+
+  listDeliveries(filters?: { associateId?: string; postId?: string }): Observable<Delivery[]> {
+    const params = new URLSearchParams();
+    if (filters?.associateId) params.set('associateId', filters.associateId);
+    if (filters?.postId) params.set('postId', filters.postId);
+    const query = params.toString() ? `?${params.toString()}` : '';
     return this.http.get<Delivery[]>(`${this.deliveriesUrl}${query}`);
   }
 
@@ -127,5 +167,9 @@ export class InventoryApiService {
 
   signDelivery(id: string, signatureData: string): Observable<Delivery> {
     return this.http.post<Delivery>(`${this.deliveriesUrl}/${id}/sign`, { signatureData });
+  }
+
+  revertDelivery(id: string, reason: string): Observable<Delivery> {
+    return this.http.post<Delivery>(`${this.deliveriesUrl}/${id}/revert`, { reason });
   }
 }

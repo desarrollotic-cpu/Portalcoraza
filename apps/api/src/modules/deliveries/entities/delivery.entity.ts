@@ -11,6 +11,7 @@ import { DeliveryDetail } from './delivery-detail.entity';
 export enum DeliveryStatus {
   PENDING = 'PENDING',
   DELIVERED = 'DELIVERED',
+  REVERTED = 'REVERTED',
 }
 
 @Entity('deliveries')
@@ -18,8 +19,14 @@ export class Delivery {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'associate_id', type: 'uuid' })
-  associateId!: string;
+  @Column({ name: 'associate_id', type: 'uuid', nullable: true })
+  associateId!: string | null;
+
+  @Column({ name: 'post_id', type: 'uuid', nullable: true })
+  postId!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  observations!: string | null;
 
   @Column({ type: 'varchar', length: 20, default: DeliveryStatus.PENDING })
   status!: DeliveryStatus;
@@ -35,6 +42,15 @@ export class Delivery {
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy!: string | null;
+
+  @Column({ name: 'reverted_at', type: 'timestamptz', nullable: true })
+  revertedAt!: Date | null;
+
+  @Column({ name: 'reverted_by', type: 'uuid', nullable: true })
+  revertedBy!: string | null;
+
+  @Column({ name: 'revert_reason', type: 'text', nullable: true })
+  revertReason!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
