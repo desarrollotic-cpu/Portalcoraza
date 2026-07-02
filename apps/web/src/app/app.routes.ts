@@ -101,32 +101,9 @@ export const routes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'scheduling.view' },
         loadComponent: () =>
-          import('./features/programacion/schedule-matrix/schedule-matrix').then(
-            (m) => m.ScheduleMatrix,
+          import('./features/programacion/schedule-board/schedule-board').then(
+            (m) => m.ScheduleBoard,
           ),
-      },
-      {
-        path: 'programacion/calendario',
-        canActivate: [permissionGuard],
-        data: { permission: 'scheduling.view' },
-        loadComponent: () =>
-          import('./features/programacion/schedule-calendar/schedule-calendar').then(
-            (m) => m.ScheduleCalendar,
-          ),
-      },
-      {
-        path: 'programacion/turno/nuevo',
-        canActivate: [permissionGuard],
-        data: { permission: 'scheduling.create' },
-        loadComponent: () =>
-          import('./features/programacion/shift-form/shift-form').then((m) => m.ShiftForm),
-      },
-      {
-        path: 'programacion/turno/:id/editar',
-        canActivate: [permissionGuard],
-        data: { permission: 'scheduling.edit' },
-        loadComponent: () =>
-          import('./features/programacion/shift-form/shift-form').then((m) => m.ShiftForm),
       },
       {
         path: 'documental',
