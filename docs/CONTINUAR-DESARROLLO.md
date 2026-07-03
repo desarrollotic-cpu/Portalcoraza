@@ -36,14 +36,53 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 2 | `openspec/changes/system-coraza-v2/progress.md` | Bitácora, commits, incidentes, contexto del último día |
 | 3 | `openspec/changes/system-coraza-v2/design.md` | Decisiones técnicas cerradas |
 | 4 | `openspec/changes/system-coraza-v2/proposal.md` | Alcance y objetivo del change |
-| 5 | `docs/DEPLOY-RENDER.md` | Producción, URLs, video login, troubleshooting |
-| 6 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
+| 5 | `docs/GUIA-CIERRE-100.md` | **Setup post-clone + checklist al 100%** |
+| 6 | `docs/DEPLOY-RENDER.md` | Producción, URLs, video login, troubleshooting |
+| 7 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 
 ---
 
-## Estado resumido (corte 2026-06-23)
+## Después de `git clone` (obligatorio)
+
+El repo **no incluye** secretos ni `.env`. Tras clonar:
+
+```powershell
+cd Portalcoraza
+git pull origin main          # asegurar última versión
+npm install
+
+copy apps\api\.env.example apps\api\.env
+# Editar apps\api\.env con contraseña Supabase, service_role, JWT secrets
+
+npm run db:setup              # migraciones + seeds + admin (requiere .env)
+npm run api:dev               # http://localhost:3000/api/v1
+npm run web:dev               # http://localhost:4200
+```
+
+**Guía completa paso a paso:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md) (Partes 2 y 3).
+
+### Qué NO viene en el clone
+
+| Falta | Qué hacer |
+|-------|-----------|
+| `apps/api/.env` | Copiar de `.env.example` y completar credenciales |
+| Dependencias | `npm install` en la raíz |
+| Tablas en Supabase | Ejecutar migraciones SQL 001–008 + seeds (ver GUIA) |
+| Bucket firmas | Crear `delivery-signatures` en Supabase Storage (manual) |
+| Realtime | Activar en tabla `notifications` (manual) |
+| Usuario admin | `npm run seed:admin -w @coraza/api` tras migraciones |
+
+### Errores comunes
+
+- **Clonar dentro de otra carpeta del repo** → aparece `Portalcoraza/Portalcoraza/` duplicado. Usa **una sola** carpeta clonada; borra el clone anidado.
+- **`git pull` falla por `package-lock.json`** → `git stash` y vuelve a hacer pull.
+- **Login falla en local** → falta `.env`, Supabase pausado o migraciones no ejecutadas.
+
+---
+
+## Estado resumido (corte 2026-06-29)
 
 ### Producción
 
@@ -55,24 +94,28 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 
 Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA)
 
-### Completado
+### Completado (código)
 
 | Bloque | Qué |
 |--------|-----|
-| 0.x | JWT con permisos, guards, migraciones base |
-| 1.x | RRHH frontend + backend |
-| 2.x | Migraciones SQL 003–007 (faltan 2.7 y 2.8 manuales en Supabase) |
-| 3.x–8.x | Backend: inventario, entregas, programación, documental, residencial, notificaciones |
-| 9.x | Frontend dotación |
-| 10.x | Frontend programación (matriz Excel + calendario + turnos) |
-| 11.x | Frontend documental |
-| 15.x | Login rediseñado + video `coraza-logo.mp4` |
+| 0.x–8.x | Backend completo (auth, RRHH, inventario, entregas, programación, documental, residencial, notificaciones) |
+| 9.x–11.x | Frontend dotación, programación, documental |
+| 12.x | Frontend residencial (unidades, visitantes, paquetes, reservas) |
+| 13.x | Admin usuarios/roles, notificaciones Realtime (código), dashboard widgets |
+| 15.x | Login split + video `coraza-logo.mp4` |
+| migrate-dotacion-ux | UX entregas (modal, tallas/género, firma, reversión 5 días) |
 
-### Pendiente (orden recomendado)
+### Pendiente (no es código — configuración Supabase + pruebas)
 
-1. **Cierre Supabase + E2E** — migraciones, seed 003, bucket firmas, Realtime, `.env`, pruebas manuales
-2. **4.3** — SDK Supabase Storage (opcional)
-3. **15.7** — PNG opcional
+1. Migraciones SQL **001–008** en Supabase (si faltan)
+2. Seed `003_business_permissions.sql`
+3. Bucket **`delivery-signatures`** (2.7)
+4. **Realtime** en `notifications` (2.8)
+5. **`apps/api/.env`** local con credenciales reales
+6. Pruebas E2E manuales (14.x)
+7. PNG logo opcional (15.7)
+
+**Detalle:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md)
 
 ---
 
@@ -115,16 +158,16 @@ El agente (o desarrollador) debe:
 ```
 apps/web/src/app/features/
 ├── auth/login/          ✅
-├── dashboard/           ✅ básico
+├── dashboard/           ✅ widgets por rol
 ├── rrhh/                ✅
-├── dotacion/            ✅
+├── dotacion/            ✅ modal entregas + firma + reversión
 ├── programacion/        ✅
 ├── documental/          ✅
-└── residential/         ✅
-└── admin/               ✅
+├── residential/         ✅
+└── admin/               ✅ usuarios + roles/permisos
 ```
 
-Backend residencial ya existe en `apps/api/src/modules/residential/` — el frontend es lo que falta.
+Notificaciones: campana en layout + `notification.service.ts` (requiere Realtime activo en Supabase).
 
 ---
 
