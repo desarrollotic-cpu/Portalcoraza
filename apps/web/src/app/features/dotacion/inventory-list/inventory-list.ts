@@ -14,13 +14,8 @@ interface ItemRow {
   imports: [RouterLink],
   template: `
     <section>
-      <header>
-        <h2>Dotación — Inventario</h2>
-        <p>Ítems, variantes y stock disponible.</p>
-        <div class="header-actions">
-          <a routerLink="/dotacion/inventario/nuevo">Nuevo ítem</a>
-          <a routerLink="/dotacion/entregas">Ver entregas</a>
-        </div>
+      <header class="toolbar">
+        <a routerLink="/dotacion/inventario/nuevo" class="btn-primary">Nuevo ítem</a>
       </header>
 
       @if (loading()) {
@@ -73,17 +68,28 @@ interface ItemRow {
     </section>
   `,
   styles: `
-    header h2 { margin: 0; color: var(--primary-dark); font-weight: 600; }
-    header p { color: var(--coraza-text-muted); margin: 0.25rem 0 1rem; }
-    .header-actions { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+    }
+    .btn-primary {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: var(--text-on-primary);
+      text-decoration: none;
+      border-radius: var(--coraza-radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--coraza-surface);
+      background: transparent;
       border-radius: var(--coraza-radius);
       overflow: hidden;
       border: 1px solid var(--coraza-border);
-      box-shadow: var(--coraza-shadow);
     }
     th, td { text-align: left; padding: 0.75rem 1rem; border-bottom: 1px solid var(--coraza-border); }
     th {

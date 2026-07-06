@@ -8,22 +8,9 @@ import { AdminApiService, AdminRole, AdminUser, CreateUserPayload } from '../adm
 
 @Component({
   selector: 'app-users-list',
-  imports: [RouterLink, RouterLinkActive, FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe],
   template: `
     <section>
-      <header>
-        <h2>Administración — Usuarios</h2>
-        <p>Gestión de cuentas del sistema.</p>
-        <nav class="subnav">
-          <a routerLink="/admin/usuarios" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            Usuarios
-          </a>
-          @if (auth.hasPermission('roles.view')) {
-            <a routerLink="/admin/roles" routerLinkActive="active">Roles y permisos</a>
-          }
-        </nav>
-      </header>
-
       @if (auth.hasPermission('users.create')) {
         <div class="panel">
           <h3>Nuevo usuario</h3>

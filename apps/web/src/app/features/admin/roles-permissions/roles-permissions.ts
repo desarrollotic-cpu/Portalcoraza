@@ -7,22 +7,9 @@ import { AdminApiService, AdminRole, Permission } from '../admin-api.service';
 
 @Component({
   selector: 'app-roles-permissions',
-  imports: [RouterLink, RouterLinkActive, FormsModule],
+  imports: [FormsModule],
   template: `
     <section>
-      <header>
-        <h2>Administración — Roles y permisos</h2>
-        <p>Asignación de permisos por rol operativo.</p>
-        <nav class="subnav">
-          @if (auth.hasPermission('users.view')) {
-            <a routerLink="/admin/usuarios" routerLinkActive="active">Usuarios</a>
-          }
-          <a routerLink="/admin/roles" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            Roles y permisos
-          </a>
-        </nav>
-      </header>
-
       @if (loading()) {
         <p>Cargando...</p>
       } @else if (error()) {

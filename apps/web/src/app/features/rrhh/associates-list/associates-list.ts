@@ -9,10 +9,10 @@ import { Associate, AssociatesApiService } from '../associates-api.service';
   imports: [RouterLink, DeliveryDialog],
   template: `
     <section>
-      <header>
-        <h2>Asociados</h2>
-        <p>Gestión centralizada (RRHH).</p>
-        <a routerLink="/rrhh/asociados/nuevo">Crear asociado</a>
+      <header class="toolbar">
+        @if (auth.hasPermission('associates.create')) {
+          <a routerLink="/rrhh/asociados/nuevo" class="btn-primary">Crear asociado</a>
+        }
       </header>
 
       @if (loading()) {
@@ -71,14 +71,20 @@ import { Associate, AssociatesApiService } from '../associates-api.service';
     />
   `,
   styles: `
-    header h2 {
-      margin: 0;
-      color: var(--primary-dark);
-      font-weight: 600;
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
     }
-    header p {
-      color: var(--coraza-text-muted);
-      margin: 0.25rem 0 1rem;
+    .btn-primary {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: var(--text-on-primary);
+      text-decoration: none;
+      border-radius: var(--coraza-radius);
+      font-size: 0.9rem;
+      font-weight: 500;
     }
     table {
       width: 100%;

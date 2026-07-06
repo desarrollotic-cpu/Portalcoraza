@@ -11,26 +11,9 @@ import {
 
 @Component({
   selector: 'app-reservations',
-  imports: [RouterLink, RouterLinkActive, FormsModule, DatePipe],
+  imports: [FormsModule, DatePipe],
   template: `
     <section>
-      <header>
-        <h2>Residencial — Reservas</h2>
-        <p>Gestión de reservas por recurso configurable.</p>
-        <nav class="subnav">
-          <a routerLink="/residential" routerLinkActive="active">Unidades</a>
-          <a routerLink="/residential/visitantes" routerLinkActive="active">Visitantes</a>
-          <a routerLink="/residential/paquetes" routerLinkActive="active">Paquetes</a>
-          <a
-            routerLink="/residential/reservas"
-            routerLinkActive="active"
-            [routerLinkActiveOptions]="{ exact: true }"
-          >
-            Reservas
-          </a>
-        </nav>
-      </header>
-
       <div class="filters">
         <label>
           Unidad

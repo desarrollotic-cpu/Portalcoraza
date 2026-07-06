@@ -13,36 +13,31 @@ import {
   imports: [RouterLink],
   template: `
     <section>
-      <header>
-        <h2>Documental — Registro</h2>
-        <p>Metadata de documentos físicos (fase 1, sin archivos adjuntos).</p>
-        <div class="header-actions">
-          @if (canCreate()) {
-            <a routerLink="/documental/nuevo">Nuevo documento</a>
-          }
+      <header class="toolbar">
+        <div class="filters">
+          <label>
+            Buscar por código
+            <input
+              type="search"
+              [value]="codeQuery()"
+              (input)="onCodeSearch($event)"
+              placeholder="Ej. DOC-001"
+            />
+          </label>
+          <label>
+            Tipo
+            <select [value]="typeFilter()" (change)="onTypeFilter($event)">
+              <option value="">Todos</option>
+              @for (t of types(); track t.id) {
+                <option [value]="t.id">{{ t.name }} ({{ t.code }})</option>
+              }
+            </select>
+          </label>
         </div>
+        @if (canCreate()) {
+          <a routerLink="/documental/nuevo" class="btn-primary">Nuevo documento</a>
+        }
       </header>
-
-      <div class="filters">
-        <label>
-          Buscar por código
-          <input
-            type="search"
-            [value]="codeQuery()"
-            (input)="onCodeSearch($event)"
-            placeholder="Ej. DOC-001"
-          />
-        </label>
-        <label>
-          Tipo
-          <select [value]="typeFilter()" (change)="onTypeFilter($event)">
-            <option value="">Todos</option>
-            @for (t of types(); track t.id) {
-              <option [value]="t.id">{{ t.name }} ({{ t.code }})</option>
-            }
-          </select>
-        </label>
-      </div>
 
       @if (loading()) {
         <p>Cargando...</p>
@@ -85,10 +80,26 @@ import {
     </section>
   `,
   styles: `
-    header h2 { margin: 0; color: var(--primary-dark); font-weight: 600; }
-    header p { color: var(--coraza-text-muted); margin: 0.25rem 0 1rem; }
-    .header-actions { display: flex; gap: 1rem; margin-bottom: 1rem; }
-    .filters { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; align-items: end; }
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: end;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .btn-primary {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: var(--primary);
+      color: var(--text-on-primary);
+      text-decoration: none;
+      border-radius: var(--coraza-radius);
+      font-size: 0.9rem;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+    .filters { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; }
     label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
     input, select { padding: 0.45rem 0.6rem; border: 1px solid var(--coraza-border); border-radius: 8px; min-width: 200px; }
     table {

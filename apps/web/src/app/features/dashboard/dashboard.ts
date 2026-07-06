@@ -22,7 +22,7 @@ import { DashboardApiService, DashboardStats } from './dashboard-api.service';
             <article>
               <h3>Asociados activos</h3>
               <p class="metric">{{ stats().activeAssociates ?? 0 }}</p>
-              <a routerLink="/rrhh/asociados">Ver asociados</a>
+              <a routerLink="/rrhh">Ver asociados</a>
             </article>
             <article>
               <h3>Dotaciones pendientes</h3>

@@ -4,22 +4,9 @@ import { ResidentialApiService, ResidentialUnit } from '../residential-api.servi
 
 @Component({
   selector: 'app-units-list',
-  imports: [RouterLink, RouterLinkActive],
+  imports: [],
   template: `
     <section>
-      <header>
-        <h2>Residencial — Unidades</h2>
-        <p>Unidades residenciales del puesto asignado a su usuario.</p>
-        <nav class="subnav">
-          <a routerLink="/residential" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
-            Unidades
-          </a>
-          <a routerLink="/residential/visitantes" routerLinkActive="active">Visitantes</a>
-          <a routerLink="/residential/paquetes" routerLinkActive="active">Paquetes</a>
-          <a routerLink="/residential/reservas" routerLinkActive="active">Reservas</a>
-        </nav>
-      </header>
-
       @if (loading()) {
         <p>Cargando...</p>
       } @else if (error()) {

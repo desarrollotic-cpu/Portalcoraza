@@ -13,21 +13,59 @@ import { NotificationService } from '../../core/services/notification.service';
         <div class="brand">System Coraza</div>
         <nav>
           <a routerLink="/dashboard" routerLinkActive="active">Dashboard</a>
-          <a routerLink="/rrhh/asociados" routerLinkActive="active">Asociados</a>
+          @if (auth.hasPermission('associates.view')) {
+            <a
+              routerLink="/rrhh"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Recursos Humanos
+            </a>
+          }
           @if (auth.hasPermission('inventory.view')) {
-            <a routerLink="/dotacion" routerLinkActive="active">Dotación</a>
+            <a
+              routerLink="/dotacion"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Dotación
+            </a>
           }
           @if (auth.hasPermission('scheduling.view')) {
-            <a routerLink="/programacion" routerLinkActive="active">Programación</a>
+            <a
+              routerLink="/programacion"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Programación
+            </a>
           }
           @if (auth.hasPermission('documental.view')) {
-            <a routerLink="/documental" routerLinkActive="active">Documental</a>
+            <a
+              routerLink="/documental"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Documental
+            </a>
           }
           @if (auth.hasPermission('residential.view')) {
-            <a routerLink="/residential" routerLinkActive="active">Residencial</a>
+            <a
+              routerLink="/residential"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Residencial
+            </a>
           }
           @if (auth.hasPermission('users.view')) {
-            <a routerLink="/admin/usuarios" routerLinkActive="active">Administración</a>
+            <a
+              routerLink="/admin"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ paths: 'subset' }"
+            >
+              Administración
+            </a>
           }
         </nav>
         <div class="user">
