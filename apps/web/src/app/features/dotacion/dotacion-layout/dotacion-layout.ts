@@ -1,5 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import {
+  LucideBoxes,
+  LucideHistory,
+  LucideLayoutDashboard,
+  LucidePackageSearch,
+  LucideTruck,
+} from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -8,7 +15,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Dotación"
-      subtitle="Inventario, entregas y control de dotación del personal."
+      subtitle="Inventario, entregas y control operativo de dotación del personal."
       [nav]="nav"
     >
       <router-outlet />
@@ -17,9 +24,38 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 })
 export class DotacionLayout {
   readonly nav: ModuleNavItem[] = [
-    { label: 'Panel principal', route: '/dotacion/panel', permission: 'inventory.view', exact: true },
-    { label: 'Inventario', route: '/dotacion/inventario', permission: 'inventory.view' },
-    { label: 'Entregas', route: '/dotacion/entregas', permission: 'deliveries.view' },
-    { label: 'Movimientos', route: '/dotacion/movimientos', permission: 'inventory.view', exact: true },
+    {
+      label: 'Panel principal',
+      route: '/dotacion/panel',
+      permission: 'inventory.view',
+      exact: true,
+      icon: LucideLayoutDashboard,
+    },
+    {
+      label: 'Inventario',
+      route: '/dotacion/inventario',
+      permission: 'inventory.view',
+      icon: LucideBoxes,
+    },
+    {
+      label: 'Entregas',
+      route: '/dotacion/entregas',
+      permission: 'deliveries.view',
+      icon: LucideTruck,
+    },
+    {
+      label: 'Historial',
+      route: '/dotacion/movimientos',
+      permission: 'inventory.view',
+      exact: true,
+      icon: LucideHistory,
+    },
+    {
+      label: 'Sin dotación 7+ meses',
+      route: '/dotacion/sin-dotacion',
+      permission: 'inventory.view',
+      exact: true,
+      icon: LucidePackageSearch,
+    },
   ];
 }

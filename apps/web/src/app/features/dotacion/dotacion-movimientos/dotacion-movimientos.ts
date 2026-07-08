@@ -6,8 +6,8 @@ import { ModulePlaceholder } from '../../../shared/components/module-placeholder
   imports: [ModulePlaceholder],
   template: `
     <app-module-placeholder
-      heading="Movimientos de inventario"
-      message="Historial de entradas, salidas y ajustes de stock por variante. Próximo paso del módulo Dotación."
+      heading="Historial de movimientos"
+      message="Historial de ingresos, entregas, ajustes y reversiones de dotación."
     />
   `,
 })

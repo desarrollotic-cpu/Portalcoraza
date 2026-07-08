@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { LucideUsersRound } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -8,7 +9,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Recursos Humanos"
-      subtitle="Gestión de personal y asociados de la cooperativa."
+      subtitle="Fuente única del personal: gestión de asociados, novedades y cumplimiento."
       [nav]="nav"
     >
       <router-outlet />
@@ -17,6 +18,11 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 })
 export class RrhhLayout {
   readonly nav: ModuleNavItem[] = [
-    { label: 'Asociados', route: '/rrhh/asociados', permission: 'associates.view' },
+    {
+      label: 'Asociados',
+      route: '/rrhh/asociados',
+      permission: 'associates.view',
+      icon: LucideUsersRound,
+    },
   ];
 }

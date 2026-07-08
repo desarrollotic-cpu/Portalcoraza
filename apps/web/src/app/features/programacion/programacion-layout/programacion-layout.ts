@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { LucideCalendarClock } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -21,6 +22,7 @@ export class ProgramacionLayout {
       label: 'Cuadro mensual',
       route: '/programacion',
       permission: 'scheduling.view',
+      icon: LucideCalendarClock,
     },
   ];
 }

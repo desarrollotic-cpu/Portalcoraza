@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { LucideFileText } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -17,6 +18,11 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 })
 export class DocumentalLayout {
   readonly nav: ModuleNavItem[] = [
-    { label: 'Documentos', route: '/documental', permission: 'documental.view' },
+    {
+      label: 'Documentos',
+      route: '/documental',
+      permission: 'documental.view',
+      icon: LucideFileText,
+    },
   ];
 }
