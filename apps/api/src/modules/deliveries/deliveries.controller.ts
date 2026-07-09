@@ -22,6 +22,12 @@ import { DeliveriesService } from './deliveries.service';
 export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
 
+  @Get('eligible-associates')
+  @RequirePermissions('deliveries.create')
+  listEligibleAssociates() {
+    return this.deliveriesService.listEligibleAssociates();
+  }
+
   @Get()
   @RequirePermissions('deliveries.view')
   list(
@@ -48,7 +54,7 @@ export class DeliveriesController {
   }
 
   @Post(':id/revert')
-  @RequirePermissions('deliveries.create')
+  @RequirePermissions('deliveries.revert')
   revert(
     @Param('id') id: string,
     @Body() dto: RevertDeliveryDto,

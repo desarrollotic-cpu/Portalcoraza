@@ -35,12 +35,14 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { Icon } from '../../shared/components/icon/icon';
+import { Toaster } from '../../shared/components/toaster/toaster';
 
 interface NavItem {
   label: string;
   route: string;
   icon: Type<unknown>;
   permission?: string;
+  permissions?: string[];
   match?: 'subset' | 'exact';
 }
 
@@ -51,7 +53,7 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster],
   template: `
     <div class="layout">
       <aside class="sidebar">
@@ -199,6 +201,7 @@ interface NavGroup {
           <router-outlet />
         </main>
       </div>
+      <app-toaster />
     </div>
   `,
   styles: `
@@ -761,7 +764,7 @@ export class MainLayout implements OnDestroy {
           label: 'Recursos Humanos',
           route: '/rrhh',
           icon: LucideUsersRound,
-          permission: 'associates.view',
+          permissions: ['associates.view', 'hr_dashboard.view'],
         },
         {
           label: 'Dotación',
@@ -815,9 +818,12 @@ export class MainLayout implements OnDestroy {
     this.groups
       .map((group) => ({
         ...group,
-        items: group.items.filter(
-          (item) => !item.permission || this.auth.hasPermission(item.permission),
-        ),
+        items: group.items.filter((item) => {
+          if (item.permissions?.length) {
+            return item.permissions.some((p) => this.auth.hasPermission(p));
+          }
+          return !item.permission || this.auth.hasPermission(item.permission);
+        }),
       }))
       .filter((group) => group.items.length > 0),
   );

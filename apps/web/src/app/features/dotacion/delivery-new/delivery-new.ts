@@ -1,7 +1,30 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
+import { map } from 'rxjs';
 import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
+import { DeliverableAssociate, InventoryApiService } from '../inventory-api.service';
+
+interface SelectableAssociate {
+  id: string;
+  documentNumber: string;
+  label: string;
+  status: string;
+}
+
+function toSelectable(a: DeliverableAssociate): SelectableAssociate {
+  const name = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+    .filter(Boolean)
+    .join(' ');
+  const statusHint = a.status === 'VACACIONES' ? ' · vacaciones' : '';
+  return {
+    id: a.id,
+    documentNumber: a.documentNumber,
+    label: name
+      ? `${name} (${a.documentNumber})${statusHint}`
+      : a.documentNumber,
+    status: a.status,
+  };
+}
 
 @Component({
   selector: 'app-delivery-new',
@@ -10,7 +33,7 @@ import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
     <section>
       <header>
         <h2>Nueva entrega de dotación</h2>
-        <p>Selecciona el asociado y registra la entrega con tallas y firma.</p>
+        <p>Selecciona un asociado activo o en vacaciones y registra la entrega con tallas y firma.</p>
       </header>
 
       @if (loading()) {
@@ -23,7 +46,7 @@ import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
           <select [value]="associateId()" (change)="onAssociateChange($event)">
             <option value="">Seleccione...</option>
             @for (a of associates(); track a.id) {
-              <option [value]="a.id">{{ associateLabel(a) }}</option>
+              <option [value]="a.id">{{ a.label }}</option>
             }
           </select>
         </label>
@@ -55,9 +78,9 @@ import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
   `,
 })
 export class DeliveryNew implements OnInit {
-  private readonly associatesApi = inject(AssociatesApiService);
+  private readonly api = inject(InventoryApiService);
 
-  readonly associates = signal<Associate[]>([]);
+  readonly associates = signal<SelectableAssociate[]>([]);
   readonly associateId = signal('');
   readonly subjectLabel = signal('');
   readonly dialogOpen = signal(false);
@@ -65,23 +88,26 @@ export class DeliveryNew implements OnInit {
   readonly error = signal<string | null>(null);
 
   ngOnInit(): void {
-    this.associatesApi.list('ACTIVO').subscribe({
-      next: (list) => {
-        this.associates.set(list);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('No se pudieron cargar los asociados');
-      },
-    });
+    this.api
+      .listEligibleAssociates()
+      .pipe(map((rows) => rows.map(toSelectable)))
+      .subscribe({
+        next: (list) => {
+          this.associates.set(list);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('No se pudieron cargar los asociados elegibles');
+        },
+      });
   }
 
   onAssociateChange(event: Event): void {
     const id = (event.target as HTMLSelectElement).value;
     this.associateId.set(id);
     const associate = this.associates().find((a) => a.id === id);
-    this.subjectLabel.set(associate ? this.associateLabel(associate) : '');
+    this.subjectLabel.set(associate?.label ?? '');
   }
 
   openDialog(): void {
@@ -95,10 +121,5 @@ export class DeliveryNew implements OnInit {
 
   onCompleted(): void {
     this.closeDialog();
-  }
-
-  associateLabel(a: Associate): string {
-    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
-    return name ? `${name} (${a.documentNumber ?? 's/doc'})` : (a.documentNumber ?? a.id);
   }
 }

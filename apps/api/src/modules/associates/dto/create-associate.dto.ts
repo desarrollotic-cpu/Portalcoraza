@@ -1,68 +1,158 @@
 import {
+  IsBoolean,
   IsDateString,
-  IsEmail,
   IsEnum,
+  IsInt,
+  IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
+  Length,
+  Max,
   MaxLength,
+  Min,
 } from 'class-validator';
-import { AssociateStatus } from '../entities/associate.entity';
+import {
+  AssociateDocumentType,
+  AssociateMaritalStatus,
+  AssociateSexAtBirth,
+  AssociateStatus,
+} from '../entities/associate.entity';
 
 export class CreateAssociateDto {
-  @IsOptional()
-  @IsString()
-  @MaxLength(30)
-  documentNumber?: string;
+  // ─── Identidad ────────────────────────────────────────────────────────
+  @IsOptional() @IsInt() @Min(0)
+  folderNumber?: number | null;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  firstName?: string;
+  @IsOptional() @IsString() @MaxLength(120)
+  actReference?: string | null;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(100)
-  lastName?: string;
+  @IsEnum(AssociateDocumentType)
+  documentType!: AssociateDocumentType;
 
-  @IsOptional()
-  @IsString()
-  @MaxLength(30)
-  phone?: string;
+  @IsString() @Length(4, 30)
+  documentNumber!: string;
 
-  @IsOptional()
-  @IsEmail()
-  email?: string;
+  @IsOptional() @IsDateString()
+  documentExpeditionDate?: string | null;
 
-  @IsOptional()
-  @IsString()
-  address?: string;
+  @IsString() @Length(1, 80)
+  firstName!: string;
 
-  @IsOptional()
-  @IsString()
-  eps?: string;
+  @IsOptional() @IsString() @MaxLength(80)
+  secondName?: string | null;
 
-  @IsOptional()
-  @IsString()
-  arl?: string;
+  @IsString() @Length(1, 80)
+  firstLastName!: string;
 
-  @IsOptional()
-  @IsString()
-  afp?: string;
+  @IsOptional() @IsString() @MaxLength(80)
+  secondLastName?: string | null;
 
-  @IsOptional()
-  @IsString()
-  bank?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(10)
-  bloodType?: string;
-
-  @IsOptional()
   @IsDateString()
-  hireDate?: string;
+  birthDate!: string;
 
-  @IsOptional()
-  @IsEnum(AssociateStatus)
+  @IsOptional() @IsEnum(AssociateSexAtBirth)
+  sexAtBirth?: AssociateSexAtBirth | null;
+
+  @IsOptional() @IsEnum(AssociateMaritalStatus)
+  maritalStatus?: AssociateMaritalStatus | null;
+
+  // ─── Contacto ─────────────────────────────────────────────────────────
+  @IsOptional() @IsString() @MaxLength(200)
+  email?: string | null;
+
+  @IsOptional() @IsString()
+  address?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  landline?: string | null;
+
+  @IsString() @Length(4, 30)
+  mobile!: string;
+
+  // ─── Emergencia ───────────────────────────────────────────────────────
+  @IsOptional() @IsString() @MaxLength(150)
+  emergencyContactName?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  emergencyContactRelationship?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(30)
+  emergencyContactPhone?: string | null;
+
+  // ─── Laboral ──────────────────────────────────────────────────────────
+  @IsDateString()
+  hireDate!: string;
+
+  @IsOptional() @IsUUID()
+  jobPositionId?: string | null;
+
+  @IsOptional() @IsUUID()
+  workCenterId?: string | null;
+
+  @IsOptional() @IsNumber() @Min(0)
+  ordinaryCompensation?: number;
+
+  @IsOptional() @IsNumber() @Min(0)
+  averageMonthlySalary?: number;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  bankAccount?: string | null;
+
+  // ─── Salud ocupacional ────────────────────────────────────────────────
+  @IsOptional() @IsBoolean()
+  psychophysicalValid?: boolean;
+
+  @IsOptional() @IsBoolean()
+  psychosensometricValid?: boolean;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  courseCode?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(50)
+  schoolNit?: string | null;
+
+  @IsOptional() @IsString() @MaxLength(80)
+  courseCertificateNumber?: string | null;
+
+  @IsOptional() @IsBoolean()
+  hasSuraPolicy?: boolean;
+
+  @IsOptional() @IsString() @MaxLength(120)
+  funeralService?: string | null;
+
+  // ─── Sociodemográfico ────────────────────────────────────────────────
+  @IsOptional() @IsInt() @Min(0) @Max(30)
+  childrenCount?: number;
+
+  @IsOptional() @IsInt() @Min(0) @Max(30)
+  dependentsCount?: number;
+
+  @IsOptional() @IsInt() @Min(1) @Max(6)
+  estrato?: number | null;
+
+  @IsOptional() @IsString()
+  lifePlan?: string | null;
+
+  // ─── Catálogos (FKs) ─────────────────────────────────────────────────
+  @IsOptional() @IsUUID() epsId?: string | null;
+  @IsOptional() @IsUUID() pensionFundId?: string | null;
+  @IsOptional() @IsUUID() bloodTypeId?: string | null;
+  @IsOptional() @IsUUID() genderId?: string | null;
+  @IsOptional() @IsUUID() sexualOrientationId?: string | null;
+  @IsOptional() @IsUUID() religionId?: string | null;
+  @IsOptional() @IsUUID() raceId?: string | null;
+  @IsOptional() @IsUUID() housingTypeId?: string | null;
+  @IsOptional() @IsUUID() educationLevelId?: string | null;
+  @IsOptional() @IsUUID() incomeRangeId?: string | null;
+  @IsOptional() @IsUUID() transportMeanId?: string | null;
+  @IsOptional() @IsUUID() commuteTimeId?: string | null;
+
+  // ─── Estado ──────────────────────────────────────────────────────────
+  @IsOptional() @IsEnum(AssociateStatus)
   status?: AssociateStatus;
+
+  // ─── Metadatos opcionales ────────────────────────────────────────────
+  @IsOptional() @IsString() @MaxLength(200)
+  positionChangeReason?: string;
 }

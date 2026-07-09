@@ -3,9 +3,8 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { forkJoin } from 'rxjs';
-import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
 import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
-import { Delivery, InventoryApiService } from '../inventory-api.service';
+import { DeliverableAssociate, Delivery, InventoryApiService } from '../inventory-api.service';
 import { SignatureViewer } from '../signature-viewer/signature-viewer';
 
 @Component({
@@ -38,7 +37,7 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
             @for (d of deliveries(); track d.id) {
               <tr>
                 <td>{{ d.createdAt | date: 'short' }}</td>
-                <td>{{ associateName(d.associateId) }}</td>
+                <td>{{ associateName(d) }}</td>
                 <td>
                   <span
                     class="badge"
@@ -108,12 +107,11 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
 })
 export class DeliveriesList implements OnInit {
   private readonly api = inject(InventoryApiService);
-  private readonly associatesApi = inject(AssociatesApiService);
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly deliveries = signal<Delivery[]>([]);
-  readonly associates = signal<Associate[]>([]);
+  readonly deliverable = signal<DeliverableAssociate[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly dialogOpen = signal(false);
@@ -123,11 +121,11 @@ export class DeliveriesList implements OnInit {
   ngOnInit(): void {
     forkJoin({
       deliveries: this.api.listDeliveries(),
-      associates: this.associatesApi.list(),
+      deliverable: this.api.listEligibleAssociates(),
     }).subscribe({
-      next: ({ deliveries, associates }) => {
+      next: ({ deliveries, deliverable }) => {
         this.deliveries.set(deliveries);
-        this.associates.set(associates);
+        this.deliverable.set(deliverable);
         this.loading.set(false);
       },
       error: () => {
@@ -137,19 +135,34 @@ export class DeliveriesList implements OnInit {
     });
   }
 
-  associateName(id: string | null): string {
-    if (!id) return 'Puesto';
-    const a = this.associates().find((x) => x.id === id);
-    if (!a) return id.slice(0, 8);
-    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
+  associateName(d: Delivery): string {
+    if (!d.associateId) return 'Puesto';
+    const embedded = d.associate;
+    if (embedded) {
+      const name = [
+        embedded.firstName,
+        embedded.secondName,
+        embedded.firstLastName,
+        embedded.secondLastName,
+      ]
+        .filter(Boolean)
+        .join(' ');
+      return name || embedded.documentNumber || '—';
+    }
+    const a = this.deliverable().find((x) => x.id === d.associateId);
+    if (!a) return d.associateId.slice(0, 8);
+    const name = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ');
     return name || a.documentNumber || '—';
   }
 
   openNewDelivery(): void {
-    const active = this.associates().filter((a) => a.status !== 'RETIRADO');
-    if (active.length === 1) {
-      this.dialogAssociateId.set(active[0].id);
-      this.dialogSubject.set(this.associateName(active[0].id));
+    const eligible = this.deliverable();
+    if (eligible.length === 1) {
+      const a = eligible[0];
+      this.dialogAssociateId.set(a.id);
+      this.dialogSubject.set(this.formatName(a));
       this.dialogOpen.set(true);
       return;
     }
@@ -163,6 +176,13 @@ export class DeliveriesList implements OnInit {
   onDeliveryCompleted(): void {
     this.closeDialog();
     this.reload();
+  }
+
+  private formatName(a: DeliverableAssociate): string {
+    const name = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ');
+    return name || a.documentNumber || '—';
   }
 
   private reload(): void {

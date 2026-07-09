@@ -141,7 +141,7 @@ export class DeliveryHistory {
   }
 
   canRevert(delivery: Delivery): boolean {
-    if (!this.auth.hasPermission('deliveries.create')) return false;
+    if (!this.auth.hasPermission('deliveries.revert')) return false;
     if (delivery.status !== 'DELIVERED' || !delivery.deliveredAt) return false;
     const elapsed = Date.now() - new Date(delivery.deliveredAt).getTime();
     return elapsed <= REVERT_WINDOW_MS;

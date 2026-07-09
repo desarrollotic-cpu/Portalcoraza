@@ -34,6 +34,28 @@ export interface DeliveryDetail {
   quantity: number;
 }
 
+export interface DeliveryAssociateSnapshot {
+  id: string;
+  documentNumber: string;
+  firstName: string;
+  secondName?: string | null;
+  firstLastName: string;
+  secondLastName?: string | null;
+  status?: string;
+  jobPosition?: { name: string } | null;
+}
+
+export interface DeliverableAssociate {
+  id: string;
+  documentNumber: string;
+  firstName: string;
+  secondName: string | null;
+  firstLastName: string;
+  secondLastName: string | null;
+  status: string;
+  jobPositionName: string | null;
+}
+
 export interface Delivery {
   id: string;
   associateId: string | null;
@@ -47,6 +69,7 @@ export interface Delivery {
   revertReason: string | null;
   createdAt: string;
   details: DeliveryDetail[];
+  associate?: DeliveryAssociateSnapshot | null;
 }
 
 export interface StockValidation {
@@ -159,6 +182,10 @@ export class InventoryApiService {
     if (filters?.postId) params.set('postId', filters.postId);
     const query = params.toString() ? `?${params.toString()}` : '';
     return this.http.get<Delivery[]>(`${this.deliveriesUrl}${query}`);
+  }
+
+  listEligibleAssociates(): Observable<DeliverableAssociate[]> {
+    return this.http.get<DeliverableAssociate[]>(`${this.deliveriesUrl}/eligible-associates`);
   }
 
   createDelivery(payload: CreateDeliveryPayload): Observable<Delivery> {

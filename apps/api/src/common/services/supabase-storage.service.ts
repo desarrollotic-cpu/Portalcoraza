@@ -29,6 +29,25 @@ export class SupabaseStorageService {
     return data.publicUrl;
   }
 
+  async deleteObject(bucket: string, filePath: string): Promise<void> {
+    const client = this.getClient();
+    const { error } = await client.storage.from(bucket).remove([filePath]);
+    if (error) {
+      throw new Error(error.message);
+    }
+  }
+
+  /**
+   * Deriva el `filePath` original a partir de la publicUrl. Formato de URL:
+   *   https://xxx.supabase.co/storage/v1/object/public/<bucket>/<filePath>
+   */
+  extractFilePath(publicUrl: string, bucket: string): string | null {
+    const marker = `/storage/v1/object/public/${bucket}/`;
+    const idx = publicUrl.indexOf(marker);
+    if (idx === -1) return null;
+    return publicUrl.substring(idx + marker.length);
+  }
+
   private getClient(): SupabaseClient {
     if (this.client) {
       return this.client;

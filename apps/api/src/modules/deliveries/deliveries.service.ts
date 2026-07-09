@@ -9,8 +9,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, FindOptionsWhere } from 'typeorm';
 import { SupabaseStorageService } from '../../common/services/supabase-storage.service';
 import { AuditService } from '../audit/audit.service';
+import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { InventoryVariant } from '../inventory/entities/inventory-variant.entity';
 import { Post } from '../posts/entities/post.entity';
+import { DeliverableAssociateDto } from './dto/deliverable-associate.dto';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { RevertDeliveryDto } from './dto/revert-delivery.dto';
 import { SignDeliveryDto } from './dto/sign-delivery.dto';
@@ -18,6 +20,12 @@ import { DeliveryDetail } from './entities/delivery-detail.entity';
 import { Delivery, DeliveryStatus } from './entities/delivery.entity';
 
 const REVERT_WINDOW_HOURS = 120;
+
+/** Estados HR que permiten recibir dotación. */
+const DELIVERABLE_STATUSES: AssociateStatus[] = [
+  AssociateStatus.ACTIVO,
+  AssociateStatus.VACACIONES,
+];
 
 @Injectable()
 export class DeliveriesService {
@@ -30,6 +38,8 @@ export class DeliveriesService {
     private readonly variantsRepo: Repository<InventoryVariant>,
     @InjectRepository(Post)
     private readonly postsRepo: Repository<Post>,
+    @InjectRepository(Associate)
+    private readonly associatesRepo: Repository<Associate>,
     private readonly config: ConfigService,
     private readonly auditService: AuditService,
     private readonly supabaseStorage: SupabaseStorageService,
@@ -46,9 +56,29 @@ export class DeliveriesService {
 
     return this.deliveriesRepo.find({
       where,
-      relations: { details: true },
+      relations: { details: true, associate: { jobPosition: true } },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  /** Asociados ACTIVO/VACACIONES para selector de dotación (sin permiso HR completo). */
+  async listEligibleAssociates(): Promise<DeliverableAssociateDto[]> {
+    const rows = await this.associatesRepo.find({
+      where: { status: In(DELIVERABLE_STATUSES) },
+      relations: { jobPosition: true },
+      order: { firstLastName: 'ASC', firstName: 'ASC' },
+    });
+
+    return rows.map((a) => ({
+      id: a.id,
+      documentNumber: a.documentNumber,
+      firstName: a.firstName,
+      secondName: a.secondName,
+      firstLastName: a.firstLastName,
+      secondLastName: a.secondLastName,
+      status: a.status,
+      jobPositionName: a.jobPosition?.name ?? null,
+    }));
   }
 
   async create(dto: CreateDeliveryDto, userId: string) {
@@ -64,6 +94,10 @@ export class DeliveriesService {
       if (!post) {
         throw new NotFoundException('Puesto no encontrado');
       }
+    }
+
+    if (dto.associateId) {
+      await this.assertDeliverableAssociate(dto.associateId);
     }
 
     const variantIds = dto.items.map((i) => i.variantId);
@@ -251,5 +285,18 @@ export class DeliveriesService {
       return signatureData.slice(markerIndex + marker.length);
     }
     return signatureData;
+  }
+
+  private async assertDeliverableAssociate(associateId: string): Promise<Associate> {
+    const associate = await this.associatesRepo.findOne({ where: { id: associateId } });
+    if (!associate) {
+      throw new NotFoundException('Asociado no encontrado');
+    }
+    if (!DELIVERABLE_STATUSES.includes(associate.status)) {
+      throw new BadRequestException(
+        `No se puede entregar dotación a un asociado en estado ${associate.status}. Solo ACTIVO o VACACIONES.`,
+      );
+    }
+    return associate;
   }
 }

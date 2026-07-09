@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CommonModule } from './common/common.module';
 import { AssociatesModule } from './modules/associates/associates.module';
@@ -7,6 +8,14 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { DocumentalModule } from './modules/documental/documental.module';
+import { HrAlertsModule } from './modules/hr-alerts/hr-alerts.module';
+import { HrCatalogsModule } from './modules/hr-catalogs/hr-catalogs.module';
+import { HrDashboardModule } from './modules/hr-dashboard/hr-dashboard.module';
+import { HrDocumentsModule } from './modules/hr-documents/hr-documents.module';
+import { HrExcelModule } from './modules/hr-excel/hr-excel.module';
+import { HrPositionsModule } from './modules/hr-positions/hr-positions.module';
+import { HrRetirementsModule } from './modules/hr-retirements/hr-retirements.module';
+import { HrWorkCentersModule } from './modules/hr-work-centers/hr-work-centers.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { ResidentialModule } from './modules/residential/residential.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
@@ -23,6 +32,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     CommonModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
@@ -37,7 +47,15 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     UsersModule,
     RolesModule,
     PermissionsModule,
+    HrCatalogsModule,
+    HrPositionsModule,
+    HrWorkCentersModule,
     AssociatesModule,
+    HrDocumentsModule,
+    HrRetirementsModule,
+    HrAlertsModule,
+    HrDashboardModule,
+    HrExcelModule,
     InventoryModule,
     DeliveriesModule,
     SchedulingModule,

@@ -1,197 +1,279 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import {
+  LucideCircleCheck,
+  LucideCircleX,
+  LucideFilter,
+  LucideRefreshCw,
+  LucideSearch,
+  LucideSearchX,
+  LucideUserPlus,
+} from '@lucide/angular';
+import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
-import { DeliveryDialog } from '../../dotacion/delivery-dialog/delivery-dialog';
-import { Associate, AssociatesApiService } from '../associates-api.service';
+import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
+import { Icon } from '../../../shared/components/icon/icon';
+import { HrApiService } from '../services/hr-api.service';
+import type {
+  Associate,
+  AssociatesQuery,
+  AssociateStatus,
+  JobPosition,
+  WorkCenter,
+} from '../services/hr.types';
 
+const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> = {
+  ACTIVO: { label: 'Activo', color: 'green' },
+  VACACIONES: { label: 'Vacaciones', color: 'amber' },
+  SUSPENDIDO: { label: 'Suspendido', color: 'rose' },
+  INACTIVO: { label: 'Inactivo', color: 'gray' },
+  RETIRADO: { label: 'Retirado', color: 'red' },
+};
+
+/**
+ * Directorio de asociados con filtros avanzados, búsqueda en tiempo real y
+ * semáforo de cumplimiento SST por fila (verde/amarillo/rojo).
+ */
 @Component({
   selector: 'app-associates-list',
-  imports: [RouterLink, DeliveryDialog],
+  imports: [CommonModule, FormsModule, RouterLink, Icon, HrPageHeader],
   template: `
-    <section>
-      <header class="toolbar">
-        @if (auth.hasPermission('associates.create')) {
-          <a routerLink="/rrhh/asociados/nuevo" class="btn-primary">Crear asociado</a>
-        }
-      </header>
+    <div class="hr-page">
+      <app-hr-page-header
+        title="Directorio"
+        [badge]="filtered().length + ' de ' + associates().length"
+      >
+        <div actions class="hr-page-header__actions">
+          <button type="button" class="hr-btn hr-btn-ghost" (click)="refresh()" [disabled]="loading()">
+            <app-icon [icon]="icons.Refresh" [size]="16" /> Refrescar
+          </button>
+          @if (auth.hasPermission('associates.create')) {
+            <a routerLink="/rrhh/asociados/nuevo" class="hr-btn hr-btn-primary">
+              <app-icon [icon]="icons.UserPlus" [size]="16" /> Nuevo asociado
+            </a>
+          }
+        </div>
+      </app-hr-page-header>
+
+      <section class="hr-filters">
+        <div class="hr-search">
+          <app-icon [icon]="icons.Search" [size]="16" />
+          <input
+            type="search"
+            placeholder="Buscar por documento o nombre..."
+            [ngModel]="query.search"
+            (ngModelChange)="onSearchChange($event)"
+          />
+        </div>
+        <div class="hr-chips">
+          @for (s of statusChips; track s.value) {
+            <button
+              type="button"
+              class="hr-chip"
+              [class.active]="query.status === s.value"
+              (click)="toggleStatus(s.value)"
+            >{{ s.label }}</button>
+          }
+        </div>
+        <select [ngModel]="query.jobPositionId" (ngModelChange)="query.jobPositionId = $event; applyFilters()">
+          <option [ngValue]="undefined">Todos los cargos</option>
+          @for (p of positions(); track p.id) {
+            <option [ngValue]="p.id">{{ p.name }}</option>
+          }
+        </select>
+        <select [ngModel]="query.workCenterId" (ngModelChange)="query.workCenterId = $event; applyFilters()">
+          <option [ngValue]="undefined">Todos los centros</option>
+          @for (wc of workCenters(); track wc.id) {
+            <option [ngValue]="wc.id">{{ wc.code }} — {{ wc.clientName }}</option>
+          }
+        </select>
+        <select [ngModel]="query.isCritical" (ngModelChange)="query.isCritical = $event; applyFilters()">
+          <option [ngValue]="undefined">Cualquier criticidad</option>
+          <option value="true">Solo cargos críticos</option>
+          <option value="false">No críticos</option>
+        </select>
+      </section>
 
       @if (loading()) {
-        <p>Cargando...</p>
+        <div class="hr-loading">Cargando asociados...</div>
       } @else if (error()) {
-        <p class="error">{{ error() }}</p>
+        <div class="hr-error">{{ error() }}</div>
       } @else {
-        <table>
-          <thead>
-            <tr>
-              <th>Documento</th>
-              <th>Nombre</th>
-              <th>Estado</th>
-              <th>Correo</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (a of associates(); track a.id) {
+        <div class="hr-table-wrap">
+          <table class="hr-table">
+            <thead>
               <tr>
-                <td>{{ a.documentNumber ?? '—' }}</td>
-                <td>{{ fullName(a) }}</td>
-                <td><span class="badge">{{ a.status }}</span></td>
-                <td>{{ a.email ?? '—' }}</td>
-                <td class="actions-cell">
-                  <a [routerLink]="['/rrhh/asociados', a.id]">Ver historia</a>
-                  <a [routerLink]="['/rrhh/asociados', a.id, 'editar']">Editar</a>
-                  @if (auth.hasPermission('deliveries.create') && a.status !== 'RETIRADO') {
-                    <button type="button" (click)="openDelivery(a)">Entregar dotación</button>
-                  }
-                  <button
-                    type="button"
-                    (click)="retire(a)"
-                    [disabled]="a.status === 'RETIRADO'"
-                  >
-                    Retirar
-                  </button>
-                </td>
+                <th>Documento</th>
+                <th>Nombre</th>
+                <th>Cargo</th>
+                <th>Centro</th>
+                <th>Estado</th>
+                <th>Antigüedad</th>
+                <th>SST</th>
+                <th></th>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="5">No hay asociados registrados.</td>
-              </tr>
-            }
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              @for (a of filtered(); track a.id) {
+                <tr>
+                  <td class="mono">{{ a.documentNumber }}</td>
+                  <td><a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link">{{ a.fullName }}</a></td>
+                  <td>
+                    {{ a.jobPosition?.name ?? '—' }}
+                    @if (a.jobPosition?.isCritical) {
+                      <span class="hr-pill-critical">crítico</span>
+                    }
+                  </td>
+                  <td>{{ a.workCenter?.code ?? '—' }}</td>
+                  <td>
+                    <span class="hr-status" [attr.data-color]="statusColor(a.status)">
+                      {{ statusLabel(a.status) }}
+                    </span>
+                  </td>
+                  <td>{{ a.tenureYears }} a</td>
+                  <td>
+                    <div class="hr-sst-lights" [title]="complianceTooltip(a)">
+                      <span class="hr-sst-light" [class.on]="a.psychophysicalValid">
+                        <app-icon [icon]="a.psychophysicalValid ? icons.Check : icons.X" [size]="14" />
+                      </span>
+                      <span class="hr-sst-light" [class.on]="a.psychosensometricValid">
+                        <app-icon [icon]="a.psychosensometricValid ? icons.Check : icons.X" [size]="14" />
+                      </span>
+                      <span class="hr-sst-light" [class.on]="a.hasSuraPolicy">
+                        <app-icon [icon]="a.hasSuraPolicy ? icons.Check : icons.X" [size]="14" />
+                      </span>
+                    </div>
+                  </td>
+                  <td>
+                    <a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link hr-link-sm">Ver</a>
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="8">
+                    <div class="hr-empty-state">
+                      <app-icon [icon]="icons.SearchX" [size]="36" />
+                      <p>Sin resultados con estos filtros.</p>
+                      <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="clearFilters()">
+                        Limpiar filtros
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
-    </section>
-
-    <app-delivery-dialog
-      [open]="deliveryOpen()"
-      [associateId]="deliveryAssociateId()"
-      [subjectLabel]="deliverySubject()"
-      (completed)="onDeliveryCompleted()"
-      (dismissed)="closeDelivery()"
-    />
-  `,
-  styles: `
-    .toolbar {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1rem;
-    }
-    .btn-primary {
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      background: var(--primary);
-      color: var(--text-on-primary);
-      text-decoration: none;
-      border-radius: var(--coraza-radius);
-      font-size: 0.9rem;
-      font-weight: 500;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: var(--coraza-surface);
-      border-radius: var(--coraza-radius);
-      overflow: hidden;
-      border: 1px solid var(--coraza-border);
-      box-shadow: var(--coraza-shadow);
-    }
-    th,
-    td {
-      text-align: left;
-      padding: 0.75rem 1rem;
-      border-bottom: 1px solid var(--coraza-border);
-    }
-    th {
-      background: var(--primary-50);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--primary-dark);
-      font-weight: 600;
-    }
-    .badge {
-      font-size: 0.75rem;
-      background: var(--accent-bg);
-      color: var(--primary-dark);
-      padding: 0.15rem 0.5rem;
-      border-radius: 999px;
-    }
-    .error {
-      color: var(--coraza-error);
-    }
-    .actions-cell {
-      display: flex;
-      gap: 0.5rem;
-      align-items: center;
-    }
+    </div>
   `,
 })
-export class AssociatesList implements OnInit {
-  private readonly associatesApi = inject(AssociatesApiService);
+export class AssociatesList implements OnInit, OnDestroy {
+  private readonly api = inject(HrApiService);
   readonly auth = inject(AuthService);
 
+  readonly icons = {
+    Search: LucideSearch,
+    SearchX: LucideSearchX,
+    Filter: LucideFilter,
+    UserPlus: LucideUserPlus,
+    Refresh: LucideRefreshCw,
+    Check: LucideCircleCheck,
+    X: LucideCircleX,
+  };
+
+  private readonly search$ = new Subject<void>();
+  private searchSub?: Subscription;
+
   readonly associates = signal<Associate[]>([]);
+  readonly positions = signal<JobPosition[]>([]);
+  readonly workCenters = signal<WorkCenter[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly deliveryOpen = signal(false);
-  readonly deliveryAssociateId = signal<string | null>(null);
-  readonly deliverySubject = signal('');
+
+  query: AssociatesQuery = { status: 'ACTIVO' };
+
+  readonly filtered = computed(() => {
+    // El backend ya filtra; el signal es directo. Se mantiene por si en el
+    // futuro queremos filtrado adicional en cliente.
+    return this.associates();
+  });
+
+  readonly statusChips: { value: AssociateStatus | undefined; label: string }[] = [
+    { value: undefined, label: 'Todos' },
+    { value: 'ACTIVO', label: 'Activos' },
+    { value: 'VACACIONES', label: 'Vacaciones' },
+    { value: 'SUSPENDIDO', label: 'Suspendidos' },
+    { value: 'RETIRADO', label: 'Retirados' },
+  ];
 
   ngOnInit(): void {
-    this.associatesApi.list().subscribe({
-      next: (data) => {
-        this.associates.set(data);
+    this.api.listJobPositions().subscribe({
+      next: (rows) => this.positions.set(rows),
+      error: () => {},
+    });
+    this.api.listWorkCenters().subscribe({
+      next: (rows) => this.workCenters.set(rows),
+      error: () => {},
+    });
+    // Debounce de la búsqueda: 300ms entre pulsaciones para reducir llamadas
+    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(() => this.applyFilters());
+    this.applyFilters();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
+  }
+
+  onSearchChange(term: string): void {
+    this.query.search = term;
+    this.search$.next();
+  }
+
+  refresh(): void {
+    this.applyFilters();
+  }
+
+  clearFilters(): void {
+    this.query = { status: 'ACTIVO' };
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.api.listAssociates(this.query).subscribe({
+      next: (rows) => {
+        this.associates.set(rows);
         this.loading.set(false);
       },
       error: (err) => {
         this.loading.set(false);
-        this.error.set(
-          err.status === 403
-            ? 'Sin permiso para ver asociados'
-            : 'No se pudo cargar la lista',
-        );
+        this.error.set(err.status === 403 ? 'Sin permiso' : 'Error cargando asociados');
       },
     });
   }
 
-  retire(a: Associate): void {
-    if (a.status === 'RETIRADO') {
-      return;
-    }
-
-    const ok = window.confirm('¿Confirmas retirar este asociado?');
-    if (!ok) {
-      return;
-    }
-
-    this.associatesApi.retire(a.id).subscribe({
-      next: (updated) => {
-        this.associates.update((items) =>
-          items.map((item) => (item.id === updated.id ? updated : item)),
-        );
-      },
-      error: () => this.error.set('No se pudo retirar el asociado'),
-    });
+  toggleStatus(value: AssociateStatus | undefined): void {
+    this.query.status = this.query.status === value ? undefined : value;
+    this.applyFilters();
   }
 
-  openDelivery(a: Associate): void {
-    this.deliveryAssociateId.set(a.id);
-    this.deliverySubject.set(this.fullName(a));
-    this.deliveryOpen.set(true);
+  statusColor(s: AssociateStatus): string {
+    return STATUS_LABELS[s]?.color ?? 'gray';
   }
 
-  closeDelivery(): void {
-    this.deliveryOpen.set(false);
-    this.deliveryAssociateId.set(null);
-    this.deliverySubject.set('');
+  statusLabel(s: AssociateStatus): string {
+    return STATUS_LABELS[s]?.label ?? s;
   }
 
-  onDeliveryCompleted(): void {
-    this.closeDelivery();
-  }
-
-  fullName(a: Associate): string {
-    const name = [a.firstName, a.lastName].filter(Boolean).join(' ');
-    return name || '—';
+  complianceTooltip(a: Associate): string {
+    return [
+      `Psicofísico: ${a.psychophysicalValid ? 'vigente' : 'vencido / faltante'}`,
+      `Psicosensométrico: ${a.psychosensometricValid ? 'vigente' : 'vencido / faltante'}`,
+      `Póliza SURA: ${a.hasSuraPolicy ? 'vigente' : 'sin cobertura'}`,
+    ].join('\n');
   }
 }

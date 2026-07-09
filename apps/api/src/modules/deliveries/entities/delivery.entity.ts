@@ -2,10 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Associate } from '../../associates/entities/associate.entity';
 import { DeliveryDetail } from './delivery-detail.entity';
 
 export enum DeliveryStatus {
@@ -21,6 +24,10 @@ export class Delivery {
 
   @Column({ name: 'associate_id', type: 'uuid', nullable: true })
   associateId!: string | null;
+
+  @ManyToOne(() => Associate, { nullable: true })
+  @JoinColumn({ name: 'associate_id' })
+  associate?: Associate | null;
 
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;

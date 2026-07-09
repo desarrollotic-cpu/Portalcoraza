@@ -1,6 +1,17 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideUsersRound } from '@lucide/angular';
+import {
+  LucideBell,
+  LucideBookMarked,
+  LucideBriefcase,
+  LucideBuilding2,
+  LucideFileSpreadsheet,
+  LucideHistory,
+  LucideLayoutDashboard,
+  LucideShieldCheck,
+  LucideUserMinus,
+  LucideUsersRound,
+} from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -8,8 +19,8 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   imports: [RouterOutlet, ModuleShell],
   template: `
     <app-module-shell
-      title="Recursos Humanos"
-      subtitle="Fuente única del personal: gestión de asociados, novedades y cumplimiento."
+      title="Gestión Humana"
+      subtitle="Fuente única del personal: hoja de vida digital, cumplimiento SST y bitácora."
       [nav]="nav"
     >
       <router-outlet />
@@ -19,10 +30,65 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 export class RrhhLayout {
   readonly nav: ModuleNavItem[] = [
     {
+      label: 'Panel',
+      route: '/rrhh',
+      permission: 'hr_dashboard.view',
+      icon: LucideLayoutDashboard,
+      exact: true,
+    },
+    {
       label: 'Asociados',
       route: '/rrhh/asociados',
       permission: 'associates.view',
       icon: LucideUsersRound,
+    },
+    {
+      label: 'Matriz SST',
+      route: '/rrhh/matriz',
+      permission: 'hr_dashboard.view',
+      icon: LucideShieldCheck,
+    },
+    {
+      label: 'Alertas',
+      route: '/rrhh/alertas',
+      permission: 'hr_alerts.view',
+      icon: LucideBell,
+    },
+    {
+      label: 'Retiros',
+      route: '/rrhh/retiros',
+      permission: 'retirements.view',
+      icon: LucideUserMinus,
+    },
+    {
+      label: 'Cargos',
+      route: '/rrhh/admin/cargos',
+      permission: 'job_positions.view',
+      icon: LucideBriefcase,
+    },
+    {
+      label: 'Centros',
+      route: '/rrhh/admin/centros',
+      permission: 'work_centers.view',
+      icon: LucideBuilding2,
+    },
+    {
+      label: 'Catálogos',
+      route: '/rrhh/admin/catalogos',
+      permission: 'catalogs.view',
+      icon: LucideBookMarked,
+    },
+    {
+      label: 'Importar',
+      route: '/rrhh/importar',
+      permission: 'hr_import.execute',
+      icon: LucideFileSpreadsheet,
+    },
+    {
+      label: 'Bitácora',
+      route: '/rrhh/bitacora',
+      permission: 'hr_audit.view',
+      icon: LucideHistory,
     },
   ];
 }
