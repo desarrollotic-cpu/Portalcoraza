@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { CreateInventoryCategoryDto } from './dto/create-inventory-category.dto';
@@ -22,6 +22,7 @@ import {
 } from './entities/inventory-movement.entity';
 import { InventoryItem } from './entities/inventory-item.entity';
 import { InventoryVariant } from './entities/inventory-variant.entity';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class InventoryService {
@@ -34,6 +35,8 @@ export class InventoryService {
     private readonly variantsRepo: Repository<InventoryVariant>,
     @InjectRepository(InventoryMovement)
     private readonly movementsRepo: Repository<InventoryMovement>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
   ) {}
@@ -400,5 +403,53 @@ export class InventoryService {
     }
 
     return filtered.find((v) => v.stockCurrent > 0) ?? filtered[0] ?? null;
+  }
+
+  async countItems(): Promise<number> {
+    return this.itemsRepo.count();
+  }
+
+  async countVariants(): Promise<number> {
+    return this.variantsRepo.count();
+  }
+
+  async listMovements(limit = 150) {
+    const rows = await this.movementsRepo.find({
+      relations: { variant: { item: { category: true } } },
+      order: { createdAt: 'DESC' },
+      take: Math.min(limit, 500),
+    });
+
+    const userIds = [...new Set(rows.map((m) => m.createdBy).filter(Boolean))] as string[];
+    const users = userIds.length
+      ? await this.usersRepo.find({ where: { id: In(userIds) } })
+      : [];
+    const userMap = new Map(users.map((u) => [u.id, u.fullName ?? u.email]));
+
+    return rows.map((m) => ({
+      ...m,
+      performedByName: m.createdBy ? (userMap.get(m.createdBy) ?? null) : null,
+    }));
+  }
+
+  async countLowStockVariants(): Promise<number> {
+    const rows = await this.variantsRepo
+      .createQueryBuilder('v')
+      .innerJoin('v.item', 'item')
+      .where('item.low_stock_threshold > 0')
+      .andWhere('v.stock_current < item.low_stock_threshold')
+      .getCount();
+    return rows;
+  }
+
+  async listLowStockVariants(take = 10) {
+    return this.variantsRepo
+      .createQueryBuilder('v')
+      .innerJoinAndSelect('v.item', 'item')
+      .where('item.low_stock_threshold > 0')
+      .andWhere('v.stock_current < item.low_stock_threshold')
+      .orderBy('v.stock_current', 'ASC')
+      .take(take)
+      .getMany();
   }
 }

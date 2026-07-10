@@ -1,7 +1,6 @@
-import { Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { DeliveryDialog } from '../../dotacion/delivery-dialog/delivery-dialog';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
 import { SchedulingApiService } from '../scheduling-api.service';
@@ -47,7 +46,7 @@ const CODES: CodeConfig[] = [
 
 @Component({
   selector: 'app-schedule-board',
-  imports: [FormsModule, DeliveryDialog, DeliveryHistory],
+  imports: [FormsModule, DeliveryHistory],
   template: `
     <section>
       <header class="toolbar">
@@ -65,11 +64,6 @@ const CODES: CodeConfig[] = [
             Mes
             <input type="month" [(ngModel)]="month" (ngModelChange)="onSelectionChange()" />
           </label>
-          @if (auth.hasPermission('deliveries.create') && postId) {
-            <button type="button" class="delivery-btn" (click)="openPostDelivery()">
-              Entregar dotación al puesto
-            </button>
-          }
           @if (schedule()) {
             <span class="status" [class]="'st-' + schedule()!.status">{{ statusLabel() }}</span>
           }
@@ -224,21 +218,12 @@ const CODES: CodeConfig[] = [
         </div>
       }
     </section>
-
-    <app-delivery-dialog
-      [open]="deliveryOpen()"
-      [postId]="postId || null"
-      [subjectLabel]="selectedPostName()"
-      (completed)="onDeliveryCompleted()"
-      (dismissed)="closeDelivery()"
-    />
   `,
   styles: `
     header h2 { margin: 0; color: var(--primary-dark); font-weight: 600; }
     header p { color: var(--coraza-text-muted); margin: 0.25rem 0 1rem; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1rem; }
     .toolbar-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; width: 100%; }
-    .delivery-btn { align-self: end; }
     label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
     select, input { padding: 0.45rem 0.6rem; border: 1px solid var(--coraza-border); border-radius: 8px; font: inherit; }
     .status { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; align-self: center; }
@@ -295,7 +280,6 @@ export class ScheduleBoard implements OnInit {
   private readonly schedulingApi = inject(SchedulingApiService);
   private readonly associatesApi = inject(AssociatesApiService);
   readonly auth = inject(AuthService);
-  private readonly postDeliveryHistory = viewChild(DeliveryHistory);
 
   readonly codes = CODES;
 
@@ -314,7 +298,6 @@ export class ScheduleBoard implements OnInit {
   readonly error = signal<string | null>(null);
 
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
-  readonly deliveryOpen = signal(false);
   editAssociateId: string | null = null;
   editCodigo = '';
 
@@ -343,26 +326,7 @@ export class ScheduleBoard implements OnInit {
 
   onSelectionChange(): void {
     this.editing.set(null);
-    this.closeDelivery();
     this.loadSchedule();
-  }
-
-  selectedPostName(): string {
-    return this.posts().find((p) => p.id === this.postId)?.name ?? 'Puesto';
-  }
-
-  openPostDelivery(): void {
-    if (!this.postId) return;
-    this.deliveryOpen.set(true);
-  }
-
-  closeDelivery(): void {
-    this.deliveryOpen.set(false);
-  }
-
-  onDeliveryCompleted(): void {
-    this.deliveryOpen.set(false);
-    this.postDeliveryHistory()?.load();
   }
 
   private loadSchedule(): void {

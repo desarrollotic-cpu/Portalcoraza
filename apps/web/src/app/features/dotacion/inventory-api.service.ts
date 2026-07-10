@@ -32,6 +32,7 @@ export interface DeliveryDetail {
   id: string;
   variantId: string;
   quantity: number;
+  variant?: InventoryVariant;
 }
 
 export interface DeliveryAssociateSnapshot {
@@ -111,6 +112,91 @@ export interface CreateDeliveryPayload {
   items: { variantId: string; quantity: number }[];
 }
 
+export interface InventoryMovement {
+  id: string;
+  variantId: string;
+  movementType: 'IN' | 'OUT' | 'ADJ';
+  quantity: number;
+  reason: string | null;
+  referenceType: string | null;
+  referenceId: string | null;
+  createdAt: string;
+  performedByName?: string | null;
+  variant?: InventoryVariant;
+}
+
+export interface DotacionOverview {
+  lowStockCount: number;
+  pendingDeliveries: number;
+  deliveredToday: number;
+  deliveredThisWeek: number;
+  totalActiveAssociates: number;
+  withoutDotacionCount: number;
+  inventoryItemCount: number;
+  inventoryVariantCount: number;
+  topDeliveredItems: {
+    itemName: string;
+    sku: string;
+    totalQuantity: number;
+  }[];
+  lowStockItems: {
+    sku: string;
+    itemName: string;
+    stockCurrent: number;
+    threshold: number;
+  }[];
+  recentDeliveries: {
+    id: string;
+    associateName: string | null;
+    status: string;
+    itemCount: number;
+    date: string;
+  }[];
+}
+
+export interface WithoutDotacionRow {
+  id: string;
+  documentNumber: string;
+  fullName: string;
+  status: string;
+  jobPositionName: string | null;
+  workCenterCode: string | null;
+  lastDeliveryDate: string | null;
+  monthsSinceDelivery: number | null;
+}
+
+export interface DotacionAssociate {
+  id: string;
+  documentNumber: string;
+  firstName: string;
+  secondName: string | null;
+  firstLastName: string;
+  secondLastName: string | null;
+  fullName: string;
+  status: string;
+  jobPositionName: string | null;
+  workCenterCode: string | null;
+  workCenterZone: string | null;
+  workCenterClient: string | null;
+  hireDate: string | null;
+}
+
+export interface PaginatedDotacionAssociates {
+  items: DotacionAssociate[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedDeliveries {
+  items: Delivery[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class InventoryApiService {
   private readonly http = inject(HttpClient);
@@ -155,6 +241,12 @@ export class InventoryApiService {
     return this.http.post(`${this.inventoryUrl}/movements`, payload);
   }
 
+  listMovements(limit = 150): Observable<InventoryMovement[]> {
+    return this.http.get<InventoryMovement[]>(
+      `${this.inventoryUrl}/movements?limit=${encodeURIComponent(String(limit))}`,
+    );
+  }
+
   availableStock(category: string, talla?: string, genero?: string): Observable<{ quantity: number; variantId: string | null }> {
     const params = new URLSearchParams({ category });
     if (talla) params.set('talla', talla);
@@ -184,6 +276,22 @@ export class InventoryApiService {
     return this.http.get<Delivery[]>(`${this.deliveriesUrl}${query}`);
   }
 
+  listDeliveriesPaginated(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    associateId?: string;
+    postId?: string;
+  }): Observable<PaginatedDeliveries> {
+    const q = new URLSearchParams();
+    q.set('page', String(params?.page ?? 1));
+    q.set('limit', String(params?.limit ?? 25));
+    if (params?.search) q.set('search', params.search);
+    if (params?.associateId) q.set('associateId', params.associateId);
+    if (params?.postId) q.set('postId', params.postId);
+    return this.http.get<PaginatedDeliveries>(`${this.deliveriesUrl}?${q.toString()}`);
+  }
+
   listEligibleAssociates(): Observable<DeliverableAssociate[]> {
     return this.http.get<DeliverableAssociate[]>(`${this.deliveriesUrl}/eligible-associates`);
   }
@@ -198,5 +306,60 @@ export class InventoryApiService {
 
   revertDelivery(id: string, reason: string): Observable<Delivery> {
     return this.http.post<Delivery>(`${this.deliveriesUrl}/${id}/revert`, { reason });
+  }
+
+  getDotacionOverview(): Observable<DotacionOverview> {
+    return this.http.get<DotacionOverview>(`${this.deliveriesUrl}/overview`);
+  }
+
+  listWithoutDotacion(months = 7): Observable<WithoutDotacionRow[]> {
+    return this.http.get<WithoutDotacionRow[]>(
+      `${this.deliveriesUrl}/without-dotacion?months=${encodeURIComponent(String(months))}`,
+    );
+  }
+
+  listDotacionAssociates(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    workCenterId?: string;
+  }): Observable<PaginatedDotacionAssociates> {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.search) q.set('search', params.search);
+    if (params?.workCenterId) q.set('workCenterId', params.workCenterId);
+    const query = q.toString() ? `?${q.toString()}` : '';
+    return this.http.get<PaginatedDotacionAssociates>(`${this.deliveriesUrl}/associates${query}`);
+  }
+
+  downloadGeneralReport(): Observable<Blob> {
+    return this.http.get(`${this.deliveriesUrl}/reports/general`, { responseType: 'blob' });
+  }
+
+  downloadItemReport(itemId: string): Observable<Blob> {
+    return this.http.get(`${this.deliveriesUrl}/reports/by-item?itemId=${encodeURIComponent(itemId)}`, {
+      responseType: 'blob',
+    });
+  }
+
+  downloadAssociateReport(associateId: string): Observable<Blob> {
+    return this.http.get(
+      `${this.deliveriesUrl}/reports/by-associate?associateId=${encodeURIComponent(associateId)}`,
+      { responseType: 'blob' },
+    );
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  triggerDownload(blob: Blob, filename: string): void {
+    this.saveBlob(blob, filename);
   }
 }

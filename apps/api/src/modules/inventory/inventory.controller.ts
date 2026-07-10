@@ -100,6 +100,13 @@ export class InventoryController {
     return this.inventoryService.updateVariant(id, dto, user.sub);
   }
 
+  @Get('movements')
+  @RequirePermissions('inventory.view')
+  listMovements(@Query('limit') limit?: string) {
+    const n = limit ? parseInt(limit, 10) : 150;
+    return this.inventoryService.listMovements(Number.isFinite(n) ? n : 150);
+  }
+
   @Post('movements')
   @RequirePermissions('inventory.move')
   createMovement(

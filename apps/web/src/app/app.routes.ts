@@ -166,11 +166,18 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/dotacion/dotacion-layout/dotacion-layout').then((m) => m.DotacionLayout),
         children: [
-          { path: '', redirectTo: 'inventario', pathMatch: 'full' },
+          { path: '', redirectTo: 'panel', pathMatch: 'full' },
           {
             path: 'panel',
             loadComponent: () =>
               import('./features/dotacion/dotacion-panel/dotacion-panel').then((m) => m.DotacionPanel),
+          },
+          {
+            path: 'asociados',
+            loadComponent: () =>
+              import('./features/dotacion/dotacion-asociados/dotacion-asociados').then(
+                (m) => m.DotacionAsociados,
+              ),
           },
           {
             path: 'inventario',

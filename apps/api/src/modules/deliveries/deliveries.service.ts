@@ -6,14 +6,23 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, FindOptionsWhere } from 'typeorm';
+import { In, Repository, FindOptionsWhere, Brackets } from 'typeorm';
 import { SupabaseStorageService } from '../../common/services/supabase-storage.service';
 import { AuditService } from '../audit/audit.service';
 import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { InventoryVariant } from '../inventory/entities/inventory-variant.entity';
 import { Post } from '../posts/entities/post.entity';
+import { InventoryService } from '../inventory/inventory.service';
 import { DeliverableAssociateDto } from './dto/deliverable-associate.dto';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
+import {
+  DotacionOverviewDto,
+  WithoutDotacionRowDto,
+} from './dto/dotacion-overview.dto';
+import {
+  DotacionAssociateRowDto,
+  PaginatedDotacionAssociatesDto,
+} from './dto/dotacion-associate.dto';
 import { RevertDeliveryDto } from './dto/revert-delivery.dto';
 import { SignDeliveryDto } from './dto/sign-delivery.dto';
 import { DeliveryDetail } from './entities/delivery-detail.entity';
@@ -43,6 +52,7 @@ export class DeliveriesService {
     private readonly config: ConfigService,
     private readonly auditService: AuditService,
     private readonly supabaseStorage: SupabaseStorageService,
+    private readonly inventoryService: InventoryService,
   ) {}
 
   async list(filters?: { associateId?: string; postId?: string }) {
@@ -56,9 +66,63 @@ export class DeliveriesService {
 
     return this.deliveriesRepo.find({
       where,
-      relations: { details: true, associate: { jobPosition: true } },
+      relations: {
+        details: { variant: { item: true } },
+        associate: { jobPosition: true },
+      },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  async listPaginated(filters?: {
+    page?: number;
+    limit?: number;
+    associateId?: string;
+    postId?: string;
+    search?: string;
+  }) {
+    const page = Math.max(1, filters?.page ?? 1);
+    const limit = Math.min(100, Math.max(10, filters?.limit ?? 25));
+    const skip = (page - 1) * limit;
+
+    const qb = this.deliveriesRepo
+      .createQueryBuilder('d')
+      .leftJoinAndSelect('d.details', 'details')
+      .leftJoinAndSelect('details.variant', 'variant')
+      .leftJoinAndSelect('variant.item', 'item')
+      .leftJoinAndSelect('d.associate', 'associate')
+      .leftJoinAndSelect('associate.jobPosition', 'jobPosition')
+      .orderBy('d.createdAt', 'DESC');
+
+    if (filters?.associateId) {
+      qb.andWhere('d.associateId = :associateId', { associateId: filters.associateId });
+    }
+    if (filters?.postId) {
+      qb.andWhere('d.postId = :postId', { postId: filters.postId });
+    }
+    if (filters?.search?.trim()) {
+      const term = `%${filters.search.trim().toUpperCase()}%`;
+      qb.andWhere(
+        new Brackets((sub) => {
+          sub
+            .where('UPPER(associate.documentNumber) LIKE :term', { term })
+            .orWhere('UPPER(associate.firstName) LIKE :term', { term })
+            .orWhere('UPPER(associate.firstLastName) LIKE :term', { term })
+            .orWhere('UPPER(associate.secondName) LIKE :term', { term })
+            .orWhere('UPPER(associate.secondLastName) LIKE :term', { term });
+        }),
+      );
+    }
+
+    const [items, total] = await qb.skip(skip).take(limit).getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
   /** Asociados ACTIVO/VACACIONES para selector de dotación (sin permiso HR completo). */
@@ -79,6 +143,287 @@ export class DeliveriesService {
       status: a.status,
       jobPositionName: a.jobPosition?.name ?? null,
     }));
+  }
+
+  async listAssociatesForDotacion(filters?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    workCenterId?: string;
+  }): Promise<PaginatedDotacionAssociatesDto> {
+    const page = Math.max(1, filters?.page ?? 1);
+    const limit = Math.min(100, Math.max(10, filters?.limit ?? 25));
+    const skip = (page - 1) * limit;
+
+    const qb = this.associatesRepo
+      .createQueryBuilder('a')
+      .leftJoinAndSelect('a.jobPosition', 'jp')
+      .leftJoinAndSelect('a.workCenter', 'wc')
+      .where('a.status IN (:...statuses)', { statuses: DELIVERABLE_STATUSES });
+
+    if (filters?.workCenterId) {
+      qb.andWhere('a.workCenterId = :wcId', { wcId: filters.workCenterId });
+    }
+
+    if (filters?.search?.trim()) {
+      const term = `%${filters.search.trim().toUpperCase()}%`;
+      qb.andWhere(
+        new Brackets((sub) => {
+          sub
+            .where('UPPER(a.documentNumber) LIKE :term', { term })
+            .orWhere('UPPER(a.firstName) LIKE :term', { term })
+            .orWhere('UPPER(a.secondName) LIKE :term', { term })
+            .orWhere('UPPER(a.firstLastName) LIKE :term', { term })
+            .orWhere('UPPER(a.secondLastName) LIKE :term', { term })
+            .orWhere('UPPER(wc.code) LIKE :term', { term })
+            .orWhere('UPPER(wc.client_name) LIKE :term', { term })
+            .orWhere('UPPER(wc.zone) LIKE :term', { term });
+        }),
+      );
+    }
+
+    qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
+
+    const [rows, total] = await qb.skip(skip).take(limit).getManyAndCount();
+
+    return {
+      items: rows.map((a) => this.toDotacionAssociateRow(a)),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
+  }
+
+  async getOverview(): Promise<DotacionOverviewDto> {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+    const weekStart = new Date(now);
+    weekStart.setDate(weekStart.getDate() - 7);
+    weekStart.setHours(0, 0, 0, 0);
+
+    const [
+      lowStockCount,
+      lowStockVariants,
+      pendingDeliveries,
+      deliveredToday,
+      deliveredThisWeek,
+      totalActiveAssociates,
+      withoutDotacionCount,
+      recentRows,
+      inventoryItemCount,
+      inventoryVariantCount,
+      topDeliveredItems,
+    ] = await Promise.all([
+      this.inventoryService.countLowStockVariants(),
+      this.inventoryService.listLowStockVariants(8),
+      this.deliveriesRepo.count({ where: { status: DeliveryStatus.PENDING } }),
+      this.deliveriesRepo
+        .createQueryBuilder('d')
+        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+        .andWhere('d.delivered_at >= :todayStart', { todayStart })
+        .getCount(),
+      this.deliveriesRepo
+        .createQueryBuilder('d')
+        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+        .andWhere('d.delivered_at >= :weekStart', { weekStart })
+        .getCount(),
+      this.associatesRepo.count({ where: { status: In(DELIVERABLE_STATUSES) } }),
+      this.countWithoutDotacion(7),
+      this.deliveriesRepo.find({
+        relations: { associate: true, details: true },
+        order: { createdAt: 'DESC' },
+        take: 6,
+      }),
+      this.inventoryService.countItems(),
+      this.inventoryService.countVariants(),
+      this.getTopDeliveredItems(8),
+    ]);
+
+    return {
+      lowStockCount,
+      pendingDeliveries,
+      deliveredToday,
+      deliveredThisWeek,
+      totalActiveAssociates,
+      withoutDotacionCount,
+      inventoryItemCount,
+      inventoryVariantCount,
+      topDeliveredItems: topDeliveredItems.map((r) => ({
+        itemName: r.itemName,
+        sku: r.sku,
+        totalQuantity: Number(r.totalQuantity),
+      })),
+      lowStockItems: lowStockVariants.map((v) => ({
+        sku: v.sku,
+        itemName: v.item?.name ?? v.sku,
+        stockCurrent: v.stockCurrent,
+        threshold: v.item?.lowStockThreshold ?? 0,
+      })),
+      recentDeliveries: recentRows.map((d) => ({
+        id: d.id,
+        associateName: d.associate ? this.formatAssociateName(d.associate) : null,
+        status: d.status,
+        itemCount: d.details?.length ?? 0,
+        date: (d.deliveredAt ?? d.createdAt).toISOString(),
+      })),
+    };
+  }
+
+  async listWithoutDotacion(months = 7): Promise<WithoutDotacionRowDto[]> {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    cutoff.setHours(0, 0, 0, 0);
+
+    const rows = await this.associatesRepo
+      .createQueryBuilder('a')
+      .leftJoin('a.jobPosition', 'jp')
+      .leftJoin('a.workCenter', 'wc')
+      .leftJoin(
+        Delivery,
+        'd',
+        'd.associate_id = a.id AND d.status = :deliveredStatus',
+        { deliveredStatus: DeliveryStatus.DELIVERED },
+      )
+      .select('a.id', 'id')
+      .addSelect('a.document_number', 'documentNumber')
+      .addSelect('a.first_name', 'firstName')
+      .addSelect('a.second_name', 'secondName')
+      .addSelect('a.first_last_name', 'firstLastName')
+      .addSelect('a.second_last_name', 'secondLastName')
+      .addSelect('a.status', 'status')
+      .addSelect('jp.name', 'jobPositionName')
+      .addSelect('wc.code', 'workCenterCode')
+      .addSelect('MAX(COALESCE(d.delivered_at, d.created_at))', 'lastDeliveryDate')
+      .where('a.status IN (:...statuses)', { statuses: DELIVERABLE_STATUSES })
+      .groupBy('a.id')
+      .addGroupBy('a.document_number')
+      .addGroupBy('a.first_name')
+      .addGroupBy('a.second_name')
+      .addGroupBy('a.first_last_name')
+      .addGroupBy('a.second_last_name')
+      .addGroupBy('a.status')
+      .addGroupBy('jp.name')
+      .addGroupBy('wc.code')
+      .having(
+        'MAX(COALESCE(d.delivered_at, d.created_at)) IS NULL OR MAX(COALESCE(d.delivered_at, d.created_at)) < :cutoff',
+        { cutoff },
+      )
+      .orderBy('MAX(COALESCE(d.delivered_at, d.created_at))', 'ASC', 'NULLS FIRST')
+      .getRawMany<{
+        id: string;
+        documentNumber: string;
+        firstName: string;
+        secondName: string | null;
+        firstLastName: string;
+        secondLastName: string | null;
+        status: string;
+        jobPositionName: string | null;
+        workCenterCode: string | null;
+        lastDeliveryDate: string | null;
+      }>();
+
+    const now = Date.now();
+    return rows.map((row) => {
+      const lastDate = row.lastDeliveryDate ? new Date(row.lastDeliveryDate) : null;
+      const monthsSinceDelivery = lastDate
+        ? Math.floor((now - lastDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44))
+        : null;
+
+      return {
+        id: row.id,
+        documentNumber: row.documentNumber,
+        fullName: this.formatRawAssociateName(row),
+        status: row.status,
+        jobPositionName: row.jobPositionName,
+        workCenterCode: row.workCenterCode,
+        lastDeliveryDate: lastDate ? lastDate.toISOString() : null,
+        monthsSinceDelivery,
+      };
+    });
+  }
+
+  private async countWithoutDotacion(months: number): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    cutoff.setHours(0, 0, 0, 0);
+
+    const result = await this.associatesRepo
+      .createQueryBuilder('a')
+      .leftJoin(
+        Delivery,
+        'd',
+        'd.associate_id = a.id AND d.status = :deliveredStatus',
+        { deliveredStatus: DeliveryStatus.DELIVERED },
+      )
+      .select('a.id')
+      .where('a.status IN (:...statuses)', { statuses: DELIVERABLE_STATUSES })
+      .groupBy('a.id')
+      .having(
+        'MAX(COALESCE(d.delivered_at, d.created_at)) IS NULL OR MAX(COALESCE(d.delivered_at, d.created_at)) < :cutoff',
+        { cutoff },
+      )
+      .getRawMany();
+
+    return result.length;
+  }
+
+  private formatAssociateName(a: Associate): string {
+    return [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private toDotacionAssociateRow(a: Associate): DotacionAssociateRowDto {
+    return {
+      id: a.id,
+      documentNumber: a.documentNumber,
+      firstName: a.firstName,
+      secondName: a.secondName,
+      firstLastName: a.firstLastName,
+      secondLastName: a.secondLastName,
+      fullName: this.formatAssociateName(a),
+      status: a.status,
+      jobPositionName: a.jobPosition?.name ?? null,
+      workCenterCode: a.workCenter?.code ?? null,
+      workCenterZone: a.workCenter?.zone ?? null,
+      workCenterClient: a.workCenter?.clientName ?? null,
+      hireDate: a.hireDate ?? null,
+    };
+  }
+
+  private async getTopDeliveredItems(take = 8) {
+    return this.detailsRepo
+      .createQueryBuilder('dd')
+      .innerJoin('dd.delivery', 'd')
+      .innerJoin('dd.variant', 'v')
+      .innerJoin('v.item', 'item')
+      .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+      .select('item.name', 'itemName')
+      .addSelect('v.sku', 'sku')
+      .addSelect('SUM(dd.quantity)', 'totalQuantity')
+      .groupBy('item.id')
+      .addGroupBy('item.name')
+      .addGroupBy('v.sku')
+      .orderBy('SUM(dd.quantity)', 'DESC')
+      .limit(take)
+      .getRawMany<{ itemName: string; sku: string; totalQuantity: string }>();
+  }
+
+  private formatRawAssociateName(row: {
+    firstName: string;
+    secondName: string | null;
+    firstLastName: string;
+    secondLastName: string | null;
+  }): string {
+    return [row.firstName, row.secondName, row.firstLastName, row.secondLastName]
+      .filter(Boolean)
+      .join(' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   async create(dto: CreateDeliveryDto, userId: string) {
