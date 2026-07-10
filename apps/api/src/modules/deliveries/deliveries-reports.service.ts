@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import PDFDocument from 'pdfkit';
+import PDFDocument = require('pdfkit');
 import { Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';

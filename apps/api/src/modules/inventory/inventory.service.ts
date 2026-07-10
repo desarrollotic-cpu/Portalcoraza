@@ -252,9 +252,11 @@ export class InventoryService {
         movementType: dto.movementType,
         quantity: dto.quantity,
         reason: dto.reason ?? null,
-        referenceType: dto.referenceType ?? null,
-        referenceId: dto.referenceId ?? null,
-        createdBy: userId,
+        reference:
+          dto.referenceType && dto.referenceId
+            ? `${dto.referenceType}:${dto.referenceId}`
+            : dto.referenceType ?? null,
+        performedBy: userId,
       }),
     );
 
@@ -420,7 +422,7 @@ export class InventoryService {
       take: Math.min(limit, 500),
     });
 
-    const userIds = [...new Set(rows.map((m) => m.createdBy).filter(Boolean))] as string[];
+    const userIds = [...new Set(rows.map((m) => m.performedBy).filter(Boolean))] as string[];
     const users = userIds.length
       ? await this.usersRepo.find({ where: { id: In(userIds) } })
       : [];
@@ -428,7 +430,7 @@ export class InventoryService {
 
     return rows.map((m) => ({
       ...m,
-      performedByName: m.createdBy ? (userMap.get(m.createdBy) ?? null) : null,
+      performedByName: m.performedBy ? (userMap.get(m.performedBy) ?? null) : null,
     }));
   }
 
@@ -448,7 +450,7 @@ export class InventoryService {
       .innerJoinAndSelect('v.item', 'item')
       .where('item.low_stock_threshold > 0')
       .andWhere('v.stock_current < item.low_stock_threshold')
-      .orderBy('v.stock_current', 'ASC')
+      .orderBy('v.stockCurrent', 'ASC')
       .take(take)
       .getMany();
   }

@@ -118,10 +118,10 @@ export interface InventoryMovement {
   movementType: 'IN' | 'OUT' | 'ADJ';
   quantity: number;
   reason: string | null;
-  referenceType: string | null;
-  referenceId: string | null;
-  createdAt: string;
+  reference: string | null;
+  performedBy?: string | null;
   performedByName?: string | null;
+  createdAt: string;
   variant?: InventoryVariant;
 }
 

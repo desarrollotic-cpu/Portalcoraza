@@ -35,14 +35,11 @@ export class InventoryMovement {
   @Column({ type: 'text', nullable: true })
   reason!: string | null;
 
-  @Column({ name: 'reference_type', type: 'varchar', nullable: true, length: 60 })
-  referenceType!: string | null;
+  @Column({ type: 'varchar', nullable: true, length: 120 })
+  reference!: string | null;
 
-  @Column({ name: 'reference_id', type: 'uuid', nullable: true })
-  referenceId!: string | null;
-
-  @Column({ name: 'created_by', type: 'uuid', nullable: true })
-  createdBy!: string | null;
+  @Column({ name: 'performed_by', type: 'uuid', nullable: true })
+  performedBy!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
