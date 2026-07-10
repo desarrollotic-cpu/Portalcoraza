@@ -13,7 +13,8 @@
     "seed:almacenista": "ts-node scripts/seed-almacenista.ts",
     "db:setup": "ts-node scripts/setup-database.ts",
     "db:check-hr": "ts-node scripts/check-hr-schema.ts",
-    "db:apply-hr": "ts-node scripts/apply-hr-module.ts"
+    "db:apply-hr": "ts-node scripts/apply-hr-module.ts",
+    "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

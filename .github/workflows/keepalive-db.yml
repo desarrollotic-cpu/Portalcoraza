@@ -1,0 +1,38 @@
+name: Keepalive Supabase DB
+
+# Evita que el proyecto free de Supabase se pause por inactividad.
+# Requiere el secret del repositorio: DATABASE_URL
+#
+# GitHub → Settings → Secrets and variables → Actions → New repository secret
+# Name: DATABASE_URL
+# Value: la misma URI de Postgres que usas en apps/api/.env
+
+on:
+  schedule:
+    # Cada 2 días a las 12:00 UTC (~07:00 Colombia)
+    - cron: "0 12 */2 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Keepalive database
+        working-directory: apps/api
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: npx ts-node scripts/keepalive-db.ts

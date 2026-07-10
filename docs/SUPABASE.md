@@ -56,6 +56,22 @@ npm run api:dev
 npm run web:dev
 ```
 
+## 5. Evitar pausa del plan free (keep-alive)
+
+Supabase free puede pausar el proyecto por inactividad. Hay dos formas de mantenerlo activo:
+
+### A) Manual / local
+
+```bash
+npm run db:keepalive
+```
+
+### B) Automático con GitHub Actions (recomendado)
+
+1. En GitHub: **Settings → Secrets and variables → Actions**
+2. Crea el secret `DATABASE_URL` con la misma URI de Postgres de `apps/api/.env`
+3. El workflow `.github/workflows/keepalive-db.yml` corre cada 2 días (también se puede lanzar a mano en **Actions → Keepalive Supabase DB → Run workflow**)
+
 ## Seguridad
 
 - **No subas** `.env` ni la contraseña de postgres a GitHub.

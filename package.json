@@ -12,7 +12,8 @@
     "web:dev": "npm run start -w @coraza/web",
     "web:build": "npm run build -w @coraza/web",
     "install:all": "npm install",
-    "db:setup": "npm run db:setup -w @coraza/api"
+    "db:setup": "npm run db:setup -w @coraza/api",
+    "db:keepalive": "npm run db:keepalive -w @coraza/api"
   },
   "engines": {
     "node": ">=20"
