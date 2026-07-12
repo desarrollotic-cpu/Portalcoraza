@@ -21,7 +21,7 @@ Imagínenlo como **un solo edificio digital** con varias oficinas:
 | Oficina | Para qué sirve | ¿Lista hoy? |
 |---------|----------------|-------------|
 | **Gestión Humana** | Hoja de vida, retiros, cumplimiento de seguridad en el trabajo | ✅ **Sí — es lo que presentamos hoy** |
-| **Dotación** | Entrega de uniformes y elementos con firma | 🟡 Parcial (entregas sí; reportes pendientes) |
+| **Dotación** | Entrega de uniformes y elementos con firma | ✅ **Completo** (panel, inventario, entregas, movimientos, sin dotación) |
 | **Programación** | Turnos y cuadros mensuales | 🟡 En avance |
 | **Documental** | Archivos y documentos de la empresa | 🟡 Básico funcionando |
 | **Residencial** | Visitantes, paquetes, reservas en unidades | 🟡 Básico funcionando |
@@ -173,11 +173,11 @@ Cada persona entra con **usuario y contraseña**; el sistema muestra solo lo que
 | Tema | Situación |
 |------|-----------|
 | **Gestión Humana** | Listo para **que ustedes lo prueben y nos digan ajustes** |
-| **Dotación** | Entregas funcionan; faltan reportes (quién lleva 7+ meses sin dotación, panel de resumen) |
+| **Dotación** | **Completo**: panel con KPIs, inventario, entregas con firma, historial de movimientos y reporte de quién lleva 7+ meses sin dotación |
 | **Programación, Documental, Residencial** | Funcionalidad básica; se irá puliendo módulo por módulo |
 | **Portal del vigilante** | Pendiente (colillas, cursos, su propia programación) |
 
-**Compromiso del equipo:** terminar **un módulo completo** antes de saltar al siguiente. El siguiente en la fila es **Dotación**, una vez validen Gestión Humana.
+**Compromiso del equipo:** terminar **un módulo completo** antes de saltar al siguiente. Gestión Humana y Dotación ya están listos; el siguiente bloque a pulir es **Programación** (y luego Documental / Residencial), una vez validen Gestión Humana.
 
 ---
 
@@ -199,7 +199,7 @@ Léelas al final; anota las respuestas:
 1. **¿Les parece bien el alcance de Gestión Humana para empezar pruebas con RRHH y SST?**  
 2. **¿Hay algún dato o reporte que hoy usen en Excel y no vean reflejado aquí?**  
 3. **¿Quién de su equipo puede ser “usuario piloto”** (persona que prueba y nos da retroalimentación)?  
-4. **¿Cuál es la prioridad después de RRHH: Dotación, Programación u otra?**  
+4. **¿Cuál es la prioridad después de validar RRHH: Programación, Documental, Residencial u otra?**  
 5. **¿Para cuándo les gustaría tener esto en uso real** (fecha orientativa)?  
 6. **¿Necesitan capacitación presencial** o con un manual corto basta?  
 
@@ -220,7 +220,7 @@ Léelas al final; anota las respuestas:
 | 9 | Quién ve qué | Gerencia, RRHH, SST, Consulta |
 | 10 | Resto del portal | Semáforo: qué está listo y qué falta |
 | 11 | Beneficios | Una verdad, menos errores, control |
-| 12 | Próximos pasos | Validar RRHH → luego Dotación · Preguntas |
+| 12 | Próximos pasos | Validar RRHH · Dotación ya listo → luego Programación · Preguntas |
 
 ---
 
@@ -242,7 +242,7 @@ Léelas al final; anota las respuestas:
 | “¿Dónde está guardado?” | En la nube, con respaldo, igual que otros sistemas empresariales seguros. |
 | “¿Es seguro?” | Sí: cada usuario ve solo lo permitido; datos sensibles restringidos por ley. |
 | “¿Reemplaza GESTION-HUMANA?” | Es la evolución integrada en Portal Coraza; las reglas de negocio se tomaron de referencia. |
-| “¿Cuánto falta?” | Gestión Humana lista para validar; Dotación es el siguiente bloque grande. |
+| “¿Cuánto falta?” | Gestión Humana y Dotación listos; lo siguiente a pulir es Programación y el resto del portal. |
 | “¿Necesito instalar algo?” | No; es por navegador (Chrome/Edge), como entrar a un correo web. |
 
 ---

@@ -351,30 +351,25 @@ Cada módulo se documenta con:
 
 **Pantallas definidas**:
 
-- ⏳ **Panel principal** (`/dotacion/panel`) — placeholder; falta KPIs, alertas de stock bajo, últimas entregas
+- ✅ **Panel principal** (`/dotacion/panel`) — KPIs, alertas de stock bajo, últimas entregas y resumen
 - ✅ **Inventario** (`/dotacion/inventario`) — CRUD de items y variantes (talla, género, etc.)
 - ✅ **Formulario de item** (`/dotacion/inventario/nuevo`, `.../editar`)
 - ✅ **Entregas** (`/dotacion/entregas`) — lista de entregas
 - ✅ **Nueva entrega** (`/dotacion/entregas/nueva`)
 - ✅ **Firmar entrega** (`/dotacion/entregas/:id/firmar`)
-- ⏳ **Historial** (`/dotacion/movimientos`) — placeholder; falta mostrar todos los movimientos (`inventory_movements`)
-- ⏳ **Sin dotación 7+ meses** (`/dotacion/sin-dotacion`) — placeholder; falta la consulta y vista
+- ✅ **Historial** (`/dotacion/movimientos`) — movimientos de inventario filtrables
+- ✅ **Sin dotación 7+ meses** (`/dotacion/sin-dotacion`) — consulta y vista operativa
 
 **Datos**: `inventory_categories`, `inventory_items`, `inventory_variants`, `inventory_movements`, `deliveries`, `delivery_details`
 
 **Reglas de negocio (decidas con el usuario)**:
 
 1. **Solo `ALMACENISTA` puede iniciar entregas**. Eliminado el botón "Entregar dotación" de RRHH y Programación.
-2. **Solo `ALMACENISTA` puede revertir entregas** (`POST /deliveries/:id/revert`). En el backend, el endpoint actual requiere `deliveries.create`; **pendiente cambiar a un permiso específico o validar rol** `ALMACENISTA`.
-3. Las entregas solo son válidas para asociados con estado **`ACTIVO`** o **`VACACIONES`** (validación **pendiente en el backend**).
+2. **Solo `ALMACENISTA` puede revertir entregas** (`POST /deliveries/:id/revert`).
+3. Las entregas solo son válidas para asociados con estado **`ACTIVO`** o **`VACACIONES`**.
 4. La vista "Retirados / sin dotación 7+ meses" es una **pestaña dentro del módulo Dotación**, no una consulta suelta.
 
-**Estado**:
-
-- CRUD de inventario y entregas: **implementado**
-- Firma digital: **implementada** (con Supabase Storage)
-- Panel principal, Historial, Sin dotación 7+ meses: **placeholders, sin lógica**
-- Restricciones de rol para revertir y estado ACTIVO/VACACIONES: **pendientes**
+**Estado**: **módulo completo** (panel, inventario, entregas + firma, movimientos y reporte sin dotación).
 
 ---
 
@@ -556,15 +551,15 @@ Estructura:
   /rrhh/asociados/:id/editar    → AssociateForm (permission: associates.edit)
   /rrhh/asociados/:id           → AssociateDetail
 /dotacion
-  /dotacion/panel               → DotacionPanel (placeholder)
+  /dotacion/panel               → DotacionPanel
   /dotacion/inventario          → InventoryList
   /dotacion/inventario/nuevo    → InventoryForm
   /dotacion/inventario/:id/editar
   /dotacion/entregas            → DeliveriesList
   /dotacion/entregas/nueva      → DeliveryNew
   /dotacion/entregas/:id/firmar → DeliverySign
-  /dotacion/movimientos         → DotacionMovimientos (placeholder)
-  /dotacion/sin-dotacion        → DotacionSinDotacion (placeholder)
+  /dotacion/movimientos         → DotacionMovimientos
+  /dotacion/sin-dotacion        → DotacionSinDotacion
 /programacion                   → ScheduleBoard
 /documental                     → DocumentsList
   /documental/nuevo, /:id/editar → DocumentForm
@@ -589,7 +584,7 @@ Todas las rutas usan lazy loading (`loadComponent`) y `permissionGuard` con `dat
 
 - **`Icon`** — wrapper de `@lucide/angular` usando `NgComponentOutlet` para permitir iconos dinámicos (`[icon]="LucideBell"`, `[size]="18"`, `[strokeWidth]="1.8"`).
 - **`ModuleShell`** — encabezado consistente de cada módulo con título, subtítulo, chip de pantalla activa y **launcher tipo Google apps** (botón 3×3 con panel glass y grid de pantallas con iconos Lucide).
-- **`ModulePlaceholder`** — plantilla genérica para pantallas aún no implementadas (usada por `DotacionPanel`, `DotacionMovimientos`, `DotacionSinDotacion`).
+- **`ModulePlaceholder`** — plantilla genérica para pantallas aún no implementadas (p. ej. portal del vigilante).
 
 ### 8.4 Servicios core (`core/`)
 
@@ -706,6 +701,7 @@ Decisiones que el usuario ya confirmó y quedan como norma del sistema:
 | RRHH — CRUD asociados | ✅ |
 | Dotación — CRUD inventario | ✅ |
 | Dotación — entregas + firma | ✅ |
+| Dotación — panel, movimientos, sin dotación 7+ meses | ✅ |
 | Programación mensual (schedule board) | ✅ (inicial) |
 | Documental — CRUD documentos | ✅ |
 | Residencial — CRUD unidades/visitantes/paquetes/reservas | ✅ |
@@ -716,9 +712,6 @@ Decisiones que el usuario ya confirmó y quedan como norma del sistema:
 
 ### 11.2 Placeholder / esqueleto sin lógica
 
-- `DotacionPanel` (`/dotacion/panel`)
-- `DotacionMovimientos` (`/dotacion/movimientos`)
-- `DotacionSinDotacion` (`/dotacion/sin-dotacion`)
 - "Mi Portal" del vigilante — ni ruta creada aún
 
 ### 11.3 Pendiente definir + implementar
@@ -734,8 +727,6 @@ Lista de tareas que atraviesan varios módulos, priorizadas:
 
 ### 12.1 Reglas de negocio faltantes en backend
 
-- [ ] Validar en `POST /deliveries` que el asociado esté `ACTIVO` o `VACACIONES`.
-- [ ] Restringir `POST /deliveries/:id/revert` a rol `ALMACENISTA` (o crear permiso `deliveries.revert` dedicado).
 - [ ] Validar que `PROGRAMADOR` y `ADMINISTRADOR_UNIDAD` tengan al menos un puesto asignado antes de entrar a sus módulos.
 - [ ] Añadir permisos `residential.*` al rol `VIGILANTE` en el seed.
 
@@ -754,9 +745,9 @@ Lista de tareas que atraviesan varios módulos, priorizadas:
 
 ### 12.4 Funcionalidad Dotación
 
-- [ ] Panel principal con KPIs (stock bajo, entregas semana, top items entregados).
-- [ ] Historial de movimientos (`inventory_movements`) filtrable.
-- [ ] Vista "Sin dotación 7+ meses" con consulta específica.
+- [x] Panel principal con KPIs (stock bajo, entregas semana, top items entregados).
+- [x] Historial de movimientos (`inventory_movements`) filtrable.
+- [x] Vista "Sin dotación 7+ meses" con consulta específica.
 
 ### 12.5 Higiene técnica
 
