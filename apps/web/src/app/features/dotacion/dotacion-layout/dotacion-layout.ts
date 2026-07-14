@@ -5,7 +5,6 @@ import {
   LucideHistory,
   LucideLayoutDashboard,
   LucidePackageSearch,
-  LucideTruck,
   LucideUsers,
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
@@ -44,12 +43,6 @@ export class DotacionLayout {
       route: '/dotacion/inventario',
       permission: 'inventory.view',
       icon: LucideBoxes,
-    },
-    {
-      label: 'Entregas',
-      route: '/dotacion/entregas',
-      permission: 'deliveries.view',
-      icon: LucideTruck,
     },
     {
       label: 'Historial',

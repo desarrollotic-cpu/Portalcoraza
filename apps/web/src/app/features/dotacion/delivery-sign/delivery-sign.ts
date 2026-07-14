@@ -59,7 +59,7 @@ export class DeliverySign implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     this.api.signDelivery(this.deliveryId, signature).subscribe({
-      next: () => this.router.navigate(['/dotacion/entregas']),
+      next: () => this.router.navigate(['/dotacion/asociados']),
       error: (err) => {
         this.saving.set(false);
         this.error.set(err.error?.message ?? 'No se pudo confirmar la entrega');
@@ -68,6 +68,6 @@ export class DeliverySign implements OnInit {
   }
 
   cancel(): void {
-    this.router.navigate(['/dotacion/entregas']);
+    this.router.navigate(['/dotacion/asociados']);
   }
 }

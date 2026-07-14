@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -73,6 +74,12 @@ export class InventoryController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.inventoryService.updateItem(id, dto, user.sub);
+  }
+
+  @Delete('items/:id')
+  @RequirePermissions('inventory.edit')
+  deleteItem(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.inventoryService.deleteItem(id, user.sub);
   }
 
   @Get('variants')

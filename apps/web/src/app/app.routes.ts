@@ -210,19 +210,13 @@ export const routes: Routes = [
           },
           {
             path: 'entregas',
-            canActivate: [permissionGuard],
-            data: { permission: 'deliveries.view' },
-            loadComponent: () =>
-              import('./features/dotacion/deliveries-list/deliveries-list').then(
-                (m) => m.DeliveriesList,
-              ),
+            redirectTo: 'asociados',
+            pathMatch: 'full',
           },
           {
             path: 'entregas/nueva',
-            canActivate: [permissionGuard],
-            data: { permission: 'deliveries.create' },
-            loadComponent: () =>
-              import('./features/dotacion/delivery-new/delivery-new').then((m) => m.DeliveryNew),
+            redirectTo: 'asociados',
+            pathMatch: 'full',
           },
           {
             path: 'entregas/:id/firmar',

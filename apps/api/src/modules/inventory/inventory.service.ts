@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -99,17 +100,44 @@ export class InventoryService {
       throw new NotFoundException('Categoria no encontrada');
     }
 
-    const exists = await this.itemsRepo.findOne({ where: { code: dto.code } });
+    const code = (dto.code?.trim() || (await this.generateItemCode(category, dto.name))).toUpperCase();
+    const exists = await this.itemsRepo.findOne({ where: { code } });
     if (exists) {
       throw new ConflictException('Codigo de item ya registrado');
     }
 
     const saved = await this.itemsRepo.save(
       this.itemsRepo.create({
-        ...dto,
+        categoryId: dto.categoryId,
+        code,
+        name: dto.name.trim(),
+        unit: dto.unit?.trim() || 'und',
         lowStockThreshold: dto.lowStockThreshold ?? 0,
       }),
     );
+
+    // Variante única por defecto (paridad con la app de almacén: un elemento = un stock)
+    const variant = await this.variantsRepo.save(
+      this.variantsRepo.create({
+        itemId: saved.id,
+        sku: code,
+        attributes: {},
+        stockCurrent: 0,
+      }),
+    );
+
+    const initialStock = dto.initialStock ?? 0;
+    if (initialStock > 0) {
+      await this.createMovement(
+        {
+          variantId: variant.id,
+          movementType: InventoryMovementType.IN,
+          quantity: initialStock,
+          entryReason: dto.initialStockReason?.trim() || 'Compra',
+        },
+        userId,
+      );
+    }
 
     await this.auditService.log({
       userId,
@@ -117,10 +145,41 @@ export class InventoryService {
       action: 'item.create',
       entityType: 'inventory_item',
       entityId: saved.id,
-      newValue: saved as unknown as Record<string, unknown>,
+      newValue: {
+        ...(saved as unknown as Record<string, unknown>),
+        defaultVariantId: variant.id,
+        initialStock,
+      },
     });
 
-    return saved;
+    return this.itemsRepo.findOneOrFail({
+      where: { id: saved.id },
+      relations: { category: true },
+    });
+  }
+
+  /** Genera código tipo APE001 a partir de categoría/nombre. */
+  private async generateItemCode(category: InventoryCategory, name: string): Promise<string> {
+    const raw = (category.code || name)
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]/g, '')
+      .toUpperCase();
+    const prefix = (raw.slice(0, 3) || 'ITM').padEnd(3, 'X');
+
+    const rows = await this.itemsRepo
+      .createQueryBuilder('i')
+      .select(['i.code'])
+      .where('UPPER(i.code) LIKE :like', { like: `${prefix}%` })
+      .getMany();
+
+    let max = 0;
+    const re = new RegExp(`^${prefix}(\\d+)$`, 'i');
+    for (const row of rows) {
+      const m = row.code.match(re);
+      if (m) max = Math.max(max, parseInt(m[1], 10));
+    }
+    return `${prefix}${String(max + 1).padStart(3, '0')}`;
   }
 
   async updateItem(id: string, dto: UpdateInventoryItemDto, userId: string) {
@@ -153,6 +212,54 @@ export class InventoryService {
     return saved;
   }
 
+  async deleteItem(id: string, userId: string) {
+    const existing = await this.itemsRepo.findOne({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException('Elemento no encontrado');
+    }
+
+    const variants = await this.variantsRepo.find({ where: { itemId: id } });
+    const variantIds = variants.map((v) => v.id);
+
+    if (variantIds.length) {
+      const usedInDeliveries = await this.variantsRepo.manager.query(
+        `SELECT COUNT(*)::int AS c FROM delivery_details WHERE variant_id = ANY($1::uuid[])`,
+        [variantIds],
+      );
+      const deliveryCount = Number(usedInDeliveries?.[0]?.c ?? 0);
+      if (deliveryCount > 0) {
+        throw new ConflictException(
+          'No se puede eliminar: el elemento ya se usó en entregas de dotación.',
+        );
+      }
+
+      await this.movementsRepo
+        .createQueryBuilder()
+        .delete()
+        .where('variant_id IN (:...ids)', { ids: variantIds })
+        .execute();
+
+      await this.variantsRepo.delete({ itemId: id });
+    }
+
+    await this.itemsRepo.delete(id);
+
+    await this.auditService.log({
+      userId,
+      module: 'inventory',
+      action: 'item.delete',
+      entityType: 'inventory_item',
+      entityId: id,
+      oldValue: {
+        code: existing.code,
+        name: existing.name,
+        categoryId: existing.categoryId,
+      },
+    });
+
+    return { ok: true };
+  }
+
   listVariants(itemId?: string) {
     const where = itemId ? { itemId } : {};
     return this.variantsRepo.find({
@@ -173,11 +280,22 @@ export class InventoryService {
       throw new ConflictException('SKU ya registrado');
     }
 
+    const talla = dto.talla?.trim() || null;
+    const color = dto.color?.trim() || null;
+    const genero = dto.genero?.trim() || null;
+    const attributes: Record<string, unknown> = { ...(dto.attributes ?? {}) };
+    if (talla) attributes['talla'] = talla;
+    if (color) attributes['color'] = color;
+    if (genero) attributes['genero'] = genero;
+
     const saved = await this.variantsRepo.save(
       this.variantsRepo.create({
         itemId: dto.itemId,
         sku: dto.sku,
-        attributes: dto.attributes ?? {},
+        attributes,
+        talla,
+        color,
+        genero,
         stockCurrent: 0,
       }),
     );
@@ -234,6 +352,22 @@ export class InventoryService {
       throw new NotFoundException('Variante no encontrada');
     }
 
+    const entryReason =
+      dto.entryReason?.trim() ||
+      (dto.reason?.includes(' — ')
+        ? dto.reason.split(' — ')[0].trim()
+        : dto.reason?.trim()) ||
+      null;
+    const observations =
+      dto.observations?.trim() ||
+      (dto.reason?.includes(' — ')
+        ? dto.reason.split(' — ').slice(1).join(' — ').trim() || null
+        : null);
+
+    if (dto.movementType === InventoryMovementType.IN && !entryReason) {
+      throw new BadRequestException('El motivo de entrada es obligatorio');
+    }
+
     let stockNext = variant.stockCurrent;
     if (dto.movementType === InventoryMovementType.IN) {
       stockNext += dto.quantity;
@@ -246,12 +380,16 @@ export class InventoryService {
       stockNext = dto.quantity;
     }
 
+    const reasonSummary = [entryReason, observations].filter(Boolean).join(' — ') || null;
+
     const movement = await this.movementsRepo.save(
       this.movementsRepo.create({
         variantId: dto.variantId,
         movementType: dto.movementType,
         quantity: dto.quantity,
-        reason: dto.reason ?? null,
+        entryReason,
+        observations,
+        reason: reasonSummary,
         reference:
           dto.referenceType && dto.referenceId
             ? `${dto.referenceType}:${dto.referenceId}`

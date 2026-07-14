@@ -17,7 +17,7 @@ import { InventoryApiService, WithoutDotacionRow } from '../inventory-api.servic
           </p>
         </div>
         @if (auth.hasPermission('deliveries.create')) {
-          <a routerLink="/dotacion/entregas/nueva" class="hr-btn hr-btn-primary">Nueva entrega</a>
+          <a routerLink="/dotacion/asociados" class="hr-btn hr-btn-primary">Ir a asociados</a>
         }
       </header>
 

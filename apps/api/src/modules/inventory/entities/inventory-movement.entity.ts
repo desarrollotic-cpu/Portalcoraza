@@ -32,8 +32,16 @@ export class InventoryMovement {
   @Column({ type: 'int' })
   quantity!: number;
 
+  /** Texto legado / resumen (motivo + observaciones). */
   @Column({ type: 'text', nullable: true })
   reason!: string | null;
+
+  /** Motivo estructurado: Compra, Devolución, Donación, etc. */
+  @Column({ name: 'entry_reason', type: 'varchar', length: 80, nullable: true })
+  entryReason!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  observations!: string | null;
 
   @Column({ type: 'varchar', nullable: true, length: 120 })
   reference!: string | null;
