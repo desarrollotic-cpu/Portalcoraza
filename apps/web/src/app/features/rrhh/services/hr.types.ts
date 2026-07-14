@@ -308,3 +308,69 @@ export interface ExcelImportPreview {
     parsed: Record<string, unknown>;
   }[];
 }
+
+export type AbsenteeismKind = 'MEDICO' | 'OTRO';
+export type AbsenteeismEventType = 'D.A.' | 'S.P.' | 'L.R.' | 'L.N.R.' | 'ACT';
+
+export interface DiagnosisCie10 {
+  id: string;
+  codigo: string;
+  descripcion: string;
+}
+
+export interface AssociateAbsence {
+  id: string;
+  associateId: string;
+  associate?: Associate;
+  kind: AbsenteeismKind;
+  eventType: AbsenteeismEventType;
+  startDate: string;
+  endDate: string;
+  absenceDays: number;
+  daysInMonth: number | null;
+  isExtension: boolean;
+  postIncapacityExam: boolean;
+  incapacityOrigin: string | null;
+  diagnosisId: string | null;
+  diagnosis?: DiagnosisCie10 | null;
+  cause: string | null;
+  observations: string | null;
+  baseSalary: number | null;
+  atCosts: number | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AbsenceStats {
+  total: number;
+  totalDays: number;
+  medical: number;
+  admin: number;
+  byEvent: Record<string, number>;
+  byOrigin: Record<string, number>;
+}
+
+export interface CreateAbsencePayload {
+  associateId: string;
+  kind: AbsenteeismKind;
+  eventType: AbsenteeismEventType;
+  startDate: string;
+  endDate: string;
+  absenceDays?: number;
+  daysInMonth?: number;
+  isExtension?: boolean;
+  postIncapacityExam?: boolean;
+  incapacityOrigin?: string;
+  diagnosisId?: string;
+  cause?: string;
+  observations?: string;
+  baseSalary?: number;
+  atCosts?: number;
+}
+
+export interface AbsencesImportReport {
+  diagnosesUpserted: number;
+  medicalCreated: number;
+  otherCreated: number;
+  errors: string[];
+}

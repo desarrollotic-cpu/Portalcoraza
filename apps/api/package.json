@@ -11,9 +11,11 @@
     "test": "jest",
     "seed:admin": "ts-node scripts/seed-admin.ts",
     "seed:almacenista": "ts-node scripts/seed-almacenista.ts",
+    "seed:rrhh": "ts-node scripts/seed-rrhh.ts",
     "db:setup": "ts-node scripts/setup-database.ts",
     "db:check-hr": "ts-node scripts/check-hr-schema.ts",
     "db:apply-hr": "ts-node scripts/apply-hr-module.ts",
+    "db:apply-absences": "ts-node scripts/apply-hr-absenteeism.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },
   "dependencies": {

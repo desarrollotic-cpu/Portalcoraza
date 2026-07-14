@@ -1,6 +1,6 @@
 # Estado del Proyecto — Portal Coraza
 
-> **Última actualización**: 2026-07-08
+> **Última actualización**: 2026-07-14
 > **Documento maestro**: fuente única de verdad del avance actual. Cualquier información en otros documentos (`HANDOFF-IA.md`, `CONTINUAR-DESARROLLO.md`, `ARCHITECTURE.md`, etc.) que contradiga a este archivo, este archivo prevalece.
 
 Este documento consolida **todo lo que se ha hecho, todo lo que está en curso y todo lo que falta** en Portal Coraza. Está organizado para poder retomar el proyecto en cualquier momento sin perder contexto.
@@ -82,9 +82,9 @@ Este documento consolida **todo lo que se ha hecho, todo lo que está en curso y
 
 ### Base de datos y migraciones
 
-- **`supabase/migrations/`**: esquema versionado en 9 archivos
+- **`supabase/migrations/`**: esquema versionado (incluye `012_hr_absenteeism.sql` — ausentismo + CIE-10)
 - **`supabase/seed/`**: datos iniciales (roles, permisos, gerencia)
-- Ejecución vía Supabase CLI o pegado directo en SQL Editor
+- Ejecución vía Supabase CLI, SQL Editor o scripts `npm run db:apply-*` en `apps/api`
 
 ### Monorepo
 
@@ -308,38 +308,42 @@ Cada módulo se documenta con:
 
 ### 6.2 Recursos Humanos (RRHH)
 
-**Objetivo**: Fuente única de verdad del personal. Alta, edición, retiro y consulta de asociados.
+**Objetivo**: Fuente única de verdad del personal. Alta, edición, retiro, cumplimiento SST y ausentismo.
 
 **Pantallas definidas**:
 
+- ✅ **Panel / dashboard** (`/rrhh`)
 - ✅ **Lista de asociados** (`/rrhh/asociados`)
 - ✅ **Formulario alta / edición** (`/rrhh/asociados/nuevo`, `/rrhh/asociados/:id/editar`)
-- ✅ **Detalle de asociado** (`/rrhh/asociados/:id`)
-- ⏳ **Novedades laborales** (v1.1) — pendiente
-- ⏳ **Cumplimiento** (v1.1) — pendiente
+- ✅ **Detalle de asociado** (`/rrhh/asociados/:id`) — pestañas: personal, laboral, documentos, **ausencias**, alertas/bitácora
+- ✅ **Matriz SST**, alertas, retiros, cargos, centros, catálogos, import Excel, bitácora
+- ✅ **Ausentismo** (`/rrhh/ausentismo`) — médico/administrativo, CIE-10, KPIs, import Excel (paridad GESTION-HUMANA)
+- ⏳ **Novedades laborales** (v1.1) — pendiente (si se distingue del ausentismo)
 
 **Roles**:
 
-- `RRHH`: crear, editar, retirar asociados; ver auditoría
-- `GERENCIA`: todo
-- `PROGRAMADOR`: solo lectura (para armar cuadro mensual)
+- `RRHH` / `GERENCIA`: CRUD + import ausentismo; crear/editar/retirar asociados; ver datos sensibles
+- `SST` / `COORDINADOR_OPERATIVO`: consulta de ausentismo (`absences.view`)
+- `PROGRAMADOR`: solo lectura de asociados (para armar cuadro mensual)
 
 **Reglas**:
 
 - Estados: `ACTIVO`, `INACTIVO`, `SUSPENDIDO`, `VACACIONES`, `RETIRADO`
 - Historial en `associate_history`
 - **No** debe existir botón "Entregar dotación" en RRHH — se removió por decisión del usuario (la entrega la hace el `ALMACENISTA` desde su módulo)
+- Ausentismo: ver detalle en `docs/MODULO_AUSENTISMO.md`
 
-**Datos**: `associates`, `associate_history`
+**Datos**: `associates`, `associate_history`, `diagnosticos_cie10`, `associate_absences`, alertas/documentos HR
 
 **Pendientes específicos**:
 
 - Añadir campos `zona` y `cargo` a `associates` (migración + entidad + DTO + formulario).
 - Actualizar tabla para mostrar: `cédula | zona | cargo | estado`.
 - Crear relación `users.associate_id` para vincular una cuenta de usuario a su asociado (necesario para el "Mi Portal" del vigilante).
-- Rediseñar la lista y el detalle con la estética premium.
+- Catálogo CIE-10 completo vía Excel de producción RRHH (seed solo trae ejemplos).
+- Validación formal con el área de Gestión Humana frente a la app de referencia.
 
-**Estado**: **funcional pero con diseño plano**. Pendiente rediseño interno y campos nuevos.
+**Estado**: **funcional** (incluye ausentismo). Pendiente validación de negocio y datos reales de asociados.
 
 ---
 
@@ -699,6 +703,8 @@ Decisiones que el usuario ya confirmó y quedan como norma del sistema:
 | `user_posts` (DB + API) | ✅ |
 | Auditoría de acciones | ✅ |
 | RRHH — CRUD asociados | ✅ |
+| RRHH — dashboard, matriz SST, alertas, retiros, import Excel | ✅ |
+| RRHH — Ausentismo (médico/admin, CIE-10, import, pestaña ficha) | ✅ |
 | Dotación — CRUD inventario | ✅ |
 | Dotación — entregas + firma | ✅ |
 | Dotación — panel, movimientos, sin dotación 7+ meses | ✅ |
@@ -716,7 +722,7 @@ Decisiones que el usuario ya confirmó y quedan como norma del sistema:
 
 ### 11.3 Pendiente definir + implementar
 
-- Pantallas de Novedades y Cumplimiento en RRHH (v1.1)
+- Pantallas de Novedades laborales adicionales en RRHH (si el alcance supera ausentismo)
 - Detalle del portal personal del vigilante (colillas, cursos, exámenes, programación)
 
 ---
@@ -820,26 +826,21 @@ Opciones:
 
 ## 14. Credenciales seed y roles de prueba
 
-Un usuario típico de gerencia (definido en un seed manual del proyecto original):
+| Usuario | Email | Password | Rol / uso |
+|---------|-------|----------|-----------|
+| Admin / gerencia | `admin@coraza.local` | `Coraza2026!` | Acceso amplio |
+| Almacén | `almacen@coraza.local` | `Almacen2026!` | Dotación |
+| RRHH | `rrhh@coraza.local` | `Rrhh2026!` | Gestión Humana + ausentismo |
 
-- **Email**: `gerencia@coraza.local`
-- **Contraseña**: definida al sembrar (revisar `docs/CONTINUAR-DESARROLLO.md` o crear vía `POST /users`).
+Scripts:
 
-Para crear un usuario de prueba manualmente en Supabase SQL Editor:
-
-```sql
--- Hash de bcrypt para 'Password123!' — generar con bcrypt.hash
-INSERT INTO users (email, full_name, password_hash, role_id, is_active)
-SELECT
-  'almacenista@coraza.local',
-  'Almacenista Coraza',
-  '<hash bcrypt>',
-  r.id,
-  true
-FROM roles r WHERE r.code = 'ALMACENISTA';
+```powershell
+npm run seed:admin -w @coraza/api
+npm run seed:almacenista -w @coraza/api
+npm run seed:rrhh -w @coraza/api
 ```
 
-> **Pendiente**: dejar un script `apps/api/scripts/seed-admin.ts` o similar para crear el primer usuario admin idempotentemente. Hoy hay que hacerlo a mano.
+Tras asignar permisos nuevos en BD, **cerrar sesión y volver a entrar** (el JWT se regenera en el login).
 
 ---
 
@@ -849,30 +850,24 @@ FROM roles r WHERE r.code = 'ALMACENISTA';
 # Instalar todo (raíz)
 npm install
 
-# Build de la API
-npm run build --workspace=apps/api
+# Dev (raíz monorepo)
+npm run api:dev
+npm run web:dev
 
-# Build de la Web
-npm run build --workspace=apps/web
+# Build
+npm run build -w @coraza/api
+npm run build -w @coraza/web
 
-# Dev API con watch
-npm run start:dev --workspace=apps/api
+# BD — módulo HR general / ausentismo / keepalive Supabase
+npm run db:apply-hr -w @coraza/api
+npm run db:apply-absences -w @coraza/api
+npm run db:keepalive -w @coraza/api
 
-# Dev Web
-npm run start --workspace=apps/web
-
-# Tests (cuando existan)
-npm test --workspace=apps/api
-npm test --workspace=apps/web
-
-# Ver estado git
-git status
-
-# Commit con formato
-git add -A
-git commit -m "feat(modulo): descripción breve"
-git push
+# Seeds
+npm run seed:rrhh -w @coraza/api
 ```
+
+Documentación del módulo Ausentismo: `docs/MODULO_AUSENTISMO.md`.
 
 ---
 

@@ -8,6 +8,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { DeliveriesModule } from './modules/deliveries/deliveries.module';
 import { DocumentalModule } from './modules/documental/documental.module';
+import { HrAbsenteeismModule } from './modules/hr-absenteeism/hr-absenteeism.module';
 import { HrAlertsModule } from './modules/hr-alerts/hr-alerts.module';
 import { HrCatalogsModule } from './modules/hr-catalogs/hr-catalogs.module';
 import { HrDashboardModule } from './modules/hr-dashboard/hr-dashboard.module';
@@ -56,6 +57,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     HrAlertsModule,
     HrDashboardModule,
     HrExcelModule,
+    HrAbsenteeismModule,
     InventoryModule,
     DeliveriesModule,
     SchedulingModule,

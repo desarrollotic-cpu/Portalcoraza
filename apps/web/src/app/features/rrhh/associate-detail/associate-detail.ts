@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import {
   LucideBell,
   LucideBriefcase,
+  LucideCalendarOff,
   LucideCircleCheck,
   LucideCircleX,
   LucideDownload,
@@ -20,6 +21,7 @@ import { ToastService } from '../../../shared/services/toast.service';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
+  AssociateAbsence,
   AssociateDocumentItem,
   AssociateDocumentKind,
   AssociateHistoryEntry,
@@ -38,14 +40,11 @@ const DOCUMENT_LABELS: Record<AssociateDocumentKind, string> = {
   OTRO: 'Otro',
 };
 
-type TabId = 'personal' | 'laboral' | 'documentos' | 'alertas';
+type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
 
 /**
- * Hoja de vida digital del asociado con 4 pestañas:
- *   1. Personal: identidad, contacto, sociodemográfico, sensibles (Ley 1581)
- *   2. Laboral: cargo, centro, salarios, historial de cargos
- *   3. Documentos: subida y descarga con Supabase Storage
- *   4. Alertas: alertas HRM pendientes + bitácora campo a campo
+ * Hoja de vida digital del asociado:
+ *   Personal · Laboral · Documentos · Ausencias · Alertas/bitácora
  */
 @Component({
   selector: 'app-associate-detail',
@@ -133,6 +132,16 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'alertas';
           >
             <app-icon [icon]="icons.FileText" [size]="16" /> Documentos ({{ documents().length }})
           </button>
+          @if (auth.hasPermission('absences.view')) {
+            <button
+              type="button"
+              class="hr-tab"
+              [class.active]="tab() === 'ausencias'"
+              (click)="tab.set('ausencias')"
+            >
+              <app-icon [icon]="icons.CalendarOff" [size]="16" /> Ausencias ({{ absences().length }})
+            </button>
+          }
           <button
             type="button"
             class="hr-tab"
@@ -351,6 +360,55 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'alertas';
           </section>
         }
 
+        <!-- Ausentismo -->
+        @if (tab() === 'ausencias') {
+          <section class="hr-tab-panel">
+            <div class="hr-detail-card">
+              <h3>
+                <app-icon [icon]="icons.CalendarOff" [size]="18" />
+                Historial de ausencias
+                <a routerLink="/rrhh/ausentismo" class="hr-link" style="margin-left: 0.75rem; font-weight: 500">
+                  Abrir panel
+                </a>
+              </h3>
+              @if (absences().length === 0) {
+                <p class="hr-empty">Sin ausencias registradas.</p>
+              } @else {
+                <table class="hr-table">
+                  <thead>
+                    <tr>
+                      <th>Clase</th>
+                      <th>Evento</th>
+                      <th>Inicio</th>
+                      <th>Fin</th>
+                      <th>Días</th>
+                      <th>Detalle</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (ab of absences(); track ab.id) {
+                      <tr>
+                        <td>{{ ab.kind === 'MEDICO' ? 'Médico' : 'Admin' }}</td>
+                        <td>{{ ab.eventType }}</td>
+                        <td>{{ ab.startDate }}</td>
+                        <td>{{ ab.endDate }}</td>
+                        <td>{{ ab.absenceDays }}</td>
+                        <td>
+                          @if (ab.diagnosis) {
+                            {{ ab.diagnosis.codigo }} — {{ ab.diagnosis.descripcion }}
+                          } @else {
+                            {{ ab.cause || ab.incapacityOrigin || '—' }}
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              }
+            </div>
+          </section>
+        }
+
         <!-- Alertas y bitácora -->
         @if (tab() === 'alertas') {
           <section class="hr-tab-panel">
@@ -422,6 +480,7 @@ export class AssociateDetail implements OnInit {
     Upload: LucideUpload,
     Download: LucideDownload,
     Trash: LucideTrash2,
+    CalendarOff: LucideCalendarOff,
   };
 
   readonly docKinds: { value: AssociateDocumentKind; label: string }[] = Object.entries(DOCUMENT_LABELS).map(
@@ -430,6 +489,7 @@ export class AssociateDetail implements OnInit {
 
   readonly associate = signal<Associate | null>(null);
   readonly documents = signal<AssociateDocumentItem[]>([]);
+  readonly absences = signal<AssociateAbsence[]>([]);
   readonly alerts = signal<HrAlert[]>([]);
   readonly history = signal<AssociateHistoryEntry[]>([]);
   readonly positionHistory = signal<PositionHistoryEntry[]>([]);
@@ -467,6 +527,12 @@ export class AssociateDetail implements OnInit {
     this.api.alertsByAssociate(id).subscribe({ next: (rows) => this.alerts.set(rows), error: () => {} });
     this.api.getAssociateHistory(id).subscribe({ next: (rows) => this.history.set(rows), error: () => {} });
     this.api.getPositionHistory(id).subscribe({ next: (rows) => this.positionHistory.set(rows), error: () => {} });
+    if (this.auth.hasPermission('absences.view')) {
+      this.api.listAbsences({ associateId: id }).subscribe({
+        next: (rows) => this.absences.set(rows),
+        error: () => {},
+      });
+    }
   }
 
   initials(a: Associate): string {

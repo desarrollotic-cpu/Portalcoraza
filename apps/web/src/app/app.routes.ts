@@ -35,6 +35,7 @@ export const routes: Routes = [
             'associates.view',
             'hr_alerts.view',
             'retirements.view',
+            'absences.view',
             'job_positions.view',
             'work_centers.view',
             'catalogs.view',
@@ -50,6 +51,15 @@ export const routes: Routes = [
             path: '',
             loadComponent: () =>
               import('./features/rrhh/hr-dashboard/hr-dashboard').then((m) => m.HrDashboard),
+          },
+          {
+            path: 'ausentismo',
+            canActivate: [permissionGuard],
+            data: { permission: 'absences.view' },
+            loadComponent: () =>
+              import('./features/rrhh/absenteeism-panel/absenteeism-panel').then(
+                (m) => m.AbsenteeismPanel,
+              ),
           },
           {
             path: 'asociados',

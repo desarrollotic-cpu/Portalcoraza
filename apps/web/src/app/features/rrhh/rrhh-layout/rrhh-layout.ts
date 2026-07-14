@@ -5,6 +5,7 @@ import {
   LucideBookMarked,
   LucideBriefcase,
   LucideBuilding2,
+  LucideCalendarOff,
   LucideFileSpreadsheet,
   LucideHistory,
   LucideLayoutDashboard,
@@ -59,6 +60,12 @@ export class RrhhLayout {
       route: '/rrhh/retiros',
       permission: 'retirements.view',
       icon: LucideUserMinus,
+    },
+    {
+      label: 'Ausentismo',
+      route: '/rrhh/ausentismo',
+      permission: 'absences.view',
+      icon: LucideCalendarOff,
     },
     {
       label: 'Cargos',
