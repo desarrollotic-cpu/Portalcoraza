@@ -28,6 +28,12 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
             @if (d.catalog.description) {
               <p>{{ d.catalog.description }}</p>
             }
+            @if (metaLine(d); as meta) {
+              <p class="meta">{{ meta }}</p>
+            }
+            @if (d.catalog.specs) {
+              <p class="meta">{{ d.catalog.specs }}</p>
+            }
           </div>
           <div class="stats">
             <div><strong>{{ d.summary.total }}</strong><span>total</span></div>
@@ -118,6 +124,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     }
     .page-head h2 { margin: 0.15rem 0; color: var(--primary-dark); }
     .page-head p { margin: 0; color: var(--coraza-text-muted, #64748b); }
+    .page-head .meta { margin-top: 0.35rem; font-size: 0.85rem; }
     .stats { display: flex; gap: 0.75rem; }
     .stats div {
       display: flex;
@@ -199,7 +206,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     .error { color: var(--coraza-error); }
   `,
 })
-export class PostEquipmentCatalogDetail implements OnInit {
+export class PostEquipmentCatalogDetailPage implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(PostEquipmentApiService);
   private readonly route = inject(ActivatedRoute);
@@ -236,6 +243,16 @@ export class PostEquipmentCatalogDetail implements OnInit {
       default:
         return status;
     }
+  }
+
+  metaLine(d: CatalogDetail): string {
+    const c = d.catalog;
+    const parts = [c.category, c.brand, c.model, c.color]
+      .filter((v): v is string => Boolean(v));
+    if (c.approximateValue != null) {
+      parts.push(`≈ ${c.approximateValue}`);
+    }
+    return parts.join(' · ');
   }
 
   addUnits(): void {

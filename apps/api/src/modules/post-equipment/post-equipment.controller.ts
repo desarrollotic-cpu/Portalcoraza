@@ -4,6 +4,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { BulkAssignPostEquipmentDto } from './dto/bulk-assign.dto';
 import { CreatePostEquipmentAssignmentDto } from './dto/create-assignment.dto';
 import { CreatePostEquipmentCatalogDto } from './dto/create-catalog.dto';
 import { CreatePostEquipmentUnitsDto } from './dto/create-units.dto';
@@ -64,6 +65,15 @@ export class PostEquipmentController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.createAssignment(dto, user.sub);
+  }
+
+  @Post('assignments/bulk')
+  @RequirePermissions('post_equipment.assign')
+  bulkAssign(
+    @Body() dto: BulkAssignPostEquipmentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.bulkAssign(dto, user.sub);
   }
 
   @Post('assignments/:id/return')

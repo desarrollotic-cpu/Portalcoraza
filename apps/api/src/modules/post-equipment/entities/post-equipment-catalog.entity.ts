@@ -20,6 +20,34 @@ export class PostEquipmentCatalog {
   @Column({ type: 'text', nullable: true })
   description!: string | null;
 
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  brand!: string | null;
+
+  @Column({ type: 'varchar', length: 120, nullable: true })
+  model!: string | null;
+
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  category!: string | null;
+
+  @Column({ type: 'varchar', length: 60, nullable: true })
+  color!: string | null;
+
+  @Column({
+    name: 'approximate_value',
+    type: 'numeric',
+    precision: 14,
+    scale: 2,
+    nullable: true,
+    transformer: {
+      to: (v?: number | null) => v,
+      from: (v: string | null) => (v == null ? null : Number(v)),
+    },
+  })
+  approximateValue!: number | null;
+
+  @Column({ type: 'text', nullable: true })
+  specs!: string | null;
+
   @Column({ name: 'requires_return', type: 'boolean', default: true })
   requiresReturn!: boolean;
 

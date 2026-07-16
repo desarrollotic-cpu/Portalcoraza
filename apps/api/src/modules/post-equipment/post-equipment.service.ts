@@ -7,7 +7,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { WorkCenter } from '../hr-work-centers/entities/work-center.entity';
 import { Post, PostStatus } from '../posts/entities/post.entity';
+import { BulkAssignPostEquipmentDto } from './dto/bulk-assign.dto';
 import { CreatePostEquipmentAssignmentDto } from './dto/create-assignment.dto';
 import { CreatePostEquipmentCatalogDto } from './dto/create-catalog.dto';
 import { CreatePostEquipmentUnitsDto } from './dto/create-units.dto';
@@ -33,8 +35,33 @@ export class PostEquipmentService {
     private readonly unitsRepo: Repository<PostEquipmentUnit>,
     @InjectRepository(Post)
     private readonly postsRepo: Repository<Post>,
+    @InjectRepository(WorkCenter)
+    private readonly workCentersRepo: Repository<WorkCenter>,
     private readonly audit: AuditService,
   ) {}
+
+  private toCatalogDto(
+    c: PostEquipmentCatalog,
+    counts?: { totalUnits: number; availableUnits: number; assignedUnits: number },
+  ) {
+    return {
+      id: c.id,
+      code: c.code,
+      name: c.name,
+      description: c.description,
+      brand: c.brand,
+      model: c.model,
+      category: c.category,
+      color: c.color,
+      approximateValue: c.approximateValue,
+      specs: c.specs,
+      requiresReturn: c.requiresReturn,
+      isActive: c.isActive,
+      totalUnits: counts?.totalUnits ?? 0,
+      availableUnits: counts?.availableUnits ?? 0,
+      assignedUnits: counts?.assignedUnits ?? 0,
+    };
+  }
 
   async listCatalog(includeInactive = false) {
     const where = includeInactive ? {} : { isActive: true };
@@ -73,17 +100,7 @@ export class PostEquipmentService {
       ]),
     );
 
-    return items.map((c) => ({
-      id: c.id,
-      code: c.code,
-      name: c.name,
-      description: c.description,
-      requiresReturn: c.requiresReturn,
-      isActive: c.isActive,
-      totalUnits: byCatalog.get(c.id)?.totalUnits ?? 0,
-      availableUnits: byCatalog.get(c.id)?.availableUnits ?? 0,
-      assignedUnits: byCatalog.get(c.id)?.assignedUnits ?? 0,
-    }));
+    return items.map((c) => this.toCatalogDto(c, byCatalog.get(c.id)));
   }
 
   async createCatalog(dto: CreatePostEquipmentCatalogDto) {
@@ -96,22 +113,37 @@ export class PostEquipmentService {
         code,
         name: dto.name.trim(),
         description: dto.description?.trim() || null,
+        brand: dto.brand?.trim() || null,
+        model: dto.model?.trim() || null,
+        category: dto.category?.trim() || null,
+        color: dto.color?.trim() || null,
+        approximateValue:
+          dto.approximateValue === undefined || dto.approximateValue === null
+            ? null
+            : Number(dto.approximateValue),
+        specs: dto.specs?.trim() || null,
         requiresReturn: dto.requiresReturn ?? true,
         isActive: true,
       }),
     );
 
-    return {
-      id: saved.id,
-      code: saved.code,
-      name: saved.name,
-      description: saved.description,
-      requiresReturn: saved.requiresReturn,
-      isActive: saved.isActive,
-      totalUnits: 0,
-      availableUnits: 0,
+    let totalUnits = 0;
+    let availableUnits = 0;
+    if (dto.initialQuantity && dto.initialQuantity > 0) {
+      const units = await this.createUnits({
+        catalogId: saved.id,
+        quantity: dto.initialQuantity,
+        codePrefix: code,
+      });
+      totalUnits = units.length;
+      availableUnits = units.length;
+    }
+
+    return this.toCatalogDto(saved, {
+      totalUnits,
+      availableUnits,
       assignedUnits: 0,
-    };
+    });
   }
 
   async getCatalogDetail(catalogId: string) {
@@ -125,21 +157,27 @@ export class PostEquipmentService {
     });
 
     return {
-      catalog: {
-        id: catalog.id,
-        code: catalog.code,
-        name: catalog.name,
-        description: catalog.description,
-        requiresReturn: catalog.requiresReturn,
-        isActive: catalog.isActive,
-      },
+      catalog: this.toCatalogDto(catalog),
       units: units.map((u) => this.toUnitDto(u)),
       summary: {
         total: units.length,
         available: units.filter((u) => u.status === PostEquipmentUnitStatus.AVAILABLE).length,
         assigned: units.filter((u) => u.status === PostEquipmentUnitStatus.ASSIGNED).length,
-        lost: units.filter((u) => u.status === PostEquipmentUnitStatus.LOST).length,
+        lost: units.filter(
+          (u) =>
+            u.status === PostEquipmentUnitStatus.LOST ||
+            u.status === PostEquipmentUnitStatus.WRITTEN_OFF,
+        ).length,
       },
+      locations: units
+        .filter((u) => u.status === PostEquipmentUnitStatus.ASSIGNED && u.currentPost)
+        .map((u) => ({
+          unitId: u.id,
+          unitCode: u.unitCode,
+          postId: u.currentPostId,
+          postCode: u.currentPost?.code ?? null,
+          postName: u.currentPost?.name ?? null,
+        })),
     };
   }
 
@@ -197,6 +235,14 @@ export class PostEquipmentService {
       order: { name: 'ASC' },
     });
 
+    const workCenterIds = posts
+      .map((p) => p.workCenterId)
+      .filter((id): id is string => Boolean(id));
+    const centers = workCenterIds.length
+      ? await this.workCentersRepo.find({ where: { id: In(workCenterIds) } })
+      : [];
+    const zoneByCenter = new Map(centers.map((c) => [c.id, c.zone]));
+
     const counts = await this.unitsRepo
       .createQueryBuilder('u')
       .select('u.currentPostId', 'postId')
@@ -216,6 +262,7 @@ export class PostEquipmentService {
       name: p.name,
       clientName: p.clientName,
       address: p.address,
+      zone: p.workCenterId ? zoneByCenter.get(p.workCenterId) ?? null : null,
       status: p.status,
       assignedItems: byPost.get(p.id) ?? 0,
       assignedQty: byPost.get(p.id) ?? 0,
@@ -305,6 +352,24 @@ export class PostEquipmentService {
       relations: { catalog: true, unit: true },
     });
     return this.toAssignmentDto(full!);
+  }
+
+  async bulkAssign(dto: BulkAssignPostEquipmentDto, userId: string) {
+    const results = [];
+    for (const unitId of dto.unitIds) {
+      results.push(
+        await this.createAssignment(
+          {
+            postId: dto.postId,
+            unitId,
+            conditionOnDelivery: dto.conditionOnDelivery,
+            notes: dto.notes,
+          },
+          userId,
+        ),
+      );
+    }
+    return { assigned: results.length, assignments: results };
   }
 
   async returnAssignment(id: string, dto: ReturnPostEquipmentDto, userId: string) {

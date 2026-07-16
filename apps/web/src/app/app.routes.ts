@@ -242,7 +242,7 @@ export const routes: Routes = [
             loadComponent: () =>
               import(
                 './features/dotacion/post-equipment-catalog-detail/post-equipment-catalog-detail'
-              ).then((m) => m.PostEquipmentCatalogDetail),
+              ).then((m) => m.PostEquipmentCatalogDetailPage),
           },
           {
             path: 'puestos',

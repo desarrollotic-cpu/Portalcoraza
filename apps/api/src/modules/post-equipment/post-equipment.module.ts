@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { WorkCenter } from '../hr-work-centers/entities/work-center.entity';
 import { Post } from '../posts/entities/post.entity';
 import { PostEquipmentAssignment } from './entities/post-equipment-assignment.entity';
 import { PostEquipmentCatalog } from './entities/post-equipment-catalog.entity';
@@ -15,6 +16,7 @@ import { PostEquipmentService } from './post-equipment.service';
       PostEquipmentCatalog,
       PostEquipmentUnit,
       Post,
+      WorkCenter,
     ]),
     AuditModule,
   ],

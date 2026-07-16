@@ -11,6 +11,12 @@ export interface PostEquipmentCatalogItem {
   code: string;
   name: string;
   description: string | null;
+  brand: string | null;
+  model: string | null;
+  category: string | null;
+  color: string | null;
+  approximateValue: number | null;
+  specs: string | null;
   requiresReturn: boolean;
   isActive: boolean;
   totalUnits: number;
@@ -33,17 +39,19 @@ export interface PostEquipmentUnit {
   notes: string | null;
 }
 
+export interface PostEquipmentLocation {
+  unitId: string;
+  unitCode: string;
+  postId: string | null;
+  postCode: string | null;
+  postName: string | null;
+}
+
 export interface PostEquipmentCatalogDetail {
-  catalog: {
-    id: string;
-    code: string;
-    name: string;
-    description: string | null;
-    requiresReturn: boolean;
-    isActive: boolean;
-  };
+  catalog: PostEquipmentCatalogItem;
   units: PostEquipmentUnit[];
   summary: { total: number; available: number; assigned: number; lost: number };
+  locations: PostEquipmentLocation[];
 }
 
 export interface PostEquipmentPostSummary {
@@ -52,6 +60,7 @@ export interface PostEquipmentPostSummary {
   name: string;
   clientName: string | null;
   address: string | null;
+  zone: string | null;
   status: string;
   assignedItems: number;
   assignedQty: number;
@@ -98,7 +107,14 @@ export interface CreateCatalogPayload {
   code: string;
   name: string;
   description?: string;
+  brand?: string;
+  model?: string;
+  category?: string;
+  color?: string;
+  approximateValue?: number;
+  specs?: string;
   requiresReturn?: boolean;
+  initialQuantity?: number;
 }
 
 export interface CreateUnitsPayload {
@@ -119,6 +135,13 @@ export interface CreateAssignmentPayload {
   conditionOnDelivery?: string;
   notes?: string;
   deliveredAt?: string;
+}
+
+export interface BulkAssignPayload {
+  postId: string;
+  unitIds: string[];
+  conditionOnDelivery?: string;
+  notes?: string;
 }
 
 export interface ReturnAssignmentPayload {
@@ -163,6 +186,15 @@ export class PostEquipmentApiService {
 
   createAssignment(payload: CreateAssignmentPayload): Observable<PostEquipmentAssignment> {
     return this.http.post<PostEquipmentAssignment>(`${this.baseUrl}/assignments`, payload);
+  }
+
+  bulkAssign(
+    payload: BulkAssignPayload,
+  ): Observable<{ assigned: number; assignments: PostEquipmentAssignment[] }> {
+    return this.http.post<{ assigned: number; assignments: PostEquipmentAssignment[] }>(
+      `${this.baseUrl}/assignments/bulk`,
+      payload,
+    );
   }
 
   returnAssignment(
