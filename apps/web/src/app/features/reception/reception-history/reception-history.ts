@@ -2,11 +2,12 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { ModalShell } from '../../dotacion/modal-shell/modal-shell';
 import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service';
 
 @Component({
   selector: 'app-reception-history',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, ModalShell],
   template: `
     <section class="page">
       <header class="head">
@@ -14,7 +15,10 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           <h2>Historial de visitas</h2>
           <p>Consulta permanente de ingresos y salidas registrados en recepción.</p>
         </div>
-        <button type="button" class="ghost" (click)="reload()">Actualizar</button>
+        <div class="head-actions">
+          <button type="button" class="primary" (click)="openPdfModal()">Generar PDF</button>
+          <button type="button" class="ghost" (click)="reload()">Actualizar</button>
+        </div>
       </header>
 
       <div class="filter">
@@ -127,14 +131,43 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           </tbody>
         </table>
       }
+
+      <app-modal-shell
+        [open]="pdfOpen()"
+        title="Generar PDF del historial"
+        (closed)="closePdfModal()"
+      >
+        <p class="hint">Elige el rango de fechas de ingreso. El PDF se descarga automáticamente.</p>
+        <div class="pdf-form">
+          <label>
+            Desde
+            <input type="date" [(ngModel)]="pdfFrom" name="pdfFrom" />
+          </label>
+          <label>
+            Hasta
+            <input type="date" [(ngModel)]="pdfTo" name="pdfTo" />
+          </label>
+        </div>
+        @if (pdfError()) {
+          <p class="error">{{ pdfError() }}</p>
+        }
+        <div class="pdf-actions">
+          <button type="button" class="ghost" (click)="closePdfModal()" [disabled]="pdfSaving()">
+            Cancelar
+          </button>
+          <button type="button" class="primary" (click)="generatePdf()" [disabled]="pdfSaving()">
+            {{ pdfSaving() ? 'Generando...' : 'Generar' }}
+          </button>
+        </div>
+      </app-modal-shell>
     </section>
   `,
   styles: `
     .page { display: flex; flex-direction: column; gap: 1rem; }
-    .head, .filter {
+    .head, .filter, .head-actions, .pdf-actions {
       display: flex;
       justify-content: space-between;
-      gap: 1rem;
+      gap: 0.75rem;
       flex-wrap: wrap;
       align-items: end;
     }
@@ -201,16 +234,32 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       font-weight: 700;
       cursor: pointer;
     }
-    .ghost {
-      padding: 0.45rem 0.8rem;
+    .ghost, .primary {
+      padding: 0.45rem 0.9rem;
       border-radius: 999px;
-      border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--coraza-border));
-      background: color-mix(in srgb, var(--primary) 8%, #fff);
-      color: var(--primary-dark);
       font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
     }
+    .ghost {
+      border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--coraza-border));
+      background: color-mix(in srgb, var(--primary) 8%, #fff);
+      color: var(--primary-dark);
+    }
+    .primary {
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+    .primary:disabled, .ghost:disabled { opacity: 0.55; cursor: not-allowed; }
+    .hint { margin: 0 0 0.85rem; color: #64748b; font-size: 0.9rem; }
+    .pdf-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1rem;
+    }
+    .pdf-actions { justify-content: flex-end; }
     .empty { color: #64748b; }
     .error { color: var(--coraza-error); }
   `,
@@ -224,6 +273,12 @@ export class ReceptionHistory implements OnInit {
   readonly error = signal<string | null>(null);
   readonly search = signal('');
   readonly status = signal<'all' | 'inside' | 'closed'>('all');
+
+  readonly pdfOpen = signal(false);
+  readonly pdfSaving = signal(false);
+  readonly pdfError = signal<string | null>(null);
+  pdfFrom = '';
+  pdfTo = '';
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -252,6 +307,67 @@ export class ReceptionHistory implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+  }
+
+  openPdfModal(): void {
+    const today = new Date();
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    this.pdfFrom = this.toInputDate(monthStart);
+    this.pdfTo = this.toInputDate(today);
+    this.pdfError.set(null);
+    this.pdfOpen.set(true);
+  }
+
+  closePdfModal(): void {
+    if (this.pdfSaving()) return;
+    this.pdfOpen.set(false);
+    this.pdfError.set(null);
+  }
+
+  generatePdf(): void {
+    if (!this.pdfFrom || !this.pdfTo) {
+      this.pdfError.set('Indica la fecha desde y hasta');
+      return;
+    }
+    if (this.pdfFrom > this.pdfTo) {
+      this.pdfError.set('La fecha "desde" no puede ser posterior a "hasta"');
+      return;
+    }
+
+    this.pdfSaving.set(true);
+    this.pdfError.set(null);
+    this.api.downloadHistoryPdf(this.pdfFrom, this.pdfTo).subscribe({
+      next: (blob) => {
+        this.pdfSaving.set(false);
+        if (blob.type && blob.type.includes('json')) {
+          this.pdfError.set('No se pudo generar el PDF');
+          return;
+        }
+        this.api.triggerDownload(
+          blob,
+          `historial-visitas-${this.pdfFrom}_a_${this.pdfTo}.pdf`,
+        );
+        this.pdfOpen.set(false);
+      },
+      error: async (err) => {
+        this.pdfSaving.set(false);
+        let message = 'No se pudo generar el PDF';
+        const body = err?.error;
+        if (body instanceof Blob) {
+          try {
+            const text = await body.text();
+            const parsed = JSON.parse(text) as { message?: string | string[] };
+            if (typeof parsed.message === 'string') message = parsed.message;
+            else if (Array.isArray(parsed.message)) message = parsed.message.join(', ');
+          } catch {
+            /* keep default */
+          }
+        } else if (typeof body?.message === 'string') {
+          message = body.message;
+        }
+        this.pdfError.set(message);
+      },
+    });
   }
 
   reload(): void {
@@ -326,5 +442,12 @@ export class ReceptionHistory implements OnInit {
       default:
         return '—';
     }
+  }
+
+  private toInputDate(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
   }
 }

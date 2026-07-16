@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import PDFDocument = require('pdfkit');
 import { IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { ExitReceptionVisitorDto } from './dto/exit-visitor.dto';
@@ -169,6 +170,118 @@ export class ReceptionService {
     });
 
     return this.toDto(saved);
+  }
+
+  async buildHistoryPdf(fromDate: string, toDate: string): Promise<Buffer> {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+      throw new BadRequestException('Usa fechas en formato YYYY-MM-DD');
+    }
+    if (fromDate > toDate) {
+      throw new BadRequestException('La fecha "desde" no puede ser posterior a "hasta"');
+    }
+
+    const tz = 'America/Bogota';
+    const rows = await this.visitorsRepo
+      .createQueryBuilder('v')
+      .where(`(v.entry_at AT TIME ZONE :tz)::date >= :fromDate::date`, { tz, fromDate })
+      .andWhere(`(v.entry_at AT TIME ZONE :tz)::date <= :toDate::date`, { tz, toDate })
+      .orderBy('v.entry_at', 'ASC')
+      .getMany();
+
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const finished = new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    doc.fontSize(16).text('Portal Coraza — Recepción', { align: 'center' });
+    doc.moveDown(0.35);
+    doc.fontSize(13).text('Historial de visitas', { align: 'center' });
+    doc.fontSize(10).text(`Periodo: ${fromDate} a ${toDate}`, { align: 'center' });
+    doc
+      .fontSize(9)
+      .text(`Generado: ${this.formatDateTime(new Date())} · Total: ${rows.length} visita(s)`, {
+        align: 'center',
+      });
+    doc.moveDown();
+
+    if (!rows.length) {
+      doc.fontSize(11).text('No hay visitas registradas en el rango seleccionado.');
+      doc.end();
+      return finished;
+    }
+
+    for (const v of rows) {
+      const dto = this.toDto(v);
+      doc.fontSize(11).fillColor('#0f172a').text(dto.displayName, { continued: false });
+      doc
+        .fontSize(9)
+        .fillColor('#334155')
+        .text(
+          [
+            dto.documentNumber ? `C.C. ${dto.documentNumber}` : null,
+            `Ingreso: ${this.formatDateTime(v.entryAt)}`,
+            v.exitAt ? `Salida: ${this.formatDateTime(v.exitAt)}` : 'Salida: sin registrar',
+            v.exitAt ? `Permanencia: ${this.durationLabel(v.entryAt, v.exitAt)}` : null,
+            dto.visitReason ? `Motivo: ${dto.visitReason}` : null,
+            dto.authorizedBy ? `Autorizado por: ${dto.authorizedBy}` : null,
+            dto.originPlace ? `Origen: ${dto.originPlace}` : null,
+            dto.arl ? `ARL: ${dto.arl}` : null,
+            dto.eps ? `EPS: ${dto.eps}` : null,
+            dto.transportMeans
+              ? `Desplazamiento: ${this.transportLabel(dto.transportMeans)}${
+                  dto.travelTimeMinutes != null ? ` (${dto.travelTimeMinutes} min)` : ''
+                }`
+              : null,
+            dto.notes ? `Notas: ${dto.notes}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          { width: 515 },
+        );
+      doc.moveDown(0.55);
+      if (doc.y > 760) doc.addPage();
+    }
+
+    doc.end();
+    return finished;
+  }
+
+  private formatDateTime(value: Date): string {
+    return new Intl.DateTimeFormat('es-CO', {
+      dateStyle: 'short',
+      timeStyle: 'medium',
+      timeZone: 'America/Bogota',
+    }).format(value);
+  }
+
+  private durationLabel(entryAt: Date, exitAt: Date): string {
+    const ms = exitAt.getTime() - entryAt.getTime();
+    if (ms < 0) return '—';
+    const totalMin = Math.round(ms / 60000);
+    if (totalMin < 60) return `${totalMin} min`;
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    return m ? `${h} h ${m} min` : `${h} h`;
+  }
+
+  private transportLabel(value: string): string {
+    switch (value) {
+      case 'MOTO':
+        return 'Moto';
+      case 'CARRO':
+        return 'Carro';
+      case 'TRANSPORTE_PUBLICO':
+        return 'Transporte público';
+      case 'OTRO':
+        return 'Otro';
+      case 'NINGUNO':
+        return 'Ninguno / a pie';
+      default:
+        return value;
+    }
   }
 
   private trimOrNull(v?: string | null): string | null {

@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  Param,
+  Patch,
+  Post,
+  Query,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -17,6 +28,15 @@ export class ReceptionController {
   @RequirePermissions('reception.view')
   dashboard() {
     return this.service.getDashboard();
+  }
+
+  @Get('reports/history')
+  @RequirePermissions('reception.view')
+  @Header('Content-Type', 'application/pdf')
+  @Header('Content-Disposition', 'attachment; filename="historial-visitas-recepcion.pdf"')
+  async historyReport(@Query('from') from?: string, @Query('to') to?: string) {
+    const buffer = await this.service.buildHistoryPdf(from ?? '', to ?? '');
+    return new StreamableFile(buffer);
   }
 
   @Get('visitors')

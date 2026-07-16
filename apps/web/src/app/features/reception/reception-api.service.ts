@@ -94,4 +94,20 @@ export class ReceptionApiService {
       exitNotes,
     });
   }
+
+  downloadHistoryPdf(from: string, to: string): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/reports/history`, {
+      params: { from, to },
+      responseType: 'blob',
+    });
+  }
+
+  triggerDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 }
