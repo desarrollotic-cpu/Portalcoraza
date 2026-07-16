@@ -14,7 +14,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Residencial"
-      subtitle="Unidades, visitantes, paquetería y reservas del puesto asignado."
+      subtitle="Puestos del portal (centros RRHH), unidades, visitantes, paquetería y reservas."
       [nav]="nav"
     >
       <router-outlet />

@@ -548,41 +548,6 @@ export class Dashboard implements OnInit {
       );
     }
 
-    if (role === 'ADMINISTRADOR_UNIDAD') {
-      items.push(
-        {
-          label: 'Visitantes activos',
-          value: s.activeVisitors ?? 0,
-          icon: LucideUsersRound,
-          route: '/residential/visitantes',
-          cta: 'Ver visitantes',
-          gradient: 'var(--gradient-primary)',
-        },
-        {
-          label: 'Paquetes pendientes',
-          value: s.pendingPackages ?? 0,
-          icon: LucidePackageOpen,
-          route: '/residential/paquetes',
-          cta: 'Ver paquetes',
-          gradient: 'var(--gradient-accent)',
-        },
-        {
-          label: 'Reservas pendientes',
-          value: s.pendingReservations ?? 0,
-          icon: LucideCalendarCheck,
-          route: '/residential/reservas',
-          cta: 'Ver reservas',
-          gradient: 'var(--gradient-success)',
-        },
-        {
-          label: 'Novedades abiertas',
-          value: s.openIncidents ?? 0,
-          icon: LucideBell,
-          gradient: 'var(--gradient-warning)',
-        },
-      );
-    }
-
     return items;
   });
 
@@ -590,7 +555,7 @@ export class Dashboard implements OnInit {
     const code = this.auth.currentUser()?.role?.code ?? '';
     this.roleCode.set(code);
 
-    if (!['GERENCIA', 'ADMINISTRADOR_UNIDAD'].includes(code)) {
+    if (code !== 'GERENCIA') {
       this.loading.set(false);
       return;
     }
@@ -608,6 +573,6 @@ export class Dashboard implements OnInit {
   }
 
   isKnownRole(): boolean {
-    return ['GERENCIA', 'ADMINISTRADOR_UNIDAD'].includes(this.roleCode());
+    return this.roleCode() === 'GERENCIA';
   }
 }

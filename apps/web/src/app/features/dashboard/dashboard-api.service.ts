@@ -29,8 +29,6 @@ export class DashboardApiService {
         return this.loadGerenciaStats();
       case 'SUPERVISOR':
         return this.loadSupervisorStats();
-      case 'ADMINISTRADOR_UNIDAD':
-        return this.loadAdminUnidadStats();
       default:
         return of({});
     }
@@ -109,36 +107,6 @@ export class DashboardApiService {
           })),
         );
       }),
-    );
-  }
-
-  private loadAdminUnidadStats(): Observable<Partial<DashboardStats>> {
-    return forkJoin({
-      visitors: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/visitors/active`),
-      ),
-      packages: this.safeArray(
-        this.http.get<Array<{ status: string }>>(`${this.baseUrl}/residential/packages`, {
-          params: new HttpParams().set('status', 'RECEIVED'),
-        }),
-      ),
-      reservations: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/reservations`, {
-          params: new HttpParams().set('status', 'PENDING'),
-        }),
-      ),
-      incidents: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/incidents`, {
-          params: new HttpParams().set('status', 'ABIERTA'),
-        }),
-      ),
-    }).pipe(
-      map(({ visitors, packages, reservations, incidents }) => ({
-        activeVisitors: visitors.length,
-        pendingPackages: packages.length,
-        pendingReservations: reservations.length,
-        openIncidents: incidents.length,
-      })),
     );
   }
 

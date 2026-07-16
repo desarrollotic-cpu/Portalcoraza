@@ -94,8 +94,9 @@ export class HrApiService {
   }
 
   // ─── Centros de trabajo ──────────────────────────────────────────────
-  listWorkCenters(): Observable<WorkCenter[]> {
-    return this.http.get<WorkCenter[]>(`${this.api}/hr/work-centers`);
+  listWorkCenters(includeInactive = false): Observable<WorkCenter[]> {
+    const q = includeInactive ? '?includeInactive=true' : '';
+    return this.http.get<WorkCenter[]>(`${this.api}/hr/work-centers${q}`);
   }
 
   createWorkCenter(payload: Partial<WorkCenter>): Observable<WorkCenter> {
@@ -112,7 +113,7 @@ export class HrApiService {
   }
 
   listAllCatalogs(): Observable<Record<CatalogKind, CatalogValue[]>> {
-    return this.http.get<Record<CatalogKind, CatalogValue[]>>(`${this.api}/hr/catalogs/all`);
+    return this.http.get<Record<CatalogKind, CatalogValue[]>>(`${this.api}/hr/catalogs`);
   }
 
   createCatalogValue(payload: {

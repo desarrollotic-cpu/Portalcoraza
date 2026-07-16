@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import {
   NavigationEnd,
   Router,
@@ -24,6 +25,7 @@ import {
   LucideClipboardList,
   LucideCog,
   LucideHome,
+  LucideKeyRound,
   LucideLogOut,
   LucideSearch,
   LucideShieldCheck,
@@ -53,7 +55,7 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
   template: `
     <div class="layout">
       <aside class="sidebar">
@@ -187,6 +189,10 @@ interface NavGroup {
               @if (userMenuOpen()) {
                 <div class="user-menu" (click)="$event.stopPropagation()">
                   <span class="user-menu-hd">{{ auth.currentUser()?.email }}</span>
+                  <button type="button" (click)="openChangePassword()">
+                    <app-icon [icon]="icons.KeyRound" [size]="16" [strokeWidth]="1.9" />
+                    Cambiar contraseña
+                  </button>
                   <button type="button" (click)="auth.logout()">
                     <app-icon [icon]="icons.LogOut" [size]="16" [strokeWidth]="1.9" />
                     Cerrar sesión
@@ -202,6 +208,43 @@ interface NavGroup {
         </main>
       </div>
       <app-toaster />
+
+      @if (changePasswordOpen()) {
+        <div class="modal-backdrop" (click)="closeChangePassword()">
+          <div class="modal" (click)="$event.stopPropagation()">
+            <h3>Cambiar mi contraseña</h3>
+            <p class="modal-hint">Usa tu contraseña actual y define una nueva (mínimo 8 caracteres).</p>
+            <form class="modal-form" (ngSubmit)="submitChangePassword()">
+              <label>
+                Contraseña actual
+                <input type="password" [(ngModel)]="pwForm.current" name="currentPw" required autocomplete="current-password" />
+              </label>
+              <label>
+                Nueva contraseña
+                <input type="password" [(ngModel)]="pwForm.next" name="newPw" required minlength="8" autocomplete="new-password" />
+              </label>
+              <label>
+                Confirmar nueva
+                <input type="password" [(ngModel)]="pwForm.confirm" name="confirmPw" required minlength="8" autocomplete="new-password" />
+              </label>
+              @if (pwError()) {
+                <p class="pw-error">{{ pwError() }}</p>
+              }
+              @if (pwSuccess()) {
+                <p class="pw-ok">{{ pwSuccess() }}</p>
+              }
+              <div class="modal-actions">
+                <button type="button" class="btn-ghost" (click)="closeChangePassword()" [disabled]="pwSaving()">
+                  Cancelar
+                </button>
+                <button type="submit" class="btn-primary" [disabled]="pwSaving()">
+                  {{ pwSaving() ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -722,6 +765,79 @@ interface NavGroup {
         display: none;
       }
     }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: rgba(15, 23, 42, 0.45);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .modal {
+      width: min(420px, 100%);
+      background: #fff;
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    }
+    .modal h3 {
+      margin: 0 0 0.35rem;
+      color: var(--primary-dark);
+      font-size: 1.1rem;
+    }
+    .modal-hint {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--coraza-text-muted, #64748b);
+    }
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .modal-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      color: #475569;
+    }
+    .modal-form input {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--coraza-border, #e2e8f0);
+      border-radius: 8px;
+      font: inherit;
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+    .btn-ghost, .btn-primary {
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-ghost {
+      background: #f8fafc;
+      border-color: #e2e8f0;
+      color: #334155;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:disabled, .btn-ghost:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .pw-error { margin: 0; color: var(--coraza-error, #dc2626); font-size: 0.85rem; }
+    .pw-ok { margin: 0; color: #15803d; font-size: 0.85rem; }
   `,
   host: {
     '(document:click)': 'onDocumentClick()',
@@ -740,6 +856,7 @@ export class MainLayout implements OnDestroy {
     ClipboardList: LucideClipboardList,
     Cog: LucideCog,
     Home: LucideHome,
+    KeyRound: LucideKeyRound,
     LogOut: LucideLogOut,
     Search: LucideSearch,
     ShieldCheck: LucideShieldCheck,
@@ -749,6 +866,11 @@ export class MainLayout implements OnDestroy {
   };
 
   readonly userMenuOpen = signal(false);
+  readonly changePasswordOpen = signal(false);
+  readonly pwSaving = signal(false);
+  readonly pwError = signal<string | null>(null);
+  readonly pwSuccess = signal<string | null>(null);
+  pwForm = { current: '', next: '', confirm: '' };
 
   private readonly groups: NavGroup[] = [
     {
@@ -877,6 +999,53 @@ export class MainLayout implements OnDestroy {
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.userMenuOpen.update((v) => !v);
+  }
+
+  openChangePassword(): void {
+    this.userMenuOpen.set(false);
+    this.pwForm = { current: '', next: '', confirm: '' };
+    this.pwError.set(null);
+    this.pwSuccess.set(null);
+    this.changePasswordOpen.set(true);
+  }
+
+  closeChangePassword(): void {
+    if (this.pwSaving()) return;
+    this.changePasswordOpen.set(false);
+  }
+
+  submitChangePassword(): void {
+    const current = this.pwForm.current;
+    const next = this.pwForm.next;
+    const confirm = this.pwForm.confirm;
+    if (!current || !next || !confirm) {
+      this.pwError.set('Completa todos los campos');
+      return;
+    }
+    if (next.length < 8) {
+      this.pwError.set('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (next !== confirm) {
+      this.pwError.set('La confirmación no coincide');
+      return;
+    }
+
+    this.pwSaving.set(true);
+    this.pwError.set(null);
+    this.pwSuccess.set(null);
+    this.auth.changePassword(current, next).subscribe({
+      next: (res) => {
+        this.pwSaving.set(false);
+        this.pwSuccess.set(res.message || 'Contraseña actualizada');
+        this.pwForm = { current: '', next: '', confirm: '' };
+        setTimeout(() => this.changePasswordOpen.set(false), 1200);
+      },
+      error: (err) => {
+        this.pwSaving.set(false);
+        this.pwError.set(err?.error?.message ?? 'No se pudo cambiar la contraseña');
+      },
+    });
   }
 
   onNotificationClick(id: string, isRead: boolean): void {

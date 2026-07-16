@@ -74,7 +74,7 @@ export class RrhhLayout {
       icon: LucideBriefcase,
     },
     {
-      label: 'Centros',
+      label: 'Puestos / centros',
       route: '/rrhh/admin/centros',
       permission: 'work_centers.view',
       icon: LucideBuilding2,

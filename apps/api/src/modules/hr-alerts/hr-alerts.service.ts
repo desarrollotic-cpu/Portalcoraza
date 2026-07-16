@@ -163,12 +163,6 @@ export class HrAlertsService {
     }
 
     if (summary.total > 0) {
-      await this.notifications.sendToRole(
-        'SST',
-        `${summary.total} nuevas alertas de vencimiento HRM`,
-        'Revisa la matriz de cumplimiento',
-        'hr',
-      );
       await this.notifications.sendToRole('RRHH', `${summary.total} nuevas alertas HRM`, null, 'hr');
     }
 

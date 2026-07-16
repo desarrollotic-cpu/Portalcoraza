@@ -70,10 +70,10 @@ WHERE r.code IN ('GERENCIA', 'RRHH') AND p.code IN (
 )
 ON CONFLICT DO NOTHING;
 
--- SST y Coordinador: solo consulta
+-- Coordinador operativo: solo consulta de ausentismo
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
-WHERE r.code IN ('SST', 'COORDINADOR_OPERATIVO') AND p.code = 'absences.view'
+WHERE r.code = 'COORDINADOR_OPERATIVO' AND p.code = 'absences.view'
 ON CONFLICT DO NOTHING;
 
 -- Seed mínimo CIE-10 (el catálogo completo se importa desde Excel de la app de referencia)

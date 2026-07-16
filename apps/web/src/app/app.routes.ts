@@ -209,6 +209,51 @@ export const routes: Routes = [
               import('./features/dotacion/inventory-form/inventory-form').then((m) => m.InventoryForm),
           },
           {
+            path: 'elementos',
+            canActivate: [permissionGuard],
+            data: { permission: 'post_equipment.view' },
+            loadComponent: () =>
+              import('./features/dotacion/post-equipment-catalog/post-equipment-catalog').then(
+                (m) => m.PostEquipmentCatalog,
+              ),
+          },
+          {
+            path: 'elementos/puestos',
+            canActivate: [permissionGuard],
+            data: { permission: 'post_equipment.view' },
+            loadComponent: () =>
+              import('./features/dotacion/post-equipment-list/post-equipment-list').then(
+                (m) => m.PostEquipmentList,
+              ),
+          },
+          {
+            path: 'elementos/puestos/:postId',
+            canActivate: [permissionGuard],
+            data: { permission: 'post_equipment.view' },
+            loadComponent: () =>
+              import('./features/dotacion/post-equipment-detail/post-equipment-detail').then(
+                (m) => m.PostEquipmentDetail,
+              ),
+          },
+          {
+            path: 'elementos/:id',
+            canActivate: [permissionGuard],
+            data: { permission: 'post_equipment.view' },
+            loadComponent: () =>
+              import(
+                './features/dotacion/post-equipment-catalog-detail/post-equipment-catalog-detail'
+              ).then((m) => m.PostEquipmentCatalogDetail),
+          },
+          {
+            path: 'puestos',
+            redirectTo: 'elementos/puestos',
+            pathMatch: 'full',
+          },
+          {
+            path: 'puestos/:postId',
+            redirectTo: 'elementos/puestos/:postId',
+          },
+          {
             path: 'entregas',
             redirectTo: 'asociados',
             pathMatch: 'full',

@@ -53,6 +53,10 @@ export class Post {
   @Column({ type: 'text', nullable: true })
   notes!: string | null;
 
+  /** Centro de trabajo RRHH que este puesto representa operativamente. */
+  @Column({ name: 'work_center_id', type: 'uuid', nullable: true, unique: true })
+  workCenterId!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

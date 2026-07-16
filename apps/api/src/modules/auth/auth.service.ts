@@ -7,7 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { PermissionsService } from '../permissions/permissions.service';
 import { UsersService } from '../users/users.service';
@@ -120,6 +120,56 @@ export class AuthService {
       entityType: 'user',
       entityId: userId,
     });
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    await this.usersService.changeOwnPassword(userId, currentPassword, newPassword);
+    await this.revokeAllRefreshTokens(userId);
+    return { ok: true, message: 'Contraseña actualizada' };
+  }
+
+  async recoverAdmin(recoveryKey: string, newPassword: string) {
+    const expected = this.config.get<string>('ADMIN_RECOVERY_SECRET');
+    if (!expected || expected.length < 16) {
+      throw new UnauthorizedException(
+        'Recuperación de administrador no configurada. Usa el script reset:admin-password.',
+      );
+    }
+
+    if (recoveryKey !== expected) {
+      throw new UnauthorizedException('Clave de recuperación inválida');
+    }
+
+    const admin = await this.usersService.findGerenciaAdmin();
+    if (!admin) {
+      throw new UnauthorizedException('No hay usuario administrador activo');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    await this.usersService.setPasswordHash(admin.id, passwordHash);
+    await this.revokeAllRefreshTokens(admin.id);
+
+    await this.auditService.log({
+      userId: admin.id,
+      module: 'auth',
+      action: 'recover_admin',
+      entityType: 'user',
+      entityId: admin.id,
+      newValue: { email: admin.email },
+    });
+
+    return {
+      ok: true,
+      message: 'Contraseña de administrador restablecida',
+      email: admin.email,
+    };
+  }
+
+  async revokeAllRefreshTokens(userId: string) {
+    await this.refreshRepo.update(
+      { userId, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
   }
 
   private async signAccess(payload: JwtPayload): Promise<string> {

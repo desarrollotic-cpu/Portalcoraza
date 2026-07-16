@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -26,25 +25,11 @@ import { PositionHistory } from './entities/position-history.entity';
  *   • auditoría campo-a-campo (delegada a HrAuditService)
  *   • cálculo de campos derivados (edad, antigüedad)
  *   • enmascaramiento Ley 1581 sobre raza / religión / orientación sexual
- *   • restricciones al rol SST: no puede editar nombres, fecha nacimiento,
- *     salarios ni estado civil
  *   • preservación de historial de cargos en cada cambio
  *   • flujo de reingreso desde estado RETIRADO
  */
 @Injectable()
 export class AssociatesService {
-  // Campos personales bloqueados para el rol SST (según repo referencia)
-  private static readonly SST_LOCKED_FIELDS = new Set([
-    'firstName',
-    'secondName',
-    'firstLastName',
-    'secondLastName',
-    'birthDate',
-    'ordinaryCompensation',
-    'averageMonthlySalary',
-    'maritalStatus',
-  ]);
-
   private static readonly RELATIONS = [
     'jobPosition',
     'workCenter',
@@ -77,12 +62,6 @@ export class AssociatesService {
 
   // ─── Consultas ────────────────────────────────────────────────────────
   async list(query: AssociatesQueryDto, user: JwtPayload) {
-    if (user.roleCode === 'CONSULTA') {
-      throw new ForbiddenException(
-        'El rol CONSULTA solo puede acceder al panel y reportes agregados.',
-      );
-    }
-
     const qb = this.associatesRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.jobPosition', 'jobPosition')
@@ -137,12 +116,6 @@ export class AssociatesService {
   }
 
   async findOne(id: string, user: JwtPayload) {
-    if (user.roleCode === 'CONSULTA') {
-      throw new ForbiddenException(
-        'El rol CONSULTA solo puede acceder al panel y reportes agregados.',
-      );
-    }
-
     const associate = await this.associatesRepo.findOne({
       where: { id },
       relations: AssociatesService.RELATIONS,
@@ -220,19 +193,6 @@ export class AssociatesService {
   async update(id: string, dto: UpdateAssociateDto, user: JwtPayload, ipAddress?: string) {
     const existing = await this.associatesRepo.findOne({ where: { id } });
     if (!existing) throw new NotFoundException('Asociado no encontrado');
-
-    // Ley SST: rol SST no puede editar campos personales sensibles
-    if (user.roleCode === 'SST') {
-      for (const [key, newValue] of Object.entries(dto)) {
-        if (
-          AssociatesService.SST_LOCKED_FIELDS.has(key) &&
-          newValue !== undefined &&
-          newValue !== (existing as unknown as Record<string, unknown>)[key]
-        ) {
-          throw new ForbiddenException(`El rol SST no puede modificar el campo "${key}".`);
-        }
-      }
-    }
 
     // Verificar duplicado de documento si cambia
     if (dto.documentNumber && dto.documentNumber !== existing.documentNumber) {

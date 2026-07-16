@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { Post } from '../posts/entities/post.entity';
+import { Post, PostStatus } from '../posts/entities/post.entity';
 import {
   CreatePersonDto,
   CreateResidentDto,
@@ -57,6 +57,24 @@ export class ResidentialService {
     return qb.getMany();
   }
 
+  /** Puestos visibles en Residencial (mismos del portal / centros RRHH). */
+  async listPosts(user: JwtPayload) {
+    const postIds = await this.scopeService.getPostIdsForUser(user);
+    const qb = this.postsRepo
+      .createQueryBuilder('post')
+      .where('post.status = :status', { status: PostStatus.ACTIVO })
+      .orderBy('post.name', 'ASC');
+
+    if (postIds !== null) {
+      if (postIds.length === 0) {
+        return [];
+      }
+      qb.andWhere('post.id IN (:...postIds)', { postIds });
+    }
+
+    return qb.getMany();
+  }
+
   async createUnit(dto: CreateResidentialUnitDto, user: JwtPayload) {
     const postIds = await this.scopeService.getPostIdsForUser(user);
     if (postIds !== null && !postIds.includes(dto.postId)) {
@@ -79,7 +97,10 @@ export class ResidentialService {
       newValue: saved as unknown as Record<string, unknown>,
     });
 
-    return saved;
+    return this.unitsRepo.findOne({
+      where: { id: saved.id },
+      relations: { post: true },
+    });
   }
 
   async updateUnit(id: string, dto: UpdateResidentialUnitDto, user: JwtPayload) {

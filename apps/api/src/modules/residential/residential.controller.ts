@@ -55,6 +55,12 @@ export class ResidentialController {
     private readonly incidentsService: IncidentsService,
   ) {}
 
+  @Get('posts')
+  @RequirePermissions('residential.view')
+  listPosts(@CurrentUser() user: JwtPayload) {
+    return this.residentialService.listPosts(user);
+  }
+
   @Get('units')
   @RequirePermissions('residential.view')
   listUnits(@CurrentUser() user: JwtPayload) {

@@ -106,13 +106,39 @@ export interface CreateReservationPayload {
   endsAt: string;
 }
 
+export interface ResidentialPost {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  status: string;
+  clientName?: string | null;
+  address?: string | null;
+}
+
+export interface CreateUnitPayload {
+  postId: string;
+  block?: string;
+  number: string;
+  areaM2?: string;
+  reservationApprovalMode?: ReservationApprovalMode;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ResidentialApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/residential`;
 
+  listPosts(): Observable<ResidentialPost[]> {
+    return this.http.get<ResidentialPost[]>(`${this.baseUrl}/posts`);
+  }
+
   listUnits(): Observable<ResidentialUnit[]> {
     return this.http.get<ResidentialUnit[]>(`${this.baseUrl}/units`);
+  }
+
+  createUnit(payload: CreateUnitPayload): Observable<ResidentialUnit> {
+    return this.http.post<ResidentialUnit>(`${this.baseUrl}/units`, payload);
   }
 
   listResidents(unitId: string): Observable<Resident[]> {

@@ -23,6 +23,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PostsModule } from './modules/posts/posts.module';
+import { PostEquipmentModule } from './modules/post-equipment/post-equipment.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { UsersModule } from './modules/users/users.module';
 
@@ -65,6 +66,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     ResidentialModule,
     NotificationsModule,
     PostsModule,
+    PostEquipmentModule,
     AuditModule,
   ],
 })

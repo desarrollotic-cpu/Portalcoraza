@@ -19,7 +19,7 @@ export class AuthService {
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, {
-        email,
+        email: email.trim().toLowerCase(),
         password,
       })
       .pipe(
@@ -38,6 +38,23 @@ export class AuthService {
       .post(`${environment.apiUrl}/auth/logout`, { refreshToken })
       .subscribe({ complete: () => this.clearSession() });
     this.clearSession();
+  }
+
+  changePassword(currentPassword: string, newPassword: string): Observable<{ ok: boolean; message: string }> {
+    return this.http.post<{ ok: boolean; message: string }>(
+      `${environment.apiUrl}/auth/change-password`,
+      { currentPassword, newPassword },
+    );
+  }
+
+  recoverAdmin(
+    recoveryKey: string,
+    newPassword: string,
+  ): Observable<{ ok: boolean; message: string; email: string }> {
+    return this.http.post<{ ok: boolean; message: string; email: string }>(
+      `${environment.apiUrl}/auth/recover-admin`,
+      { recoveryKey, newPassword },
+    );
   }
 
   getAccessToken(): string | null {
