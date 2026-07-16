@@ -337,6 +337,54 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'recepcion',
+        canActivate: [permissionGuard],
+        data: { permission: 'reception.view' },
+        loadComponent: () =>
+          import('./features/reception/reception-layout/reception-layout').then(
+            (m) => m.ReceptionLayout,
+          ),
+        children: [
+          { path: '', redirectTo: 'panel', pathMatch: 'full' },
+          {
+            path: 'panel',
+            canActivate: [permissionGuard],
+            data: { permission: 'reception.view' },
+            loadComponent: () =>
+              import('./features/reception/reception-panel/reception-panel').then(
+                (m) => m.ReceptionPanel,
+              ),
+          },
+          {
+            path: 'registrar',
+            canActivate: [permissionGuard],
+            data: { permission: 'reception.register' },
+            loadComponent: () =>
+              import('./features/reception/reception-register/reception-register').then(
+                (m) => m.ReceptionRegister,
+              ),
+          },
+          {
+            path: 'dentro',
+            canActivate: [permissionGuard],
+            data: { permission: 'reception.view' },
+            loadComponent: () =>
+              import('./features/reception/reception-inside/reception-inside').then(
+                (m) => m.ReceptionInside,
+              ),
+          },
+          {
+            path: 'historial',
+            canActivate: [permissionGuard],
+            data: { permission: 'reception.view' },
+            loadComponent: () =>
+              import('./features/reception/reception-history/reception-history').then(
+                (m) => m.ReceptionHistory,
+              ),
+          },
+        ],
+      },
+      {
         path: 'residential',
         canActivate: [permissionGuard],
         data: { permission: 'residential.view' },

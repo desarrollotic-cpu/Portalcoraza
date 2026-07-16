@@ -32,6 +32,7 @@ import {
   LucideSparkles,
   LucideUserCog,
   LucideUsersRound,
+  LucideDoorOpen,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -860,6 +861,7 @@ export class MainLayout implements OnDestroy {
     LogOut: LucideLogOut,
     Search: LucideSearch,
     ShieldCheck: LucideShieldCheck,
+    DoorOpen: LucideDoorOpen,
     Sparkles: LucideSparkles,
     UserCog: LucideUserCog,
     UsersRound: LucideUsersRound,
@@ -905,6 +907,12 @@ export class MainLayout implements OnDestroy {
           route: '/documental',
           icon: LucideClipboardList,
           permission: 'documental.view',
+        },
+        {
+          label: 'Recepción',
+          route: '/recepcion',
+          icon: LucideDoorOpen,
+          permission: 'reception.view',
         },
         {
           label: 'Residencial',
