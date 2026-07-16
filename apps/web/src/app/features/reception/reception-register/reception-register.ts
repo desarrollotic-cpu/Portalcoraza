@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -24,28 +24,32 @@ import {
       @if (!auth.hasPermission('reception.register')) {
         <p class="error">No tienes permiso para registrar visitantes.</p>
       } @else {
-        <form class="form" (ngSubmit)="submit()">
+        <form class="form" (keydown.enter)="onFormEnter($event)">
           <fieldset>
             <legend>Datos personales</legend>
+            <p class="scan-hint">
+              La lectora puede llenar hasta fecha de nacimiento. El resto se completa a mano y el
+              registro solo se guarda con el botón.
+            </p>
             <label>
               Cédula
-              <input [(ngModel)]="form.documentNumber" name="documentNumber" />
+              <input [(ngModel)]="form.documentNumber" name="documentNumber" autocomplete="off" />
             </label>
             <label>
               Primer apellido
-              <input [(ngModel)]="form.firstSurname" name="firstSurname" />
+              <input [(ngModel)]="form.firstSurname" name="firstSurname" autocomplete="off" />
             </label>
             <label>
               Segundo apellido
-              <input [(ngModel)]="form.secondSurname" name="secondSurname" />
+              <input [(ngModel)]="form.secondSurname" name="secondSurname" autocomplete="off" />
             </label>
             <label>
               Primer nombre
-              <input [(ngModel)]="form.firstName" name="firstName" />
+              <input [(ngModel)]="form.firstName" name="firstName" autocomplete="off" />
             </label>
             <label>
               Segundo nombre
-              <input [(ngModel)]="form.secondName" name="secondName" />
+              <input [(ngModel)]="form.secondName" name="secondName" autocomplete="off" />
             </label>
             <label>
               Sexo
@@ -68,15 +72,15 @@ import {
             </label>
             <label>
               ARL
-              <input [(ngModel)]="form.arl" name="arl" />
+              <input [(ngModel)]="form.arl" name="arl" autocomplete="off" />
             </label>
             <label>
               EPS
-              <input [(ngModel)]="form.eps" name="eps" />
+              <input [(ngModel)]="form.eps" name="eps" autocomplete="off" />
             </label>
             <label class="wide">
               Lugar de donde viene
-              <input [(ngModel)]="form.originPlace" name="originPlace" />
+              <input [(ngModel)]="form.originPlace" name="originPlace" autocomplete="off" />
             </label>
           </fieldset>
 
@@ -84,7 +88,7 @@ import {
             <legend>Datos de ingreso</legend>
             <label class="wide">
               Motivo de visita
-              <input [(ngModel)]="form.visitReason" name="visitReason" />
+              <input #visitReasonInput [(ngModel)]="form.visitReason" name="visitReason" autocomplete="off" />
             </label>
             <label>
               Hora de entrada
@@ -92,7 +96,7 @@ import {
             </label>
             <label>
               Autorizado por
-              <input [(ngModel)]="form.authorizedBy" name="authorizedBy" />
+              <input [(ngModel)]="form.authorizedBy" name="authorizedBy" autocomplete="off" />
             </label>
           </fieldset>
 
@@ -120,7 +124,7 @@ import {
             </label>
             <label class="wide">
               Notas
-              <input [(ngModel)]="form.notes" name="notes" />
+              <input [(ngModel)]="form.notes" name="notes" autocomplete="off" />
             </label>
           </fieldset>
 
@@ -133,7 +137,7 @@ import {
 
           <div class="actions">
             <button type="button" class="ghost" (click)="reset()" [disabled]="saving()">Limpiar</button>
-            <button type="submit" class="primary" [disabled]="saving()">
+            <button type="button" class="primary" (click)="submit()" [disabled]="saving()">
               {{ saving() ? 'Guardando...' : 'Registrar ingreso' }}
             </button>
           </div>
@@ -161,6 +165,12 @@ import {
       font-weight: 700;
       font-size: 0.85rem;
       color: var(--primary-dark);
+    }
+    .scan-hint {
+      grid-column: 1 / -1;
+      margin: 0 0 0.25rem;
+      font-size: 0.8rem;
+      color: #64748b;
     }
     label {
       display: flex;
@@ -216,6 +226,8 @@ export class ReceptionRegister implements OnInit {
   private readonly api = inject(ReceptionApiService);
   private readonly router = inject(Router);
 
+  private readonly visitReasonInput = viewChild<ElementRef<HTMLInputElement>>('visitReasonInput');
+
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);
   readonly success = signal<string | null>(null);
@@ -225,6 +237,18 @@ export class ReceptionRegister implements OnInit {
 
   ngOnInit(): void {
     setInterval(() => this.clock.set(new Date()), 1000);
+  }
+
+  /** Los lectores envían Enter al final; no debe guardar el formulario. */
+  onFormEnter(event: Event): void {
+    event.preventDefault();
+    const target = event.target as HTMLElement | null;
+    if (!target) return;
+
+    // Al terminar la lectura (suele caer en fecha de nacimiento), pasa al motivo.
+    if (target.getAttribute('name') === 'birthDate') {
+      queueMicrotask(() => this.visitReasonInput()?.nativeElement.focus());
+    }
   }
 
   nowLabel(): string {
