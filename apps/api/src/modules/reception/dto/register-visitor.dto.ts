@@ -1,5 +1,4 @@
 import {
-  IsDateString,
   IsEnum,
   IsInt,
   IsOptional,
@@ -41,7 +40,8 @@ export class RegisterReceptionVisitorDto {
   sex?: ReceptionSex;
 
   @IsOptional()
-  @IsDateString()
+  @IsString()
+  @MaxLength(40)
   birthDate?: string;
 
   @IsOptional()

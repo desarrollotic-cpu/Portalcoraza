@@ -115,7 +115,7 @@ export class ReceptionService {
         firstName: this.trimOrNull(dto.firstName),
         secondName: this.trimOrNull(dto.secondName),
         sex: dto.sex ?? null,
-        birthDate: dto.birthDate || null,
+        birthDate: this.trimOrNull(dto.birthDate),
         arl: this.trimOrNull(dto.arl),
         eps: this.trimOrNull(dto.eps),
         originPlace: this.trimOrNull(dto.originPlace),

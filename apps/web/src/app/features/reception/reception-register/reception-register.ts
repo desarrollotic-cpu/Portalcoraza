@@ -59,7 +59,12 @@ import {
             </label>
             <label>
               Fecha de nacimiento
-              <input type="date" [(ngModel)]="form.birthDate" name="birthDate" />
+              <input
+                [(ngModel)]="form.birthDate"
+                name="birthDate"
+                placeholder="Ej. 15/03/1990"
+                autocomplete="off"
+              />
             </label>
             <label>
               ARL
@@ -248,7 +253,7 @@ export class ReceptionRegister implements OnInit {
     if (f.firstName.trim()) payload.firstName = f.firstName.trim();
     if (f.secondName.trim()) payload.secondName = f.secondName.trim();
     if (f.sex) payload.sex = f.sex as ReceptionSex;
-    if (f.birthDate) payload.birthDate = f.birthDate;
+    if (f.birthDate.trim()) payload.birthDate = f.birthDate.trim();
     if (f.arl.trim()) payload.arl = f.arl.trim();
     if (f.eps.trim()) payload.eps = f.eps.trim();
     if (f.originPlace.trim()) payload.originPlace = f.originPlace.trim();

@@ -44,7 +44,7 @@ export class ReceptionVisitor {
   @Column({ type: 'enum', enum: ReceptionSex, nullable: true })
   sex!: ReceptionSex | null;
 
-  @Column({ name: 'birth_date', type: 'date', nullable: true })
+  @Column({ name: 'birth_date', type: 'varchar', length: 40, nullable: true })
   birthDate!: string | null;
 
   @Column({ type: 'varchar', length: 120, nullable: true })

@@ -100,7 +100,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
                     <div>Sexo: {{ sexLabel(v.sex) }}</div>
                   }
                   @if (v.birthDate) {
-                    <div>Fecha nac.: {{ v.birthDate | date: 'shortDate' }}</div>
+                    <div>Fecha nac.: {{ v.birthDate }}</div>
                   }
                   @if (v.arl) {
                     <div>ARL: {{ v.arl }}</div>
