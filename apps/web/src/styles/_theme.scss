@@ -174,7 +174,7 @@
   --gradient-login: var(--gradient-hero-mesh);
 }
 
-/* Modo oscuro: activar con data-theme="dark" en un contenedor (p. ej. un módulo). */
+/* Modo oscuro global: data-theme en <html> (ThemeService). */
 [data-theme='dark'] {
   color-scheme: dark;
 
@@ -261,10 +261,20 @@
 
   --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #a855f7 100%);
   --gradient-primary-soft: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  --gradient-hero: linear-gradient(135deg, #1e1b4b 0%, #312e81 45%, #4338ca 100%);
+  --gradient-hero-mesh:
+    radial-gradient(at 15% 15%, rgba(99, 102, 241, 0.35) 0px, transparent 55%),
+    radial-gradient(at 85% 25%, rgba(34, 211, 238, 0.18) 0px, transparent 55%),
+    radial-gradient(at 30% 85%, rgba(168, 85, 247, 0.22) 0px, transparent 55%),
+    linear-gradient(135deg, #020617 0%, #0f172a 45%, #1e1b4b 100%);
+  --gradient-accent: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
   --gradient-page:
     radial-gradient(at 10% -5%, rgba(99, 102, 241, 0.18) 0px, transparent 55%),
     radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
     linear-gradient(180deg, #0b1220 0%, #111827 100%);
+  --gradient-indigo: var(--gradient-primary);
+  --gradient-indigo-soft: var(--gradient-hero);
+  --gradient-login: var(--gradient-hero-mesh);
 
   --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);

@@ -27,9 +27,11 @@ import {
   LucideHome,
   LucideKeyRound,
   LucideLogOut,
+  LucideMoon,
   LucideSearch,
   LucideShieldCheck,
   LucideSparkles,
+  LucideSun,
   LucideUserCog,
   LucideUsersRound,
   LucideDoorOpen,
@@ -37,6 +39,7 @@ import {
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
 
@@ -131,6 +134,20 @@ interface NavGroup {
               <input type="search" placeholder="Buscar en el portal..." disabled />
               <kbd>Ctrl K</kbd>
             </div>
+
+            <button
+              type="button"
+              class="icon-btn theme-btn"
+              (click)="theme.toggle()"
+              [attr.aria-label]="theme.isDark() ? 'Activar modo claro' : 'Activar modo oscuro'"
+              [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'"
+            >
+              <app-icon
+                [icon]="theme.isDark() ? icons.Sun : icons.Moon"
+                [size]="18"
+                [strokeWidth]="1.8"
+              />
+            </button>
 
             @if (auth.hasPermission('notifications.view')) {
               <div class="notifications" (click)="$event.stopPropagation()">
@@ -458,10 +475,10 @@ interface NavGroup {
       justify-content: space-between;
       gap: 1rem;
       padding: 1rem 1.75rem;
-      background: rgba(255, 255, 255, 0.72);
+      background: var(--glass-bg);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--glass-border, var(--border));
       position: sticky;
       top: 0;
       z-index: 20;
@@ -742,6 +759,7 @@ interface NavGroup {
       padding: 1.75rem 1.75rem 2.5rem;
       flex: 1;
       min-width: 0;
+      color: var(--text-primary);
     }
 
     @media (max-width: 1100px) {
@@ -771,17 +789,19 @@ interface NavGroup {
       position: fixed;
       inset: 0;
       z-index: 80;
-      background: rgba(15, 23, 42, 0.45);
+      background: color-mix(in srgb, var(--neutral-900) 55%, transparent);
       display: grid;
       place-items: center;
       padding: 1rem;
     }
     .modal {
       width: min(420px, 100%);
-      background: #fff;
+      background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 1.25rem 1.35rem;
-      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+      box-shadow: var(--shadow-xl);
+      color: var(--text-primary);
     }
     .modal h3 {
       margin: 0 0 0.35rem;
@@ -791,7 +811,7 @@ interface NavGroup {
     .modal-hint {
       margin: 0 0 1rem;
       font-size: 0.85rem;
-      color: var(--coraza-text-muted, #64748b);
+      color: var(--text-secondary);
     }
     .modal-form {
       display: flex;
@@ -803,13 +823,15 @@ interface NavGroup {
       flex-direction: column;
       gap: 0.3rem;
       font-size: 0.85rem;
-      color: #475569;
+      color: var(--text-secondary);
     }
     .modal-form input {
       padding: 0.55rem 0.7rem;
-      border: 1px solid var(--coraza-border, #e2e8f0);
+      border: 1px solid var(--border);
       border-radius: 8px;
       font: inherit;
+      background: var(--surface-2);
+      color: var(--text-primary);
     }
     .modal-actions {
       display: flex;
@@ -825,9 +847,9 @@ interface NavGroup {
       border: 1px solid transparent;
     }
     .btn-ghost {
-      background: #f8fafc;
-      border-color: #e2e8f0;
-      color: #334155;
+      background: var(--surface-2);
+      border-color: var(--border);
+      color: var(--text-primary);
     }
     .btn-primary {
       background: var(--primary);
@@ -837,8 +859,8 @@ interface NavGroup {
       opacity: 0.55;
       cursor: not-allowed;
     }
-    .pw-error { margin: 0; color: var(--coraza-error, #dc2626); font-size: 0.85rem; }
-    .pw-ok { margin: 0; color: #15803d; font-size: 0.85rem; }
+    .pw-error { margin: 0; color: var(--coraza-error); font-size: 0.85rem; }
+    .pw-ok { margin: 0; color: var(--success-dark); font-size: 0.85rem; }
   `,
   host: {
     '(document:click)': 'onDocumentClick()',
@@ -847,6 +869,7 @@ interface NavGroup {
 export class MainLayout implements OnDestroy {
   readonly auth = inject(AuthService);
   readonly notifications = inject(NotificationService);
+  readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   readonly icons = {
@@ -859,10 +882,12 @@ export class MainLayout implements OnDestroy {
     Home: LucideHome,
     KeyRound: LucideKeyRound,
     LogOut: LucideLogOut,
+    Moon: LucideMoon,
     Search: LucideSearch,
     ShieldCheck: LucideShieldCheck,
     DoorOpen: LucideDoorOpen,
     Sparkles: LucideSparkles,
+    Sun: LucideSun,
     UserCog: LucideUserCog,
     UsersRound: LucideUsersRound,
   };

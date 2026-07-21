@@ -1,4 +1,4 @@
-import { Injectable, computed, signal } from '@angular/core';
+import { Injectable, computed, effect, signal } from '@angular/core';
 
 export type ColorScheme = 'light' | 'dark';
 
@@ -8,6 +8,12 @@ const STORAGE_KEY = 'coraza-color-scheme';
 export class ThemeService {
   readonly mode = signal<ColorScheme>(this.readStored());
   readonly isDark = computed(() => this.mode() === 'dark');
+
+  constructor() {
+    effect(() => {
+      this.applyToDom(this.mode());
+    });
+  }
 
   toggle(): void {
     this.set(this.isDark() ? 'light' : 'dark');
@@ -20,6 +26,12 @@ export class ThemeService {
     } catch {
       /* ignore quota / private mode */
     }
+  }
+
+  private applyToDom(mode: ColorScheme): void {
+    const root = document.documentElement;
+    root.setAttribute('data-theme', mode);
+    root.style.colorScheme = mode;
   }
 
   private readStored(): ColorScheme {

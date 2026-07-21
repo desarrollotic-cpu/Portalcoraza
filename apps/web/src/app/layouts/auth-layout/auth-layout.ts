@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideShieldCheck } from '@lucide/angular';
+import { LucideMoon, LucideShieldCheck, LucideSun } from '@lucide/angular';
+import { ThemeService } from '../../core/services/theme.service';
 import { Icon } from '../../shared/components/icon/icon';
 
 @Component({
@@ -51,6 +52,19 @@ import { Icon } from '../../shared/components/icon/icon';
 
       <section class="auth-left">
         <div class="auth-card">
+          <button
+            type="button"
+            class="auth-theme-toggle"
+            (click)="theme.toggle()"
+            [attr.aria-label]="theme.isDark() ? 'Activar modo claro' : 'Activar modo oscuro'"
+            [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'"
+          >
+            <app-icon
+              [icon]="theme.isDark() ? sunIcon : moonIcon"
+              [size]="18"
+              [strokeWidth]="1.9"
+            />
+          </button>
           <router-outlet />
         </div>
         <footer class="auth-footer">
@@ -220,12 +234,34 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 100%;
       max-width: 440px;
       padding: 3rem 2.5rem;
-      background: rgba(255, 255, 255, 0.85);
+      background: var(--glass-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.7);
+      border: 1px solid var(--glass-border);
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-xl);
+      color: var(--text-primary);
+      position: relative;
+    }
+
+    .auth-theme-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .auth-theme-toggle:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
     }
 
     .auth-footer {
@@ -258,4 +294,7 @@ import { Icon } from '../../shared/components/icon/icon';
 export class AuthLayout {
   readonly year = new Date().getFullYear();
   readonly shieldIcon = LucideShieldCheck;
+  readonly moonIcon = LucideMoon;
+  readonly sunIcon = LucideSun;
+  readonly theme = inject(ThemeService);
 }
