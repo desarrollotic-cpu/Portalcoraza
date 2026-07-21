@@ -80,19 +80,29 @@ import {
             </label>
             <label class="wide">
               Lugar de donde viene
-              <input
-                [(ngModel)]="form.originPlace"
-                name="originPlace"
-                list="originPlaceOptions"
-                placeholder="Elige un municipio o escribe/pega otro"
-                autocomplete="off"
-              />
-              <datalist id="originPlaceOptions">
+              <select
+                [(ngModel)]="form.originPlaceChoice"
+                name="originPlaceChoice"
+                (ngModelChange)="onOriginPlaceChoiceChange($event)"
+              >
+                <option value="">—</option>
                 @for (m of originPlaceOptions; track m) {
-                  <option [value]="m"></option>
+                  <option [value]="m">{{ m }}</option>
                 }
-              </datalist>
+                <option value="__otro__">Otro (escribir o pegar)</option>
+              </select>
             </label>
+            @if (form.originPlaceChoice === '__otro__') {
+              <label class="wide">
+                Escribe o pega el lugar
+                <input
+                  [(ngModel)]="form.originPlaceOther"
+                  name="originPlaceOther"
+                  placeholder="Municipio u otro lugar"
+                  autocomplete="off"
+                />
+              </label>
+            }
           </fieldset>
 
           <fieldset>
@@ -302,6 +312,19 @@ export class ReceptionRegister implements OnInit {
     this.success.set(null);
   }
 
+  onOriginPlaceChoiceChange(value: string): void {
+    if (value !== '__otro__') {
+      this.form.originPlaceOther = '';
+    }
+  }
+
+  private resolveOriginPlace(): string {
+    const choice = this.form.originPlaceChoice.trim();
+    if (!choice) return '';
+    if (choice === '__otro__') return this.form.originPlaceOther.trim();
+    return choice;
+  }
+
   submit(): void {
     this.saving.set(true);
     this.formError.set(null);
@@ -318,7 +341,8 @@ export class ReceptionRegister implements OnInit {
     if (f.birthDate.trim()) payload.birthDate = f.birthDate.trim();
     if (f.arl.trim()) payload.arl = f.arl.trim();
     if (f.eps.trim()) payload.eps = f.eps.trim();
-    if (f.originPlace.trim()) payload.originPlace = f.originPlace.trim();
+    const originPlace = this.resolveOriginPlace();
+    if (originPlace) payload.originPlace = originPlace;
     if (f.visitReason.trim()) payload.visitReason = f.visitReason.trim();
     if (f.authorizedBy.trim()) payload.authorizedBy = f.authorizedBy.trim();
     if (f.transportMeans) payload.transportMeans = f.transportMeans as ReceptionTransport;
@@ -353,7 +377,8 @@ export class ReceptionRegister implements OnInit {
       birthDate: '',
       arl: '',
       eps: '',
-      originPlace: '',
+      originPlaceChoice: '',
+      originPlaceOther: '',
       visitReason: '',
       authorizedBy: '',
       transportMeans: '' as '' | ReceptionTransport,
