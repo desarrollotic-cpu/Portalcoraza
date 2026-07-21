@@ -13,4 +13,4 @@ coverage/
 *.tsbuildinfo
 Portalcoraza/
 graphify-out/
-.tmp/superpowers/
+.tmp/

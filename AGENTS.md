@@ -31,6 +31,8 @@ graphify .
 
 Salida esperada en `graphify-out/` (ignorada por git). Luego consultas vía skill `/graphify query "..."`.
 
+Excluir ruido con `.graphifyignore` (p. ej. `.tmp/`). Tras cambios grandes: `graphify . --code-only --force`.
+
 ## Stack rápido
 
 - API: `apps/api` (NestJS)

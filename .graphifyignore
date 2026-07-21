@@ -1,0 +1,8 @@
+# Ruido local / scratch — no pertenece al mapa del monorepo
+.tmp/
+graphify-out/
+**/node_modules/
+**/dist/
+**/.angular/
+apps/api/coverage/
+apps/web/coverage/
