@@ -10,10 +10,16 @@
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "seed:admin": "ts-node scripts/seed-admin.ts",
+    "reset:admin-password": "ts-node scripts/reset-admin-password.ts",
     "seed:almacenista": "ts-node scripts/seed-almacenista.ts",
+    "seed:recepcionista": "ts-node scripts/seed-recepcionista.ts",
+    "seed:inventory-categories": "ts-node scripts/seed-inventory-categories.ts",
+    "seed:rrhh": "ts-node scripts/seed-rrhh.ts",
     "db:setup": "ts-node scripts/setup-database.ts",
     "db:check-hr": "ts-node scripts/check-hr-schema.ts",
     "db:apply-hr": "ts-node scripts/apply-hr-module.ts",
+    "db:apply-absences": "ts-node scripts/apply-hr-absenteeism.ts",
+    "db:apply-inventory": "ts-node scripts/apply-inventory-fields.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },
   "dependencies": {

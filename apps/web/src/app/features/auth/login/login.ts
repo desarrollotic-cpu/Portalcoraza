@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import {
   FormBuilder,
@@ -20,6 +21,7 @@ import { Icon } from '../../../shared/components/icon/icon';
   selector: 'app-login',
   imports: [ReactiveFormsModule, Icon],
   template: `
+    <div class="login-wrap">
     <form class="login-form" [formGroup]="form" (ngSubmit)="submit()">
       <div class="badge">
         <app-icon [icon]="icons.ShieldCheck" [size]="14" [strokeWidth]="2.4" />
@@ -42,10 +44,11 @@ import { Icon } from '../../../shared/components/icon/icon';
           <app-icon class="input-icon" [icon]="icons.Mail" [size]="18" [strokeWidth]="1.8" />
           <input
             id="email"
-            type="email"
+            type="text"
+            inputmode="email"
             formControlName="email"
             autocomplete="username"
-            placeholder="tucorreo@coraza.local"
+            placeholder="usuario@corazaseguridadcta.com"
           />
         </div>
       </div>
@@ -91,13 +94,60 @@ import { Icon } from '../../../shared/components/icon/icon';
       </button>
 
       <p class="foot-note">
-        ¿Problemas para acceder? Contacta al administrador del sistema.
+        ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el admin y no
+        recuerdas la tuya,
+        <button type="button" class="linkish" (click)="showRecover.set(!showRecover())">
+          recupera el acceso aquí
+        </button>
+        .
       </p>
     </form>
+
+      @if (showRecover()) {
+        <div class="recover-box">
+          <h2>Recuperar administrador</h2>
+          <p>
+            Usa la clave de recuperación del servidor (<code>ADMIN_RECOVERY_SECRET</code>) o el
+            comando <code>npm run reset:admin-password</code>.
+          </p>
+          @if (recoverError()) {
+            <div class="alert" role="alert">
+              <span class="alert-dot"></span>
+              {{ recoverError() }}
+            </div>
+          }
+          @if (recoverSuccess()) {
+            <div class="alert ok" role="status">{{ recoverSuccess() }}</div>
+          }
+          <form class="recover-form" [formGroup]="recoverForm" (ngSubmit)="submitRecover()">
+            <div class="field">
+              <label for="recoveryKey">Clave de recuperación</label>
+              <input id="recoveryKey" type="password" formControlName="recoveryKey" autocomplete="off" />
+            </div>
+            <div class="field">
+              <label for="newAdminPassword">Nueva contraseña</label>
+              <input
+                id="newAdminPassword"
+                type="password"
+                formControlName="newPassword"
+                autocomplete="new-password"
+              />
+            </div>
+            <button type="submit" class="submit-btn secondary" [disabled]="recoverForm.invalid || recoverLoading()">
+              {{ recoverLoading() ? 'Restableciendo...' : 'Restablecer admin' }}
+            </button>
+          </form>
+        </div>
+      }
+    </div>
   `,
   styles: `
     :host {
       display: block;
+      width: 100%;
+    }
+
+    .login-wrap {
       width: 100%;
     }
 
@@ -306,6 +356,52 @@ import { Icon } from '../../../shared/components/icon/icon';
       font-size: 0.78rem;
       color: var(--text-muted);
     }
+
+    .linkish {
+      border: none;
+      background: none;
+      padding: 0;
+      color: var(--primary);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .recover-box {
+      margin-top: 1.25rem;
+      padding: 1rem;
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, #e2e8f0);
+      border-radius: 12px;
+      background: color-mix(in srgb, var(--primary-50, #eef2ff) 70%, #fff);
+    }
+    .recover-box h2 {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+      color: var(--primary-dark, #1e3a5f);
+    }
+    .recover-box p {
+      margin: 0 0 0.85rem;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+    .recover-box code {
+      font-size: 0.72rem;
+      background: rgba(15, 23, 42, 0.06);
+      padding: 0.1rem 0.3rem;
+      border-radius: 4px;
+    }
+    .recover-form .field { margin-bottom: 0.65rem; }
+    .submit-btn.secondary {
+      margin-top: 0.25rem;
+      background: #0f172a;
+      box-shadow: none;
+    }
+    .alert.ok {
+      background: color-mix(in srgb, #16a34a 12%, #fff);
+      color: #166534;
+    }
   `,
 })
 export class Login {
@@ -316,6 +412,10 @@ export class Login {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
   readonly showPassword = signal(false);
+  readonly showRecover = signal(false);
+  readonly recoverLoading = signal(false);
+  readonly recoverError = signal<string | null>(null);
+  readonly recoverSuccess = signal<string | null>(null);
 
   readonly icons = {
     Eye: LucideEye,
@@ -327,8 +427,13 @@ export class Login {
   };
 
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required, Validators.email]],
+    email: ['', [Validators.required]],
     password: ['', [Validators.required, Validators.minLength(6)]],
+  });
+
+  readonly recoverForm = this.fb.nonNullable.group({
+    recoveryKey: ['', [Validators.required, Validators.minLength(16)]],
+    newPassword: ['', [Validators.required, Validators.minLength(8)]],
   });
 
   submit(): void {
@@ -342,10 +447,55 @@ export class Login {
         this.loading.set(false);
         this.router.navigate(['/dashboard']);
       },
-      error: () => {
+      error: (err: unknown) => {
         this.loading.set(false);
-        this.error.set('Credenciales inválidas o usuario inactivo');
+        this.error.set(this.loginErrorMessage(err));
       },
     });
+  }
+
+  submitRecover(): void {
+    if (this.recoverForm.invalid) return;
+    this.recoverLoading.set(true);
+    this.recoverError.set(null);
+    this.recoverSuccess.set(null);
+    const { recoveryKey, newPassword } = this.recoverForm.getRawValue();
+
+    this.auth.recoverAdmin(recoveryKey, newPassword).subscribe({
+      next: (res) => {
+        this.recoverLoading.set(false);
+        this.recoverSuccess.set(
+          `${res.message}. Correo: ${res.email}. Ya puedes iniciar sesión.`,
+        );
+        this.recoverForm.reset();
+        this.form.patchValue({ email: res.email, password: '' });
+      },
+      error: (err: unknown) => {
+        this.recoverLoading.set(false);
+        if (err instanceof HttpErrorResponse) {
+          this.recoverError.set(
+            err.error?.message ?? `No se pudo recuperar (${err.status || 'red'})`,
+          );
+          return;
+        }
+        this.recoverError.set('No se pudo recuperar el acceso de administrador');
+      },
+    });
+  }
+
+  private loginErrorMessage(err: unknown): string {
+    if (!(err instanceof HttpErrorResponse)) {
+      return 'No se pudo iniciar sesión. Intenta de nuevo.';
+    }
+    if (err.status === 0) {
+      return 'No hay conexión con la API (http://localhost:3000). Abre la web en http://localhost:4200';
+    }
+    if (err.status === 401) {
+      return 'Credenciales inválidas o usuario inactivo';
+    }
+    if (err.status === 400) {
+      return 'Revisa el correo y la contraseña (mín. 6 caracteres, sin espacios al inicio/fin)';
+    }
+    return `Error al iniciar sesión (${err.status || 'red'})`;
   }
 }

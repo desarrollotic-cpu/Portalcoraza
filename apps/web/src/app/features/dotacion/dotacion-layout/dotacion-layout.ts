@@ -5,7 +5,6 @@ import {
   LucideHistory,
   LucideLayoutDashboard,
   LucidePackageSearch,
-  LucideTruck,
   LucideUsers,
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
@@ -16,7 +15,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Dotación"
-      subtitle="Inventario, entregas y control operativo de dotación del personal."
+      subtitle="Inventario, entregas y elementos entregados a puestos."
       [nav]="nav"
     >
       <router-outlet />
@@ -46,10 +45,10 @@ export class DotacionLayout {
       icon: LucideBoxes,
     },
     {
-      label: 'Entregas',
-      route: '/dotacion/entregas',
-      permission: 'deliveries.view',
-      icon: LucideTruck,
+      label: 'Elementos',
+      route: '/dotacion/elementos',
+      permission: 'post_equipment.view',
+      icon: LucidePackageSearch,
     },
     {
       label: 'Historial',
@@ -63,7 +62,7 @@ export class DotacionLayout {
       route: '/dotacion/sin-dotacion',
       permission: 'inventory.view',
       exact: true,
-      icon: LucidePackageSearch,
+      icon: LucideBoxes,
     },
   ];
 }

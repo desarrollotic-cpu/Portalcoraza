@@ -20,7 +20,7 @@ Imagínenlo como **un solo edificio digital** con varias oficinas:
 
 | Oficina | Para qué sirve | ¿Lista hoy? |
 |---------|----------------|-------------|
-| **Gestión Humana** | Hoja de vida, retiros, cumplimiento de seguridad en el trabajo | ✅ **Sí — es lo que presentamos hoy** |
+| **Gestión Humana** | Hoja de vida, retiros, cumplimiento SST, **ausentismo** | ✅ **Sí — es lo que presentamos hoy** |
 | **Dotación** | Entrega de uniformes y elementos con firma | ✅ **Completo** (panel, inventario, entregas, movimientos, sin dotación) |
 | **Programación** | Turnos y cuadros mensuales | 🟡 En avance |
 | **Documental** | Archivos y documentos de la empresa | 🟡 Básico funcionando |
@@ -44,6 +44,7 @@ Imagínenlo como **un solo edificio digital** con varias oficinas:
 - **Semáforo visual** de cumplimiento (seguridad en el trabajo)  
 - **Alertas** cuando algo está por vencer  
 - **Retiros documentados** con motivo y encuesta  
+- **Ausentismo** (incapacidades médicas y permisos administrativos) con diagnóstico CIE-10  
 - **Importación masiva** desde Excel cuando hay muchos registros  
 - **Bitácora**: quién cambió qué y cuándo  
 
@@ -75,8 +76,9 @@ Lista de todo el personal con:
 Al abrir una persona se ve todo en pestañas:
 1. **Datos personales** — identidad, contacto, emergencia  
 2. **Datos laborales** — cargo, centro, salarios, fechas  
-3. **Datos sociodemográficos** — EPS, vivienda, estudios, etc.  
-4. **Documentos** — archivos adjuntos (contratos, certificados, etc.)  
+3. **Documentos** — archivos adjuntos (contratos, certificados, etc.)  
+4. **Ausencias** — historial médico/administrativo de esa persona  
+5. **Alertas y bitácora** — vencimientos y cambios
 
 **Importante:** Información sensible (raza, religión, orientación) **solo la ven Gerencia y RRHH**, por protección de datos personales (Ley 1581).
 
@@ -109,7 +111,18 @@ Registro formal cuando alguien se retira:
 
 ---
 
-### Pantalla 7 — Cargos, centros y catálogos
+### Pantalla 7 — Ausentismo
+Panel dedicado a incapacidades y ausencias administrativas (alineado a lo que RRHH ya usa):
+- Listado con filtros (médico / administrativo, fechas, cédula o nombre)  
+- Indicadores: total de registros, días, distribución por tipo de evento y origen  
+- Alta y edición de ausencias con diagnóstico **CIE-10**  
+- Importación del Excel histórico (médico, otro ausentismo y catálogo CIE-10)  
+
+**Para quién:** RRHH, Gerencia; SST puede consultar.
+
+---
+
+### Pantalla 8 — Cargos, centros y catálogos
 Datos maestros que alimentan el sistema:
 - **Cargos** (cuáles son críticos y requieren reentrenamiento anual)  
 - **Centros de trabajo** (clientes / sedes)  
@@ -117,7 +130,7 @@ Datos maestros que alimentan el sistema:
 
 ---
 
-### Pantalla 8 — Importar desde Excel
+### Pantalla 9 — Importar desde Excel
 Para cargar o actualizar muchos asociados de una vez:
 1. Subir archivo  
 2. El sistema **revisa errores** y muestra preview  
@@ -127,7 +140,7 @@ Evita digitación uno por uno en altas masivas.
 
 ---
 
-### Pantalla 9 — Bitácora
+### Pantalla 10 — Bitácora
 Registro de cambios importantes en el módulo: quién hizo qué y cuándo.  
 Útil para auditoría interna y control.
 
@@ -156,13 +169,14 @@ Cada persona entra con **usuario y contraseña**; el sistema muestra solo lo que
 1. **“Entramos al portal”** → mostrar menú lateral → clic en **Recursos Humanos**  
 2. **“Este es el panel de Gerencia”** → señalar números de activos, vacaciones, gráficos  
 3. **“Aquí está el directorio completo”** → buscar un nombre → mostrar las luces de cumplimiento  
-4. **“Abrimos la hoja de vida de una persona”** → recorrer las 4 pestañas  
+4. **“Abrimos la hoja de vida de una persona”** → recorrer pestañas (incluir **Ausencias**)  
 5. **“Aquí se adjuntan documentos”** → mostrar un documento o la opción de subir  
 6. **“Esta es la matriz de cumplimiento SST”** → mostrar columnas y botón de exportar  
 7. **“Las alertas avisan qué está pendiente”** → abrir alertas  
 8. **“Si alguien se retira, queda registrado con encuesta”** → mostrar retiros  
-9. **“Para muchos registros usamos Excel”** → mostrar pantalla de importar (aunque no importes en vivo)  
-10. **“Todo queda en bitácora para control”** → abrir bitácora  
+9. **“Aquí controlamos el ausentismo”** → panel Ausentismo (KPIs + un registro)  
+10. **“Para muchos registros usamos Excel”** → mostrar pantallas de importar  
+11. **“Todo queda en bitácora para control”** → abrir bitácora  
 
 **Si falla internet o el sistema:** tener **5–8 capturas de pantalla** impresas o en una carpeta.
 
@@ -172,7 +186,7 @@ Cada persona entra con **usuario y contraseña**; el sistema muestra solo lo que
 
 | Tema | Situación |
 |------|-----------|
-| **Gestión Humana** | Listo para **que ustedes lo prueben y nos digan ajustes** |
+| **Gestión Humana** | Listo para **que ustedes lo prueben** (incluye **Ausentismo** alineado a lo que RRHH ya usa) |
 | **Dotación** | **Completo**: panel con KPIs, inventario, entregas con firma, historial de movimientos y reporte de quién lleva 7+ meses sin dotación |
 | **Programación, Documental, Residencial** | Funcionalidad básica; se irá puliendo módulo por módulo |
 | **Portal del vigilante** | Pendiente (colillas, cursos, su propia programación) |
@@ -214,9 +228,9 @@ Léelas al final; anota las respuestas:
 | 3 | El problema que resolvemos | Planillas dispersas → un solo registro |
 | 4 | Gestión Humana hoy | Hoja de vida digital completa |
 | 5 | Panel de control | Activos, vacaciones, gráficos |
-| 6 | Directorio y ficha | Búsqueda + 4 pestañas + documentos |
+| 6 | Directorio y ficha | Búsqueda + pestañas (documentos y ausencias) |
 | 7 | Cumplimiento SST | Matriz + alertas + exportar Excel |
-| 8 | Retiros e importación | Encuesta de salida + cargas masivas |
+| 8 | Retiros y ausentismo | Encuesta de salida + incapacidades CIE-10 |
 | 9 | Quién ve qué | Gerencia, RRHH, SST, Consulta |
 | 10 | Resto del portal | Semáforo: qué está listo y qué falta |
 | 11 | Beneficios | Una verdad, menos errores, control |

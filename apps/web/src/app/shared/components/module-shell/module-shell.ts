@@ -104,6 +104,10 @@ export interface ModuleNavItem {
             <p>{{ subtitle() }}</p>
           }
         </div>
+
+        <div class="module-actions">
+          <ng-content select="[moduleActions]" />
+        </div>
       </header>
 
       <div class="module-body">
@@ -165,10 +169,10 @@ export interface ModuleNavItem {
       left: 0;
       z-index: 40;
       width: min(420px, calc(100vw - 3rem));
-      background: rgba(255, 255, 255, 0.94);
+      background: var(--glass-bg);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border);
+      border: 1px solid var(--glass-border, var(--border));
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow-xl);
       padding: 1rem;
@@ -346,6 +350,15 @@ export interface ModuleNavItem {
       font-size: 0.9rem;
       color: var(--text-secondary);
       max-width: 720px;
+    }
+
+    .module-actions {
+      margin-left: auto;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-top: 0.15rem;
     }
 
     .module-body {

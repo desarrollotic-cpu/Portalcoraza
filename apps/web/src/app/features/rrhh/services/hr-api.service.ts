@@ -3,7 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type {
+  AbsenceStats,
+  AbsencesImportReport,
+  AbsenteeismKind,
   Associate,
+  AssociateAbsence,
   AssociateDocumentItem,
   AssociateDocumentKind,
   AssociateHistoryEntry,
@@ -11,7 +15,9 @@ import type {
   CatalogKind,
   CatalogValue,
   ComplianceMatrixRow,
+  CreateAbsencePayload,
   DashboardOverview,
+  DiagnosisCie10,
   ExcelImportPreview,
   HrAlert,
   HrAlertStatus,
@@ -88,8 +94,9 @@ export class HrApiService {
   }
 
   // ─── Centros de trabajo ──────────────────────────────────────────────
-  listWorkCenters(): Observable<WorkCenter[]> {
-    return this.http.get<WorkCenter[]>(`${this.api}/hr/work-centers`);
+  listWorkCenters(includeInactive = false): Observable<WorkCenter[]> {
+    const q = includeInactive ? '?includeInactive=true' : '';
+    return this.http.get<WorkCenter[]>(`${this.api}/hr/work-centers${q}`);
   }
 
   createWorkCenter(payload: Partial<WorkCenter>): Observable<WorkCenter> {
@@ -106,7 +113,7 @@ export class HrApiService {
   }
 
   listAllCatalogs(): Observable<Record<CatalogKind, CatalogValue[]>> {
-    return this.http.get<Record<CatalogKind, CatalogValue[]>>(`${this.api}/hr/catalogs/all`);
+    return this.http.get<Record<CatalogKind, CatalogValue[]>>(`${this.api}/hr/catalogs`);
   }
 
   createCatalogValue(payload: {
@@ -252,5 +259,51 @@ export class HrApiService {
 
   downloadBlob(url: string): Observable<Blob> {
     return this.http.get(url, { responseType: 'blob' });
+  }
+
+  // ─── Ausentismo ──────────────────────────────────────────────────────
+  listAbsences(filters: {
+    kind?: AbsenteeismKind;
+    associateId?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  } = {}): Observable<AssociateAbsence[]> {
+    let params = new HttpParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v));
+    }
+    return this.http.get<AssociateAbsence[]>(`${this.api}/hr/absences`, { params });
+  }
+
+  absenceStats(): Observable<AbsenceStats> {
+    return this.http.get<AbsenceStats>(`${this.api}/hr/absences/stats`);
+  }
+
+  searchDiagnoses(q: string, limit = 20): Observable<DiagnosisCie10[]> {
+    let params = new HttpParams().set('limit', String(limit));
+    if (q) params = params.set('q', q);
+    return this.http.get<DiagnosisCie10[]>(`${this.api}/hr/absences/diagnoses`, { params });
+  }
+
+  createAbsence(payload: CreateAbsencePayload): Observable<AssociateAbsence> {
+    return this.http.post<AssociateAbsence>(`${this.api}/hr/absences`, payload);
+  }
+
+  updateAbsence(
+    id: string,
+    payload: Partial<CreateAbsencePayload>,
+  ): Observable<AssociateAbsence> {
+    return this.http.patch<AssociateAbsence>(`${this.api}/hr/absences/${id}`, payload);
+  }
+
+  deleteAbsence(id: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.api}/hr/absences/${id}`);
+  }
+
+  importAbsencesExcel(file: File): Observable<AbsencesImportReport> {
+    const form = new FormData();
+    form.append('file', file);
+    return this.http.post<AbsencesImportReport>(`${this.api}/hr/absences/import/excel`, form);
   }
 }

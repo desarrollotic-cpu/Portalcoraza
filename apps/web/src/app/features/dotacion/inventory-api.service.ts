@@ -24,6 +24,9 @@ export interface InventoryVariant {
   itemId: string;
   sku: string;
   attributes: Record<string, unknown>;
+  talla?: string | null;
+  color?: string | null;
+  genero?: string | null;
   stockCurrent: number;
   item?: InventoryItem;
 }
@@ -85,10 +88,12 @@ export interface StockValidation {
 
 export interface CreateItemPayload {
   categoryId: string;
-  code: string;
   name: string;
-  unit: string;
+  code?: string;
+  unit?: string;
   lowStockThreshold?: number;
+  initialStock?: number;
+  initialStockReason?: string;
 }
 
 export interface UpdateItemPayload {
@@ -103,6 +108,9 @@ export interface CreateVariantPayload {
   itemId: string;
   sku: string;
   attributes?: Record<string, unknown>;
+  talla?: string;
+  color?: string;
+  genero?: string;
 }
 
 export interface CreateDeliveryPayload {
@@ -118,6 +126,8 @@ export interface InventoryMovement {
   movementType: 'IN' | 'OUT' | 'ADJ';
   quantity: number;
   reason: string | null;
+  entryReason?: string | null;
+  observations?: string | null;
   reference: string | null;
   performedBy?: string | null;
   performedByName?: string | null;
@@ -223,6 +233,10 @@ export class InventoryApiService {
     return this.http.patch<InventoryItem>(`${this.inventoryUrl}/items/${id}`, payload);
   }
 
+  deleteItem(id: string): Observable<{ ok: boolean }> {
+    return this.http.delete<{ ok: boolean }>(`${this.inventoryUrl}/items/${id}`);
+  }
+
   listVariants(itemId?: string): Observable<InventoryVariant[]> {
     const query = itemId ? `?itemId=${encodeURIComponent(itemId)}` : '';
     return this.http.get<InventoryVariant[]>(`${this.inventoryUrl}/variants${query}`);
@@ -236,6 +250,8 @@ export class InventoryApiService {
     variantId: string;
     movementType: 'IN' | 'OUT' | 'ADJ';
     quantity: number;
+    entryReason?: string;
+    observations?: string;
     reason?: string;
   }): Observable<unknown> {
     return this.http.post(`${this.inventoryUrl}/movements`, payload);

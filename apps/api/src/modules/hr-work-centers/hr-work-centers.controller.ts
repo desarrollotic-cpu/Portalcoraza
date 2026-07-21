@@ -31,6 +31,13 @@ export class HrWorkCentersController {
     return this.service.create(dto, user.sub);
   }
 
+  /** Refleja todos los centros RRHH como puestos (Programación y Dotación). */
+  @Post('sync-posts')
+  @RequirePermissions('work_centers.edit')
+  syncPosts(@CurrentUser() user: JwtPayload) {
+    return this.service.syncAllPosts(user.sub);
+  }
+
   @Patch(':id')
   @RequirePermissions('work_centers.edit')
   update(

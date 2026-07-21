@@ -27,6 +27,15 @@ export class InventoryVariant {
   @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
   attributes!: Record<string, unknown>;
 
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  talla!: string | null;
+
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  color!: string | null;
+
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  genero!: string | null;
+
   @Column({ name: 'stock_current', type: 'int', default: 0 })
   stockCurrent!: number;
 

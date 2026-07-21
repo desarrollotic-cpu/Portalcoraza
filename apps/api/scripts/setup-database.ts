@@ -32,7 +32,7 @@ async function runSqlFile(client: Client, filePath: string) {
 }
 
 async function seedAdmin(client: Client) {
-  const email = (process.env.SEED_ADMIN_EMAIL ?? 'admin@coraza.local').toLowerCase();
+  const email = (process.env.SEED_ADMIN_EMAIL ?? 'admin@corazaseguridadcta.com').toLowerCase();
   const password = process.env.SEED_ADMIN_PASSWORD ?? 'Coraza2026!';
 
   const role = await client.query(
@@ -116,7 +116,7 @@ Siguiente:
   npm run api:dev     (desde la raíz del proyecto)
   npm run web:dev
 
-Login: admin@coraza.local / Coraza2026!
+Login: admin@corazaseguridadcta.com / Coraza2026!
 `);
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

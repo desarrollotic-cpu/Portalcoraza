@@ -15,7 +15,7 @@ import { DataSource } from 'typeorm';
 import { Role } from '../src/modules/roles/entities/role.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 
-const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@coraza.local';
+const email = process.env.SEED_ADMIN_EMAIL ?? 'admin@corazaseguridadcta.com';
 const password = process.env.SEED_ADMIN_PASSWORD ?? 'Coraza2026!';
 
 async function main() {

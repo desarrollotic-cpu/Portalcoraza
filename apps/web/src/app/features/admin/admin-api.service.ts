@@ -39,6 +39,14 @@ export interface CreateUserPayload {
   roleId: string;
 }
 
+export interface UpdateUserPayload {
+  email?: string;
+  password?: string;
+  fullName?: string | null;
+  roleId?: string;
+  isActive?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
   private readonly http = inject(HttpClient);
@@ -50,6 +58,21 @@ export class AdminApiService {
 
   createUser(payload: CreateUserPayload): Observable<AdminUser> {
     return this.http.post<AdminUser>(`${this.baseUrl}/users`, payload);
+  }
+
+  updateUser(id: string, payload: UpdateUserPayload): Observable<AdminUser> {
+    return this.http.patch<AdminUser>(`${this.baseUrl}/users/${id}`, payload);
+  }
+
+  deactivateUser(id: string): Observable<AdminUser> {
+    return this.http.delete<AdminUser>(`${this.baseUrl}/users/${id}`);
+  }
+
+  resetUserPassword(id: string, newPassword: string): Observable<{ ok: boolean; email: string }> {
+    return this.http.post<{ ok: boolean; email: string }>(
+      `${this.baseUrl}/users/${id}/reset-password`,
+      { newPassword },
+    );
   }
 
   listRoles(): Observable<AdminRole[]> {

@@ -173,7 +173,10 @@ export class DotacionMovimientos implements OnInit {
         date: m.createdAt,
         kind,
         summary: `${itemName}${attrs ? ` (${attrs})` : ''}`,
-        detail: m.reason?.trim() || 'Movimiento manual',
+        detail:
+          [m.entryReason, m.observations].filter(Boolean).join(' — ') ||
+          m.reason?.trim() ||
+          'Movimiento manual',
         performer: m.performedByName ?? null,
         quantity: m.quantity,
         link: null,
@@ -213,7 +216,7 @@ export class DotacionMovimientos implements OnInit {
           detail: d.observations?.trim() || 'Sin detalle de ítems',
           performer: `${performerPrefix} ${name}`,
           quantity: null,
-          link: kind === 'PENDING' ? `/dotacion/entregas/${d.id}/firmar` : '/dotacion/entregas',
+          link: kind === 'PENDING' ? `/dotacion/entregas/${d.id}/firmar` : '/dotacion/asociados',
         };
         return [fallback];
       }
@@ -236,7 +239,7 @@ export class DotacionMovimientos implements OnInit {
           link:
             kind === 'PENDING'
               ? `/dotacion/entregas/${d.id}/firmar`
-              : '/dotacion/entregas',
+              : '/dotacion/asociados',
         };
       });
     });

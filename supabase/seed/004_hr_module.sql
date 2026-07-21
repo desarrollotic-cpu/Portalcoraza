@@ -5,7 +5,7 @@
 -- Se ejecuta DESPUÉS de la migración 010_hr_module.sql.
 --
 -- Incluye:
---   • Roles HRM: SST, CONSULTA, COORDINADOR_OPERATIVO
+--   • Rol HRM adicional: COORDINADOR_OPERATIVO
 --   • Permisos del módulo HRM (job_positions, work_centers, catalogs,
 --     retirements, hr_documents, hr_alerts, hr_dashboard, hr_import,
 --     hr_sensitive)
@@ -20,9 +20,7 @@
 -- 1) Roles HRM (agregar los que faltan)
 -- ---------------------------------------------------------------------------
 INSERT INTO roles (code, name, description) VALUES
-  ('SST',                   'Salud y Seguridad en el Trabajo', 'Gestión de exámenes, cursos, pólizas y matriz de cumplimiento normativo'),
-  ('COORDINADOR_OPERATIVO', 'Coordinador Operativo',            'Coordinación operativa con acceso a datos laborales sin datos sensibles'),
-  ('CONSULTA',              'Consulta',                          'Acceso de solo lectura al dashboard y reportes')
+  ('COORDINADOR_OPERATIVO', 'Coordinador Operativo', 'Coordinación operativa con acceso a datos laborales sin datos sensibles')
 ON CONFLICT (code) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
@@ -111,21 +109,6 @@ WHERE r.code = 'RRHH' AND p.code IN (
 )
 ON CONFLICT DO NOTHING;
 
--- SST: cumplimiento, exámenes, cursos, pólizas, alertas — pero sin editar
--- nombres/salario/estado civil y sin ver datos sensibles
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id FROM roles r, permissions p
-WHERE r.code = 'SST' AND p.code IN (
-  'associates.view',
-  'job_positions.view',
-  'work_centers.view',
-  'catalogs.view',
-  'hr_documents.view', 'hr_documents.upload', 'hr_documents.delete',
-  'hr_alerts.view', 'hr_alerts.resolve', 'hr_alerts.run_cron',
-  'hr_dashboard.view', 'hr_export.excel'
-)
-ON CONFLICT DO NOTHING;
-
 -- COORDINADOR_OPERATIVO: ver asociados, cargos, centros, dashboard — sin
 -- datos sensibles ni edición
 INSERT INTO role_permissions (role_id, permission_id)
@@ -138,15 +121,6 @@ WHERE r.code = 'COORDINADOR_OPERATIVO' AND p.code IN (
   'hr_documents.view',
   'hr_alerts.view',
   'hr_dashboard.view'
-)
-ON CONFLICT DO NOTHING;
-
--- CONSULTA: solo dashboard y reportes agregados
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id FROM roles r, permissions p
-WHERE r.code = 'CONSULTA' AND p.code IN (
-  'hr_dashboard.view',
-  'hr_export.excel'
 )
 ON CONFLICT DO NOTHING;
 
@@ -344,3 +318,11 @@ INSERT INTO catalog_values (kind, value, display_order) VALUES
   ('RANGO_INGRESOS', 'ENTRE 2 Y 4 SMLV',   3),
   ('RANGO_INGRESOS', 'MAS DE 5 SMLV',      4)
 ON CONFLICT (kind, value) DO NOTHING;
+
+-- GERENCIA (admin maestro): todos los permisos HRM + resto del sistema
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE r.code = 'GERENCIA'
+ON CONFLICT DO NOTHING;

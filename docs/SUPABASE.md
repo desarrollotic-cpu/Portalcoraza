@@ -49,6 +49,24 @@ npm run seed:admin
 - Clave: `Coraza2026!`
 - Rol: GERENCIA
 
+### Recuperar contraseña del admin
+
+**Opción A — script (recomendado)**
+
+```bash
+# Desde la raíz del monorepo
+SEED_ADMIN_PASSWORD="TuNuevaClave123!" npm run reset:admin-password
+```
+
+**Opción B — desde el login**
+
+1. En `apps/api/.env` define una clave larga:
+   `ADMIN_RECOVERY_SECRET=una-clave-secreta-de-al-menos-16`
+2. Reinicia la API
+3. En la pantalla de login → “recupera el acceso aquí” → ingresa esa clave y la nueva contraseña
+
+Los demás usuarios: si olvidan la clave, el admin la restablece en **Administración → Usuarios → Restablecer clave**. Si la recuerdan, cada uno la cambia desde el menú de su perfil (arriba a la derecha).
+
 ## 4. Arrancar
 
 ```bash

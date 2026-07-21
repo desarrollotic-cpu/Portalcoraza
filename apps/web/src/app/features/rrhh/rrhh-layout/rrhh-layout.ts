@@ -5,6 +5,7 @@ import {
   LucideBookMarked,
   LucideBriefcase,
   LucideBuilding2,
+  LucideCalendarOff,
   LucideFileSpreadsheet,
   LucideHistory,
   LucideLayoutDashboard,
@@ -61,13 +62,19 @@ export class RrhhLayout {
       icon: LucideUserMinus,
     },
     {
+      label: 'Ausentismo',
+      route: '/rrhh/ausentismo',
+      permission: 'absences.view',
+      icon: LucideCalendarOff,
+    },
+    {
       label: 'Cargos',
       route: '/rrhh/admin/cargos',
       permission: 'job_positions.view',
       icon: LucideBriefcase,
     },
     {
-      label: 'Centros',
+      label: 'Puestos / centros',
       route: '/rrhh/admin/centros',
       permission: 'work_centers.view',
       icon: LucideBuilding2,

@@ -8,25 +8,33 @@ import { HrApiService } from '../../services/hr-api.service';
 import type { WorkCenter } from '../../services/hr.types';
 
 /**
- * Administración de centros de trabajo (clientes / lugares donde presta el
- * servicio la cooperativa).
+ * Administración de centros de trabajo (puestos / clientes).
+ * Solo RRHH (y Gerencia) crea, edita o desactiva.
+ * Dotación y Programación solo los consultan.
  */
 @Component({
   selector: 'app-work-centers-admin',
   imports: [CommonModule, FormsModule, HrPageHeader],
   template: `
     <div class="hr-page">
-      <app-hr-page-header title="Centros de trabajo">
+      <app-hr-page-header title="Centros de trabajo (puestos)">
         @if (auth.hasPermission('work_centers.create')) {
           <div actions>
-            <button type="button" class="hr-btn hr-btn-primary" (click)="startCreate()">Nuevo centro</button>
+            <button type="button" class="hr-btn hr-btn-primary" (click)="startCreate()">
+              Nuevo puesto
+            </button>
           </div>
         }
       </app-hr-page-header>
+      <p class="hr-muted sync-hint">
+        Solo <strong>RRHH</strong> puede crear, editar o desactivar puestos. Cada centro activo se
+        refleja automáticamente en <strong>Programación</strong> (turnos) y en
+        <strong>Dotación</strong> (entrega de elementos). Dotación no crea puestos: solo entrega.
+      </p>
 
       @if (editing() !== null) {
         <form class="hr-detail-card" (ngSubmit)="save()">
-          <h3>{{ editing()!.id ? 'Editar centro' : 'Nuevo centro' }}</h3>
+          <h3>{{ editing()!.id ? 'Editar puesto' : 'Nuevo puesto' }}</h3>
           <div class="hr-form-grid-3">
             <div class="hr-field">
               <label>Código *</label>
@@ -64,6 +72,7 @@ import type { WorkCenter } from '../../services/hr.types';
               <th>Cliente</th>
               <th>Zona</th>
               <th>Dirección</th>
+              <th>Estado</th>
               <th></th>
             </tr>
           </thead>
@@ -74,19 +83,34 @@ import type { WorkCenter } from '../../services/hr.types';
                 <td><strong>{{ wc.clientName }}</strong></td>
                 <td>{{ wc.zone ?? '—' }}</td>
                 <td>{{ wc.address ?? '—' }}</td>
-                <td>
+                <td>{{ wc.isActive ? 'Activo' : 'Inactivo' }}</td>
+                <td class="actions">
                   @if (auth.hasPermission('work_centers.edit')) {
                     <button type="button" class="hr-btn-link" (click)="edit(wc)">Editar</button>
+                    @if (wc.isActive) {
+                      <button type="button" class="hr-btn-link danger" (click)="deactivate(wc)">
+                        Desactivar
+                      </button>
+                    } @else {
+                      <button type="button" class="hr-btn-link" (click)="reactivate(wc)">
+                        Reactivar
+                      </button>
+                    }
                   }
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="5" class="empty-cell">Sin centros configurados</td></tr>
+              <tr><td colspan="6" class="empty-cell">Sin puestos configurados</td></tr>
             }
           </tbody>
         </table>
       </div>
     </div>
+  `,
+  styles: `
+    .actions { display: flex; gap: 0.65rem; flex-wrap: wrap; }
+    .hr-btn-link.danger { color: #b91c1c; }
+    .dim { opacity: 0.55; }
   `,
 })
 export class WorkCentersAdmin implements OnInit {
@@ -98,18 +122,32 @@ export class WorkCentersAdmin implements OnInit {
   readonly editing = signal<Partial<WorkCenter> | null>(null);
   readonly saving = signal(false);
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void {
+    this.load();
+  }
 
   load(): void {
-    this.api.listWorkCenters().subscribe({ next: (rows) => this.centers.set(rows) });
+    this.api.listWorkCenters(true).subscribe({ next: (rows) => this.centers.set(rows) });
   }
 
   startCreate(): void {
-    this.editing.set({ code: '', clientName: '', address: '', zone: '', notes: '', isActive: true });
+    this.editing.set({
+      code: '',
+      clientName: '',
+      address: '',
+      zone: '',
+      notes: '',
+      isActive: true,
+    });
   }
 
-  edit(wc: WorkCenter): void { this.editing.set({ ...wc }); }
-  cancel(): void { this.editing.set(null); }
+  edit(wc: WorkCenter): void {
+    this.editing.set({ ...wc });
+  }
+
+  cancel(): void {
+    this.editing.set(null);
+  }
 
   save(): void {
     const draft = this.editing();
@@ -122,12 +160,43 @@ export class WorkCentersAdmin implements OnInit {
       next: () => {
         this.saving.set(false);
         this.editing.set(null);
-        this.toast.success(draft.id ? 'Centro actualizado' : 'Centro creado');
+        this.toast.success(draft.id ? 'Puesto actualizado' : 'Puesto creado');
         this.load();
       },
       error: (err) => {
         this.saving.set(false);
-        this.toast.error('No se pudo guardar el centro', err.error?.message ?? undefined);
+        this.toast.error('No se pudo guardar el puesto', err.error?.message ?? undefined);
+      },
+    });
+  }
+
+  deactivate(wc: WorkCenter): void {
+    if (
+      !window.confirm(
+        `¿Desactivar el puesto "${wc.clientName}"? Dejará de aparecer en Programación y Dotación.`,
+      )
+    ) {
+      return;
+    }
+    this.api.updateWorkCenter(wc.id, { isActive: false }).subscribe({
+      next: () => {
+        this.toast.success('Puesto desactivado');
+        this.load();
+      },
+      error: (err) => {
+        this.toast.error('No se pudo desactivar', err.error?.message ?? undefined);
+      },
+    });
+  }
+
+  reactivate(wc: WorkCenter): void {
+    this.api.updateWorkCenter(wc.id, { isActive: true }).subscribe({
+      next: () => {
+        this.toast.success('Puesto reactivado');
+        this.load();
+      },
+      error: (err) => {
+        this.toast.error('No se pudo reactivar', err.error?.message ?? undefined);
       },
     });
   }

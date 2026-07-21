@@ -62,8 +62,8 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
             </div>
           </a>
 
-          @if (auth.hasPermission('deliveries.view')) {
-            <a routerLink="/dotacion/entregas" class="dot-dash-kpi">
+          @if (auth.hasPermission('deliveries.view') || auth.hasPermission('inventory.view')) {
+            <a routerLink="/dotacion/asociados" class="dot-dash-kpi">
               <div class="dot-dash-kpi__icon">
                 <app-icon [icon]="icons.Clock" [size]="22" />
               </div>
@@ -146,9 +146,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
           <section class="dot-dash-panel">
             <header class="dot-dash-panel__head">
               <h2>Entregas recientes</h2>
-              @if (auth.hasPermission('deliveries.view')) {
-                <a routerLink="/dotacion/entregas" class="dot-muted">Ver todas</a>
-              }
+              <a routerLink="/dotacion/asociados" class="dot-muted">Ir a asociados</a>
             </header>
             @if (d.recentDeliveries.length) {
               <div class="dot-table-wrap">

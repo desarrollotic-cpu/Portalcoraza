@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import {
   NavigationEnd,
   Router,
@@ -24,16 +25,21 @@ import {
   LucideClipboardList,
   LucideCog,
   LucideHome,
+  LucideKeyRound,
   LucideLogOut,
+  LucideMoon,
   LucideSearch,
   LucideShieldCheck,
   LucideSparkles,
+  LucideSun,
   LucideUserCog,
   LucideUsersRound,
+  LucideDoorOpen,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { ThemeService } from '../../core/services/theme.service';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
 
@@ -53,7 +59,7 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
   template: `
     <div class="layout">
       <aside class="sidebar">
@@ -129,6 +135,20 @@ interface NavGroup {
               <kbd>Ctrl K</kbd>
             </div>
 
+            <button
+              type="button"
+              class="icon-btn theme-btn"
+              (click)="theme.toggle()"
+              [attr.aria-label]="theme.isDark() ? 'Activar modo claro' : 'Activar modo oscuro'"
+              [title]="theme.isDark() ? 'Modo claro' : 'Modo oscuro'"
+            >
+              <app-icon
+                [icon]="theme.isDark() ? icons.Sun : icons.Moon"
+                [size]="18"
+                [strokeWidth]="1.8"
+              />
+            </button>
+
             @if (auth.hasPermission('notifications.view')) {
               <div class="notifications" (click)="$event.stopPropagation()">
                 <button
@@ -187,6 +207,10 @@ interface NavGroup {
               @if (userMenuOpen()) {
                 <div class="user-menu" (click)="$event.stopPropagation()">
                   <span class="user-menu-hd">{{ auth.currentUser()?.email }}</span>
+                  <button type="button" (click)="openChangePassword()">
+                    <app-icon [icon]="icons.KeyRound" [size]="16" [strokeWidth]="1.9" />
+                    Cambiar contraseña
+                  </button>
                   <button type="button" (click)="auth.logout()">
                     <app-icon [icon]="icons.LogOut" [size]="16" [strokeWidth]="1.9" />
                     Cerrar sesión
@@ -202,6 +226,43 @@ interface NavGroup {
         </main>
       </div>
       <app-toaster />
+
+      @if (changePasswordOpen()) {
+        <div class="modal-backdrop" (click)="closeChangePassword()">
+          <div class="modal" (click)="$event.stopPropagation()">
+            <h3>Cambiar mi contraseña</h3>
+            <p class="modal-hint">Usa tu contraseña actual y define una nueva (mínimo 8 caracteres).</p>
+            <form class="modal-form" (ngSubmit)="submitChangePassword()">
+              <label>
+                Contraseña actual
+                <input type="password" [(ngModel)]="pwForm.current" name="currentPw" required autocomplete="current-password" />
+              </label>
+              <label>
+                Nueva contraseña
+                <input type="password" [(ngModel)]="pwForm.next" name="newPw" required minlength="8" autocomplete="new-password" />
+              </label>
+              <label>
+                Confirmar nueva
+                <input type="password" [(ngModel)]="pwForm.confirm" name="confirmPw" required minlength="8" autocomplete="new-password" />
+              </label>
+              @if (pwError()) {
+                <p class="pw-error">{{ pwError() }}</p>
+              }
+              @if (pwSuccess()) {
+                <p class="pw-ok">{{ pwSuccess() }}</p>
+              }
+              <div class="modal-actions">
+                <button type="button" class="btn-ghost" (click)="closeChangePassword()" [disabled]="pwSaving()">
+                  Cancelar
+                </button>
+                <button type="submit" class="btn-primary" [disabled]="pwSaving()">
+                  {{ pwSaving() ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
     </div>
   `,
   styles: `
@@ -414,10 +475,10 @@ interface NavGroup {
       justify-content: space-between;
       gap: 1rem;
       padding: 1rem 1.75rem;
-      background: rgba(255, 255, 255, 0.72);
+      background: var(--glass-bg);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid var(--glass-border, var(--border));
       position: sticky;
       top: 0;
       z-index: 20;
@@ -698,6 +759,7 @@ interface NavGroup {
       padding: 1.75rem 1.75rem 2.5rem;
       flex: 1;
       min-width: 0;
+      color: var(--text-primary);
     }
 
     @media (max-width: 1100px) {
@@ -722,6 +784,83 @@ interface NavGroup {
         display: none;
       }
     }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 80;
+      background: color-mix(in srgb, var(--neutral-900) 55%, transparent);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+    }
+    .modal {
+      width: min(420px, 100%);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+      box-shadow: var(--shadow-xl);
+      color: var(--text-primary);
+    }
+    .modal h3 {
+      margin: 0 0 0.35rem;
+      color: var(--primary-dark);
+      font-size: 1.1rem;
+    }
+    .modal-hint {
+      margin: 0 0 1rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .modal-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .modal-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+    .modal-form input {
+      padding: 0.55rem 0.7rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      background: var(--surface-2);
+      color: var(--text-primary);
+    }
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.35rem;
+    }
+    .btn-ghost, .btn-primary {
+      padding: 0.5rem 0.9rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .btn-ghost {
+      background: var(--surface-2);
+      border-color: var(--border);
+      color: var(--text-primary);
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:disabled, .btn-ghost:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+    .pw-error { margin: 0; color: var(--coraza-error); font-size: 0.85rem; }
+    .pw-ok { margin: 0; color: var(--success-dark); font-size: 0.85rem; }
   `,
   host: {
     '(document:click)': 'onDocumentClick()',
@@ -730,6 +869,7 @@ interface NavGroup {
 export class MainLayout implements OnDestroy {
   readonly auth = inject(AuthService);
   readonly notifications = inject(NotificationService);
+  readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   readonly icons = {
@@ -740,15 +880,24 @@ export class MainLayout implements OnDestroy {
     ClipboardList: LucideClipboardList,
     Cog: LucideCog,
     Home: LucideHome,
+    KeyRound: LucideKeyRound,
     LogOut: LucideLogOut,
+    Moon: LucideMoon,
     Search: LucideSearch,
     ShieldCheck: LucideShieldCheck,
+    DoorOpen: LucideDoorOpen,
     Sparkles: LucideSparkles,
+    Sun: LucideSun,
     UserCog: LucideUserCog,
     UsersRound: LucideUsersRound,
   };
 
   readonly userMenuOpen = signal(false);
+  readonly changePasswordOpen = signal(false);
+  readonly pwSaving = signal(false);
+  readonly pwError = signal<string | null>(null);
+  readonly pwSuccess = signal<string | null>(null);
+  pwForm = { current: '', next: '', confirm: '' };
 
   private readonly groups: NavGroup[] = [
     {
@@ -783,6 +932,12 @@ export class MainLayout implements OnDestroy {
           route: '/documental',
           icon: LucideClipboardList,
           permission: 'documental.view',
+        },
+        {
+          label: 'Recepción',
+          route: '/recepcion',
+          icon: LucideDoorOpen,
+          permission: 'reception.view',
         },
         {
           label: 'Residencial',
@@ -877,6 +1032,53 @@ export class MainLayout implements OnDestroy {
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.userMenuOpen.update((v) => !v);
+  }
+
+  openChangePassword(): void {
+    this.userMenuOpen.set(false);
+    this.pwForm = { current: '', next: '', confirm: '' };
+    this.pwError.set(null);
+    this.pwSuccess.set(null);
+    this.changePasswordOpen.set(true);
+  }
+
+  closeChangePassword(): void {
+    if (this.pwSaving()) return;
+    this.changePasswordOpen.set(false);
+  }
+
+  submitChangePassword(): void {
+    const current = this.pwForm.current;
+    const next = this.pwForm.next;
+    const confirm = this.pwForm.confirm;
+    if (!current || !next || !confirm) {
+      this.pwError.set('Completa todos los campos');
+      return;
+    }
+    if (next.length < 8) {
+      this.pwError.set('La nueva contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (next !== confirm) {
+      this.pwError.set('La confirmación no coincide');
+      return;
+    }
+
+    this.pwSaving.set(true);
+    this.pwError.set(null);
+    this.pwSuccess.set(null);
+    this.auth.changePassword(current, next).subscribe({
+      next: (res) => {
+        this.pwSaving.set(false);
+        this.pwSuccess.set(res.message || 'Contraseña actualizada');
+        this.pwForm = { current: '', next: '', confirm: '' };
+        setTimeout(() => this.changePasswordOpen.set(false), 1200);
+      },
+      error: (err) => {
+        this.pwSaving.set(false);
+        this.pwError.set(err?.error?.message ?? 'No se pudo cambiar la contraseña');
+      },
+    });
   }
 
   onNotificationClick(id: string, isRead: boolean): void {

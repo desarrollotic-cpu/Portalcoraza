@@ -11,4 +11,19 @@ export class CreateInventoryVariantDto {
   @IsOptional()
   @IsObject()
   attributes?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  talla?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  color?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  genero?: string;
 }

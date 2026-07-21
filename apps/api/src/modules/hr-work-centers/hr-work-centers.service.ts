@@ -2,6 +2,7 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { PostsService } from '../posts/posts.service';
 import { CreateWorkCenterDto } from './dto/create-work-center.dto';
 import { UpdateWorkCenterDto } from './dto/update-work-center.dto';
 import { WorkCenter } from './entities/work-center.entity';
@@ -12,6 +13,7 @@ export class HrWorkCentersService {
     @InjectRepository(WorkCenter)
     private readonly repo: Repository<WorkCenter>,
     private readonly audit: AuditService,
+    private readonly postsService: PostsService,
   ) {}
 
   findAll(includeInactive = false) {
@@ -39,6 +41,7 @@ export class HrWorkCentersService {
       isActive: dto.isActive ?? true,
     });
     const saved = await this.repo.save(wc);
+    await this.postsService.syncFromWorkCenter(saved, userId);
     await this.audit.log({
       userId,
       module: 'hr',
@@ -62,6 +65,7 @@ export class HrWorkCentersService {
     if (dto.isActive !== undefined) wc.isActive = dto.isActive;
 
     const saved = await this.repo.save(wc);
+    await this.postsService.syncFromWorkCenter(saved, userId);
     await this.audit.log({
       userId,
       module: 'hr',
@@ -72,5 +76,15 @@ export class HrWorkCentersService {
       newValue: saved as unknown as Record<string, unknown>,
     });
     return saved;
+  }
+
+  /** Sincroniza todos los centros existentes hacia puestos de Programación. */
+  async syncAllPosts(userId?: string) {
+    const centers = await this.repo.find({ order: { code: 'ASC' } });
+    const posts = [];
+    for (const wc of centers) {
+      posts.push(await this.postsService.syncFromWorkCenter(wc, userId));
+    }
+    return { synced: posts.length, posts };
   }
 }

@@ -4,8 +4,7 @@ INSERT INTO roles (code, name, description) VALUES
   ('RRHH', 'Recursos Humanos', 'Gestión de asociados'),
   ('PROGRAMADOR', 'Programador', 'Programación de personal'),
   ('ALMACENISTA', 'Almacenista', 'Dotación e inventario'),
-  ('VIGILANTE', 'Vigilante', 'Personal operativo'),
-  ('ADMINISTRADOR_UNIDAD', 'Administrador de Unidad', 'Gestión de unidad residencial')
+  ('VIGILANTE', 'Vigilante', 'Personal operativo')
 ON CONFLICT (code) DO NOTHING;
 
 -- Permisos base Fase 1
@@ -99,6 +98,7 @@ SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.code = 'ALMACENISTA' AND p.code IN (
   'inventory.view', 'inventory.create', 'inventory.edit', 'inventory.move', 'inventory.alerts',
   'deliveries.view', 'deliveries.create', 'deliveries.sign',
+  'post_equipment.view', 'post_equipment.assign', 'post_equipment.return', 'post_equipment.manage',
   'notifications.view', 'notifications.read'
 )
 ON CONFLICT DO NOTHING;
@@ -112,20 +112,18 @@ WHERE r.code = 'PROGRAMADOR' AND p.code IN (
 )
 ON CONFLICT DO NOTHING;
 
--- ADMINISTRADOR_UNIDAD
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id FROM roles r, permissions p
-WHERE r.code = 'ADMINISTRADOR_UNIDAD' AND p.code IN (
-  'residential.view', 'residential.manage', 'residential.visitors', 'residential.packages',
-  'residential.reservations', 'residential.incidents', 'residential.parking',
-  'notifications.view', 'notifications.read'
-)
-ON CONFLICT DO NOTHING;
-
 -- RRHH
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.code = 'RRHH' AND p.code IN (
   'documental.view', 'notifications.view', 'notifications.read'
 )
+ON CONFLICT DO NOTHING;
+
+-- GERENCIA (admin maestro): todos los permisos definidos hasta aquí
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+CROSS JOIN permissions p
+WHERE r.code = 'GERENCIA'
 ON CONFLICT DO NOTHING;
