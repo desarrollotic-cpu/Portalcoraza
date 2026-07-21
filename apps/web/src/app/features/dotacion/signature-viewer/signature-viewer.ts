@@ -4,12 +4,12 @@ import { Component, input } from '@angular/core';
   selector: 'app-signature-viewer',
   template: `
     @if (url()) {
-      <a [href]="url()!" target="_blank" rel="noopener" class="signature-link">
+      <a [href]="url()!" target="_blank" rel="noopener" class="signature-link" title="Abrir firma completa">
         <img [src]="url()!" [alt]="alt()" class="signature-thumb" />
-        <span>Ver firma</span>
+        <span class="link-label">Ver firma</span>
       </a>
     } @else {
-      <span class="muted">—</span>
+      <span class="muted">Sin firma</span>
     }
   `,
   styles: `
@@ -17,20 +17,32 @@ import { Component, input } from '@angular/core';
       display: inline-flex;
       flex-direction: column;
       align-items: flex-start;
-      gap: 0.25rem;
+      gap: 0.3rem;
       color: var(--primary-dark);
       text-decoration: none;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .signature-link:hover .link-label {
+      text-decoration: underline;
     }
     .signature-thumb {
-      width: 96px;
-      height: 40px;
+      width: 140px;
+      height: 72px;
       object-fit: contain;
       border: 1px solid var(--coraza-border);
-      border-radius: 4px;
+      border-radius: 8px;
       background: #fff;
+      padding: 4px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
     }
-    .muted { color: var(--coraza-text-muted); }
+    .link-label {
+      color: var(--primary-600, var(--primary-dark));
+    }
+    .muted {
+      color: var(--coraza-text-muted);
+      font-size: 0.85rem;
+    }
   `,
 })
 export class SignatureViewer {
