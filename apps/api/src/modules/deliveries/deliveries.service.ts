@@ -604,6 +604,33 @@ export class DeliveriesService {
     return delivery;
   }
 
+  async getSignatureImage(id: string): Promise<{ data: Buffer; contentType: string }> {
+    const delivery = await this.deliveriesRepo.findOne({ where: { id } });
+    if (!delivery) {
+      throw new NotFoundException('Entrega no encontrada');
+    }
+    if (!delivery.signatureUrl) {
+      throw new NotFoundException('Esta entrega no tiene firma');
+    }
+    return this.downloadSignatureByStoredUrl(delivery.signatureUrl);
+  }
+
+  async downloadSignatureByStoredUrl(
+    signatureUrl: string,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    const bucket = this.config.get<string>('SUPABASE_SIGNATURE_BUCKET', 'delivery-signatures');
+    const filePath = this.supabaseStorage.extractFilePath(signatureUrl, bucket);
+    if (!filePath) {
+      throw new NotFoundException('Ruta de firma inválida');
+    }
+    try {
+      return await this.supabaseStorage.downloadObject(bucket, filePath);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Error desconocido';
+      throw new NotFoundException(`No se pudo obtener la firma: ${reason}`);
+    }
+  }
+
   private async uploadSignature(deliveryId: string, signatureData: string): Promise<string> {
     const { base64, contentType, extension } = this.parseSignaturePayload(signatureData);
     const fileBuffer = Buffer.from(base64, 'base64');

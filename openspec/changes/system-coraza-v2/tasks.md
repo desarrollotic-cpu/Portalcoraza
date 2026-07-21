@@ -34,7 +34,9 @@
 - [x] 2.4 Habilitar extensión `btree_gist` en Supabase para el exclusion constraint de scheduling
 - [x] 2.5 Crear migración `supabase/migrations/006_documental.sql` (tablas: `document_types`, `document_records`)
 - [x] 2.6 Crear migración `supabase/migrations/007_residential.sql` (tablas: `residential_units`, `residents`, `owners`, `tenants`, `visitors`, `vehicles`, `visitor_parking_slots`, `mail_records`, `packages`, `reservations`, `virtual_log`, `residential_incidents`)
-- [ ] 2.7 Crear bucket `delivery-signatures` en Supabase Storage con políticas de acceso
+- [x] 2.7 Crear bucket `delivery-signatures` en Supabase Storage con políticas de acceso
+      (bucket privado + descarga autenticada vía API Nest; ver `docs/SUPABASE.md` y
+      `docs/superpowers/specs/2026-07-21-private-delivery-signatures-design.md`)
 - [ ] 2.8 Activar Realtime en tabla `notifications` desde el dashboard de Supabase
 - [x] 2.9 Definir reservas por recurso configurable con política por unidad (`manual_approval` o `auto_approval`) y estados mínimos (`PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`, `COMPLETED`)
 - [x] 2.10 Incluir campos opcionales `file_url` y `storage_provider` en documental para evolución futura (sin uso operativo en fase 1)

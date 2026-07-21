@@ -4,6 +4,7 @@ import PDFDocument = require('pdfkit');
 import { Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { DeliveriesService } from './deliveries.service';
 import { DeliveryDetail } from './entities/delivery-detail.entity';
 import { Delivery, DeliveryStatus } from './entities/delivery.entity';
 
@@ -20,6 +21,7 @@ export class DeliveriesReportsService {
     private readonly associatesRepo: Repository<Associate>,
     @InjectRepository(InventoryItem)
     private readonly itemsRepo: Repository<InventoryItem>,
+    private readonly deliveriesService: DeliveriesService,
   ) {}
 
   buildGeneralReport(): Promise<Buffer> {
@@ -293,15 +295,10 @@ export class DeliveriesReportsService {
     doc.y = bottom + 4;
   }
 
-  private async fetchSignatureImage(url: string): Promise<Buffer | null> {
+  private async fetchSignatureImage(storedUrl: string): Promise<Buffer | null> {
     try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 8000);
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-      if (!response.ok) return null;
-      const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      const { data } = await this.deliveriesService.downloadSignatureByStoredUrl(storedUrl);
+      return data;
     } catch {
       return null;
     }

@@ -1,13 +1,25 @@
-import { Component, input } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  effect,
+  inject,
+  input,
+  signal,
+} from '@angular/core';
+import { InventoryApiService } from '../inventory-api.service';
 
 @Component({
   selector: 'app-signature-viewer',
   template: `
-    @if (url()) {
-      <a [href]="url()!" target="_blank" rel="noopener" class="signature-link" title="Abrir firma completa">
-        <img [src]="url()!" [alt]="alt()" class="signature-thumb" />
+    @if (blobUrl()) {
+      <a [href]="blobUrl()!" target="_blank" rel="noopener" class="signature-link" title="Abrir firma completa">
+        <img [src]="blobUrl()!" [alt]="alt()" class="signature-thumb" />
         <span class="link-label">Ver firma</span>
       </a>
+    } @else if (loading()) {
+      <span class="muted">Cargando firma…</span>
+    } @else if (error()) {
+      <span class="muted">{{ error() }}</span>
     } @else {
       <span class="muted">Sin firma</span>
     }
@@ -46,6 +58,50 @@ import { Component, input } from '@angular/core';
   `,
 })
 export class SignatureViewer {
-  readonly url = input<string | null>(null);
+  private readonly api = inject(InventoryApiService);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly deliveryId = input<string | null>(null);
   readonly alt = input('Firma de entrega');
+
+  readonly blobUrl = signal<string | null>(null);
+  readonly loading = signal(false);
+  readonly error = signal<string | null>(null);
+
+  constructor() {
+    effect((onCleanup) => {
+      const id = this.deliveryId();
+      this.revokeCurrent();
+      this.blobUrl.set(null);
+      this.error.set(null);
+
+      if (!id) {
+        this.loading.set(false);
+        return;
+      }
+
+      this.loading.set(true);
+      const sub = this.api.getDeliverySignatureBlob(id).subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          this.blobUrl.set(url);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('No se pudo cargar la firma');
+          this.loading.set(false);
+        },
+      });
+      onCleanup(() => sub.unsubscribe());
+    });
+
+    this.destroyRef.onDestroy(() => this.revokeCurrent());
+  }
+
+  private revokeCurrent(): void {
+    const current = this.blobUrl();
+    if (current) {
+      URL.revokeObjectURL(current);
+    }
+  }
 }

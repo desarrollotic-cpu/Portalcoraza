@@ -72,7 +72,7 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
                       @if (d.status === 'PENDING') {
                         <a [routerLink]="['/dotacion/entregas', d.id, 'firmar']">Firmar</a>
                       } @else if (d.signatureUrl) {
-                        <app-signature-viewer [url]="d.signatureUrl" />
+                        <app-signature-viewer [deliveryId]="d.id" />
                       } @else {
                         —
                       }
