@@ -80,7 +80,18 @@ import {
             </label>
             <label class="wide">
               Lugar de donde viene
-              <input [(ngModel)]="form.originPlace" name="originPlace" autocomplete="off" />
+              <input
+                [(ngModel)]="form.originPlace"
+                name="originPlace"
+                list="originPlaceOptions"
+                placeholder="Elige un municipio o escribe/pega otro"
+                autocomplete="off"
+              />
+              <datalist id="originPlaceOptions">
+                @for (m of originPlaceOptions; track m) {
+                  <option [value]="m"></option>
+                }
+              </datalist>
             </label>
           </fieldset>
 
@@ -241,6 +252,18 @@ export class ReceptionRegister implements OnInit {
     'Contabilidad',
     'Seguridad electrónica',
     'Comercial',
+  ] as const;
+
+  readonly originPlaceOptions = [
+    'Medellín',
+    'Bello',
+    'Copacabana',
+    'Itagüí',
+    'Envigado',
+    'Sabaneta',
+    'La Estrella',
+    'Caldas',
+    'Rionegro',
   ] as const;
 
   readonly saving = signal(false);
