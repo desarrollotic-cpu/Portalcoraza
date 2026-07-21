@@ -175,13 +175,13 @@ import {
     .page { max-width: 920px; }
     .head { margin-bottom: 1.1rem; }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
-    .head p { margin: 0; color: #64748b; font-size: 0.9rem; }
+    .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
     fieldset {
       border: 1px solid var(--coraza-border);
       border-radius: 12px;
       padding: 1rem 1.1rem 1.1rem;
       margin: 0 0 1rem;
-      background: var(--coraza-surface, #fff);
+      background: var(--coraza-surface);
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
       gap: 0.75rem;
@@ -196,14 +196,14 @@ import {
       grid-column: 1 / -1;
       margin: 0 0 0.25rem;
       font-size: 0.8rem;
-      color: #64748b;
+      color: var(--text-secondary);
     }
     label {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
       font-size: 0.82rem;
-      color: #64748b;
+      color: var(--text-secondary);
     }
     label.wide { grid-column: 1 / -1; }
     input, select {
@@ -211,12 +211,12 @@ import {
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
       font: inherit;
-      color: #0f172a;
-      background: #fff;
+      color: var(--text-primary);
+      background: var(--surface);
     }
     input[readonly] {
-      background: #f8fafc;
-      color: #475569;
+      background: var(--neutral-50);
+      color: var(--neutral-600);
       cursor: not-allowed;
     }
     .actions {
@@ -240,8 +240,8 @@ import {
     .primary:disabled { opacity: 0.55; cursor: not-allowed; }
     .ghost {
       border: 1px solid var(--coraza-border);
-      background: #fff;
-      color: #475569;
+      background: var(--surface);
+      color: var(--neutral-600);
     }
     .error { color: var(--coraza-error); }
     .ok { color: #15803d; font-weight: 600; }

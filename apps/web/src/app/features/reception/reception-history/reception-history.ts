@@ -172,26 +172,26 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       align-items: end;
     }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
-    .head p { margin: 0; color: #64748b; font-size: 0.9rem; }
+    .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
     label {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
       min-width: min(280px, 100%);
       font-size: 0.82rem;
-      color: #64748b;
+      color: var(--text-secondary);
     }
     input, select {
       padding: 0.5rem 0.65rem;
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
       font: inherit;
-      background: #fff;
+      background: var(--surface);
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--coraza-surface, #fff);
+      background: var(--coraza-surface);
       border: 1px solid var(--coraza-border);
       border-radius: 12px;
       overflow: hidden;
@@ -209,26 +209,26 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       text-transform: uppercase;
       color: var(--primary-dark);
     }
-    .meta, .muted { color: #64748b; }
+    .meta, .muted { color: var(--text-secondary); }
     .meta { margin-top: 0.15rem; font-size: 0.78rem; }
-    .meta.strong { font-weight: 700; color: #0f172a; }
+    .meta.strong { font-weight: 700; color: var(--text-primary); }
     .badge {
       display: inline-block;
       margin-top: 0.3rem;
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
-      background: #f1f5f9;
-      color: #475569;
+      background: var(--neutral-100);
+      color: var(--neutral-600);
       font-size: 0.72rem;
       font-weight: 700;
     }
-    .badge.inside { background: color-mix(in srgb, #16a34a 12%, #fff); color: #15803d; }
+    .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: #15803d; }
     .actions { text-align: right; white-space: nowrap; }
     .btn-sm {
       padding: 0.35rem 0.75rem;
       border-radius: 999px;
       border: 1px solid color-mix(in srgb, #dc2626 35%, #fecaca);
-      background: color-mix(in srgb, #dc2626 8%, #fff);
+      background: color-mix(in srgb, #dc2626 8%, var(--surface));
       color: #b91c1c;
       font-size: 0.75rem;
       font-weight: 700;
@@ -243,7 +243,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
     }
     .ghost {
       border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--coraza-border));
-      background: color-mix(in srgb, var(--primary) 8%, #fff);
+      background: color-mix(in srgb, var(--primary) 8%, var(--surface));
       color: var(--primary-dark);
     }
     .primary {
@@ -252,7 +252,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       color: #fff;
     }
     .primary:disabled, .ghost:disabled { opacity: 0.55; cursor: not-allowed; }
-    .hint { margin: 0 0 0.85rem; color: #64748b; font-size: 0.9rem; }
+    .hint { margin: 0 0 0.85rem; color: var(--text-secondary); font-size: 0.9rem; }
     .pdf-form {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -260,7 +260,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       margin-bottom: 1rem;
     }
     .pdf-actions { justify-content: flex-end; }
-    .empty { color: #64748b; }
+    .empty { color: var(--text-secondary); }
     .error { color: var(--coraza-error); }
   `,
 })

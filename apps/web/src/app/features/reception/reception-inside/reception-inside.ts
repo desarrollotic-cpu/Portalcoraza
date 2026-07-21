@@ -97,14 +97,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       align-items: end;
     }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
-    .head p { margin: 0; color: #64748b; font-size: 0.9rem; }
+    .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
     label {
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
       min-width: min(340px, 100%);
       font-size: 0.82rem;
-      color: #64748b;
+      color: var(--text-secondary);
     }
     input {
       padding: 0.5rem 0.65rem;
@@ -115,7 +115,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
     table {
       width: 100%;
       border-collapse: collapse;
-      background: var(--coraza-surface, #fff);
+      background: var(--coraza-surface);
       border: 1px solid var(--coraza-border);
       border-radius: 12px;
       overflow: hidden;
@@ -133,12 +133,12 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       text-transform: uppercase;
       color: var(--primary-dark);
     }
-    .meta { margin-top: 0.15rem; font-size: 0.78rem; color: #64748b; }
+    .meta { margin-top: 0.15rem; font-size: 0.78rem; color: var(--text-secondary); }
     .actions { text-align: right; }
     .ghost {
       border-radius: 999px;
       border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--coraza-border));
-      background: color-mix(in srgb, var(--primary) 8%, #fff);
+      background: color-mix(in srgb, var(--primary) 8%, var(--surface));
       color: var(--primary-dark);
       font-weight: 600;
       cursor: pointer;
@@ -149,14 +149,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       padding: 0.35rem 0.75rem;
       border-radius: 999px;
       border: 1px solid color-mix(in srgb, #dc2626 35%, #fecaca);
-      background: color-mix(in srgb, #dc2626 8%, #fff);
+      background: color-mix(in srgb, #dc2626 8%, var(--surface));
       color: #b91c1c;
       font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;
       white-space: nowrap;
     }
-    .empty { color: #64748b; }
+    .empty { color: var(--text-secondary); }
     .error { color: var(--coraza-error); }
   `,
 })

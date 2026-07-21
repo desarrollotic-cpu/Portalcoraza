@@ -173,3 +173,128 @@
   --gradient-indigo-soft: var(--gradient-hero);
   --gradient-login: var(--gradient-hero-mesh);
 }
+
+/* Modo oscuro: activar con data-theme="dark" en un contenedor (p. ej. un módulo). */
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --primary-50: #1e1b4b;
+  --primary-100: #312e81;
+  --primary-200: #3730a3;
+  --primary-300: #4f46e5;
+  --primary-400: #6366f1;
+  --primary-500: #818cf8;
+  --primary-600: #a5b4fc;
+  --primary-700: #c7d2fe;
+  --primary-800: #e0e7ff;
+  --primary-900: #eef2ff;
+
+  --primary: var(--primary-500);
+  --primary-main: var(--primary-500);
+  --primary-dark: var(--primary-600);
+  --primary-light: var(--primary-400);
+
+  --accent-500: #c084fc;
+  --accent-600: #a855f7;
+  --accent-cyan: #22d3ee;
+  --accent-main: var(--accent-500);
+  --accent-bg: #2e1065;
+
+  --neutral-0: #0b1220;
+  --neutral-50: #111827;
+  --neutral-100: #1f2937;
+  --neutral-200: #334155;
+  --neutral-300: #475569;
+  --neutral-400: #64748b;
+  --neutral-500: #94a3b8;
+  --neutral-600: #cbd5e1;
+  --neutral-700: #e2e8f0;
+  --neutral-800: #f1f5f9;
+  --neutral-900: #f8fafc;
+
+  --neutral-border: var(--neutral-200);
+
+  --bg-page: #0b1220;
+  --bg-page-2: #111827;
+  --surface: #111827;
+  --surface-2: #1f2937;
+  --surface-elevated: #1f2937;
+  --surface-inverse: rgba(248, 250, 252, 0.92);
+
+  --glass-bg: rgba(17, 24, 39, 0.94);
+  --glass-border: rgba(148, 163, 184, 0.22);
+  --glass-highlight: rgba(255, 255, 255, 0.06);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-disabled: #475569;
+  --text-on-primary: #ffffff;
+  --text-on-dark: rgba(241, 245, 249, 0.92);
+
+  --border: #334155;
+  --border-strong: #475569;
+  --border-focus: var(--primary-500);
+
+  --success-500: #34d399;
+  --success-600: #10b981;
+  --success-bg: color-mix(in srgb, #10b981 22%, #111827);
+  --success: var(--success-500);
+  --success-dark: var(--success-500);
+
+  --warning-500: #fbbf24;
+  --warning-600: #f59e0b;
+  --warning-bg: color-mix(in srgb, #f59e0b 22%, #111827);
+  --warning: var(--warning-500);
+  --warning-dark: var(--warning-500);
+
+  --error-500: #f87171;
+  --error-600: #ef4444;
+  --error-bg: color-mix(in srgb, #ef4444 22%, #111827);
+  --error: var(--error-500);
+  --error-dark: var(--error-500);
+  --error-light: var(--error-500);
+
+  --info-500: #38bdf8;
+  --info-600: #0ea5e9;
+  --info-bg: color-mix(in srgb, #0ea5e9 22%, #111827);
+
+  --gradient-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #a855f7 100%);
+  --gradient-primary-soft: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+  --gradient-page:
+    radial-gradient(at 10% -5%, rgba(99, 102, 241, 0.18) 0px, transparent 55%),
+    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%),
+    linear-gradient(180deg, #0b1220 0%, #111827 100%);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow: 0 4px 12px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4), 0 4px 8px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.45), 0 6px 14px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.5), 0 10px 20px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 20px 40px rgba(99, 102, 241, 0.25);
+  --shadow-primary: 0 12px 24px rgba(99, 102, 241, 0.3);
+  --shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+
+  --coraza-bg: var(--bg-page);
+  --coraza-surface: var(--surface);
+  --coraza-sidebar: var(--primary-100);
+  --coraza-primary: var(--primary-500);
+  --coraza-primary-hover: var(--primary-400);
+  --coraza-primary-dark: var(--primary-dark);
+  --coraza-primary-light: var(--primary-light);
+  --coraza-primary-50: var(--primary-50);
+  --coraza-accent: var(--accent-500);
+  --coraza-accent-bg: var(--accent-bg);
+  --coraza-border: var(--border);
+  --coraza-text: var(--text-primary);
+  --coraza-text-muted: var(--text-secondary);
+  --coraza-text-disabled: var(--text-disabled);
+  --coraza-text-on-dark: var(--text-on-dark);
+  --coraza-success: var(--success);
+  --coraza-warning: var(--warning);
+  --coraza-error: var(--error);
+  --coraza-radius: var(--radius);
+  --coraza-shadow: var(--shadow);
+  --coraza-shadow-lg: var(--shadow-lg);
+}
