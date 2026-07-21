@@ -107,13 +107,14 @@ Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA)
 
 ### Pendiente (no es código — configuración Supabase + pruebas)
 
-1. Migraciones SQL **001–008** en Supabase (si faltan)
-2. Seed `003_business_permissions.sql`
-3. Bucket **`delivery-signatures`** (2.7)
-4. **Realtime** en `notifications` (2.8)
+1. Migraciones SQL pendientes en Supabase (incl. recepción `022+` y **`025` Realtime**)
+2. Seed `003_business_permissions.sql` (si falta)
+3. Bucket **`delivery-signatures`** → **Private** (código de firmas privadas ya en `main`)
+4. Confirmar Realtime tras `025` (campana sin refrescar)
 5. **`apps/api/.env`** local con credenciales reales
-6. Pruebas E2E manuales (14.x)
-7. PNG logo opcional (15.7)
+6. Redeploy Render API + web
+7. Pruebas E2E manuales (14.x)
+8. PNG logo opcional (15.7)
 
 **Detalle:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md)
 

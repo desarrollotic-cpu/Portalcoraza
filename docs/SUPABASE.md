@@ -102,3 +102,10 @@ npm run db:keepalive
 3. La API Nest sube/descarga con `SUPABASE_SERVICE_ROLE_KEY`.
 4. El portal muestra firmas vía `GET /api/v1/deliveries/:id/signature` (JWT + permiso `deliveries.view`).
 5. Variables en `apps/api/.env`: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcional `SUPABASE_SIGNATURE_BUCKET=delivery-signatures`.
+
+### Realtime `notifications` (2.8)
+
+1. Preferido: ejecutar migración `supabase/migrations/025_notifications_realtime.sql` (añade la tabla a la publication `supabase_realtime`).
+2. Alternativa Dashboard: **Database → Replication** (o Publications) → habilitar `public.notifications`.
+3. El código Angular ya escucha `INSERT` filtrado por `user_id` (`NotificationService`).
+4. Tras activar: crear una notificación de prueba desde la API y confirmar que aparece en la campana sin refrescar.

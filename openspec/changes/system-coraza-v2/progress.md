@@ -29,32 +29,33 @@
 
 ## Pendiente inmediato
 
-_Ningún bloque de código pendiente en fase 1. Siguiente hito: cierre Supabase + pruebas E2E._
+_Ningún bloque de código pendiente en fase 1. Siguiente hito: aplicar migración `025` + bucket firmas Private en Supabase, redeploy Render, E2E manual._
 
 ## Cierre Supabase + E2E (dejar para lo último)
 
 Ejecutar en este orden cuando tengas acceso al dashboard:
 
-1. **14.1** — Migraciones SQL `002`–`007` en SQL Editor (si faltan)
-2. **Seed** — `003_business_permissions.sql` (incluye rol SUPERVISOR)
-3. **2.7** — Bucket `delivery-signatures` en Storage
-4. **2.8** — Realtime en tabla `notifications`
+1. **14.1** — Migraciones SQL pendientes (incl. `022+` recepción y `025` Realtime) en SQL Editor
+2. **Seed** — `003_business_permissions.sql` (incluye rol SUPERVISOR) si falta
+3. **2.7** — Bucket `delivery-signatures` **Private** (código API listo; ver `docs/SUPABASE.md`)
+4. **2.8** — Ejecutar `025_notifications_realtime.sql` (o Replication en Dashboard)
 5. **`apps/api/.env`** — `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, JWT secrets
-6. **E2E manual** — 14.5, 14.6, 14.7, 14.8, 14.10 (y confirmar 14.3 en runtime)
-7. **15.7** — (opcional) logo PNG
+6. **Redeploy** Render API + web tras firmas privadas
+7. **E2E manual** — 14.5, 14.6, 14.7, 14.8, 14.10
+8. **15.7** — (opcional) logo PNG
 
 ## Pendiente histórico (referencia)
 
-- 2.7 Crear bucket `delivery-signatures` en Supabase Storage con políticas
-- 2.8 Activar Realtime en tabla `notifications`
-- 14.x verificaciones E2E restantes (con Supabase configurado)
-- Opcional: `coraza-logo.png` en `apps/web/public/images/`
+- 2.7 Bucket firmas — **código done 2026-07-21**; falta marcar Private en Dashboard
+- 2.8 Realtime notifications — **migración 025 lista**; aplicar en Supabase
+- 14.x verificaciones E2E restantes
+- Opcional: `coraza-logo.png`
 
 ## Siguiente lote recomendado (orden)
 
-1. **Cierre Supabase + E2E** (bloque anterior) cuando el equipo esté listo
-2. Desplegar en Render si aplica
-3. `/opsx:archive` del change system-coraza-v2
+1. Aplicar `025` + bucket Private + redeploy
+2. E2E 14.7 (firma) y 14.8 (Realtime)
+3. `/opsx:archive` del change system-coraza-v2 cuando E2E pase
 
 ## Criterios de continuidad entre IDs de desarrollo
 
