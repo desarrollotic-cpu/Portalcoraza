@@ -96,7 +96,12 @@ import {
             </label>
             <label>
               Autorizado por
-              <input [(ngModel)]="form.authorizedBy" name="authorizedBy" autocomplete="off" />
+              <select [(ngModel)]="form.authorizedBy" name="authorizedBy">
+                <option value="">—</option>
+                @for (area of authorizedByOptions; track area) {
+                  <option [value]="area">{{ area }}</option>
+                }
+              </select>
             </label>
           </fieldset>
 
@@ -227,6 +232,16 @@ export class ReceptionRegister implements OnInit {
   private readonly router = inject(Router);
 
   private readonly visitReasonInput = viewChild<ElementRef<HTMLInputElement>>('visitReasonInput');
+
+  readonly authorizedByOptions = [
+    'Recursos humanos',
+    'Gerencia',
+    'Operaciones',
+    'SST',
+    'Contabilidad',
+    'Seguridad electrónica',
+    'Comercial',
+  ] as const;
 
   readonly saving = signal(false);
   readonly formError = signal<string | null>(null);

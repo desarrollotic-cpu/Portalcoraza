@@ -1,5 +1,6 @@
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -8,6 +9,16 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ReceptionSex, ReceptionTransport } from '../entities/reception-visitor.entity';
+
+export const RECEPTION_AUTHORIZED_BY_OPTIONS = [
+  'Recursos humanos',
+  'Gerencia',
+  'Operaciones',
+  'SST',
+  'Contabilidad',
+  'Seguridad electrónica',
+  'Comercial',
+] as const;
 
 export class RegisterReceptionVisitorDto {
   @IsOptional()
@@ -64,9 +75,8 @@ export class RegisterReceptionVisitorDto {
   visitReason?: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(200)
-  authorizedBy?: string;
+  @IsIn([...RECEPTION_AUTHORIZED_BY_OPTIONS])
+  authorizedBy?: (typeof RECEPTION_AUTHORIZED_BY_OPTIONS)[number];
 
   @IsOptional()
   @IsEnum(ReceptionTransport)
