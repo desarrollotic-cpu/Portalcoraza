@@ -48,7 +48,7 @@ import { Icon } from '../../../shared/components/icon/icon';
             inputmode="email"
             formControlName="email"
             autocomplete="username"
-            placeholder="admin@coraza.local"
+            placeholder="usuario@corazaseguridadcta.com"
           />
         </div>
       </div>

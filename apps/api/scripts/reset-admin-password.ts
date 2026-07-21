@@ -5,7 +5,7 @@
  *   SEED_ADMIN_PASSWORD="NuevaClave123!" npm run reset:admin-password
  *
  * Opcional:
- *   SEED_ADMIN_EMAIL=admin@coraza.local
+ *   SEED_ADMIN_EMAIL=admin@corazaseguridadcta.com
  */
 import * as dns from 'dns';
 import * as dotenv from 'dotenv';
@@ -19,7 +19,7 @@ import { DataSource } from 'typeorm';
 import { Role } from '../src/modules/roles/entities/role.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 
-const email = (process.env.SEED_ADMIN_EMAIL ?? 'admin@coraza.local').toLowerCase();
+const email = (process.env.SEED_ADMIN_EMAIL ?? 'admin@corazaseguridadcta.com').toLowerCase();
 const password = process.env.SEED_ADMIN_PASSWORD ?? 'Coraza2026!';
 
 async function main() {

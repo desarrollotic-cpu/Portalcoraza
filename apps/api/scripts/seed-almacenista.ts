@@ -12,7 +12,7 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 import * as bcrypt from 'bcrypt';
 import { Client } from 'pg';
 
-const email = (process.env.SEED_ALMACENISTA_EMAIL ?? 'almacen@coraza.local').toLowerCase();
+const email = (process.env.SEED_ALMACENISTA_EMAIL ?? 'almacen@corazaseguridadcta.com').toLowerCase();
 const password = process.env.SEED_ALMACENISTA_PASSWORD ?? 'Almacen2026!';
 const fullName = process.env.SEED_ALMACENISTA_NAME ?? 'Almacenista Dotación';
 

@@ -22,7 +22,13 @@ import {
           <form class="create-form" (ngSubmit)="submitCreate()">
             <label>
               Correo *
-              <input type="email" [(ngModel)]="create.email" name="email" required />
+              <input
+                type="email"
+                [(ngModel)]="create.email"
+                name="email"
+                required
+                placeholder="usuario@corazaseguridadcta.com"
+              />
             </label>
             <label>
               Contraseña *
