@@ -12,3 +12,5 @@ Thumbs.db
 coverage/
 *.tsbuildinfo
 Portalcoraza/
+graphify-out/
+.tmp/superpowers/
