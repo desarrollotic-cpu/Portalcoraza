@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideMoon, LucideShieldCheck, LucideSun } from '@lucide/angular';
+import { LucideMoon, LucideSun } from '@lucide/angular';
 import { ThemeService } from '../../core/services/theme.service';
 import { Icon } from '../../shared/components/icon/icon';
 
@@ -19,10 +19,17 @@ import { Icon } from '../../shared/components/icon/icon';
 
         <div class="brand-content">
           <div class="brand-logo">
-            <div class="logo-mark">
-              <app-icon [icon]="shieldIcon" [size]="26" [strokeWidth]="2.2" />
+            <img
+              class="logo-img"
+              src="/brand/logo-coraza-cta.png"
+              width="112"
+              height="112"
+              alt="Coraza Seguridad C.T.A. — Cooperativa de Vigilancia y Seguridad Privada"
+            />
+            <div class="brand-titles">
+              <span class="brand-text">Portal Coraza</span>
+              <span class="brand-sub">Coraza Seguridad C.T.A.</span>
             </div>
-            <span class="brand-text">Portal Coraza</span>
           </div>
 
           <div class="brand-copy">
@@ -148,21 +155,25 @@ import { Icon } from '../../shared/components/icon/icon';
     .brand-logo {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 1rem;
     }
 
-    .logo-mark {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
-      background: rgba(255, 255, 255, 0.14);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.28);
+    .logo-img {
+      width: 112px;
+      height: 112px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow:
+        0 16px 40px rgba(15, 23, 42, 0.35),
+        0 0 0 4px rgba(255, 255, 255, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-titles {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
     }
 
     .brand-text {
@@ -175,6 +186,14 @@ import { Icon } from '../../shared/components/icon/icon';
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+    }
+
+    .brand-sub {
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.78);
     }
 
     .brand-copy h2 {
@@ -293,7 +312,6 @@ import { Icon } from '../../shared/components/icon/icon';
 })
 export class AuthLayout {
   readonly year = new Date().getFullYear();
-  readonly shieldIcon = LucideShieldCheck;
   readonly moonIcon = LucideMoon;
   readonly sunIcon = LucideSun;
   readonly theme = inject(ThemeService);

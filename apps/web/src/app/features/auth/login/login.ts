@@ -23,13 +23,23 @@ import { Icon } from '../../../shared/components/icon/icon';
   template: `
     <div class="login-wrap">
     <form class="login-form" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="logo-block">
+        <img
+          class="login-logo"
+          src="/brand/logo-coraza-cta.png"
+          width="88"
+          height="88"
+          alt="Coraza Seguridad C.T.A."
+        />
+      </div>
+
       <div class="badge">
         <app-icon [icon]="icons.ShieldCheck" [size]="14" [strokeWidth]="2.4" />
         Acceso seguro
       </div>
 
       <h1>Bienvenido de vuelta</h1>
-      <p class="subtitle">Ingresa a tu portal operativo Coraza.</p>
+      <p class="subtitle">Ingresa a tu portal operativo Coraza Seguridad C.T.A.</p>
 
       @if (error()) {
         <div class="alert" role="alert">
@@ -157,6 +167,22 @@ import { Icon } from '../../../shared/components/icon/icon';
       flex-direction: column;
       gap: 0;
       text-align: left;
+    }
+
+    .logo-block {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.15rem;
+    }
+
+    .login-logo {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+      border: 1px solid var(--border);
     }
 
     .badge {

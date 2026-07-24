@@ -193,6 +193,8 @@ export const routes: Routes = [
           permission: 'documental.view',
           externalUrl: EXTERNAL_APPS.documental,
           externalLabel: 'Gestión Documental',
+          externalHint:
+            'Usa Google (SGD CORAZA). Puede pedir cuenta Google la primera vez y tardar unos segundos en cargar.',
         },
         loadComponent: () =>
           import('./features/portal-bridge/external-app-redirect').then(

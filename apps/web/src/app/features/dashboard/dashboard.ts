@@ -53,19 +53,19 @@ interface KpiCard {
 
             <div class="hero-actions">
               @if (auth.hasPermission('associates.view')) {
-                <a [href]="externalApps.gestionHumana" class="hero-btn primary" rel="noopener noreferrer">
+                <a [href]="externalApps.gestionHumana" class="hero-btn primary" target="_blank" rel="noopener noreferrer">
                   <app-icon [icon]="icons.UsersRound" [size]="16" [strokeWidth]="2" />
                   Ir a Gestión Humana
                 </a>
               }
               @if (auth.hasPermission('scheduling.view')) {
-                <a [href]="externalApps.programacion" class="hero-btn ghost" rel="noopener noreferrer">
+                <a [href]="externalApps.programacion" class="hero-btn ghost" target="_blank" rel="noopener noreferrer">
                   <app-icon [icon]="icons.CalendarCheck" [size]="16" [strokeWidth]="2" />
                   Ir a Programación
                 </a>
               }
               @if (auth.hasPermission('documental.view')) {
-                <a [href]="externalApps.documental" class="hero-btn ghost" rel="noopener noreferrer">
+                <a [href]="externalApps.documental" class="hero-btn ghost" target="_blank" rel="noopener noreferrer">
                   <app-icon [icon]="icons.FileText" [size]="16" [strokeWidth]="2" />
                   Ir a Documental
                 </a>
@@ -123,7 +123,7 @@ interface KpiCard {
                     <app-icon [icon]="k.icon" [size]="20" [strokeWidth]="2" />
                   </div>
                   @if (k.externalUrl) {
-                    <a [href]="k.externalUrl" class="kpi-link" [attr.aria-label]="k.cta ?? k.label" rel="noopener noreferrer">
+                    <a [href]="k.externalUrl" class="kpi-link" [attr.aria-label]="k.cta ?? k.label" target="_blank" rel="noopener noreferrer">
                       <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
                     </a>
                   } @else if (k.route) {
@@ -140,7 +140,7 @@ interface KpiCard {
                   }
                 </div>
                 @if (k.externalUrl && k.cta) {
-                  <a [href]="k.externalUrl" class="kpi-cta" rel="noopener noreferrer">
+                  <a [href]="k.externalUrl" class="kpi-cta" target="_blank" rel="noopener noreferrer">
                     {{ k.cta }}
                     <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
                   </a>

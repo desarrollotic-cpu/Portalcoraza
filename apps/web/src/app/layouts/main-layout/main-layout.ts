@@ -68,12 +68,16 @@ interface NavGroup {
       <aside class="sidebar">
         <div class="sidebar-inner">
           <div class="brand">
-            <div class="brand-mark">
-              <app-icon [icon]="icons.ShieldCheck" [size]="20" [strokeWidth]="2.2" />
-            </div>
+            <img
+              class="brand-logo-img"
+              src="/brand/logo-coraza-cta.png"
+              width="44"
+              height="44"
+              alt="Coraza Seguridad C.T.A."
+            />
             <div class="brand-text">
               <span class="brand-name">Portal Coraza</span>
-              <span class="brand-tag">Panel operativo</span>
+              <span class="brand-tag">Coraza Seguridad C.T.A.</span>
             </div>
           </div>
 
@@ -86,8 +90,9 @@ interface NavGroup {
                     <a
                       [href]="item.externalUrl"
                       class="nav-item"
+                      target="_blank"
                       rel="noopener noreferrer"
-                      [attr.title]="'Abrir ' + item.label + ' (módulo oficial)'"
+                      [attr.title]="'Abrir ' + item.label + ' (módulo oficial en pestaña nueva)'"
                     >
                       <span class="nav-icon">
                         <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
@@ -338,6 +343,15 @@ interface NavGroup {
       justify-content: center;
       color: #fff;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.25);
+    }
+    .brand-logo-img {
+      width: 44px;
+      height: 44px;
+      object-fit: contain;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
+      flex-shrink: 0;
     }
     .brand-text {
       display: flex;
