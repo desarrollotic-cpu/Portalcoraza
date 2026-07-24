@@ -159,7 +159,8 @@ export class ReceptionService {
 
     const saved = await this.visitorsRepo.save(existing);
 
-    await this.audit.log({
+    // No bloquear la respuesta de salida por la auditoría.
+    void this.audit.log({
       userId,
       module: 'reception',
       action: 'exit',

@@ -39,6 +39,7 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 5 | `docs/GUIA-CIERRE-100.md` | **Setup post-clone + checklist al 100%** |
 | 6 | `docs/DEPLOY-RENDER.md` | Producción, URLs, video login, troubleshooting |
 | 7 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
+| 8 | `docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md` | **Reglas de negocio y procedimientos por módulo** |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 
