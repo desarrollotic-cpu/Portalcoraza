@@ -15,6 +15,7 @@ import {
   LucideUsersRound,
 } from '@lucide/angular';
 import { AuthService } from '../../core/services/auth.service';
+import { EXTERNAL_APPS } from '../../core/config/external-apps';
 import { Icon } from '../../shared/components/icon/icon';
 import { DashboardApiService, DashboardStats } from './dashboard-api.service';
 
@@ -23,6 +24,7 @@ interface KpiCard {
   value: number;
   icon: Type<unknown>;
   route?: string;
+  externalUrl?: string;
   cta?: string;
   hint?: string;
   gradient: string;
@@ -51,9 +53,21 @@ interface KpiCard {
 
             <div class="hero-actions">
               @if (auth.hasPermission('associates.view')) {
-                <a routerLink="/rrhh" class="hero-btn primary">
+                <a [href]="externalApps.gestionHumana" class="hero-btn primary" rel="noopener noreferrer">
                   <app-icon [icon]="icons.UsersRound" [size]="16" [strokeWidth]="2" />
-                  Ir a Recursos Humanos
+                  Ir a Gestión Humana
+                </a>
+              }
+              @if (auth.hasPermission('scheduling.view')) {
+                <a [href]="externalApps.programacion" class="hero-btn ghost" rel="noopener noreferrer">
+                  <app-icon [icon]="icons.CalendarCheck" [size]="16" [strokeWidth]="2" />
+                  Ir a Programación
+                </a>
+              }
+              @if (auth.hasPermission('documental.view')) {
+                <a [href]="externalApps.documental" class="hero-btn ghost" rel="noopener noreferrer">
+                  <app-icon [icon]="icons.FileText" [size]="16" [strokeWidth]="2" />
+                  Ir a Documental
                 </a>
               }
               @if (auth.hasPermission('inventory.view')) {
@@ -108,7 +122,11 @@ interface KpiCard {
                   <div class="kpi-icon" [style.background]="k.gradient">
                     <app-icon [icon]="k.icon" [size]="20" [strokeWidth]="2" />
                   </div>
-                  @if (k.route) {
+                  @if (k.externalUrl) {
+                    <a [href]="k.externalUrl" class="kpi-link" [attr.aria-label]="k.cta ?? k.label" rel="noopener noreferrer">
+                      <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
+                    </a>
+                  } @else if (k.route) {
                     <a [routerLink]="k.route" class="kpi-link" [attr.aria-label]="k.cta ?? k.label">
                       <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
                     </a>
@@ -121,7 +139,12 @@ interface KpiCard {
                     <span class="kpi-hint">{{ k.hint }}</span>
                   }
                 </div>
-                @if (k.route && k.cta) {
+                @if (k.externalUrl && k.cta) {
+                  <a [href]="k.externalUrl" class="kpi-cta" rel="noopener noreferrer">
+                    {{ k.cta }}
+                    <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+                  </a>
+                } @else if (k.route && k.cta) {
                   <a [routerLink]="k.route" class="kpi-cta">
                     {{ k.cta }}
                     <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
@@ -461,6 +484,7 @@ interface KpiCard {
 export class Dashboard implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(DashboardApiService);
+  readonly externalApps = EXTERNAL_APPS;
 
   readonly icons = {
     ArrowUpRight: LucideArrowUpRight,
@@ -511,8 +535,8 @@ export class Dashboard implements OnInit {
           label: 'Asociados activos',
           value: s.activeAssociates ?? 0,
           icon: LucideUsersRound,
-          route: '/rrhh',
-          cta: 'Ver asociados',
+          externalUrl: EXTERNAL_APPS.gestionHumana,
+          cta: 'Ir a Gestión Humana',
           gradient: 'var(--gradient-primary)',
         },
         {
@@ -527,8 +551,8 @@ export class Dashboard implements OnInit {
           label: 'Documentos a revisar',
           value: s.documentsToReview ?? 0,
           icon: LucideFileText,
-          route: '/documental',
-          cta: 'Ver documental',
+          externalUrl: EXTERNAL_APPS.documental,
+          cta: 'Ir a Documental',
           gradient: 'var(--gradient-success)',
         },
         {

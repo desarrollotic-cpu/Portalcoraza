@@ -40,6 +40,7 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { EXTERNAL_APPS } from '../../core/config/external-apps';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
 
@@ -50,6 +51,8 @@ interface NavItem {
   permission?: string;
   permissions?: string[];
   match?: 'subset' | 'exact';
+  /** Si existe, el ítem abre una app externa (portal = puerta de entrada). */
+  externalUrl?: string;
 }
 
 interface NavGroup {
@@ -79,22 +82,37 @@ interface NavGroup {
               <div class="nav-group">
                 <span class="nav-group-label">{{ group.label }}</span>
                 @for (item of group.items; track item.route) {
-                  <a
-                    [routerLink]="item.route"
-                    routerLinkActive="active"
-                    [routerLinkActiveOptions]="
-                      item.match === 'exact'
-                        ? { exact: true }
-                        : { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }
-                    "
-                    class="nav-item"
-                  >
-                    <span class="nav-icon">
-                      <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
-                    </span>
-                    <span class="nav-label">{{ item.label }}</span>
-                    <span class="nav-indicator"></span>
-                  </a>
+                  @if (item.externalUrl) {
+                    <a
+                      [href]="item.externalUrl"
+                      class="nav-item"
+                      rel="noopener noreferrer"
+                      [attr.title]="'Abrir ' + item.label + ' (módulo oficial)'"
+                    >
+                      <span class="nav-icon">
+                        <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
+                      </span>
+                      <span class="nav-label">{{ item.label }}</span>
+                      <span class="nav-indicator"></span>
+                    </a>
+                  } @else {
+                    <a
+                      [routerLink]="item.route"
+                      routerLinkActive="active"
+                      [routerLinkActiveOptions]="
+                        item.match === 'exact'
+                          ? { exact: true }
+                          : { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }
+                      "
+                      class="nav-item"
+                    >
+                      <span class="nav-icon">
+                        <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
+                      </span>
+                      <span class="nav-label">{{ item.label }}</span>
+                      <span class="nav-indicator"></span>
+                    </a>
+                  }
                 }
               </div>
             }
@@ -914,6 +932,7 @@ export class MainLayout implements OnDestroy {
           route: '/rrhh',
           icon: LucideUsersRound,
           permissions: ['associates.view', 'hr_dashboard.view'],
+          externalUrl: EXTERNAL_APPS.gestionHumana,
         },
         {
           label: 'Dotación',
@@ -926,12 +945,14 @@ export class MainLayout implements OnDestroy {
           route: '/programacion',
           icon: LucideCalendarClock,
           permission: 'scheduling.view',
+          externalUrl: EXTERNAL_APPS.programacion,
         },
         {
           label: 'Documental',
           route: '/documental',
           icon: LucideClipboardList,
           permission: 'documental.view',
+          externalUrl: EXTERNAL_APPS.documental,
         },
         {
           label: 'Recepción',
