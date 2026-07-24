@@ -36,6 +36,21 @@ Abrir solo la URL de la **API** en `/` devuelve `404 Cannot GET /` — es normal
 
 3. **Create Static Site** y espera el build.
 
+### Importante — rutas Angular (evitar “Not Found” en `/auth/login`)
+
+En **Render Dashboard** → servicio `portalcoraza-web` → **Redirects/Rewrites** → Add:
+
+| Campo | Valor |
+|-------|--------|
+| Source Path | `/*` |
+| Destination Path | `/index.html` |
+| Action | `Rewrite` |
+
+Sin esa regla, `https://portalcoraza-web.onrender.com/auth/login` devuelve **Not Found**.  
+La raíz `/` sí carga, pero las rutas profundas no.
+
+> Mientras esa regla no esté en el Dashboard, el frontend usa **HashLocation** (`/#/auth/login`) para que el portal funcione igual.
+
 ### Después del deploy del frontend
 
 1. Copia la URL del static site (ej. `https://portalcoraza-web.onrender.com`).

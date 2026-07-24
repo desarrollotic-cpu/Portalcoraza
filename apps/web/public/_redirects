@@ -1,3 +1,6 @@
-# Render Static Site — rewrites (SPA).
-# Archivos reales (JS/CSS/brand/videos) se sirven primero; el resto cae a index.html.
-/*    /index.html   200
+# Render Static Sites NO aplican este archivo como Netlify.
+# El rewrite SPA se configura en:
+#   Render Dashboard → portalcoraza-web → Redirects/Rewrites
+#   Source: /*   Destination: /index.html   Action: Rewrite
+#
+# Mientras tanto la app usa HashLocation (#/auth/login) para que las rutas funcionen.
