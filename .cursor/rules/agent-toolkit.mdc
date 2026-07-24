@@ -1,0 +1,26 @@
+---
+description: Cómo combinar Ponytail, Superpowers y Graphify en Portalcoraza
+alwaysApply: true
+---
+
+# Toolkit del agente (Portalcoraza)
+
+Estas reglas mejoran *cómo* desarrollas. No cambian el dominio del negocio.
+
+## Prioridad
+
+1. **Ponytail** (siempre): solución mínima, reutilizar lo existente en el monorepo, sin over-engineering. No recortar seguridad, validación ni permisos.
+2. **Superpowers** (features grandes / bugs difíciles): `brainstorming` → `writing-plans` → implementar → `verification-before-completion`. Para bugs: `systematic-debugging`. Para TDD en API Nest cuando el cambio lo merezca: `test-driven-development`.
+3. **Graphify** (mapa del repo): usar cuando haga falta entender arquitectura, conexiones entre módulos, o antes de un refactor amplio. Requiere CLI `graphify` si existe `graphify-out/`; si no está instalado, explorar con herramientas normales del agente.
+
+## Flujo típico
+
+- Cambio chico (UI, campo, fix): Ponytail + diff corto + commit/rama como pida JHON.
+- Feature nueva: brainstorm/plan (Superpowers) → implementar mínimo (Ponytail) → verificar.
+- “¿Dónde se conecta X?”: Graphify si hay grafo; si no, grep/lectura dirigida.
+
+## No hacer
+
+- No copiar código de esos repos al producto.
+- No inventar dependencias ni abstracciones “por si acaso”.
+- No saltarse el saludo por nombre (**JHON**) ni las reglas de git del usuario.

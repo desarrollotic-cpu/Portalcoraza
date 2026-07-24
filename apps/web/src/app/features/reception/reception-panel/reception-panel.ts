@@ -1,7 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { ToastService } from '../../../shared/services/toast.service';
 import {
   ReceptionApiService,
   ReceptionDashboard,
@@ -10,7 +12,7 @@ import {
 
 @Component({
   selector: 'app-reception-panel',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, ConfirmDialog],
   template: `
     <section class="page">
       <header class="head">
@@ -86,7 +88,14 @@ import {
                     <td>{{ v.entryAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                     <td class="actions">
                       @if (auth.hasPermission('reception.exit')) {
-                        <button type="button" class="btn-sm" (click)="exit(v)">Dar salida</button>
+                        <button
+                          type="button"
+                          class="btn-sm"
+                          [disabled]="exiting()"
+                          (click)="askExit(v)"
+                        >
+                          Dar salida
+                        </button>
                       }
                     </td>
                   </tr>
@@ -127,7 +136,14 @@ import {
                     </td>
                     <td class="actions">
                       @if (v.isInside && auth.hasPermission('reception.exit')) {
-                        <button type="button" class="btn-sm" (click)="exit(v)">Dar salida</button>
+                        <button
+                          type="button"
+                          class="btn-sm"
+                          [disabled]="exiting()"
+                          (click)="askExit(v)"
+                        >
+                          Dar salida
+                        </button>
                       }
                     </td>
                   </tr>
@@ -141,6 +157,23 @@ import {
           </div>
         </div>
       }
+
+      <app-confirm-dialog
+        [open]="!!pendingExit()"
+        title="Dar salida"
+        [message]="
+          pendingExit()
+            ? '¿Registrar la salida de ' + pendingExit()!.displayName + '?'
+            : ''
+        "
+        detail="Permanecerás en el panel para continuar con otros visitantes."
+        confirmLabel="Sí, dar salida"
+        [busy]="exiting()"
+        busyLabel="Registrando…"
+        [danger]="true"
+        (confirmed)="confirmExit()"
+        (cancelled)="closeExit()"
+      />
     </section>
   `,
   styles: `
@@ -264,11 +297,13 @@ import {
 export class ReceptionPanel implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
-  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly data = signal<ReceptionDashboard | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly pendingExit = signal<ReceptionVisitor | null>(null);
+  readonly exiting = signal(false);
 
   ngOnInit(): void {
     this.reload();
@@ -279,20 +314,55 @@ export class ReceptionPanel implements OnInit {
     return Math.max(4, Math.round((entries / max) * 100));
   }
 
-  exit(v: ReceptionVisitor): void {
-    if (!window.confirm(`¿Dar salida a ${v.displayName}?`)) return;
+  askExit(v: ReceptionVisitor): void {
+    this.pendingExit.set(v);
+  }
+
+  closeExit(): void {
+    if (this.exiting()) return;
+    this.pendingExit.set(null);
+  }
+
+  confirmExit(): void {
+    const v = this.pendingExit();
+    if (!v || this.exiting()) return;
+    this.exiting.set(true);
     this.api.registerExit(v.id).subscribe({
       next: (saved) => {
+        this.applyLocalExit(saved);
+        this.exiting.set(false);
+        this.pendingExit.set(null);
         const hora = saved.exitAt
-          ? new Date(saved.exitAt).toLocaleString('es-CO', {
-              dateStyle: 'short',
-              timeStyle: 'medium',
-            })
+          ? new Date(saved.exitAt).toLocaleTimeString('es-CO', { timeStyle: 'short' })
           : '';
-        window.alert(`Salida registrada${hora ? ` a las ${hora}` : ''}. Quedó en el historial.`);
-        this.router.navigateByUrl('/recepcion/historial');
+        this.toast.success(
+          'Salida registrada',
+          hora ? `${saved.displayName} · ${hora}` : saved.displayName,
+        );
       },
-      error: (err) => window.alert(err?.error?.message ?? 'No se pudo registrar la salida'),
+      error: (err) => {
+        this.exiting.set(false);
+        this.toast.error(err?.error?.message ?? 'No se pudo registrar la salida');
+      },
+    });
+  }
+
+  /** Actualiza KPIs/listas en memoria: evita reconsultar todo el dashboard. */
+  private applyLocalExit(saved: ReceptionVisitor): void {
+    const current = this.data();
+    if (!current) return;
+    const wasTodayInside = current.today.some((row) => row.id === saved.id && row.isInside);
+    this.data.set({
+      ...current,
+      stats: {
+        ...current.stats,
+        insideNow: Math.max(0, current.stats.insideNow - 1),
+        todayStillInside: wasTodayInside
+          ? Math.max(0, current.stats.todayStillInside - 1)
+          : current.stats.todayStillInside,
+      },
+      insideNow: current.insideNow.filter((row) => row.id !== saved.id),
+      today: current.today.map((row) => (row.id === saved.id ? { ...saved } : row)),
     });
   }
 

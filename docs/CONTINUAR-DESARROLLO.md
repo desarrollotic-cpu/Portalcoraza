@@ -39,6 +39,7 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 5 | `docs/GUIA-CIERRE-100.md` | **Setup post-clone + checklist al 100%** |
 | 6 | `docs/DEPLOY-RENDER.md` | Producción, URLs, video login, troubleshooting |
 | 7 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
+| 8 | `docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md` | **Reglas de negocio y procedimientos por módulo** |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 
@@ -107,13 +108,14 @@ Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA)
 
 ### Pendiente (no es código — configuración Supabase + pruebas)
 
-1. Migraciones SQL **001–008** en Supabase (si faltan)
-2. Seed `003_business_permissions.sql`
-3. Bucket **`delivery-signatures`** (2.7)
-4. **Realtime** en `notifications` (2.8)
+1. Migraciones SQL pendientes en Supabase (incl. recepción `022+` y **`025` Realtime**)
+2. Seed `003_business_permissions.sql` (si falta)
+3. Bucket **`delivery-signatures`** → **Private** (código de firmas privadas ya en `main`)
+4. Confirmar Realtime tras `025` (campana sin refrescar)
 5. **`apps/api/.env`** local con credenciales reales
-6. Pruebas E2E manuales (14.x)
-7. PNG logo opcional (15.7)
+6. Redeploy Render API + web
+7. Pruebas E2E manuales (14.x)
+8. PNG logo opcional (15.7)
 
 **Detalle:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md)
 

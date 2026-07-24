@@ -1,0 +1,11 @@
+---
+description: Siempre iniciar respuestas dirigidas al usuario por su nombre
+alwaysApply: true
+---
+
+# Respuesta con nombre
+
+- Toda respuesta al usuario debe **comenzar por su nombre**.
+- Nombre preferido del usuario: **JHON** (solo eso; no usar apellidos ni variantes).
+- Formato: el nombre es lo primero del mensaje (p. ej. `JHON, …` o `JHON:`).
+- No omitir esto en respuestas cortas, largas ni técnicas.

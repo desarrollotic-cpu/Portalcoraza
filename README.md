@@ -5,7 +5,8 @@ Plataforma web modular para gestión administrativa y operativa de vigilancia y 
 **Repositorio:** [github.com/desarrollotic-cpu/Portalcoraza](https://github.com/desarrollotic-cpu/Portalcoraza)
 
 > **¿Retomas el proyecto?** Lee [`docs/CONTINUAR-DESARROLLO.md`](docs/CONTINUAR-DESARROLLO.md) — mensaje para el agente.  
-> **¿Acabas de clonar?** Lee [`docs/GUIA-CIERRE-100.md`](docs/GUIA-CIERRE-100.md) — configuración `.env`, Supabase y checklist.
+> **¿Acabas de clonar?** Lee [`docs/GUIA-CIERRE-100.md`](docs/GUIA-CIERRE-100.md) — configuración `.env`, Supabase y checklist.  
+> **¿Cómo funciona el negocio?** Lee [`docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md`](docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md) — reglas y procedimientos por módulo.
 
 ## Estructura
 

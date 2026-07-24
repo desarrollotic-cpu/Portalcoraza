@@ -42,7 +42,7 @@ const REVERT_WINDOW_MS = 120 * 60 * 60 * 1000;
                 </td>
                 <td>{{ d.details.length }} línea(s)</td>
                 <td>
-                  <app-signature-viewer [url]="d.signatureUrl" />
+                  <app-signature-viewer [deliveryId]="d.signatureUrl ? d.id : null" />
                 </td>
                 <td>
                   @if (canRevert(d)) {

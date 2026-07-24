@@ -91,8 +91,8 @@ Marca cada ítem al completarlo:
 - [ ] **E.** Migraciones SQL **001–008** ejecutadas en Supabase
 - [ ] **F.** Seeds 001 + 003 ejecutados
 - [ ] **G.** Usuario administrador (`npm run seed:admin -w @coraza/api`)
-- [ ] **H.** Bucket Storage `delivery-signatures`
-- [ ] **I.** Realtime activo en tabla `notifications`
+- [ ] **H.** Bucket Storage `delivery-signatures` (**Private**; firmas vía API Nest)
+- [ ] **I.** Realtime en `notifications` (migración `025` o Replication en Dashboard)
 - [ ] **J.** Variables de entorno en Render (API) actualizadas
 
 ### Dotación (migrate-dotacion-ux)

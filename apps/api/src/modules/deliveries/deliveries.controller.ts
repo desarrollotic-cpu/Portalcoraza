@@ -121,6 +121,16 @@ export class DeliveriesController {
     return this.deliveriesService.create(dto, user.sub);
   }
 
+  @Get(':id/signature')
+  @RequirePermissions('deliveries.view')
+  async signature(@Param('id') id: string) {
+    const { data, contentType } = await this.deliveriesService.getSignatureImage(id);
+    return new StreamableFile(data, {
+      type: contentType,
+      disposition: `inline; filename="firma-${id}"`,
+    });
+  }
+
   @Post(':id/sign')
   @RequirePermissions('deliveries.sign')
   sign(

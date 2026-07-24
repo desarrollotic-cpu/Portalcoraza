@@ -2,6 +2,7 @@ import {
   AfterViewInit,
   Component,
   ElementRef,
+  HostListener,
   OnDestroy,
   ViewChild,
   forwardRef,
@@ -9,11 +10,17 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
+const EXPORT_MAX_WIDTH = 640;
+const JPEG_QUALITY = 0.55;
+const DISPLAY_HEIGHT = 240;
+
 class SimpleSignaturePad {
   private isDrawing = false;
   private lastX = 0;
   private lastY = 0;
   private isEmpty = true;
+  private scaleX = 1;
+  private scaleY = 1;
 
   constructor(private readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
@@ -21,15 +28,30 @@ class SimpleSignaturePad {
       throw new Error('Canvas no soportado');
     }
     this.ctx = ctx;
-    this.setupCanvas();
+    this.resizeToDisplay();
     this.bindEvents();
   }
 
   private readonly ctx: CanvasRenderingContext2D;
 
-  private setupCanvas(): void {
+  /** Ajusta el buffer interno al tamaño CSS (HiDPI / tablet). */
+  resizeToDisplay(): void {
+    const rect = this.canvas.getBoundingClientRect();
+    const cssWidth = Math.max(280, Math.round(rect.width || this.canvas.clientWidth || 500));
+    const cssHeight = Math.max(180, Math.round(rect.height || DISPLAY_HEIGHT));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    this.canvas.width = Math.round(cssWidth * dpr);
+    this.canvas.height = Math.round(cssHeight * dpr);
+    this.canvas.style.width = `${cssWidth}px`;
+    this.canvas.style.height = `${cssHeight}px`;
+
+    this.scaleX = this.canvas.width / cssWidth;
+    this.scaleY = this.canvas.height / cssHeight;
+
+    this.ctx.setTransform(this.scaleX, 0, 0, this.scaleY, 0, 0);
     this.ctx.strokeStyle = '#000000';
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = 2.75;
     this.ctx.lineCap = 'round';
     this.ctx.lineJoin = 'round';
     this.clear();
@@ -45,25 +67,31 @@ class SimpleSignaturePad {
     this.canvas.addEventListener('touchend', this.onMouseUp);
   }
 
+  private pointerPos(clientX: number, clientY: number): { x: number; y: number } {
+    const rect = this.canvas.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+    };
+  }
+
   private readonly onMouseDown = (e: MouseEvent): void => {
     this.isDrawing = true;
-    const rect = this.canvas.getBoundingClientRect();
-    this.lastX = e.clientX - rect.left;
-    this.lastY = e.clientY - rect.top;
+    const p = this.pointerPos(e.clientX, e.clientY);
+    this.lastX = p.x;
+    this.lastY = p.y;
     this.isEmpty = false;
   };
 
   private readonly onMouseMove = (e: MouseEvent): void => {
     if (!this.isDrawing) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    const p = this.pointerPos(e.clientX, e.clientY);
     this.ctx.beginPath();
     this.ctx.moveTo(this.lastX, this.lastY);
-    this.ctx.lineTo(x, y);
+    this.ctx.lineTo(p.x, p.y);
     this.ctx.stroke();
-    this.lastX = x;
-    this.lastY = y;
+    this.lastX = p.x;
+    this.lastY = p.y;
   };
 
   private readonly onMouseUp = (): void => {
@@ -74,32 +102,54 @@ class SimpleSignaturePad {
     e.preventDefault();
     const touch = e.touches[0];
     if (!touch) return;
-    const rect = this.canvas.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
+    const p = this.pointerPos(touch.clientX, touch.clientY);
     if (e.type === 'touchstart') {
       this.isDrawing = true;
-      this.lastX = x;
-      this.lastY = y;
+      this.lastX = p.x;
+      this.lastY = p.y;
       this.isEmpty = false;
     } else if (e.type === 'touchmove' && this.isDrawing) {
       this.ctx.beginPath();
       this.ctx.moveTo(this.lastX, this.lastY);
-      this.ctx.lineTo(x, y);
+      this.ctx.lineTo(p.x, p.y);
       this.ctx.stroke();
-      this.lastX = x;
-      this.lastY = y;
+      this.lastX = p.x;
+      this.lastY = p.y;
     }
   };
 
   clear(): void {
+    // Clear in CSS pixel space (current transform already applied).
+    const w = this.canvas.width / this.scaleX;
+    const h = this.canvas.height / this.scaleY;
+    this.ctx.save();
+    this.ctx.setTransform(this.scaleX, 0, 0, this.scaleY, 0, 0);
     this.ctx.fillStyle = '#ffffff';
-    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    this.ctx.fillRect(0, 0, w, h);
+    this.ctx.restore();
     this.isEmpty = true;
   }
 
+  /** JPEG comprimido; reescala a EXPORT_MAX_WIDTH si el canvas es más ancho. */
   toDataURL(): string {
-    return this.canvas.toDataURL('image/png');
+    const src = this.canvas;
+    const maxW = EXPORT_MAX_WIDTH;
+    if (src.width <= maxW) {
+      return src.toDataURL('image/jpeg', JPEG_QUALITY);
+    }
+
+    const ratio = maxW / src.width;
+    const out = document.createElement('canvas');
+    out.width = maxW;
+    out.height = Math.max(1, Math.round(src.height * ratio));
+    const ctx = out.getContext('2d');
+    if (!ctx) {
+      return src.toDataURL('image/jpeg', JPEG_QUALITY);
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, out.width, out.height);
+    ctx.drawImage(src, 0, 0, out.width, out.height);
+    return out.toDataURL('image/jpeg', JPEG_QUALITY);
   }
 
   get empty(): boolean {
@@ -128,7 +178,8 @@ class SimpleSignaturePad {
   ],
   template: `
     <div class="signature-pad">
-      <canvas #canvas width="500" height="180"></canvas>
+      <p class="label">Firma del asociado que recibe</p>
+      <canvas #canvas class="pad-canvas"></canvas>
       <button type="button" class="btn-secondary" (click)="clear()">Limpiar firma</button>
       @if (hint()) {
         <p class="hint">{{ hint() }}</p>
@@ -136,23 +187,39 @@ class SimpleSignaturePad {
     </div>
   `,
   styles: `
-    .signature-pad { display: flex; flex-direction: column; gap: 0.5rem; }
-    canvas {
+    .signature-pad {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .label {
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-secondary, var(--coraza-text-muted));
+    }
+    .pad-canvas {
+      display: block;
+      width: 100%;
+      height: ${DISPLAY_HEIGHT}px;
       border: 1px solid var(--coraza-border);
-      border-radius: 8px;
+      border-radius: 10px;
       background: #fff;
       touch-action: none;
       cursor: crosshair;
-      width: 100%;
-      max-width: 500px;
+      box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
     }
     .btn-secondary {
       align-self: flex-start;
-      padding: 0.4rem 0.75rem;
+      padding: 0.45rem 0.85rem;
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
       background: var(--coraza-surface);
+      color: var(--text-primary, inherit);
       cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
     }
     .hint { margin: 0; font-size: 0.85rem; color: var(--coraza-text-muted); }
   `,
@@ -164,6 +231,7 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
   private pad: SimpleSignaturePad | null = null;
   private onChange: (value: string | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
+  private resizeTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngAfterViewInit(): void {
     this.pad = new SimpleSignaturePad(this.canvasRef.nativeElement);
@@ -174,10 +242,26 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
     };
     this.canvasRef.nativeElement.addEventListener('mouseup', emit);
     this.canvasRef.nativeElement.addEventListener('touchend', emit);
+    // Second pass after layout settles (modals / tablet).
+    queueMicrotask(() => this.pad?.resizeToDisplay());
   }
 
   ngOnDestroy(): void {
+    if (this.resizeTimer) clearTimeout(this.resizeTimer);
     this.pad?.destroy();
+  }
+
+  @HostListener('window:resize')
+  onWindowResize(): void {
+    if (this.resizeTimer) clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(() => {
+      const wasEmpty = this.pad?.empty ?? true;
+      this.pad?.resizeToDisplay();
+      if (!wasEmpty) {
+        this.onChange(null);
+        this.hint.set('La firma se limpió al cambiar el tamaño. Vuelve a firmar.');
+      }
+    }, 180);
   }
 
   clear(): void {

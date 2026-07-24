@@ -1,13 +1,14 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ToastService } from '../../../shared/services/toast.service';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service';
 
 @Component({
   selector: 'app-reception-inside',
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, ConfirmDialog],
   template: `
     <section class="page">
       <header class="head">
@@ -15,7 +16,9 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           <h2>Visitantes dentro</h2>
           <p>Personas que tienen entrada registrada y aún no tienen salida.</p>
         </div>
-        <button type="button" class="ghost" (click)="reload()">Actualizar</button>
+        <button type="button" class="ghost" (click)="reload()" [disabled]="loading()">
+          Actualizar
+        </button>
       </header>
 
       <div class="filter">
@@ -73,7 +76,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
                 </td>
                 <td class="actions">
                   @if (auth.hasPermission('reception.exit')) {
-                    <button type="button" class="btn-sm" (click)="exit(v)">Dar salida</button>
+                    <button
+                      type="button"
+                      class="btn-sm"
+                      [disabled]="exiting()"
+                      (click)="askExit(v)"
+                    >
+                      Dar salida
+                    </button>
                   }
                 </td>
               </tr>
@@ -85,6 +95,23 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           </tbody>
         </table>
       }
+
+      <app-confirm-dialog
+        [open]="!!pendingExit()"
+        title="Dar salida"
+        [message]="
+          pendingExit()
+            ? '¿Registrar la salida de ' + pendingExit()!.displayName + '?'
+            : ''
+        "
+        detail="Seguirás en esta lista para atender a otros visitantes."
+        confirmLabel="Sí, dar salida"
+        [busy]="exiting()"
+        busyLabel="Registrando…"
+        [danger]="true"
+        (confirmed)="confirmExit()"
+        (cancelled)="closeExit()"
+      />
     </section>
   `,
   styles: `
@@ -145,6 +172,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       padding: 0.45rem 0.8rem;
       font-size: 0.82rem;
     }
+    .ghost:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-sm {
       padding: 0.35rem 0.75rem;
       border-radius: 999px;
@@ -156,6 +184,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       cursor: pointer;
       white-space: nowrap;
     }
+    .btn-sm:disabled { opacity: 0.6; cursor: not-allowed; }
     .empty { color: var(--text-secondary); }
     .error { color: var(--coraza-error); }
   `,
@@ -163,12 +192,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
 export class ReceptionInside implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
-  private readonly router = inject(Router);
+  private readonly toast = inject(ToastService);
 
   readonly visitors = signal<ReceptionVisitor[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly search = signal('');
+  readonly pendingExit = signal<ReceptionVisitor | null>(null);
+  readonly exiting = signal(false);
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -194,6 +225,7 @@ export class ReceptionInside implements OnInit {
 
   reload(): void {
     this.loading.set(true);
+    this.error.set(null);
     this.api.listVisitors(true).subscribe({
       next: (visitors) => {
         this.visitors.set(visitors);
@@ -206,20 +238,37 @@ export class ReceptionInside implements OnInit {
     });
   }
 
-  exit(v: ReceptionVisitor): void {
-    if (!window.confirm(`¿Dar salida a ${v.displayName}?`)) return;
+  askExit(v: ReceptionVisitor): void {
+    this.pendingExit.set(v);
+  }
+
+  closeExit(): void {
+    if (this.exiting()) return;
+    this.pendingExit.set(null);
+  }
+
+  confirmExit(): void {
+    const v = this.pendingExit();
+    if (!v || this.exiting()) return;
+    this.exiting.set(true);
     this.api.registerExit(v.id).subscribe({
       next: (saved) => {
+        // Actualización local: no recargar toda la lista ni ir al historial.
+        this.visitors.update((list) => list.filter((row) => row.id !== saved.id));
+        this.exiting.set(false);
+        this.pendingExit.set(null);
         const hora = saved.exitAt
-          ? new Date(saved.exitAt).toLocaleString('es-CO', {
-              dateStyle: 'short',
-              timeStyle: 'medium',
-            })
+          ? new Date(saved.exitAt).toLocaleTimeString('es-CO', { timeStyle: 'short' })
           : '';
-        window.alert(`Salida registrada${hora ? ` a las ${hora}` : ''}. Quedó en el historial.`);
-        this.router.navigateByUrl('/recepcion/historial');
+        this.toast.success(
+          'Salida registrada',
+          hora ? `${saved.displayName} · ${hora}` : saved.displayName,
+        );
       },
-      error: (err) => window.alert(err?.error?.message ?? 'No se pudo registrar la salida'),
+      error: (err) => {
+        this.exiting.set(false);
+        this.toast.error(err?.error?.message ?? 'No se pudo registrar la salida');
+      },
     });
   }
 

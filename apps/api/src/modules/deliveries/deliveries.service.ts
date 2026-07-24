@@ -604,18 +604,45 @@ export class DeliveriesService {
     return delivery;
   }
 
+  async getSignatureImage(id: string): Promise<{ data: Buffer; contentType: string }> {
+    const delivery = await this.deliveriesRepo.findOne({ where: { id } });
+    if (!delivery) {
+      throw new NotFoundException('Entrega no encontrada');
+    }
+    if (!delivery.signatureUrl) {
+      throw new NotFoundException('Esta entrega no tiene firma');
+    }
+    return this.downloadSignatureByStoredUrl(delivery.signatureUrl);
+  }
+
+  async downloadSignatureByStoredUrl(
+    signatureUrl: string,
+  ): Promise<{ data: Buffer; contentType: string }> {
+    const bucket = this.config.get<string>('SUPABASE_SIGNATURE_BUCKET', 'delivery-signatures');
+    const filePath = this.supabaseStorage.extractFilePath(signatureUrl, bucket);
+    if (!filePath) {
+      throw new NotFoundException('Ruta de firma inválida');
+    }
+    try {
+      return await this.supabaseStorage.downloadObject(bucket, filePath);
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'Error desconocido';
+      throw new NotFoundException(`No se pudo obtener la firma: ${reason}`);
+    }
+  }
+
   private async uploadSignature(deliveryId: string, signatureData: string): Promise<string> {
-    const base64 = this.extractBase64(signatureData);
+    const { base64, contentType, extension } = this.parseSignaturePayload(signatureData);
     const fileBuffer = Buffer.from(base64, 'base64');
     const bucket = this.config.get<string>('SUPABASE_SIGNATURE_BUCKET', 'delivery-signatures');
-    const filePath = `${deliveryId}/${Date.now()}.png`;
+    const filePath = `${deliveryId}/${Date.now()}.${extension}`;
 
     try {
       return await this.supabaseStorage.uploadPublicObject(
         bucket,
         filePath,
         fileBuffer,
-        'image/png',
+        contentType,
       );
     } catch (error) {
       const reason = error instanceof Error ? error.message : 'Error desconocido';
@@ -623,13 +650,34 @@ export class DeliveriesService {
     }
   }
 
-  private extractBase64(signatureData: string): string {
+  private parseSignaturePayload(signatureData: string): {
+    base64: string;
+    contentType: string;
+    extension: string;
+  } {
+    const dataUrlMatch = /^data:(image\/(?:jpeg|jpg|png|webp));base64,(.+)$/i.exec(
+      signatureData.trim(),
+    );
+    if (dataUrlMatch) {
+      const mime = dataUrlMatch[1].toLowerCase().replace('image/jpg', 'image/jpeg');
+      const extension = mime.includes('png') ? 'png' : mime.includes('webp') ? 'webp' : 'jpg';
+      return {
+        base64: dataUrlMatch[2],
+        contentType: mime,
+        extension,
+      };
+    }
+
     const marker = 'base64,';
     const markerIndex = signatureData.indexOf(marker);
-    if (markerIndex >= 0) {
-      return signatureData.slice(markerIndex + marker.length);
-    }
-    return signatureData;
+    const base64 =
+      markerIndex >= 0 ? signatureData.slice(markerIndex + marker.length) : signatureData;
+    // Legacy / sin prefijo: asumir JPEG comprimido del pad actual.
+    return {
+      base64,
+      contentType: 'image/jpeg',
+      extension: 'jpg',
+    };
   }
 
   private async assertDeliverableAssociate(associateId: string): Promise<Associate> {

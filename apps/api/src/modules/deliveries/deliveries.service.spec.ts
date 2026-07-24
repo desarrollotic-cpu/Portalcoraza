@@ -1,10 +1,12 @@
-import { ConflictException, BadRequestException } from '@nestjs/common';
+import { ConflictException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SupabaseStorageService } from '../../common/services/supabase-storage.service';
 import { AuditService } from '../audit/audit.service';
+import { Associate } from '../associates/entities/associate.entity';
+import { InventoryService } from '../inventory/inventory.service';
 import { InventoryVariant } from '../inventory/entities/inventory-variant.entity';
 import { Post } from '../posts/entities/post.entity';
 import { DeliveriesService } from './deliveries.service';
@@ -15,12 +17,23 @@ describe('DeliveriesService', () => {
   let service: DeliveriesService;
   let deliveriesRepo: jest.Mocked<Repository<Delivery>>;
   let variantsRepo: jest.Mocked<Repository<InventoryVariant>>;
+  let storage: {
+    uploadPublicObject: jest.Mock;
+    downloadObject: jest.Mock;
+    extractFilePath: jest.Mock;
+  };
 
   const deliveryId = 'delivery-1';
   const variantId = 'variant-1';
   const userId = 'user-1';
 
   beforeEach(async () => {
+    storage = {
+      uploadPublicObject: jest.fn().mockResolvedValue('https://example.com/sig.png'),
+      downloadObject: jest.fn(),
+      extractFilePath: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DeliveriesService,
@@ -55,6 +68,12 @@ describe('DeliveriesService', () => {
           },
         },
         {
+          provide: getRepositoryToken(Associate),
+          useValue: {
+            findOne: jest.fn(),
+          },
+        },
+        {
           provide: ConfigService,
           useValue: {
             get: jest.fn().mockReturnValue('delivery-signatures'),
@@ -66,8 +85,15 @@ describe('DeliveriesService', () => {
         },
         {
           provide: SupabaseStorageService,
+          useValue: storage,
+        },
+        {
+          provide: InventoryService,
           useValue: {
-            uploadPublicObject: jest.fn().mockResolvedValue('https://example.com/sig.png'),
+            countLowStockVariants: jest.fn(),
+            listLowStockVariants: jest.fn(),
+            countItems: jest.fn(),
+            countVariants: jest.fn(),
           },
         },
       ],
@@ -138,6 +164,43 @@ describe('DeliveriesService', () => {
       expect(result.status).toBe(DeliveryStatus.REVERTED);
       expect(variant.stockCurrent).toBe(13);
       expect(variantsRepo.save).toHaveBeenCalledWith(variant);
+    });
+  });
+
+  describe('getSignatureImage', () => {
+    it('404 cuando la entrega no existe', async () => {
+      deliveriesRepo.findOne.mockResolvedValue(null);
+      await expect(service.getSignatureImage(deliveryId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('404 cuando no hay signatureUrl', async () => {
+      deliveriesRepo.findOne.mockResolvedValue({
+        id: deliveryId,
+        signatureUrl: null,
+      } as Delivery);
+      await expect(service.getSignatureImage(deliveryId)).rejects.toThrow(NotFoundException);
+    });
+
+    it('descarga bytes desde Storage usando el path extraído', async () => {
+      const stored =
+        'https://xxx.supabase.co/storage/v1/object/public/delivery-signatures/delivery-1/1.jpg';
+      deliveriesRepo.findOne.mockResolvedValue({
+        id: deliveryId,
+        signatureUrl: stored,
+      } as Delivery);
+      storage.extractFilePath.mockReturnValue('delivery-1/1.jpg');
+      storage.downloadObject.mockResolvedValue({
+        data: Buffer.from('img'),
+        contentType: 'image/jpeg',
+      });
+
+      const result = await service.getSignatureImage(deliveryId);
+      expect(result.contentType).toBe('image/jpeg');
+      expect(result.data.toString()).toBe('img');
+      expect(storage.downloadObject).toHaveBeenCalledWith(
+        'delivery-signatures',
+        'delivery-1/1.jpg',
+      );
     });
   });
 });

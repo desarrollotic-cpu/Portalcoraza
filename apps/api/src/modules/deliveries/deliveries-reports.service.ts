@@ -4,8 +4,11 @@ import PDFDocument = require('pdfkit');
 import { Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
+import { DeliveriesService } from './deliveries.service';
 import { DeliveryDetail } from './entities/delivery-detail.entity';
 import { Delivery, DeliveryStatus } from './entities/delivery.entity';
+
+type PdfDoc = InstanceType<typeof PDFDocument>;
 
 @Injectable()
 export class DeliveriesReportsService {
@@ -18,6 +21,7 @@ export class DeliveriesReportsService {
     private readonly associatesRepo: Repository<Associate>,
     @InjectRepository(InventoryItem)
     private readonly itemsRepo: Repository<InventoryItem>,
+    private readonly deliveriesService: DeliveriesService,
   ) {}
 
   buildGeneralReport(): Promise<Buffer> {
@@ -37,18 +41,21 @@ export class DeliveriesReportsService {
         .orderBy('SUM(dd.quantity)', 'DESC')
         .getRawMany<{ itemName: string; sku: string; totalQuantity: string }>();
 
-      doc.fontSize(12).text('Totales por elemento', { underline: true });
+      doc.fontSize(12).fillColor('#0f172a').text('Totales por elemento', { underline: true });
       doc.moveDown(0.5);
       if (!totals.length) {
-        doc.text('No hay entregas confirmadas.');
+        doc.fontSize(10).fillColor('#64748b').text('No hay entregas confirmadas.');
       } else {
         for (const row of totals) {
-          doc.text(`${row.itemName} (${row.sku}): ${row.totalQuantity} unidades`);
+          doc
+            .fontSize(10)
+            .fillColor('#0f172a')
+            .text(`${row.itemName} (${row.sku}): ${row.totalQuantity} unidades`);
         }
       }
 
       doc.moveDown();
-      doc.fontSize(12).text('Detalle de entregas', { underline: true });
+      doc.fontSize(12).fillColor('#0f172a').text('Detalle de entregas', { underline: true });
       doc.moveDown(0.5);
 
       const lines = await this.detailsRepo
@@ -62,7 +69,7 @@ export class DeliveriesReportsService {
         .getMany();
 
       if (!lines.length) {
-        doc.text('Sin detalle.');
+        doc.fontSize(10).fillColor('#64748b').text('Sin detalle.');
         return;
       }
 
@@ -71,9 +78,12 @@ export class DeliveriesReportsService {
         const associate = line.delivery.associate
           ? this.formatAssociate(line.delivery.associate)
           : 'Puesto / sin asociado';
-        doc.fontSize(10).text(
-          `${this.formatDate(date)} | ${associate} | ${line.variant.item.name} (${line.variant.sku}) | Cant: ${line.quantity}`,
-        );
+        doc
+          .fontSize(10)
+          .fillColor('#0f172a')
+          .text(
+            `${this.formatDate(date)} | ${associate} | ${line.variant.item.name} (${line.variant.sku}) | Cant: ${line.quantity}`,
+          );
       }
     });
   }
@@ -97,7 +107,7 @@ export class DeliveriesReportsService {
         .getMany();
 
       if (!lines.length) {
-        doc.text('No hay entregas confirmadas para este elemento.');
+        doc.fontSize(10).fillColor('#64748b').text('No hay entregas confirmadas para este elemento.');
         return;
       }
 
@@ -108,12 +118,15 @@ export class DeliveriesReportsService {
         const associate = line.delivery.associate
           ? this.formatAssociate(line.delivery.associate)
           : 'Puesto / sin asociado';
-        doc.fontSize(10).text(
-          `${this.formatDate(date)} | ${associate} | ${line.variant.sku} | Cant: ${line.quantity}`,
-        );
+        doc
+          .fontSize(10)
+          .fillColor('#0f172a')
+          .text(
+            `${this.formatDate(date)} | ${associate} | ${line.variant.sku} | Cant: ${line.quantity}`,
+          );
       }
       doc.moveDown();
-      doc.fontSize(11).text(`Total entregado: ${total} unidades`);
+      doc.fontSize(11).fillColor('#0f172a').text(`Total entregado: ${total} unidades`);
     });
   }
 
@@ -123,45 +136,184 @@ export class DeliveriesReportsService {
       throw new NotFoundException('Asociado no encontrado');
     }
 
-    return this.renderPdf(
-      `Reporte individual: ${this.formatAssociate(associate)}`,
-      async (doc) => {
-        doc.fontSize(10).text(`Documento: ${associate.documentNumber}`);
+    const fullName = this.formatAssociate(associate);
+
+    return this.renderPdf('Comprobante de entregas de dotación', async (doc) => {
+      this.drawSectionBox(doc, () => {
+        doc.fontSize(11).fillColor('#0f172a').text('Datos del asociado', { underline: true });
+        doc.moveDown(0.35);
+        doc.fontSize(10).fillColor('#0f172a').text(`Nombre: ${fullName}`);
+        doc.text(`Documento: ${associate.documentNumber}`);
+        doc
+          .fontSize(9)
+          .fillColor('#64748b')
+          .text('Cada ficha incluye los elementos entregados y la firma de recibido del asociado.');
+      });
+
+      const deliveries = await this.deliveriesRepo.find({
+        where: { associateId, status: DeliveryStatus.DELIVERED },
+        relations: { details: { variant: { item: true } } },
+        order: { deliveredAt: 'DESC' },
+      });
+
+      if (!deliveries.length) {
         doc.moveDown();
+        doc.fontSize(10).fillColor('#64748b').text('El asociado no tiene entregas confirmadas.');
+        return;
+      }
 
-        const deliveries = await this.deliveriesRepo.find({
-          where: { associateId, status: DeliveryStatus.DELIVERED },
-          relations: { details: { variant: { item: true } } },
-          order: { deliveredAt: 'DESC' },
-        });
+      doc.moveDown(0.75);
+      doc
+        .fontSize(10)
+        .fillColor('#475569')
+        .text(`Total de entregas firmadas: ${deliveries.length}`);
+      doc.moveDown(0.5);
 
-        if (!deliveries.length) {
-          doc.text('El asociado no tiene entregas confirmadas.');
-          return;
-        }
-
-        for (const delivery of deliveries) {
-          const date = delivery.deliveredAt ?? delivery.createdAt;
-          doc.fontSize(11).text(`Entrega ${this.formatDate(date)}`, { underline: true });
-          if (delivery.observations?.trim()) {
-            doc.fontSize(10).text(`Observaciones: ${delivery.observations.trim()}`);
-          }
-          for (const detail of delivery.details) {
-            doc.fontSize(10).text(
-              `• ${detail.variant.item.name} (${detail.variant.sku}) — ${detail.quantity} u.`,
-            );
-          }
-          doc.moveDown(0.5);
-        }
-      },
-    );
+      let index = 0;
+      for (const delivery of deliveries) {
+        index += 1;
+        await this.drawDeliveryCard(doc, delivery, index, deliveries.length);
+      }
+    });
   }
 
-  private async renderPdf(
-    title: string,
-    write: (doc: InstanceType<typeof PDFDocument>) => Promise<void>,
-  ): Promise<Buffer> {
-    const doc = new PDFDocument({ margin: 50, size: 'A4' });
+  private async drawDeliveryCard(
+    doc: PdfDoc,
+    delivery: Delivery,
+    index: number,
+    total: number,
+  ): Promise<void> {
+    const date = delivery.deliveredAt ?? delivery.createdAt;
+    const shortId = delivery.id.slice(0, 8).toUpperCase();
+    const estimatedHeight = 170 + delivery.details.length * 14;
+
+    if (doc.y + estimatedHeight > doc.page.height - doc.page.margins.bottom) {
+      doc.addPage();
+    }
+
+    const startY = doc.y;
+    const left = doc.page.margins.left;
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+
+    doc
+      .fontSize(12)
+      .fillColor('#312e81')
+      .text(`Entrega ${index} de ${total}`, left, startY, { width });
+    doc
+      .fontSize(9)
+      .fillColor('#64748b')
+      .text(`Fecha: ${this.formatDate(date)}   ·   Ref: ${shortId}`, { width });
+
+    doc.moveDown(0.45);
+    doc.fontSize(10).fillColor('#0f172a').text('Elementos entregados', { underline: true });
+    doc.moveDown(0.25);
+
+    if (!delivery.details?.length) {
+      doc.fontSize(9).fillColor('#64748b').text('Sin detalle de ítems.');
+    } else {
+      for (const detail of delivery.details) {
+        const itemName = detail.variant?.item?.name ?? 'Elemento';
+        const sku = detail.variant?.sku ?? '—';
+        doc
+          .fontSize(10)
+          .fillColor('#0f172a')
+          .text(`• ${itemName}  |  SKU: ${sku}  |  Cantidad: ${detail.quantity} u.`, {
+            width,
+          });
+      }
+    }
+
+    if (delivery.observations?.trim()) {
+      doc.moveDown(0.35);
+      doc.fontSize(9).fillColor('#475569').text(`Observaciones: ${delivery.observations.trim()}`, {
+        width,
+      });
+    }
+
+    doc.moveDown(0.5);
+    doc.fontSize(10).fillColor('#0f172a').text('Firma del asociado (recibido)', { underline: true });
+    doc.moveDown(0.3);
+
+    const signatureBuffer = delivery.signatureUrl
+      ? await this.fetchSignatureImage(delivery.signatureUrl)
+      : null;
+
+    const sigBoxX = left;
+    const sigBoxY = doc.y;
+    const sigBoxW = Math.min(260, width);
+    const sigBoxH = 88;
+
+    doc.rect(sigBoxX, sigBoxY, sigBoxW, sigBoxH).strokeColor('#cbd5e1').lineWidth(0.8).stroke();
+
+    if (signatureBuffer) {
+      try {
+        doc.image(signatureBuffer, sigBoxX + 8, sigBoxY + 6, {
+          fit: [sigBoxW - 16, sigBoxH - 12],
+          align: 'center',
+          valign: 'center',
+        });
+      } catch {
+        doc
+          .fontSize(9)
+          .fillColor('#64748b')
+          .text('Firma no disponible', sigBoxX + 12, sigBoxY + sigBoxH / 2 - 6);
+      }
+    } else {
+      doc
+        .fontSize(9)
+        .fillColor('#64748b')
+        .text('Firma no disponible', sigBoxX + 12, sigBoxY + sigBoxH / 2 - 6);
+    }
+
+    doc.y = sigBoxY + sigBoxH + 6;
+    doc
+      .fontSize(8)
+      .fillColor('#64748b')
+      .text('Firma de recibido — Portal Coraza / Dotación', left, doc.y, { width });
+
+    doc.moveDown(0.85);
+    doc
+      .moveTo(left, doc.y)
+      .lineTo(left + width, doc.y)
+      .strokeColor('#e2e8f0')
+      .lineWidth(0.6)
+      .stroke();
+    doc.moveDown(0.75);
+  }
+
+  private drawSectionBox(doc: PdfDoc, write: () => void): void {
+    const left = doc.page.margins.left;
+    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const top = doc.y;
+    write();
+    const bottom = doc.y + 4;
+    doc
+      .rect(left - 6, top - 6, width + 12, bottom - top + 8)
+      .strokeColor('#e2e8f0')
+      .lineWidth(0.8)
+      .stroke();
+    doc.y = bottom + 4;
+  }
+
+  private async fetchSignatureImage(storedUrl: string): Promise<Buffer | null> {
+    try {
+      const { data } = await this.deliveriesService.downloadSignatureByStoredUrl(storedUrl);
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  private async renderPdf(title: string, write: (doc: PdfDoc) => Promise<void>): Promise<Buffer> {
+    const doc = new PDFDocument({
+      margin: 48,
+      size: 'A4',
+      info: {
+        Title: title,
+        Author: 'Portal Coraza',
+        Subject: 'Dotación',
+      },
+    });
     const chunks: Buffer[] = [];
 
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
@@ -171,11 +323,21 @@ export class DeliveriesReportsService {
       doc.on('error', reject);
     });
 
-    doc.fontSize(16).text('Portal Coraza — Dotación', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.fontSize(13).text(title, { align: 'center' });
-    doc.fontSize(9).text(`Generado: ${this.formatDate(new Date())}`, { align: 'center' });
-    doc.moveDown();
+    doc.fontSize(16).fillColor('#312e81').text('Portal Coraza — Dotación', { align: 'center' });
+    doc.moveDown(0.35);
+    doc.fontSize(13).fillColor('#0f172a').text(title, { align: 'center' });
+    doc
+      .fontSize(9)
+      .fillColor('#64748b')
+      .text(`Generado: ${this.formatDate(new Date())}`, { align: 'center' });
+    doc.moveDown(0.85);
+    doc
+      .moveTo(doc.page.margins.left, doc.y)
+      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .strokeColor('#c7d2fe')
+      .lineWidth(1)
+      .stroke();
+    doc.moveDown(0.85);
 
     await write(doc);
     doc.end();

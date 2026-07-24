@@ -320,6 +320,10 @@ export class InventoryApiService {
     return this.http.post<Delivery>(`${this.deliveriesUrl}/${id}/sign`, { signatureData });
   }
 
+  getDeliverySignatureBlob(id: string): Observable<Blob> {
+    return this.http.get(`${this.deliveriesUrl}/${id}/signature`, { responseType: 'blob' });
+  }
+
   revertDelivery(id: string, reason: string): Observable<Delivery> {
     return this.http.post<Delivery>(`${this.deliveriesUrl}/${id}/revert`, { reason });
   }
