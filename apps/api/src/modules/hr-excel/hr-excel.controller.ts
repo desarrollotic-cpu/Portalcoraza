@@ -33,7 +33,11 @@ export class HrExcelController {
   @Post('import/execute')
   @RequirePermissions('hr_import.execute')
   async execute(@Body() dto: ExecuteImportDto, @CurrentUser() user: JwtPayload) {
-    return this.service.executeImport(dto.rows as never, user.sub);
+    return this.service.executeImport(
+      dto.rows as never,
+      user.sub,
+      dto.mode ?? 'UPDATE_DUPLICATES',
+    );
   }
 
   @Get('template')

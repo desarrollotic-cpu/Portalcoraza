@@ -132,33 +132,58 @@ export class HrAlertsService {
         summary.total += 1;
         summary[alertType] = (summary[alertType] ?? 0) + 1;
       }
+
+      // Si ya venció, apagar flags de vigencia en el asociado (motor diario).
+      if (isOverdue) {
+        if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOFISICO) {
+          await this.associatesRepo.update(
+            { id: doc.associateId },
+            { psychophysicalValid: false },
+          );
+        } else if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO) {
+          await this.associatesRepo.update(
+            { id: doc.associateId },
+            { psychosensometricValid: false },
+          );
+        }
+      }
     }
 
-    // 2) Documentos faltantes en cargos críticos
-    const critical = await this.associatesRepo
-      .createQueryBuilder('a')
-      .innerJoin('a.jobPosition', 'jp')
-      .leftJoin(
-        AssociateDocument,
-        'd',
-        'd.associateId = a.id AND d.documentKind = :kind',
-        { kind: AssociateDocumentKind.CEDULA },
-      )
-      .where('jp.isCritical = true')
-      .andWhere('a.status = :status', { status: AssociateStatus.ACTIVO })
-      .andWhere('d.id IS NULL')
-      .getMany();
+    // 2) Documentos faltantes críticos: psicofísico / psicosensométrico (no cédula)
+    const missingKinds = [
+      AssociateDocumentKind.EXAMEN_PSICOFISICO,
+      AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO,
+    ];
+    const dueIn7 = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .slice(0, 10);
 
-    for (const assoc of critical) {
-      const inserted = await this.upsertAlert(
-        assoc.id,
-        HrAlertType.DOCUMENTO_FALTANTE,
-        today.toISOString().slice(0, 10),
-      );
-      if (inserted) {
-        summary.total += 1;
-        summary[HrAlertType.DOCUMENTO_FALTANTE] =
-          (summary[HrAlertType.DOCUMENTO_FALTANTE] ?? 0) + 1;
+    for (const kind of missingKinds) {
+      const critical = await this.associatesRepo
+        .createQueryBuilder('a')
+        .innerJoin('a.jobPosition', 'jp')
+        .leftJoin(
+          AssociateDocument,
+          'd',
+          'd.associateId = a.id AND d.documentKind = :kind',
+          { kind },
+        )
+        .where('jp.isCritical = true')
+        .andWhere('a.status = :status', { status: AssociateStatus.ACTIVO })
+        .andWhere('d.id IS NULL')
+        .getMany();
+
+      for (const assoc of critical) {
+        const inserted = await this.upsertAlert(
+          assoc.id,
+          HrAlertType.DOCUMENTO_FALTANTE,
+          dueIn7,
+        );
+        if (inserted) {
+          summary.total += 1;
+          summary[HrAlertType.DOCUMENTO_FALTANTE] =
+            (summary[HrAlertType.DOCUMENTO_FALTANTE] ?? 0) + 1;
+        }
       }
     }
 

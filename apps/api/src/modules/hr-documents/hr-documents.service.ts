@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { SupabaseStorageService } from '../../common/services/supabase-storage.service';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
+import { HrAlert, HrAlertStatus, HrAlertType } from '../hr-alerts/entities/hr-alert.entity';
 import { UploadDocumentDto } from './dto/upload-document.dto';
 import {
   AssociateDocument,
@@ -20,6 +21,13 @@ const ALLOWED_MIME = new Set([
   'image/webp',
   'image/heic',
 ]);
+
+const DOC_TO_ALERT: Partial<Record<AssociateDocumentKind, HrAlertType>> = {
+  [AssociateDocumentKind.CERTIFICADO_CURSO]: HrAlertType.VENCIMIENTO_CURSO,
+  [AssociateDocumentKind.EXAMEN_PSICOFISICO]: HrAlertType.VENCIMIENTO_PSICOFISICO,
+  [AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO]: HrAlertType.VENCIMIENTO_PSICOSENSOMETRICO,
+  [AssociateDocumentKind.POLIZA_SURA]: HrAlertType.VENCIMIENTO_POLIZA,
+};
 
 /**
  * Gestión de documentos del asociado (cédulas, certificados de curso,
@@ -38,6 +46,8 @@ export class HrDocumentsService {
     private readonly documentsRepo: Repository<AssociateDocument>,
     @InjectRepository(Associate)
     private readonly associatesRepo: Repository<Associate>,
+    @InjectRepository(HrAlert)
+    private readonly alertsRepo: Repository<HrAlert>,
     private readonly storage: SupabaseStorageService,
     private readonly audit: AuditService,
   ) {}
@@ -114,6 +124,23 @@ export class HrDocumentsService {
 
     // Actualizar flags del asociado según el tipo de documento
     await this.refreshValidityFlags(associateId);
+
+    // Resolver alertas pendientes del mismo tipo (paridad GESTION-HUMANA)
+    const alertType = DOC_TO_ALERT[dto.documentKind];
+    if (alertType) {
+      await this.alertsRepo.update(
+        {
+          associateId,
+          alertType,
+          status: HrAlertStatus.PENDIENTE,
+        },
+        {
+          status: HrAlertStatus.RESUELTA,
+          resolvedAt: new Date(),
+          resolvedBy: userId,
+        },
+      );
+    }
 
     return saved;
   }

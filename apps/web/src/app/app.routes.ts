@@ -28,8 +28,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
-        // Fase 1: Portal = puerta de entrada → Gestión Humana oficial (datos en Render).
-        // El código interno /rrhh se conserva en el repo para fases posteriores / SSO.
+        // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],
         data: {
@@ -46,13 +45,139 @@ export const routes: Routes = [
             'hr_audit.view',
           ],
           permissionMode: 'any',
-          externalUrl: EXTERNAL_APPS.gestionHumana,
-          externalLabel: 'Gestión Humana',
         },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
-          ),
+          import('./features/rrhh/rrhh-layout/rrhh-layout').then((m) => m.RrhhLayout),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/rrhh/hr-dashboard/hr-dashboard').then((m) => m.HrDashboard),
+          },
+          {
+            path: 'ausentismo',
+            canActivate: [permissionGuard],
+            data: { permission: 'absences.view' },
+            loadComponent: () =>
+              import('./features/rrhh/absenteeism-panel/absenteeism-panel').then(
+                (m) => m.AbsenteeismPanel,
+              ),
+          },
+          {
+            path: 'asociados',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.view' },
+            loadComponent: () =>
+              import('./features/rrhh/associates-list/associates-list').then((m) => m.AssociatesList),
+          },
+          {
+            path: 'asociados/nuevo',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.create' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-form/associate-form').then((m) => m.AssociateForm),
+          },
+          {
+            path: 'asociados/:id/editar',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.edit' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-form/associate-form').then((m) => m.AssociateForm),
+          },
+          {
+            path: 'asociados/:id/reingreso',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.readmit' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/readmit-form/readmit-form').then(
+                (m) => m.ReadmitForm,
+              ),
+          },
+          {
+            path: 'asociados/:id',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.view' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-detail/associate-detail').then(
+                (m) => m.AssociateDetail,
+              ),
+          },
+          {
+            path: 'matriz',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_dashboard.view' },
+            loadComponent: () =>
+              import('./features/rrhh/compliance-matrix/compliance-matrix').then(
+                (m) => m.ComplianceMatrix,
+              ),
+          },
+          {
+            path: 'alertas',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_alerts.view' },
+            loadComponent: () =>
+              import('./features/rrhh/alerts-panel/alerts-panel').then((m) => m.AlertsPanel),
+          },
+          {
+            path: 'retiros',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.view' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/retirements-list/retirements-list').then(
+                (m) => m.RetirementsList,
+              ),
+          },
+          {
+            path: 'retiros/nuevo/:associateId',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.create' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/retirement-form/retirement-form').then(
+                (m) => m.RetirementForm,
+              ),
+          },
+          {
+            path: 'admin/cargos',
+            canActivate: [permissionGuard],
+            data: { permission: 'job_positions.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/job-positions-admin/job-positions-admin').then(
+                (m) => m.JobPositionsAdmin,
+              ),
+          },
+          {
+            path: 'admin/centros',
+            canActivate: [permissionGuard],
+            data: { permission: 'work_centers.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/work-centers-admin/work-centers-admin').then(
+                (m) => m.WorkCentersAdmin,
+              ),
+          },
+          {
+            path: 'admin/catalogos',
+            canActivate: [permissionGuard],
+            data: { permission: 'catalogs.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/catalogs-admin/catalogs-admin').then(
+                (m) => m.CatalogsAdmin,
+              ),
+          },
+          {
+            path: 'importar',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_import.execute' },
+            loadComponent: () =>
+              import('./features/rrhh/excel-import/excel-import').then((m) => m.ExcelImport),
+          },
+          {
+            path: 'bitacora',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_audit.view' },
+            loadComponent: () =>
+              import('./features/rrhh/hr-audit-log/hr-audit-log').then((m) => m.HrAuditLog),
+          },
+        ],
       },
       {
         path: 'dotacion',

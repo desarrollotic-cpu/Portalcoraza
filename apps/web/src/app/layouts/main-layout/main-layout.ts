@@ -946,7 +946,6 @@ export class MainLayout implements OnDestroy {
           route: '/rrhh',
           icon: LucideUsersRound,
           permissions: ['associates.view', 'hr_dashboard.view'],
-          externalUrl: EXTERNAL_APPS.gestionHumana,
         },
         {
           label: 'Dotación',
