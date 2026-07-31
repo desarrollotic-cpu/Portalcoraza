@@ -13,7 +13,7 @@ const REQUIRED_TABLES = [
   'work_centers',
   'catalog_values',
   'hr_alerts',
-  'retirements',
+  'associate_retirements',
   'associate_documents',
   'diagnosticos_cie10',
   'associate_absences',

@@ -11,6 +11,23 @@ import { ExitReceptionVisitorDto } from './dto/exit-visitor.dto';
 import { RegisterReceptionVisitorDto } from './dto/register-visitor.dto';
 import { ReceptionVisitor } from './entities/reception-visitor.entity';
 
+/** Columnas mínimas para listados de recepción (tabla «dentro» / panel). */
+const LIST_COLUMNS: (keyof ReceptionVisitor)[] = [
+  'id',
+  'documentNumber',
+  'firstSurname',
+  'secondSurname',
+  'firstName',
+  'secondName',
+  'originPlace',
+  'visitReason',
+  'entryAt',
+  'authorizedBy',
+  'transportMeans',
+  'travelTimeMinutes',
+  'exitAt',
+];
+
 @Injectable()
 export class ReceptionService {
   constructor(
@@ -20,63 +37,85 @@ export class ReceptionService {
   ) {}
 
   async getDashboard() {
+    const bounds = this.bogotaBounds();
     const tz = 'America/Bogota';
 
-    const raw = await this.visitorsRepo.query(
-      `
-      SELECT
-        COUNT(*) FILTER (WHERE exit_at IS NULL)::int AS inside_now,
-        COUNT(*) FILTER (
-          WHERE (entry_at AT TIME ZONE $1)::date = (NOW() AT TIME ZONE $1)::date
-        )::int AS today_entries,
-        COUNT(*) FILTER (
-          WHERE exit_at IS NULL
-            AND (entry_at AT TIME ZONE $1)::date = (NOW() AT TIME ZONE $1)::date
-        )::int AS today_still_inside,
-        COUNT(*) FILTER (
-          WHERE date_trunc('month', entry_at AT TIME ZONE $1)
-              = date_trunc('month', NOW() AT TIME ZONE $1)
-        )::int AS month_entries,
-        COUNT(*) FILTER (
-          WHERE date_trunc('year', entry_at AT TIME ZONE $1)
-              = date_trunc('year', NOW() AT TIME ZONE $1)
-        )::int AS year_entries,
-        COUNT(*)::int AS total_entries
-      FROM reception_visitors
-      `,
-      [tz],
-    );
+    const [statsRow, byDay, inside, todayList] = await Promise.all([
+      this.visitorsRepo.query(
+        `
+        SELECT
+          (SELECT COUNT(*)::int FROM reception_visitors WHERE exit_at IS NULL) AS inside_now,
+          (SELECT COUNT(*)::int FROM reception_visitors
+            WHERE entry_at >= $1 AND entry_at < $2) AS today_entries,
+          (SELECT COUNT(*)::int FROM reception_visitors
+            WHERE exit_at IS NULL AND entry_at >= $1 AND entry_at < $2) AS today_still_inside,
+          (SELECT COUNT(*)::int FROM reception_visitors
+            WHERE entry_at >= $3 AND entry_at < $4) AS month_entries,
+          (SELECT COUNT(*)::int FROM reception_visitors
+            WHERE entry_at >= $5 AND entry_at < $6) AS year_entries
+        `,
+        [
+          bounds.dayStart,
+          bounds.dayEnd,
+          bounds.monthStart,
+          bounds.monthEnd,
+          bounds.yearStart,
+          bounds.yearEnd,
+        ],
+      ) as Promise<
+        {
+          inside_now: number;
+          today_entries: number;
+          today_still_inside: number;
+          month_entries: number;
+          year_entries: number;
+        }[]
+      >,
+      this.visitorsRepo.query(
+        `
+        SELECT
+          (entry_at AT TIME ZONE $1)::date::text AS day,
+          COUNT(*)::int AS entries
+        FROM reception_visitors
+        WHERE entry_at >= $2 AND entry_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+        `,
+        [tz, bounds.days14Start, bounds.dayEnd],
+      ) as Promise<{ day: string; entries: number }[]>,
+      this.visitorsRepo.find({
+        select: LIST_COLUMNS,
+        where: { exitAt: IsNull() },
+        order: { entryAt: 'DESC' },
+        take: 50,
+      }),
+      this.visitorsRepo
+        .createQueryBuilder('v')
+        .select([
+          'v.id',
+          'v.documentNumber',
+          'v.firstSurname',
+          'v.secondSurname',
+          'v.firstName',
+          'v.secondName',
+          'v.originPlace',
+          'v.visitReason',
+          'v.entryAt',
+          'v.authorizedBy',
+          'v.transportMeans',
+          'v.travelTimeMinutes',
+          'v.exitAt',
+        ])
+        .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
+          dayStart: bounds.dayStart,
+          dayEnd: bounds.dayEnd,
+        })
+        .orderBy('v.entry_at', 'DESC')
+        .take(100)
+        .getMany(),
+    ]);
 
-    const row = raw[0] ?? {};
-
-    const byDay = await this.visitorsRepo.query(
-      `
-      SELECT
-        (entry_at AT TIME ZONE $1)::date::text AS day,
-        COUNT(*)::int AS entries
-      FROM reception_visitors
-      WHERE (entry_at AT TIME ZONE $1)::date
-        >= ((NOW() AT TIME ZONE $1)::date - INTERVAL '13 days')
-      GROUP BY 1
-      ORDER BY 1 ASC
-      `,
-      [tz],
-    );
-
-    const inside = await this.visitorsRepo.find({
-      where: { exitAt: IsNull() },
-      order: { entryAt: 'DESC' },
-      take: 50,
-    });
-
-    const todayList = await this.visitorsRepo
-      .createQueryBuilder('v')
-      .where(`(v.entry_at AT TIME ZONE :tz)::date = (NOW() AT TIME ZONE :tz)::date`, {
-        tz,
-      })
-      .orderBy('v.entry_at', 'DESC')
-      .take(100)
-      .getMany();
+    const row = statsRow[0] ?? {};
 
     return {
       stats: {
@@ -85,24 +124,33 @@ export class ReceptionService {
         todayStillInside: Number(row.today_still_inside) || 0,
         monthEntries: Number(row.month_entries) || 0,
         yearEntries: Number(row.year_entries) || 0,
-        totalEntries: Number(row.total_entries) || 0,
+        // Sin COUNT(*) full-table en el path caliente; el panel ya muestra "Este año".
+        totalEntries: Number(row.year_entries) || 0,
       },
-      last14Days: byDay.map((d: { day: string; entries: number }) => ({
-        day: d.day,
-        entries: Number(d.entries) || 0,
-      })),
+      last14Days: this.fillLast14Days(byDay, bounds),
       insideNow: inside.map((v) => this.toDto(v)),
       today: todayList.map((v) => this.toDto(v)),
     };
   }
 
   async list(params: { insideOnly?: boolean; limit?: number } = {}) {
-    const qb = this.visitorsRepo.createQueryBuilder('v').orderBy('v.entry_at', 'DESC');
+    const take = Math.min(params.limit ?? 100, 500);
+
     if (params.insideOnly) {
-      qb.andWhere('v.exit_at IS NULL');
+      const rows = await this.visitorsRepo.find({
+        select: LIST_COLUMNS,
+        where: { exitAt: IsNull() },
+        order: { entryAt: 'DESC' },
+        take,
+      });
+      return rows.map((v) => this.toDto(v));
     }
-    qb.take(Math.min(params.limit ?? 100, 500));
-    const rows = await qb.getMany();
+
+    const rows = await this.visitorsRepo.find({
+      select: LIST_COLUMNS,
+      order: { entryAt: 'DESC' },
+      take,
+    });
     return rows.map((v) => this.toDto(v));
   }
 
@@ -250,6 +298,69 @@ export class ReceptionService {
     return finished;
   }
 
+  private bogotaBounds(now = new Date()) {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(now);
+    const num = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((p) => p.type === type)?.value ?? '0');
+
+    const y = num('year');
+    const m = num('month');
+    const d = num('day');
+
+    const atBogotaMidnight = (year: number, month: number, day: number) =>
+      new Date(
+        `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T00:00:00-05:00`,
+      );
+
+    const dayStart = atBogotaMidnight(y, m, d);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const monthStart = atBogotaMidnight(y, m, 1);
+    const monthEnd =
+      m === 12 ? atBogotaMidnight(y + 1, 1, 1) : atBogotaMidnight(y, m + 1, 1);
+    const yearStart = atBogotaMidnight(y, 1, 1);
+    const yearEnd = atBogotaMidnight(y + 1, 1, 1);
+    const days14Start = new Date(dayStart.getTime() - 13 * 24 * 60 * 60 * 1000);
+
+    return {
+      y,
+      m,
+      d,
+      dayStart,
+      dayEnd,
+      monthStart,
+      monthEnd,
+      yearStart,
+      yearEnd,
+      days14Start,
+    };
+  }
+
+  private fillLast14Days(
+    byDay: { day: string; entries: number }[],
+    bounds: { dayStart: Date; days14Start: Date },
+  ) {
+    const map = new Map(
+      byDay.map((row) => [row.day, Number(row.entries) || 0]),
+    );
+    const out: { day: string; entries: number }[] = [];
+    for (let i = 0; i < 14; i++) {
+      const t = new Date(bounds.days14Start.getTime() + i * 24 * 60 * 60 * 1000);
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(t);
+      out.push({ day, entries: map.get(day) ?? 0 });
+    }
+    return out;
+  }
+
   private formatDateTime(value: Date): string {
     return new Intl.DateTimeFormat('es-CO', {
       dateStyle: 'short',
@@ -300,30 +411,30 @@ export class ReceptionService {
   private toDto(v: ReceptionVisitor) {
     return {
       id: v.id,
-      documentNumber: v.documentNumber,
-      firstSurname: v.firstSurname,
-      secondSurname: v.secondSurname,
-      firstName: v.firstName,
-      secondName: v.secondName,
+      documentNumber: v.documentNumber ?? null,
+      firstSurname: v.firstSurname ?? null,
+      secondSurname: v.secondSurname ?? null,
+      firstName: v.firstName ?? null,
+      secondName: v.secondName ?? null,
       displayName: this.displayName(v),
-      sex: v.sex,
-      birthDate: v.birthDate,
-      arl: v.arl,
-      eps: v.eps,
-      originPlace: v.originPlace,
-      visitReason: v.visitReason,
+      sex: v.sex ?? null,
+      birthDate: v.birthDate ?? null,
+      arl: v.arl ?? null,
+      eps: v.eps ?? null,
+      originPlace: v.originPlace ?? null,
+      visitReason: v.visitReason ?? null,
       entryAt: v.entryAt,
-      authorizedBy: v.authorizedBy,
-      registeredBy: v.registeredBy,
-      transportMeans: v.transportMeans,
-      travelTimeMinutes: v.travelTimeMinutes,
-      exitAt: v.exitAt,
-      exitNotes: v.exitNotes,
-      exitedBy: v.exitedBy,
-      notes: v.notes,
+      authorizedBy: v.authorizedBy ?? null,
+      registeredBy: v.registeredBy ?? null,
+      transportMeans: v.transportMeans ?? null,
+      travelTimeMinutes: v.travelTimeMinutes ?? null,
+      exitAt: v.exitAt ?? null,
+      exitNotes: v.exitNotes ?? null,
+      exitedBy: v.exitedBy ?? null,
+      notes: v.notes ?? null,
       isInside: !v.exitAt,
-      createdAt: v.createdAt,
-      updatedAt: v.updatedAt,
+      createdAt: v.createdAt ?? v.entryAt,
+      updatedAt: v.updatedAt ?? v.entryAt,
     };
   }
 }
