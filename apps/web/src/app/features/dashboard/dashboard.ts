@@ -53,7 +53,7 @@ interface KpiCard {
 
             <div class="hero-actions">
               @if (auth.hasPermission('associates.view')) {
-                <a [href]="externalApps.gestionHumana" class="hero-btn primary" target="_blank" rel="noopener noreferrer">
+                <a routerLink="/rrhh" class="hero-btn primary">
                   <app-icon [icon]="icons.UsersRound" [size]="16" [strokeWidth]="2" />
                   Ir a Gestión Humana
                 </a>
@@ -535,7 +535,7 @@ export class Dashboard implements OnInit {
           label: 'Asociados activos',
           value: s.activeAssociates ?? 0,
           icon: LucideUsersRound,
-          externalUrl: EXTERNAL_APPS.gestionHumana,
+          route: '/rrhh',
           cta: 'Ir a Gestión Humana',
           gradient: 'var(--gradient-primary)',
         },

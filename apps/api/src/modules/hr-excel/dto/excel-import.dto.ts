@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsOptional, ValidateNested } from 'class-validator';
 
 /**
  * Fila que el wizard de importación confirma para ejecutar. Cada campo llega
@@ -14,4 +14,9 @@ export class ExecuteImportDto {
   @ValidateNested({ each: true })
   @Type(() => ExcelImportRowDto)
   rows!: ExcelImportRowDto[];
+
+  /** IGNORE = omitir duplicados activos; UPDATE = actualizar existentes (default). */
+  @IsOptional()
+  @IsIn(['IGNORE_DUPLICATES', 'UPDATE_DUPLICATES'])
+  mode?: 'IGNORE_DUPLICATES' | 'UPDATE_DUPLICATES';
 }

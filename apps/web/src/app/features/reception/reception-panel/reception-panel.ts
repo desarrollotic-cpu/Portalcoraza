@@ -47,10 +47,6 @@ import {
             <strong>{{ d.stats.yearEntries }}</strong>
             <span>Este año</span>
           </div>
-          <div class="kpi muted">
-            <strong>{{ d.stats.totalEntries }}</strong>
-            <span>Histórico total</span>
-          </div>
         </div>
 
         <div class="chart-card">
