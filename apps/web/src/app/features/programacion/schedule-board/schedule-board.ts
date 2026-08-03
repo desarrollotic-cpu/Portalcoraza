@@ -64,6 +64,15 @@ const CODES: CodeConfig[] = [
             Mes
             <input type="month" [(ngModel)]="month" (ngModelChange)="onSelectionChange()" />
           </label>
+          <label>
+            Ciclo
+            <select [(ngModel)]="tipoCiclo">
+              <option value="12x3">12×3 (6D-6N-3Desc)</option>
+              <option value="10x5">10×5 (5D-5N-5Desc)</option>
+              <option value="2x2">2×2 (2D-2N-2NR)</option>
+              <option value="13x2">13×2 (13D-2R-13N-2R)</option>
+            </select>
+          </label>
           @if (schedule()) {
             <span class="status" [class]="'st-' + schedule()!.status">{{ statusLabel() }}</span>
           }
@@ -86,7 +95,7 @@ const CODES: CodeConfig[] = [
       } @else {
         <div class="actions">
           <button type="button" (click)="runMotor()" [disabled]="saving()">
-            Motor de ciclo D/N/R/NR
+            Aplicar motor ({{ tipoCiclo }})
           </button>
           <button type="button" class="primary" (click)="save()" [disabled]="saving() || !dirty()">
             Guardar
@@ -291,6 +300,7 @@ export class ScheduleBoard implements OnInit {
 
   postId = '';
   month = this.currentMonth();
+  tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -370,7 +380,7 @@ export class ScheduleBoard implements OnInit {
     if (!sched) return;
     if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
     this.saving.set(true);
-    this.api.generateMotor(sched.id).subscribe({
+    this.api.generateMotor(sched.id, { tipoCiclo: this.tipoCiclo }).subscribe({
       next: (updated) => {
         this.applySchedule(updated);
         this.saving.set(false);

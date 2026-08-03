@@ -89,7 +89,13 @@ export class MonthlySchedulingApiService {
     return this.http.patch<MonthlySchedule>(`${this.baseUrl}/${id}/status`, { status });
   }
 
-  generateMotor(id: string, roles?: string[]): Observable<MonthlySchedule> {
-    return this.http.post<MonthlySchedule>(`${this.baseUrl}/${id}/motor`, { roles });
+  generateMotor(
+    id: string,
+    opts?: { roles?: string[]; tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2' },
+  ): Observable<MonthlySchedule & { motorAlerts?: unknown[] }> {
+    return this.http.post<MonthlySchedule & { motorAlerts?: unknown[] }>(
+      `${this.baseUrl}/${id}/motor`,
+      opts ?? {},
+    );
   }
 }

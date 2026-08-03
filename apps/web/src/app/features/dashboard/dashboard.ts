@@ -59,7 +59,7 @@ interface KpiCard {
                 </a>
               }
               @if (auth.hasPermission('scheduling.view')) {
-                <a [href]="externalApps.programacion" class="hero-btn ghost" target="_blank" rel="noopener noreferrer">
+                <a routerLink="/programacion" class="hero-btn ghost">
                   <app-icon [icon]="icons.CalendarCheck" [size]="16" [strokeWidth]="2" />
                   Ir a Programación
                 </a>

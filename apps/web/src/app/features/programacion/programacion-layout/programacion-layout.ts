@@ -20,7 +20,7 @@ export class ProgramacionLayout {
   readonly nav: ModuleNavItem[] = [
     {
       label: 'Cuadro mensual',
-      route: '/programacion',
+      route: '/programacion/cuadro',
       permission: 'scheduling.view',
       icon: LucideCalendarClock,
     },

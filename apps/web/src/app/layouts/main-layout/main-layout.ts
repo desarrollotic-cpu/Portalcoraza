@@ -958,7 +958,6 @@ export class MainLayout implements OnDestroy {
           route: '/programacion',
           icon: LucideCalendarClock,
           permission: 'scheduling.view',
-          externalUrl: EXTERNAL_APPS.programacion,
         },
         {
           label: 'Documental',

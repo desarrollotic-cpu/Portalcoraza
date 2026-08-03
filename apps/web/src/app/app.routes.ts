@@ -297,18 +297,25 @@ export const routes: Routes = [
         ],
       },
       {
-        // Fase 1: Portal → Programación oficial (GitHub Pages).
         path: 'programacion',
         canActivate: [permissionGuard],
-        data: {
-          permission: 'scheduling.view',
-          externalUrl: EXTERNAL_APPS.programacion,
-          externalLabel: 'Programación',
-        },
+        data: { permission: 'scheduling.view' },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
+          import('./features/programacion/programacion-layout/programacion-layout').then(
+            (m) => m.ProgramacionLayout,
           ),
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'cuadro' },
+          {
+            path: 'cuadro',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/schedule-board/schedule-board').then(
+                (m) => m.ScheduleBoard,
+              ),
+          },
+        ],
       },
       {
         // Fase 1: Portal → Documental oficial (Google Apps Script).

@@ -134,4 +134,9 @@ export class GenerateMotorDto {
   @IsArray()
   @IsString({ each: true })
   roles?: string[];
+
+  /** Ciclo a aplicar: 12x3 | 10x5 | 2x2 | 13x2 (default 12x3). */
+  @IsOptional()
+  @IsString()
+  tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
 }

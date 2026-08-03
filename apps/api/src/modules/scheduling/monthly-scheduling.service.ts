@@ -165,13 +165,27 @@ export class MonthlySchedulingService {
   async generateWithMotor(id: string, dto: GenerateMotorDto, userId: string) {
     const schedule = await this.getById(id);
     const daysInMonth = new Date(schedule.year, schedule.month, 0).getDate();
+    const tipoCiclo = dto.tipoCiclo ?? '12x3';
 
     let personal = schedule.personal ?? [];
     if (dto.roles?.length) {
       personal = personal.filter((p) => dto.roles!.includes(p.rol));
     }
 
-    const generated = this.motor.generate(personal, daysInMonth);
+    const startPositions = await this.resolveStartPositions(
+      schedule.postId,
+      schedule.year,
+      schedule.month,
+      personal,
+      tipoCiclo,
+    );
+
+    const generated = this.motor.generate(
+      personal,
+      daysInMonth,
+      startPositions,
+      tipoCiclo,
+    );
 
     await this.dataSource.transaction(async (manager) => {
       await manager.delete(ScheduleAssignment, { scheduleId: id });
@@ -200,10 +214,78 @@ export class MonthlySchedulingService {
       action: 'monthly_schedule.motor',
       entityType: 'monthly_schedule',
       entityId: id,
-      newValue: { assignments: generated.length },
+      newValue: {
+        assignments: generated.length,
+        tipoCiclo,
+        alerts: this.motor.validateBoard(generated, daysInMonth).length,
+      },
     });
 
-    return this.getById(id);
+    const saved = await this.getById(id);
+    return {
+      ...saved,
+      motorAlerts: this.motor.validateBoard(generated, daysInMonth),
+    };
+  }
+
+  /**
+   * Continuidad de ciclo: posición día 1 = última del mes anterior + 1.
+   * Si no hay mes anterior, offsets por índice de rol (como APP).
+   */
+  private async resolveStartPositions(
+    postId: string,
+    year: number,
+    month: number,
+    personal: PersonalRole[],
+    tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2',
+  ): Promise<Record<string, number>> {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const previous = await this.schedulesRepo.findOne({
+      where: { postId, year: prevYear, month: prevMonth },
+      relations: { assignments: true },
+    });
+
+    if (!previous?.assignments?.length) {
+      return {};
+    }
+
+    const daysInPrev = new Date(prevYear, prevMonth, 0).getDate();
+    const starts: Record<string, number> = {};
+
+    for (const role of personal) {
+      const last = previous.assignments.find(
+        (a) => a.role === role.rol && a.day === daysInPrev,
+      );
+      if (!last) continue;
+      const inferred = this.inferPosition(last.codigo, last.jornada, last.turno, tipoCiclo);
+      if (inferred !== null) {
+        starts[role.rol] = this.motor.normalizePosition(inferred + 1, tipoCiclo);
+      }
+    }
+    return starts;
+  }
+
+  private inferPosition(
+    codigo: string | null,
+    jornada: string,
+    turno: string | null,
+    tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2',
+  ): number | null {
+    const config = this.motor.configs[tipoCiclo];
+    const code = codigo === 'R' ? 'DR' : codigo;
+    for (let i = 0; i < config.phases.length; i++) {
+      const f = config.phases[i];
+      if (code && f.codigo === code) return i;
+      if (
+        !code &&
+        f.jornada === jornada &&
+        (f.turno === turno || (!f.turno && !turno))
+      ) {
+        return i;
+      }
+    }
+    return null;
   }
 
   private async getById(id: string): Promise<MonthlySchedule> {
