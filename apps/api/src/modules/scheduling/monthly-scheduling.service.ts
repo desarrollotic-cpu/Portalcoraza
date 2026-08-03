@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { Post } from '../posts/entities/post.entity';
+import { Post, PostStatus } from '../posts/entities/post.entity';
 import {
   MonthlySchedule,
   PersonalRole,
@@ -11,8 +11,14 @@ import {
 } from './entities/monthly-schedule.entity';
 import { ScheduleAssignment } from './entities/schedule-assignment.entity';
 import {
+  ScheduleTemplate,
+  TemplatePatternItem,
+} from './entities/schedule-template.entity';
+import {
   CreateMonthlyScheduleDto,
+  CreateScheduleTemplateDto,
   GenerateMotorDto,
+  GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   SaveMonthlyScheduleDto,
@@ -33,6 +39,8 @@ export class MonthlySchedulingService {
     private readonly schedulesRepo: Repository<MonthlySchedule>,
     @InjectRepository(ScheduleAssignment)
     private readonly assignmentsRepo: Repository<ScheduleAssignment>,
+    @InjectRepository(ScheduleTemplate)
+    private readonly templatesRepo: Repository<ScheduleTemplate>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
@@ -287,6 +295,158 @@ export class MonthlySchedulingService {
       ...saved,
       motorAlerts: this.motor.validateBoard(generated, daysInMonth),
     };
+  }
+
+  /**
+   * Aplica el motor a todas las programaciones del mes (opcionalmente crea faltantes).
+   */
+  async generateMotorGlobal(dto: GenerateMotorGlobalDto, userId: string) {
+    const tipoCiclo = dto.tipoCiclo ?? '12x3';
+    let schedules = await this.schedulesRepo.find({
+      where: { year: dto.year, month: dto.month },
+    });
+
+    if (dto.createMissing) {
+      const posts = await this.dataSource.getRepository(Post).find({
+        where: { status: PostStatus.ACTIVO },
+      });
+      const have = new Set(schedules.map((s) => s.postId));
+      for (const post of posts) {
+        if (have.has(post.id)) continue;
+        const created = await this.createOrGet(
+          { postId: post.id, year: dto.year, month: dto.month },
+          userId,
+        );
+        schedules.push(created);
+      }
+    }
+
+    const results: Array<{
+      scheduleId: string;
+      postId: string;
+      ok: boolean;
+      assignments?: number;
+      error?: string;
+    }> = [];
+
+    for (const s of schedules) {
+      try {
+        const out = await this.generateWithMotor(
+          s.id,
+          { tipoCiclo },
+          userId,
+        );
+        results.push({
+          scheduleId: s.id,
+          postId: s.postId,
+          ok: true,
+          assignments: out.assignments?.length ?? 0,
+        });
+      } catch (err) {
+        results.push({
+          scheduleId: s.id,
+          postId: s.postId,
+          ok: false,
+          error: err instanceof Error ? err.message : 'Error',
+        });
+      }
+    }
+
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'monthly_schedule.motor_global',
+      entityType: 'monthly_schedule',
+      entityId: `${dto.year}-${dto.month}`,
+      newValue: {
+        tipoCiclo,
+        processed: results.length,
+        ok: results.filter((r) => r.ok).length,
+      },
+    });
+
+    return {
+      year: dto.year,
+      month: dto.month,
+      tipoCiclo,
+      processed: results.length,
+      ok: results.filter((r) => r.ok).length,
+      failed: results.filter((r) => !r.ok).length,
+      results,
+    };
+  }
+
+  listTemplates() {
+    return this.templatesRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async createTemplate(dto: CreateScheduleTemplateDto, userId: string) {
+    let personal: PersonalRole[] = [];
+    let patron: TemplatePatternItem[] = [];
+    let postId = dto.postId ?? null;
+
+    if (dto.fromScheduleId) {
+      const schedule = await this.getById(dto.fromScheduleId);
+      personal = (schedule.personal ?? []).map((p) => ({ ...p }));
+      postId = postId ?? schedule.postId;
+      patron = (schedule.assignments ?? []).map((a) => ({
+        diaRelativo: a.day,
+        rol: a.role,
+        turno: a.turno,
+        jornada: a.jornada,
+        codigo: a.codigo,
+      }));
+    }
+
+    const saved = await this.templatesRepo.save(
+      this.templatesRepo.create({
+        name: dto.name.trim(),
+        postId,
+        personal,
+        patron,
+        createdBy: userId,
+      }),
+    );
+
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'schedule_template.create',
+      entityType: 'schedule_template',
+      entityId: saved.id,
+      newValue: { name: saved.name, patternItems: patron.length },
+    });
+
+    return saved;
+  }
+
+  async applyTemplate(scheduleId: string, templateId: string, userId: string) {
+    const schedule = await this.getById(scheduleId);
+    const template = await this.templatesRepo.findOne({ where: { id: templateId } });
+    if (!template) throw new NotFoundException('Plantilla no encontrada');
+
+    const personal =
+      template.personal?.length > 0
+        ? template.personal.map((p) => ({ ...p }))
+        : schedule.personal;
+
+    const assignments = (template.patron ?? []).map((p) => ({
+      day: p.diaRelativo,
+      role: p.rol,
+      associateId:
+        personal.find((x) => x.rol === p.rol)?.associateId ?? null,
+      turno: (p.turno as ScheduleAssignment['turno']) ?? null,
+      jornada: p.jornada as ScheduleAssignment['jornada'],
+      codigo: p.codigo ?? null,
+      inicio: null as string | null,
+      fin: null as string | null,
+    }));
+
+    return this.save(
+      scheduleId,
+      { personal, assignments },
+      userId,
+    );
   }
 
   /**

@@ -33,11 +33,42 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
               }
             </select>
           </label>
-          <button type="button" class="ghost" (click)="reload()" [disabled]="loading()">
+          <label>
+            Ciclo global
+            <select [(ngModel)]="tipoCiclo">
+              <option value="12x3">12×3</option>
+              <option value="10x5">10×5</option>
+              <option value="2x2">2×2</option>
+              <option value="13x2">13×2</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="primary"
+            (click)="runMotorGlobal(false)"
+            [disabled]="busy()"
+            title="Aplica el motor a todos los cuadros del mes"
+          >
+            Motor global
+          </button>
+          <button
+            type="button"
+            class="ghost"
+            (click)="runMotorGlobal(true)"
+            [disabled]="busy()"
+            title="Crea cuadros faltantes de puestos activos y aplica el motor"
+          >
+            Crear faltantes + motor
+          </button>
+          <button type="button" class="ghost" (click)="reload()" [disabled]="busy()">
             Actualizar
           </button>
         </div>
       </header>
+
+      @if (globalMsg()) {
+        <div class="banner ok">{{ globalMsg() }}</div>
+      }
 
       @if (conflicts().length) {
         <div class="banner warn">
@@ -143,6 +174,16 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
       padding: 0.75rem 1rem; border-radius: 10px;
       background: #fff8e6; border: 1px solid #f0d78c; color: #7a5b00; font-size: 0.88rem;
     }
+    .banner.ok {
+      padding: 0.75rem 1rem; border-radius: 10px;
+      background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.88rem;
+    }
+    .primary {
+      border-radius: 999px; border: none;
+      background: var(--primary-dark); color: #fff; font-weight: 600;
+      cursor: pointer; padding: 0.45rem 0.85rem; font-size: 0.82rem;
+    }
+    .primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .matrix-wrap {
       overflow: auto; max-height: 70vh;
       border: 1px solid var(--coraza-border); border-radius: 12px;
@@ -190,10 +231,13 @@ export class MasterGrid implements OnInit {
   private readonly postsApi = inject(SchedulingApiService);
 
   month = this.currentMonth();
+  tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
   typeFilter = signal('');
 
   readonly loading = signal(false);
+  readonly busy = signal(false);
   readonly error = signal<string | null>(null);
+  readonly globalMsg = signal<string | null>(null);
   readonly schedules = signal<MonthlyScheduleWithPost[]>([]);
   readonly conflicts = signal<ScheduleConflict[]>([]);
   readonly allPosts = signal<{ id: string; name: string; type?: string }[]>([]);
@@ -260,6 +304,7 @@ export class MasterGrid implements OnInit {
     if (!year || !month) return;
     this.loading.set(true);
     this.error.set(null);
+    this.globalMsg.set(null);
 
     this.api.listByMonth(year, month).subscribe({
       next: (rows) => {
@@ -276,6 +321,38 @@ export class MasterGrid implements OnInit {
       next: (c) => this.conflicts.set(c),
       error: () => this.conflicts.set([]),
     });
+  }
+
+  runMotorGlobal(createMissing: boolean): void {
+    const { year, month } = this.yearMonth();
+    const msg = createMissing
+      ? `¿Crear cuadros faltantes de puestos activos y aplicar ciclo ${this.tipoCiclo} a todo el mes?`
+      : `¿Aplicar ciclo ${this.tipoCiclo} a todos los cuadros de ${this.month}?`;
+    if (!confirm(msg)) return;
+
+    this.busy.set(true);
+    this.globalMsg.set(null);
+    this.api
+      .generateMotorGlobal({
+        year,
+        month,
+        tipoCiclo: this.tipoCiclo,
+        createMissing,
+      })
+      .subscribe({
+        next: (r) => {
+          this.busy.set(false);
+          this.globalMsg.set(
+            `Motor global ${r.tipoCiclo}: ${r.ok}/${r.processed} OK` +
+              (r.failed ? `, ${r.failed} con error` : ''),
+          );
+          this.reload();
+        },
+        error: () => {
+          this.busy.set(false);
+          this.error.set('No se pudo ejecutar el motor global');
+        },
+      });
   }
 
   isWeekend(day: number): boolean {

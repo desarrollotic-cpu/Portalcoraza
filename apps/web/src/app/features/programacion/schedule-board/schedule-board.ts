@@ -11,6 +11,7 @@ import {
   MonthlySchedulingApiService,
   PersonalRole,
   ScheduleAssignment,
+  ScheduleTemplate,
   Turno,
 } from '../monthly-scheduling-api.service';
 import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
@@ -99,6 +100,27 @@ const CODES: CodeConfig[] = [
           <button type="button" (click)="runMotor()" [disabled]="saving()">
             Aplicar motor ({{ tipoCiclo }})
           </button>
+          <button type="button" (click)="saveAsTemplate()" [disabled]="saving()">
+            Guardar plantilla
+          </button>
+          @if (templates().length) {
+            <label class="tpl">
+              Plantilla
+              <select [(ngModel)]="selectedTemplateId">
+                <option value="">—</option>
+                @for (t of templates(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              (click)="applySelectedTemplate()"
+              [disabled]="saving() || !selectedTemplateId"
+            >
+              Aplicar plantilla
+            </button>
+          }
           <button type="button" class="primary" (click)="save()" [disabled]="saving() || !dirty()">
             Guardar
           </button>
@@ -245,7 +267,8 @@ const CODES: CodeConfig[] = [
     .st-borrador { background: #fff3cd; color: #8a6d00; }
     .st-publicado { background: #d1e7dd; color: #0f5132; }
     .st-anulado { background: #f8d7da; color: #842029; }
-    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+    .tpl { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; color: var(--coraza-text-muted); }
     button { padding: 0.5rem 0.9rem; border: 1px solid var(--coraza-border); border-radius: 8px; background: var(--coraza-surface); cursor: pointer; font: inherit; }
     button:hover:not(:disabled) { background: var(--primary-50); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -309,11 +332,13 @@ export class ScheduleBoard implements OnInit {
   postId = '';
   month = this.currentMonth();
   tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
+  selectedTemplateId = '';
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly dirty = signal(false);
   readonly error = signal<string | null>(null);
+  readonly templates = signal<ScheduleTemplate[]>([]);
 
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
   editAssociateId: string | null = null;
@@ -350,6 +375,9 @@ export class ScheduleBoard implements OnInit {
     this.associatesApi.list('ACTIVO').subscribe({
       next: (list) => this.associates.set(list),
       error: () => this.error.set('No se pudieron cargar los asociados'),
+    });
+    this.api.listTemplates().subscribe({
+      next: (rows) => this.templates.set(rows),
     });
     if (this.postId && this.month) {
       this.onSelectionChange();
@@ -415,6 +443,41 @@ export class ScheduleBoard implements OnInit {
       error: () => {
         this.saving.set(false);
         this.error.set('No se pudo ejecutar el motor de ciclo');
+      },
+    });
+  }
+
+  saveAsTemplate(): void {
+    const sched = this.schedule();
+    if (!sched) return;
+    const name = prompt('Nombre de la plantilla', `Plantilla ${this.month}`);
+    if (!name?.trim()) return;
+    this.saving.set(true);
+    this.api.createTemplate({ name: name.trim(), fromScheduleId: sched.id }).subscribe({
+      next: (t) => {
+        this.templates.update((list) => [t, ...list]);
+        this.saving.set(false);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('No se pudo guardar la plantilla');
+      },
+    });
+  }
+
+  applySelectedTemplate(): void {
+    const sched = this.schedule();
+    if (!sched || !this.selectedTemplateId) return;
+    if (!confirm('¿Aplicar la plantilla? Se reemplazarán las celdas actuales.')) return;
+    this.saving.set(true);
+    this.api.applyTemplate(sched.id, this.selectedTemplateId).subscribe({
+      next: (updated) => {
+        this.applySchedule(updated);
+        this.saving.set(false);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('No se pudo aplicar la plantilla');
       },
     });
   }

@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsOptional,
@@ -139,4 +140,40 @@ export class GenerateMotorDto {
   @IsOptional()
   @IsString()
   tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+}
+
+export class GenerateMotorGlobalDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
+  year!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month!: number;
+
+  @IsOptional()
+  @IsString()
+  tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+
+  /** Si true, crea programación borrador para puestos activos sin cuadro ese mes. */
+  @IsOptional()
+  @IsBoolean()
+  createMissing?: boolean;
+}
+
+export class CreateScheduleTemplateDto {
+  @IsString()
+  name!: string;
+
+  @IsOptional()
+  @IsUUID()
+  postId?: string | null;
+
+  @IsOptional()
+  @IsUUID()
+  fromScheduleId?: string;
 }

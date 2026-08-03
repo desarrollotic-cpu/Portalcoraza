@@ -132,4 +132,61 @@ export class MonthlySchedulingApiService {
       opts ?? {},
     );
   }
+
+  generateMotorGlobal(payload: {
+    year: number;
+    month: number;
+    tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+    createMissing?: boolean;
+  }): Observable<{
+    year: number;
+    month: number;
+    tipoCiclo: string;
+    processed: number;
+    ok: number;
+    failed: number;
+  }> {
+    return this.http.post<{
+      year: number;
+      month: number;
+      tipoCiclo: string;
+      processed: number;
+      ok: number;
+      failed: number;
+    }>(`${this.baseUrl}/motor-global`, payload);
+  }
+
+  listTemplates(): Observable<ScheduleTemplate[]> {
+    return this.http.get<ScheduleTemplate[]>(`${this.baseUrl}/templates`);
+  }
+
+  createTemplate(payload: {
+    name: string;
+    fromScheduleId?: string;
+    postId?: string | null;
+  }): Observable<ScheduleTemplate> {
+    return this.http.post<ScheduleTemplate>(`${this.baseUrl}/templates`, payload);
+  }
+
+  applyTemplate(scheduleId: string, templateId: string): Observable<MonthlySchedule> {
+    return this.http.post<MonthlySchedule>(
+      `${this.baseUrl}/${scheduleId}/apply-template/${templateId}`,
+      {},
+    );
+  }
+}
+
+export interface ScheduleTemplate {
+  id: string;
+  name: string;
+  postId: string | null;
+  personal: PersonalRole[];
+  patron: Array<{
+    diaRelativo: number;
+    rol: string;
+    turno: string | null;
+    jornada: string;
+    codigo?: string | null;
+  }>;
+  createdAt: string;
 }

@@ -58,7 +58,7 @@ Fuente original: `APP-CONTABILIDAD/src/store/motorTurnos.ts`.
 
 Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 
-## Qué ya está en el portal (fase 1–2)
+## Qué ya está en el portal (fase 1–3)
 
 - [x] Ruta nativa `/programacion` (sin bridge externo)
 - [x] Cuadro mensual por puesto (`schedule-board`)
@@ -69,10 +69,12 @@ Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 - [x] **MasterGrid** multi-puesto (`/programacion/matriz`) + filtro por tipo
 - [x] Festivos Colombia en matriz y cuadro
 - [x] Conflictos cross-puesto (`GET /scheduling/monthly/conflicts`)
+- [x] Motor global del mes (`POST /scheduling/monthly/motor-global`) + UI en matriz
+- [x] Plantillas básicas (`GET/POST templates`, `POST :id/apply-template/:templateId`) + UI en cuadro
 
 ## Pendiente (paridad con APP — fases siguientes)
 
-- [ ] Plantillas / historial de cambios ricos / aplicar ciclo global
+- [ ] Historial de cambios rico / auditoría de celdas
 - [ ] Offline queue + realtime (Zustand APP)
 - [ ] Estados novedad LC/SP/IN/AC → ausentismo RRHH
 - [ ] WhatsApp / AI (satélites; no bloquean el tablero)
@@ -85,10 +87,10 @@ npm run web:dev
 ```
 
 1. Login → Dashboard → **Ir a Programación** (misma pestaña, `/programacion`)
-2. Elegir puesto + mes → Crear programación
-3. Elegir ciclo (12×3 / 10×5 / 2×2 / 13×2) → **Aplicar motor**
-4. Editar celdas → Guardar → Publicar
-5. No debe abrirse GitHub Pages
+2. Matriz: elegir ciclo → **Motor global** (o crear faltantes + motor)
+3. Abrir cuadro de un puesto → Aplicar motor / editar celdas → Guardar
+4. En cuadro: **Guardar como plantilla** / aplicar plantilla existente
+5. Publicar → No debe abrirse GitHub Pages
 
 ## Graphify (herramienta)
 
