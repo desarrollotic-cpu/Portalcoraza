@@ -41,6 +41,12 @@ export class MonthlySchedulingController {
     return this.service.listByMonth(query);
   }
 
+  @Get('conflicts')
+  @RequirePermissions('scheduling.view')
+  findConflicts(@Query() query: ListMonthlyScheduleDto) {
+    return this.service.findConflicts(query);
+  }
+
   @Post()
   @RequirePermissions('scheduling.create')
   createOrGet(

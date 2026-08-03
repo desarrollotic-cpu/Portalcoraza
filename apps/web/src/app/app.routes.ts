@@ -305,7 +305,16 @@ export const routes: Routes = [
             (m) => m.ProgramacionLayout,
           ),
         children: [
-          { path: '', pathMatch: 'full', redirectTo: 'cuadro' },
+          { path: '', pathMatch: 'full', redirectTo: 'matriz' },
+          {
+            path: 'matriz',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/master-grid/master-grid').then(
+                (m) => m.MasterGrid,
+              ),
+          },
           {
             path: 'cuadro',
             canActivate: [permissionGuard],

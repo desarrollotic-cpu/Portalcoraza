@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { Post } from '../posts/entities/post.entity';
 import {
   MonthlySchedule,
   PersonalRole,
@@ -45,11 +46,71 @@ export class MonthlySchedulingService {
     });
   }
 
-  async listByMonth(query: ListMonthlyScheduleDto): Promise<MonthlySchedule[]> {
-    return this.schedulesRepo.find({
+  async listByMonth(query: ListMonthlyScheduleDto) {
+    const schedules = await this.schedulesRepo.find({
       where: { year: query.year, month: query.month },
+      relations: { assignments: true },
       order: { createdAt: 'ASC' },
     });
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const postRows =
+      postIds.length === 0
+        ? []
+        : await this.dataSource.getRepository(Post).find({
+            where: { id: In(postIds) },
+          });
+    const postMap = new Map(postRows.map((p) => [p.id, p]));
+
+    return schedules.map((s) => {
+      const post = postMap.get(s.postId);
+      return {
+        ...s,
+        post: post
+          ? {
+              id: post.id,
+              code: post.code,
+              name: post.name,
+              type: post.type,
+              clientName: post.clientName,
+              status: post.status,
+            }
+          : null,
+      };
+    });
+  }
+
+  /**
+   * Detecta asociados asignados el mismo día en más de un puesto (mismo mes).
+   */
+  async findConflicts(query: ListMonthlyScheduleDto) {
+    const rows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', {
+        year: query.year,
+        month: query.month,
+      })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada NOT IN ('sin_asignar')`)
+      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N')`)
+      .select([
+        'a.associate_id AS "associateId"',
+        'a.day AS day',
+        'COUNT(DISTINCT s.post_id)::int AS "postCount"',
+        'ARRAY_AGG(DISTINCT s.post_id::text) AS "postIds"',
+      ])
+      .groupBy('a.associate_id')
+      .addGroupBy('a.day')
+      .having('COUNT(DISTINCT s.post_id) > 1')
+      .getRawMany();
+
+    return rows.map((r) => ({
+      associateId: r.associateId as string,
+      day: Number(r.day),
+      postCount: Number(r.postCount),
+      postIds: (r.postIds as string[]) ?? [],
+    }));
   }
 
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {

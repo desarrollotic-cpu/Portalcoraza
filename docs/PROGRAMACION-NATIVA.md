@@ -58,7 +58,7 @@ Fuente original: `APP-CONTABILIDAD/src/store/motorTurnos.ts`.
 
 Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 
-## Qué ya está en el portal (fase 1)
+## Qué ya está en el portal (fase 1–2)
 
 - [x] Ruta nativa `/programacion` (sin bridge externo)
 - [x] Cuadro mensual por puesto (`schedule-board`)
@@ -66,11 +66,12 @@ Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 - [x] Continuidad mes→mes al aplicar motor
 - [x] Alertas de validación del motor (en respuesta de `/motor`)
 - [x] Save atómico TypeORM + publish + notificación GERENCIA
+- [x] **MasterGrid** multi-puesto (`/programacion/matriz`) + filtro por tipo
+- [x] Festivos Colombia en matriz y cuadro
+- [x] Conflictos cross-puesto (`GET /scheduling/monthly/conflicts`)
 
 ## Pendiente (paridad con APP — fases siguientes)
 
-- [ ] MasterGrid multi-puesto + filtro zona + festivos CO
-- [ ] Conflictos cross-puesto (mismo asociado, mismo día, otro puesto)
 - [ ] Plantillas / historial de cambios ricos / aplicar ciclo global
 - [ ] Offline queue + realtime (Zustand APP)
 - [ ] Estados novedad LC/SP/IN/AC → ausentismo RRHH

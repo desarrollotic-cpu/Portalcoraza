@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
@@ -12,6 +13,7 @@ import {
   ScheduleAssignment,
   Turno,
 } from '../monthly-scheduling-api.service';
+import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
 
 interface CodeConfig {
   codigo: string;
@@ -145,7 +147,11 @@ const CODES: CodeConfig[] = [
               <tr>
                 <th class="sticky-col">Rol / Titular</th>
                 @for (day of days(); track day) {
-                  <th [class.weekend]="isWeekend(day)">{{ day }}</th>
+                  <th
+                    [class.weekend]="isWeekend(day)"
+                    [class.holiday]="holidayName(day)"
+                    [title]="holidayName(day) || ''"
+                  >{{ day }}</th>
                 }
               </tr>
             </thead>
@@ -258,6 +264,7 @@ const CODES: CodeConfig[] = [
     th, td { border: 1px solid var(--coraza-border); padding: 0.35rem; text-align: center; min-width: 30px; }
     th { background: var(--primary-50); position: sticky; top: 0; z-index: 1; }
     th.weekend, td.weekend { background: #fafafa; }
+    th.holiday, td.holiday { background: #fff3cd; }
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
     .role-label { font-weight: 600; }
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
@@ -288,6 +295,7 @@ export class ScheduleBoard implements OnInit {
   private readonly api = inject(MonthlySchedulingApiService);
   private readonly schedulingApi = inject(SchedulingApiService);
   private readonly associatesApi = inject(AssociatesApiService);
+  private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthService);
 
   readonly codes = CODES;
@@ -311,6 +319,11 @@ export class ScheduleBoard implements OnInit {
   editAssociateId: string | null = null;
   editCodigo = '';
 
+  readonly holidays = computed(() => {
+    const [year] = this.month.split('-').map(Number);
+    return getColombiaHolidays(year || new Date().getFullYear());
+  });
+
   readonly days = computed(() => {
     const [year, mon] = this.month.split('-').map(Number);
     const count = new Date(year, mon, 0).getDate();
@@ -324,6 +337,12 @@ export class ScheduleBoard implements OnInit {
   });
 
   ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const qPost = qp.get('postId');
+    const qMonth = qp.get('month');
+    if (qPost) this.postId = qPost;
+    if (qMonth) this.month = qMonth;
+
     this.schedulingApi.listPosts().subscribe({
       next: (posts) => this.posts.set(posts),
       error: () => this.error.set('No se pudieron cargar los puestos'),
@@ -332,6 +351,14 @@ export class ScheduleBoard implements OnInit {
       next: (list) => this.associates.set(list),
       error: () => this.error.set('No se pudieron cargar los asociados'),
     });
+    if (this.postId && this.month) {
+      this.onSelectionChange();
+    }
+  }
+
+  holidayName(day: number): string | null {
+    const [year, mon] = this.month.split('-').map(Number);
+    return isColombiaHoliday(year, mon, day, this.holidays())?.name ?? null;
   }
 
   onSelectionChange(): void {

@@ -50,6 +50,26 @@ export interface MonthlySchedule {
   updatedAt: string;
 }
 
+export interface SchedulePostSummary {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  clientName: string | null;
+  status: string;
+}
+
+export interface MonthlyScheduleWithPost extends MonthlySchedule {
+  post: SchedulePostSummary | null;
+}
+
+export interface ScheduleConflict {
+  associateId: string;
+  day: number;
+  postCount: number;
+  postIds: string[];
+}
+
 export interface SavePayload {
   personal: PersonalRole[];
   assignments: Array<{
@@ -75,6 +95,20 @@ export class MonthlySchedulingApiService {
       .set('year', String(year))
       .set('month', String(month));
     return this.http.get<MonthlySchedule | null>(this.baseUrl, { params });
+  }
+
+  listByMonth(year: number, month: number): Observable<MonthlyScheduleWithPost[]> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<MonthlyScheduleWithPost[]>(`${this.baseUrl}/by-month`, { params });
+  }
+
+  findConflicts(year: number, month: number): Observable<ScheduleConflict[]> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<ScheduleConflict[]>(`${this.baseUrl}/conflicts`, { params });
   }
 
   createOrGet(postId: string, year: number, month: number): Observable<MonthlySchedule> {
