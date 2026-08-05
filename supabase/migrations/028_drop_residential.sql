@@ -1,8 +1,14 @@
 -- Portal Coraza: solo procesos internos. Retira dominio residencial.
 -- Idempotente: seguro si las tablas/permisos ya no existen.
 
-DROP TRIGGER IF EXISTS virtual_log_prevent_update ON virtual_log;
-DROP TRIGGER IF EXISTS virtual_log_prevent_delete ON virtual_log;
+DO $$
+BEGIN
+  IF to_regclass('public.virtual_log') IS NOT NULL THEN
+    DROP TRIGGER IF EXISTS virtual_log_prevent_update ON virtual_log;
+    DROP TRIGGER IF EXISTS virtual_log_prevent_delete ON virtual_log;
+  END IF;
+END $$;
+
 DROP FUNCTION IF EXISTS prevent_virtual_log_mutation();
 
 DROP TABLE IF EXISTS residential_incident_history CASCADE;
