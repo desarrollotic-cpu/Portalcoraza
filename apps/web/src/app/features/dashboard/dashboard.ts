@@ -553,20 +553,6 @@ export class Dashboard implements OnInit {
           cta: 'Ir a Documental',
           gradient: 'var(--gradient-success)',
         },
-        {
-          label: 'Novedades abiertas',
-          value: s.openIncidents ?? 0,
-          icon: LucideBell,
-          gradient: 'var(--gradient-warning)',
-        },
-        {
-          label: 'Reservas pendientes',
-          value: s.pendingReservations ?? 0,
-          icon: LucideCalendarCheck,
-          route: '/residential/reservas',
-          cta: 'Ver reservas',
-          gradient: 'linear-gradient(135deg, #06b6d4 0%, #6366f1 100%)',
-        },
       );
     }
 

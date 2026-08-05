@@ -67,13 +67,6 @@ INSERT INTO permissions (code, name, module) VALUES
   ('documental.view', 'Ver documental', 'documental'),
   ('documental.create', 'Crear registro documental', 'documental'),
   ('documental.manage', 'Gestionar tipos documentales', 'documental'),
-  ('residential.view', 'Ver residencial', 'residential'),
-  ('residential.manage', 'Gestionar unidades residenciales', 'residential'),
-  ('residential.visitors', 'Gestionar visitantes', 'residential'),
-  ('residential.packages', 'Gestionar paqueteria', 'residential'),
-  ('residential.reservations', 'Gestionar reservas', 'residential'),
-  ('residential.incidents', 'Gestionar novedades residenciales', 'residential'),
-  ('residential.parking', 'Gestionar parqueaderos visitantes', 'residential'),
   ('notifications.view', 'Ver notificaciones', 'notifications'),
   ('notifications.read', 'Marcar notificaciones como leidas', 'notifications')
 ON CONFLICT (code) DO NOTHING;
@@ -86,8 +79,6 @@ WHERE r.code = 'GERENCIA' AND p.code IN (
   'deliveries.view', 'deliveries.create', 'deliveries.sign',
   'scheduling.view', 'scheduling.create', 'scheduling.edit',
   'documental.view', 'documental.create', 'documental.manage',
-  'residential.view', 'residential.manage', 'residential.visitors', 'residential.packages',
-  'residential.reservations', 'residential.incidents', 'residential.parking',
   'notifications.view', 'notifications.read'
 )
 ON CONFLICT DO NOTHING;

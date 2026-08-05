@@ -453,44 +453,6 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'residential',
-        canActivate: [permissionGuard],
-        data: { permission: 'residential.view' },
-        loadComponent: () =>
-          import('./features/residential/residential-layout/residential-layout').then(
-            (m) => m.ResidentialLayout,
-          ),
-        children: [
-          { path: '', redirectTo: 'unidades', pathMatch: 'full' },
-          {
-            path: 'unidades',
-            loadComponent: () =>
-              import('./features/residential/units-list/units-list').then((m) => m.UnitsList),
-          },
-          {
-            path: 'visitantes',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.visitors' },
-            loadComponent: () =>
-              import('./features/residential/visitors-log/visitors-log').then((m) => m.VisitorsLog),
-          },
-          {
-            path: 'paquetes',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.packages' },
-            loadComponent: () =>
-              import('./features/residential/packages/packages').then((m) => m.Packages),
-          },
-          {
-            path: 'reservas',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.reservations' },
-            loadComponent: () =>
-              import('./features/residential/reservations/reservations').then((m) => m.Reservations),
-          },
-        ],
-      },
-      {
         path: 'admin',
         canActivate: [permissionGuard],
         data: { permission: 'users.view' },

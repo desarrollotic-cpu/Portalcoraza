@@ -18,7 +18,6 @@ import { HrPositionsModule } from './modules/hr-positions/hr-positions.module';
 import { HrRetirementsModule } from './modules/hr-retirements/hr-retirements.module';
 import { HrWorkCentersModule } from './modules/hr-work-centers/hr-work-centers.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { ResidentialModule } from './modules/residential/residential.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -73,7 +72,6 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     DeliveriesModule,
     SchedulingModule,
     DocumentalModule,
-    ResidentialModule,
     NotificationsModule,
     PostsModule,
     PostEquipmentModule,
