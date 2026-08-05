@@ -1,41 +1,50 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
+import { StatsKpiGrid, StatsKpiItem } from '../../../shared/components/stats-kpi-grid/stats-kpi-grid';
 import { Alert, Analytics, DocumentalApiService } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
 
 @Component({
   selector: 'app-documental-panel',
-  imports: [],
+  imports: [StatsKpiGrid],
   template: `
-    @if (loading()) {
-      <p>Cargando panel...</p>
-    } @else {
-      <div class="kpis">
-        <div class="kpi"><div class="n">{{ a()?.correspondencia ?? 0 }}</div><div class="l">Correspondencia</div></div>
-        <div class="kpi"><div class="n">{{ a()?.minutas ?? 0 }}</div><div class="l">Minutas</div></div>
-        <div class="kpi"><div class="n">{{ a()?.contratos ?? 0 }}</div><div class="l">Contratos</div></div>
-        <div class="kpi"><div class="n">{{ a()?.asociadosRetirados ?? 0 }}</div><div class="l">Asociados retirados</div></div>
-        <div class="kpi"><div class="n">{{ a()?.prestamosActivos ?? 0 }}</div><div class="l">Préstamos activos</div></div>
-        <div class="kpi"><div class="n">{{ a()?.prestamosDevueltos ?? 0 }}</div><div class="l">Préstamos devueltos</div></div>
-      </div>
+    @if (error()) {
+      <p class="muted">{{ error() }}</p>
+    }
 
-      <h3>Alertas ({{ alerts().length }})</h3>
-      @if (alerts().length === 0) {
-        <p class="muted">Sin alertas de vencimiento.</p>
-      } @else {
-        <table>
-          <thead><tr><th>Nivel</th><th>Título</th><th>Detalle</th></tr></thead>
-          <tbody>
-            @for (al of alerts(); track al.idRegistro + al.tipo) {
-              <tr>
-                <td><span class="badge" [class.crit]="al.nivel === 'critico'" [class.warn]="al.nivel !== 'critico'">{{ al.nivel }}</span></td>
-                <td>{{ al.titulo }}</td>
-                <td>{{ al.mensaje }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      }
+    <app-stats-kpi-grid [items]="kpiItems()" [loading]="loading()" />
+
+    <h3>Alertas ({{ alerts().length }})</h3>
+    @if (loading()) {
+      <p class="muted">Cargando…</p>
+    } @else if (alerts().length === 0) {
+      <p class="muted">Sin alertas de vencimiento.</p>
+    } @else {
+      <table>
+        <thead>
+          <tr>
+            <th>Nivel</th>
+            <th>Título</th>
+            <th>Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (al of alerts(); track al.idRegistro + al.tipo) {
+            <tr>
+              <td>
+                <span
+                  class="badge"
+                  [class.crit]="al.nivel === 'critico'"
+                  [class.warn]="al.nivel !== 'critico'"
+                  >{{ al.nivel }}</span
+                >
+              </td>
+              <td>{{ al.titulo }}</td>
+              <td>{{ al.mensaje }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
     }
   `,
   styles: [DOC_STYLES],
@@ -45,6 +54,36 @@ export class DocumentalPanel implements OnInit {
   readonly a = signal<Analytics | null>(null);
   readonly alerts = signal<Alert[]>([]);
   readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+
+  readonly kpiItems = computed<StatsKpiItem[]>(() => {
+    const x = this.a();
+    return [
+      {
+        label: 'Correspondencia',
+        value: x?.correspondencia ?? '—',
+        link: '/documental/correspondencia',
+      },
+      { label: 'Minutas', value: x?.minutas ?? '—', link: '/documental/minutas' },
+      { label: 'Contratos', value: x?.contratos ?? '—', link: '/documental/contratos' },
+      {
+        label: 'Asociados retirados',
+        value: x?.asociadosRetirados ?? '—',
+        link: '/documental/asociados',
+      },
+      {
+        label: 'Préstamos activos',
+        value: x?.prestamosActivos ?? '—',
+        link: '/documental/prestamos',
+        warn: (x?.prestamosActivos ?? 0) > 0,
+      },
+      {
+        label: 'Préstamos devueltos',
+        value: x?.prestamosDevueltos ?? '—',
+        link: '/documental/prestamos',
+      },
+    ];
+  });
 
   ngOnInit(): void {
     forkJoin({ analytics: this.api.analytics(), notifs: this.api.notifications() }).subscribe({
@@ -53,7 +92,10 @@ export class DocumentalPanel implements OnInit {
         this.alerts.set(notifs.alertas);
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.error.set('Error cargando el panel documental');
+        this.loading.set(false);
+      },
     });
   }
 }

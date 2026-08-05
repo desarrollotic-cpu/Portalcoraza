@@ -380,6 +380,72 @@ export class MonthlySchedulingService {
     return this.templatesRepo.find({ order: { createdAt: 'DESC' } });
   }
 
+  /**
+   * Bundle de KPIs del mes para el panel de Programación.
+   * Secuencial a propósito (pooler Supabase session).
+   */
+  async overview(year: number, month: number) {
+    const schedules = await this.listByMonth({ year, month });
+    const conflicts = await this.findConflicts({ year, month });
+    const templates = await this.listTemplates();
+
+    let assignedCells = 0;
+    const assignedByPost = new Map<string, { label: string; value: number }>();
+
+    for (const s of schedules) {
+      const postLabel =
+        (s as { post?: { code?: string; name?: string } | null }).post?.code ||
+        (s as { post?: { name?: string } | null }).post?.name ||
+        s.postId.slice(0, 8);
+      const asg = s.assignments ?? [];
+      let postAssigned = 0;
+      for (const a of asg) {
+        if (a.associateId && a.jornada !== 'sin_asignar') {
+          assignedCells += 1;
+          postAssigned += 1;
+        }
+      }
+      assignedByPost.set(s.postId, { label: postLabel, value: postAssigned });
+    }
+
+    const conflictByPost = new Map<string, number>();
+    for (const c of conflicts) {
+      for (const postId of c.postIds ?? []) {
+        conflictByPost.set(postId, (conflictByPost.get(postId) ?? 0) + 1);
+      }
+    }
+
+    let series: Array<{ key: string; label: string; value: number }>;
+    if (conflictByPost.size > 0) {
+      series = [...conflictByPost.entries()]
+        .map(([key, value]) => ({
+          key,
+          label: assignedByPost.get(key)?.label ?? key.slice(0, 8),
+          value,
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+    } else {
+      series = [...assignedByPost.entries()]
+        .map(([key, { label, value }]) => ({ key, label, value }))
+        .filter((p) => p.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+    }
+
+    return {
+      year,
+      month,
+      kpis: {
+        postsInMonth: schedules.length,
+        assignedCells,
+        conflicts: conflicts.length,
+        templates: templates.length,
+      },
+      series,
+    };
+  }
+
   async createTemplate(dto: CreateScheduleTemplateDto, userId: string) {
     let personal: PersonalRole[] = [];
     let patron: TemplatePatternItem[] = [];

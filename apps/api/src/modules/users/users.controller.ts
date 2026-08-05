@@ -21,6 +21,12 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get('overview')
+  @RequirePermissions('users.view')
+  overview() {
+    return this.usersService.overview();
+  }
+
   @Post()
   @RequirePermissions('users.create')
   create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {

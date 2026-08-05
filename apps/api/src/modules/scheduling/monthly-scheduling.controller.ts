@@ -37,6 +37,12 @@ export class MonthlySchedulingController {
     return this.service.getOne(query);
   }
 
+  @Get('overview')
+  @RequirePermissions('scheduling.view')
+  overview(@Query() query: ListMonthlyScheduleDto) {
+    return this.service.overview(query.year, query.month);
+  }
+
   @Get('by-month')
   @RequirePermissions('scheduling.view')
   listByMonth(@Query() query: ListMonthlyScheduleDto) {

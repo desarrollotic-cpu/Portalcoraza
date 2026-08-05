@@ -304,7 +304,16 @@ export const routes: Routes = [
             (m) => m.ProgramacionLayout,
           ),
         children: [
-          { path: '', pathMatch: 'full', redirectTo: 'matriz' },
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-panel/programacion-panel').then(
+                (m) => m.ProgramacionPanel,
+              ),
+          },
           {
             path: 'matriz',
             canActivate: [permissionGuard],
@@ -459,7 +468,14 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/admin/admin-layout/admin-layout').then((m) => m.AdminLayout),
         children: [
-          { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'users.view' },
+            loadComponent: () =>
+              import('./features/admin/admin-panel/admin-panel').then((m) => m.AdminPanel),
+          },
           {
             path: 'usuarios',
             loadComponent: () =>

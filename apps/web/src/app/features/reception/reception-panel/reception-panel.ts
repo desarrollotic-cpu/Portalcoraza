@@ -1,8 +1,10 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
+import { StatsKpiGrid, StatsKpiItem } from '../../../shared/components/stats-kpi-grid/stats-kpi-grid';
+import { StatsMiniBars, StatsSeriesPoint } from '../../../shared/components/stats-mini-bars/stats-mini-bars';
 import { ToastService } from '../../../shared/services/toast.service';
 import {
   ReceptionApiService,
@@ -12,7 +14,7 @@ import {
 
 @Component({
   selector: 'app-reception-panel',
-  imports: [DatePipe, RouterLink, ConfirmDialog],
+  imports: [DatePipe, RouterLink, ConfirmDialog, StatsKpiGrid, StatsMiniBars],
   template: `
     <section class="page">
       <header class="head">
@@ -25,42 +27,14 @@ import {
         }
       </header>
 
-      @if (loading()) {
-        <p>Cargando...</p>
-      } @else if (error()) {
+      @if (error()) {
         <p class="error">{{ error() }}</p>
-      } @else if (data(); as d) {
-        <div class="kpis">
-          <div class="kpi warn">
-            <strong>{{ d.stats.insideNow }}</strong>
-            <span>Dentro ahora</span>
-          </div>
-          <div class="kpi">
-            <strong>{{ d.stats.todayEntries }}</strong>
-            <span>Visitantes hoy</span>
-          </div>
-          <div class="kpi">
-            <strong>{{ d.stats.monthEntries }}</strong>
-            <span>Este mes</span>
-          </div>
-          <div class="kpi">
-            <strong>{{ d.stats.yearEntries }}</strong>
-            <span>Este año</span>
-          </div>
-        </div>
+      }
 
-        <div class="chart-card">
-          <h3>Últimos 14 días</h3>
-          <div class="bars">
-            @for (day of d.last14Days; track day.day) {
-              <div class="bar-col" [title]="day.day + ': ' + day.entries">
-                <div class="bar" [style.height.%]="barHeight(day.entries, d)"></div>
-                <span class="bar-label">{{ day.day.slice(8) }}</span>
-              </div>
-            }
-          </div>
-        </div>
+      <app-stats-kpi-grid [items]="kpiItems()" [loading]="loading()" />
+      <app-stats-mini-bars title="Últimos 14 días" [series]="barSeries()" [loading]="loading()" />
 
+      @if (!loading() && data(); as d) {
         <div class="grid-2">
           <div class="card">
             <h3>Dentro ahora</h3>
@@ -301,13 +275,47 @@ export class ReceptionPanel implements OnInit {
   readonly pendingExit = signal<ReceptionVisitor | null>(null);
   readonly exiting = signal(false);
 
+  readonly kpiItems = computed<StatsKpiItem[]>(() => {
+    const s = this.data()?.stats;
+    return [
+      {
+        label: 'Dentro ahora',
+        value: s?.insideNow ?? '—',
+        hint: 'Visitantes en sede',
+        link: '/recepcion/dentro',
+        warn: (s?.insideNow ?? 0) > 0,
+      },
+      {
+        label: 'Visitantes hoy',
+        value: s?.todayEntries ?? '—',
+        hint: 'Entradas del día',
+        link: '/recepcion/historial',
+      },
+      {
+        label: 'Este mes',
+        value: s?.monthEntries ?? '—',
+        hint: 'Entradas del mes',
+        link: '/recepcion/historial',
+      },
+      {
+        label: 'Este año',
+        value: s?.yearEntries ?? '—',
+        hint: 'Entradas del año',
+        link: '/recepcion/historial',
+      },
+    ];
+  });
+
+  readonly barSeries = computed<StatsSeriesPoint[]>(() =>
+    (this.data()?.last14Days ?? []).map((day) => ({
+      key: day.day,
+      label: day.day.slice(8),
+      value: day.entries,
+    })),
+  );
+
   ngOnInit(): void {
     this.reload();
-  }
-
-  barHeight(entries: number, d: ReceptionDashboard): number {
-    const max = Math.max(1, ...d.last14Days.map((x) => x.entries));
-    return Math.max(4, Math.round((entries / max) * 100));
   }
 
   askExit(v: ReceptionVisitor): void {

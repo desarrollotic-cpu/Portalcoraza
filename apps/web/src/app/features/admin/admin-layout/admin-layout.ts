@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideShieldCheck, LucideUserCog } from '@lucide/angular';
+import { LucideLayoutDashboard, LucideShieldCheck, LucideUserCog } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -18,6 +18,13 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 })
 export class AdminLayout {
   readonly nav: ModuleNavItem[] = [
+    {
+      label: 'Panel',
+      route: '/admin',
+      permission: 'users.view',
+      exact: true,
+      icon: LucideLayoutDashboard,
+    },
     {
       label: 'Usuarios',
       route: '/admin/usuarios',

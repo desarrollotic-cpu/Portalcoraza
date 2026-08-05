@@ -70,6 +70,18 @@ export interface ScheduleConflict {
   postIds: string[];
 }
 
+export interface ProgramacionOverview {
+  year: number;
+  month: number;
+  kpis: {
+    postsInMonth: number;
+    assignedCells: number;
+    conflicts: number;
+    templates: number;
+  };
+  series: Array<{ key: string; label: string; value: number }>;
+}
+
 export interface SavePayload {
   personal: PersonalRole[];
   assignments: Array<{
@@ -102,6 +114,13 @@ export class MonthlySchedulingApiService {
       .set('year', String(year))
       .set('month', String(month));
     return this.http.get<MonthlyScheduleWithPost[]>(`${this.baseUrl}/by-month`, { params });
+  }
+
+  getMonthlyOverview(year: number, month: number): Observable<ProgramacionOverview> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<ProgramacionOverview>(`${this.baseUrl}/overview`, { params });
   }
 
   findConflicts(year: number, month: number): Observable<ScheduleConflict[]> {

@@ -140,6 +140,48 @@ export class UsersService {
     });
   }
 
+  /** KPIs + últimos usuarios para el panel de Administración. */
+  async overview() {
+    const statusRows = await this.usersRepo
+      .createQueryBuilder('u')
+      .select('u.isActive', 'isActive')
+      .addSelect('COUNT(u.id)::int', 'total')
+      .groupBy('u.isActive')
+      .getRawMany<{ isActive: boolean | string; total: string | number }>();
+
+    let usersActive = 0;
+    let usersInactive = 0;
+    for (const row of statusRows) {
+      const total = Number(row.total);
+      const active = row.isActive === true || row.isActive === 'true' || row.isActive === 't';
+      if (active) usersActive = total;
+      else usersInactive = total;
+    }
+
+    const roles = await this.rolesRepo.count();
+    const recent = await this.usersRepo.find({
+      relations: { role: true },
+      order: { createdAt: 'DESC' },
+      take: 8,
+      select: this.userListSelect,
+    });
+
+    return {
+      kpis: { usersActive, usersInactive, roles },
+      recentUsers: recent.map((u) => ({
+        id: u.id,
+        fullName: u.fullName ?? u.email,
+        email: u.email,
+        roleName: u.role?.name ?? '—',
+        isActive: u.isActive,
+        createdAt:
+          u.createdAt instanceof Date
+            ? u.createdAt.toISOString()
+            : String(u.createdAt),
+      })),
+    };
+  }
+
   private async findOneForAdmin(id: string) {
     const user = await this.usersRepo.findOne({
       where: { id },

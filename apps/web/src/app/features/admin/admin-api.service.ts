@@ -32,6 +32,22 @@ export interface Permission {
   module: string;
 }
 
+export interface UsersOverview {
+  kpis: {
+    usersActive: number;
+    usersInactive: number;
+    roles: number;
+  };
+  recentUsers: Array<{
+    id: string;
+    fullName: string;
+    email: string;
+    roleName: string;
+    isActive: boolean;
+    createdAt: string;
+  }>;
+}
+
 export interface CreateUserPayload {
   email: string;
   password: string;
@@ -54,6 +70,10 @@ export class AdminApiService {
 
   listUsers(): Observable<AdminUser[]> {
     return this.http.get<AdminUser[]>(`${this.baseUrl}/users`);
+  }
+
+  getUsersOverview(): Observable<UsersOverview> {
+    return this.http.get<UsersOverview>(`${this.baseUrl}/users/overview`);
   }
 
   createUser(payload: CreateUserPayload): Observable<AdminUser> {
