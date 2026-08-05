@@ -1,6 +1,6 @@
 # Portal Coraza — Reglas de negocio y procedimientos
 
-**Versión:** 2026-07-24  
+**Versión:** 2026-08-05  
 **Audiencia:** gerencia, operaciones, soporte y desarrollo  
 **Objetivo:** entender *cómo funciona* cada módulo sin tener que leer el código.
 
@@ -26,12 +26,11 @@
 6. [Dotación — Elementos de puesto](#6-dotación--elementos-de-puesto)
 7. [Programación](#7-programación)
 8. [Documental](#8-documental)
-9. [Residencial](#9-residencial)
-10. [Recepción](#10-recepción)
-11. [Notificaciones](#11-notificaciones)
-12. [Dashboard](#12-dashboard)
-13. [Firmas y almacenamiento (Supabase)](#13-firmas-y-almacenamiento)
-14. [Matriz rápida de roles](#14-matriz-rápida-de-roles)
+9. [Recepción](#9-recepción)
+10. [Notificaciones](#10-notificaciones)
+11. [Dashboard y paneles por módulo](#11-dashboard-y-paneles-por-módulo)
+12. [Firmas y almacenamiento (Supabase)](#12-firmas-y-almacenamiento)
+13. [Matriz rápida de roles](#13-matriz-rápida-de-roles)
 
 ---
 
@@ -49,33 +48,35 @@
 - Formato: `modulo.accion` (ej. `inventory.edit`, `deliveries.sign`).
 - GERENCIA suele tener todos los permisos de negocio.
 - Cada pantalla/API exige uno o más permisos concretos.
+- El rol **AUDITOR** solo tiene permisos de consulta (`*.view` y equivalentes de lectura).
 
 ### Auditoría
 
 - Acciones importantes (login, crear/editar usuarios, confirmar entrega, retiro de asociado, etc.) quedan registradas en bitácora de auditoría.
 
-### Puestos (`posts`) y aislamiento
+### Puestos (`posts`) y alcance
 
-- Un usuario puede tener uno o varios **puestos** asignados.
-- En **Residencial**, quien no es GERENCIA solo ve datos de sus puestos.
-- Si un usuario no tiene puestos y no es GERENCIA, en Residencial verá **listas vacías**.
+- Un usuario puede tener uno o varios **puestos** asignados (`user_posts`).
+- Sirve para amarrar operación (p. ej. programación / elementos de puesto) al alcance del usuario.
+- **No existe** módulo Residencial en el portal actual; el rol `ADMINISTRADOR_UNIDAD` está **retirado**.
 
 ---
 
 ## 2. Administración
 
-**Rutas:** `/admin/usuarios`, `/admin/roles`  
+**Rutas:** `/admin` (panel), `/admin/usuarios`, `/admin/roles`  
 **Permisos:** `users.view/create/edit`, `roles.view/manage`
 
 ### Para qué sirve
 
-Gestionar quién entra al portal, qué rol tiene y (vía API) a qué puestos está ligado.
+Gestionar quién entra al portal, qué rol tiene y (vía API) a qué puestos está ligado. El **panel** muestra conteos de usuarios activos/inactivos, roles y últimos usuarios creados.
 
 ### Procedimiento — crear usuario
 
 1. Administración → Usuarios → crear.
 2. Definir email, contraseña y rol.
 3. El email se guarda en minúsculas y debe ser único.
+4. Preferir dominio corporativo `@corazaseguridadcta.com` cuando aplique la política vigente.
 
 ### Procedimiento — desactivar usuario
 
@@ -97,6 +98,7 @@ Gestionar quién entra al portal, qué rol tiene y (vía API) a qué puestos est
 | Soft-delete | “Eliminar” = desactivar |
 | Auto-protección | No desactivar/eliminar la propia cuenta |
 | Recuperación admin | Existe flujo de emergencia con secreto de servidor (`ADMIN_RECOVERY_SECRET`); no es recuperación por correo |
+| Roles retirados | No crear ni reactivar `ADMINISTRADOR_UNIDAD` (residencial fuera de alcance) |
 
 ### Limitaciones
 
@@ -160,148 +162,55 @@ RRHH es la **fuente de verdad del personal**. Dotación y Programación consumen
 **Rutas:** `/rrhh/admin/cargos`, centros, catálogos  
 **Permisos:** `job_positions.*`, `work_centers.*`, `catalogs.*`
 
-| Regla | Detalle |
-|-------|---------|
-| Sin borrado de cargos/centros | Solo crear/editar (no DELETE) |
-| Catálogos | Se activan/desactivan; no se “borran” del histórico |
-| Centros → puestos | Existe sincronización centro de trabajo RRHH → puesto operativo (`Post`) |
+Catálogos maestros (EPS, género, motivos de retiro, etc.) alimentan formularios de asociados y reportes.
 
-### 3.4 Alertas HR
+### 3.4 Panel RRHH / alertas / matriz SST / bitácora
 
-**Ruta:** `/rrhh/alertas`  
-**Permisos:** `hr_alerts.view/resolve/run_cron`
-
-- Avisa vencimientos de curso, psicofísico, psicosensométrico, póliza y documentos faltantes.
-- Umbrales típicos: **60 / 30 / 7 días** (y vencido).
-- Solo asociados `ACTIVO`.
-- No duplica la misma alerta pendiente.
-- Se puede ejecutar el motor de alertas con permiso `hr_alerts.run_cron`.
-
-### 3.5 Documentos del asociado (HR)
-
-**Permisos:** `hr_documents.view/upload/delete`
-
-- Tipos: cédula, certificados, exámenes, póliza, contrato, acta, otro.
-- La fecha de vencimiento alimenta el motor de alertas.
-
-### 3.6 Retiros (encuesta / liquidación)
-
-**Rutas:** `/rrhh/retiros`  
-**Permisos:** `retirements.view/create/edit/readmit`
-
-- Complementa el cambio de estado a `RETIRADO`.
-- Incluye motivos/razones de catálogo, liquidación y encuesta de salida.
+- Panel (`hr_dashboard.view`): KPIs, rotación, demografía.
+- Alertas HR, matriz de cumplimiento SST y bitácora HR según permisos `hr_alerts.*`, `hr_audit.view`.
 
 ---
 
 ## 4. Dotación — Inventario
 
-**Rutas:** `/dotacion/inventario`, nuevo, editar  
+**Rutas:** `/dotacion/inventario`, …  
 **Permisos:** `inventory.view/create/edit/move/alerts`  
 **Rol típico:** ALMACENISTA, GERENCIA
 
-### Para qué sirve
+### Reglas típicas
 
-Catálogo de **elementos de dotación personal** (uniformes, etc.): categorías, ítems, variantes (talla/género/color) y stock.
-
-### Procedimiento — crear elemento
-
-1. Inventario → Agregar elemento.
-2. Definir código, nombre, categoría, umbral de stock bajo.
-3. Crear variantes (talla/género) con stock inicial si aplica.
-
-### Procedimiento — movimientos de stock
-
-1. Entradas / salidas / ajustes quedan en historial de movimientos.
-2. El descuento definitivo por entrega ocurre al **firmar** la entrega (no al crear el borrador).
-
-### Procedimiento — eliminar elemento de inventario
-
-1. Botón **Eliminar** en la lista (requiere `inventory.edit`).
-2. **No se puede** si alguna variante ya se usó en una entrega.
-3. Si se puede, borra variantes, movimientos asociados y el ítem.
-
-### Reglas
-
-| Regla | Detalle |
-|-------|---------|
-| Código / SKU únicos | Ítem y variantes no se duplican |
-| Stock insuficiente | Bloquea la confirmación de entrega |
-| Alertas de stock bajo | Según umbral del ítem |
+- Stock por **variantes** (talla/género/etc.).
+- Movimientos de entrada/salida quedan registrados.
+- Alertas de stock bajo visibles en panel de Dotación.
 
 ---
 
 ## 5. Dotación — Entregas
 
-**Rutas:** panel, asociados, firmar entrega, historial de movimientos, sin dotación  
-**Permisos:** `deliveries.view/create/sign/revert`
-
-### Estados de una entrega
-
-`PENDING` → `DELIVERED` → (opcional) `REVERTED`
-
-### Procedimiento — entregar a un asociado
-
-1. Elegir asociado elegible (`ACTIVO` o `VACACIONES`).
-2. Armar líneas (variante + cantidad) y crear entrega → queda `PENDING`.
-3. Firmar en tablet/PC (`deliveries.sign`):
-   - Valida stock.
-   - Descuenta inventario.
-   - Guarda firma.
-   - Pasa a `DELIVERED` e inmutable.
-
-### Procedimiento — entregar a un puesto
-
-1. Misma lógica, pero destino = **puesto**, no asociado.
-2. Una entrega es **asociado O puesto**, nunca ambos ni ninguno.
-
-### Procedimiento — revertir
-
-1. Solo entregas `DELIVERED`.
-2. Ventana máxima: **120 horas (5 días)** desde `deliveredAt`.
-3. Motivo obligatorio.
-4. Restaura stock y marca `REVERTED`.
-
-### Procedimiento — ver firma / PDF
-
-1. Historial o listados muestran la firma vía API autenticada (no enlace público del Storage).
-2. Reportes PDF (general / por ítem / por asociado) requieren permisos de inventario/vista según endpoint.
+**Rutas:** `/dotacion/asociados`, historial, firma  
+**Permisos:** `deliveries.view/create/sign`
 
 ### Reglas
 
 | Regla | Detalle |
 |-------|---------|
-| Destinatario | Asociado **o** puesto |
-| Elegibilidad | Solo `ACTIVO` / `VACACIONES` |
-| Stock al firmar | El descuento es en la firma, no al crear |
-| Reversión | ≤ 5 días (120 h) |
-| Firmas | Bucket privado; solo con login + permiso |
-
-### Indicador “Sin dotación 7+ meses”
-
-Lista asociados activos/vacaciones sin entrega firmada reciente (meses configurables; por defecto 7).
+| Destinatario | Asociado `ACTIVO` o `VACACIONES` |
+| Firma | Confirma la entrega; imagen en bucket privado vía API |
+| Reversión | Solo con flujo/permiso previsto; no “borrar” el histórico a mano |
 
 ---
 
 ## 6. Dotación — Elementos de puesto
 
-**Rutas:** `/dotacion/elementos`, puestos, detalle  
-**Permisos:** `post_equipment.view/manage/assign/return`
+**Rutas:** catálogo / asignación de elementos de puesto  
+**Permisos:** `post_equipment.view/assign/return/manage`
 
-### Para qué sirve
+### Procedimiento típico
 
-Equipo físico de **puestos** (sombrillas, radios, etc.), distinto del inventario de uniformes.
-
-### Procedimiento — crear tipo de elemento
-
-1. Elementos → crear (código + nombre; resto opcional).
+1. Definir tipo de elemento en catálogo.
 2. Puede generar unidades físicas numeradas.
-
-### Procedimiento — asignar / devolver
-
-1. Asignar unidad `AVAILABLE` a un puesto → `ASSIGNED`.
-2. Devolver solo si está asignada → `RETURNED`, `LOST` o `WRITTEN_OFF` según el caso.
-3. Al devolver, la unidad queda disponible o dada de baja según el resultado.
+3. Asignar unidad `AVAILABLE` a un puesto → `ASSIGNED`.
+4. Al devolver, la unidad queda disponible o dada de baja según el resultado.
 
 ### Reglas
 
@@ -309,85 +218,65 @@ Equipo físico de **puestos** (sombrillas, radios, etc.), distinto del inventari
 |-------|---------|
 | **No hay Eliminar en catálogo** | Hoy no existe borrado de tipos/unidades en la aplicación |
 | Una unidad asignada | No se reasigna sin devolver antes |
-| Conteos | Total / disponibles / en puestos se calculan en vivo |
-
-> Si se necesita “quitar” un tipo, hoy es limitación de producto (no es falta de permiso de almacén).
 
 ---
 
 ## 7. Programación
 
-**Ruta:** `/programacion`  
+**Rutas:** `/programacion` (panel), `/programacion/matriz`, `/programacion/cuadro`  
 **Permisos:** `scheduling.view/create/edit`
 
 ### Para qué sirve
 
-Turnos de personal por puesto (matriz mensual / turnos individuales).
+Turnos de personal por puesto (matriz mensual / cuadro). El **panel** resume puestos del mes, asignaciones, conflictos y plantillas.
 
 ### Reglas
 
 | Regla | Detalle |
 |-------|---------|
-| Sin solapamiento | Un asociado no puede tener dos turnos el mismo día (regla también en base de datos) |
-| Fechas pasadas | No se editan ni eliminan turnos de hoy o del pasado; solo futuros |
-| Publicación | Al publicar matriz mensual se notifica a GERENCIA |
+| Sin solapamiento | Un asociado no puede quedar en conflicto el mismo día en dos puestos (detector de conflictos) |
+| Fechas pasadas | No se editan ni eliminan turnos de hoy o del pasado; solo futuros (reglas del cuadro) |
+| Publicación | Al publicar matriz mensual se puede notificar a GERENCIA |
 | Motor automático | Puede regenerar asignaciones del mes (sobrescribe las existentes del schedule) |
 
 ### Integración
 
-Consume asociados (RRHH) y puestos. El alcance por puestos del rol PROGRAMADOR debe respetarse operativamente (validación estricta por puesto: revisar si el rol tiene puestos asignados).
+Consume asociados (RRHH) y puestos. El alcance por puestos del rol PROGRAMADOR debe respetarse operativamente cuando el usuario tenga puestos asignados.
 
 ---
 
 ## 8. Documental
 
-**Rutas:** `/documental`  
+**Rutas:** `/documental` (panel), correspondencia, minutas, contratos, préstamos, biblioteca, TRD, workflows, buscador, informes, …  
 **Permisos:** `documental.view/create/manage`
 
-### Regla clave (fase actual)
+### Para qué sirve
 
-**Metadata-only:** se registra la información del documento (tipo, código, ubicación física, etc.). **No** se suben archivos al Storage en esta fase (los campos de archivo existen preparados para el futuro).
+SGD nativo del portal (ya no hay redirección a Google Apps Script): radicación, TRD, préstamos, biblioteca, asociados retirados documentales, etc.
 
-- `documental.manage` → tipos documentales.
-- `documental.create` → alta/edición de registros.
+### Reglas clave
 
----
-
-## 9. Residencial
-
-**Rutas:** `/residential/unidades`, visitantes, paquetes, reservas, …  
-**Permisos:** `residential.view/manage/visitors/packages/reservations/incidents/parking`
-
-### Aislamiento
-
-| Quién | Qué ve |
-|-------|--------|
-| GERENCIA | Todas las unidades |
-| Otros roles | Solo unidades de sus puestos asignados |
-| Sin puestos | Listados vacíos; operar fuera de alcance → denegado |
-
-### Procedimientos típicos
-
-- **Visitantes / paquetes / correspondencia:** registro de ingreso y entrega; un paquete/correo no se entrega dos veces.
-- **Reservas:** estados `PENDING → APPROVED/REJECTED/CANCELLED/COMPLETED`. Cada unidad puede tener aprobación **manual** o **automática**.
-- **Incidencias:** ciclo abierta → en proceso → resuelta/cerrada, con prioridad.
+- `documental.view` → consulta / paneles / listados.
+- `documental.create` → altas (correspondencia, minutas, etc.).
+- `documental.manage` → administración (TRD, workflows, estados de préstamo, etc.).
+- Contadores / consecutivos se consumen al crear (no reutilizar números).
+- Préstamos siguen máquina de estados (pendiente → prestado → devuelto / vencido, etc.).
 
 ### Limitaciones
 
-- Algunas pantallas (incidencias/parqueadero) pueden estar más avanzadas en API que en UI.
-- Permisos de vigilante residencial: verificar asignación en seeds según el rol operativo real.
+- Algunas funciones avanzadas (import histórico Excel, UI pública de préstamos) pueden estar pendientes o parciales; ver plan SGD si aplica.
 
 ---
 
-## 10. Recepción
+## 9. Recepción
 
-**Rutas:** `/recepcion/panel`, registrar, dentro, historial  
+**Rutas:** `/recepcion` (panel), registrar, dentro, historial  
 **Permisos:** `reception.view/register/exit`  
 **Rol típico:** RECEPCIONISTA (+ GERENCIA / otros según seed)
 
 ### Para qué sirve
 
-Control de ingreso/salida de visitantes a **sede** (independiente de Residencial y de asociados RRHH).
+Control de ingreso/salida de visitantes a **sede** (independiente de asociados RRHH). **No** es el antiguo módulo Residencial.
 
 ### Procedimiento
 
@@ -401,11 +290,11 @@ Control de ingreso/salida de visitantes a **sede** (independiente de Residencial
 | Regla | Detalle |
 |-------|---------|
 | Historial permanente | No hay borrado de visitas; se cierra con salida |
-| Independencia | No se liga automáticamente a Asociados ni a unidades residenciales |
+| Independencia | No se liga automáticamente a Asociados RRHH |
 
 ---
 
-## 11. Notificaciones
+## 10. Notificaciones
 
 **UI:** campana en el layout principal  
 **Permisos:** `notifications.view/read`
@@ -423,21 +312,21 @@ La tabla debe estar en la publicación Realtime (migración `025` / Replication 
 
 ---
 
-## 12. Dashboard
+## 11. Dashboard y paneles por módulo
 
-**Ruta:** `/dashboard`
+**Ruta global:** `/dashboard`
 
 Widgets según rol (ejemplos):
 
-- **GERENCIA:** asociados activos, entregas pendientes, señales documentales/residenciales, etc.
+- **GERENCIA:** asociados activos, entregas pendientes, señales documentales, etc.
 - **SUPERVISOR:** entregas, novedades, turnos del día.
 - Si un módulo falla, el dashboard tiende a mostrar ceros en lugar de romper toda la pantalla.
 
-El overview de RRHH (`hr_dashboard.view`) concentra métricas demográficas, rotación y cumplimiento.
+Además, cada módulo operativo abre en un **panel de estadísticas** (KPIs + listas/gráficos cortos): RRHH, Dotación, Programación, Documental, Recepción y Administración. El overview de RRHH (`hr_dashboard.view`) concentra métricas demográficas, rotación y cumplimiento.
 
 ---
 
-## 13. Firmas y almacenamiento
+## 12. Firmas y almacenamiento
 
 | Tema | Regla |
 |------|--------|
@@ -450,7 +339,7 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 
 ---
 
-## 14. Matriz rápida de roles
+## 13. Matriz rápida de roles
 
 > Orientativa según seeds. GERENCIA concentra acceso amplio. Verificar en Administración → Roles si hubo cambios manuales.
 
@@ -462,9 +351,16 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 | `PROGRAMADOR` | Turnos / matriz |
 | `RECEPCIONISTA` | Recepción sede |
 | `SUPERVISOR` | Consulta operativa / dashboard |
-| `VIGILANTE` | Alcance limitado (según permisos asignados) |
 | `COORDINADOR_OPERATIVO` | Operación / consultas según seed |
-| `ADMINISTRADOR_UNIDAD` | Residencial acotado a sus puestos |
+| `VIGILANTE` | Alcance limitado (según permisos asignados) |
+| `AUDITOR` | Solo lectura en todos los módulos (`*.view`) |
+
+### Fuera de alcance
+
+| Rol / módulo | Estado |
+|--------------|--------|
+| `ADMINISTRADOR_UNIDAD` | **Retirado** — no usar |
+| Residencial (`/residential`, permisos `residential.*`) | **Retirado** del producto (migración `028`) |
 
 ---
 
@@ -478,6 +374,7 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 | Entrega | Dotación personal (o a puesto) con firma |
 | Elemento de puesto | Activo físico asignable a un puesto |
 | Soft-delete | Desactivar sin borrar histórico |
+| AUDITOR | Usuario de consulta sin capacidad de modificación |
 
 ---
 
@@ -487,6 +384,4 @@ Al cambiar una regla de negocio en código:
 
 1. Actualizar la sección del módulo aquí.
 2. Anotar fecha en la cabecera.
-3. Si el cambio es operativo (Supabase/Render), actualizar también `docs/SUPABASE.md` / `docs/DEPLOY-RENDER.md`.
-
-**Última revisión de contenido:** 2026-07-24 (estado del código en `main` tras firmas privadas, recepción, Realtime `025` y módulos de dotación/elementos).
+3. Si el cambio afecta roles, actualizar la matriz de la sección 13.
