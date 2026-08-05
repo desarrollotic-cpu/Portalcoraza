@@ -43,52 +43,47 @@ export class HrDashboardService {
   /**
    * Rotación mensual de los últimos 6 meses.
    * rotationRate = retiros del mes / plantilla activa promedio del mes.
+   * Secuencial a propósito: el pooler Supabase (session) no aguanta 12 queries en paralelo.
    */
   async monthlyRotation() {
+    const months: { key: string; retirements: number; activeAtEnd: number; rate: number }[] = [];
     const now = new Date();
-    const monthDefs: { key: string; from: string; to: string }[] = [];
+
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      monthDefs.push({
-        key: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
-        from: monthStart.toISOString().slice(0, 10),
-        to: monthEnd.toISOString().slice(0, 10),
-      });
+      const key = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`;
+      const from = monthStart.toISOString().slice(0, 10);
+      const to = monthEnd.toISOString().slice(0, 10);
+
+      const retirements = await this.retirementsRepo
+        .createQueryBuilder('r')
+        .where('r.retirementDate BETWEEN :from AND :to', { from, to })
+        .getCount();
+
+      const activeAtEnd = await this.associatesRepo
+        .createQueryBuilder('a')
+        .where('a.hireDate <= :to', { to })
+        .andWhere(
+          `(a.status = 'ACTIVO' OR (a.status = 'RETIRADO' AND NOT EXISTS (
+            SELECT 1 FROM associate_retirements ar WHERE ar.associate_id = a.id AND ar.retirement_date <= :to
+          )))`,
+          { to },
+        )
+        .getCount();
+
+      const rate = activeAtEnd > 0 ? Number(((retirements / activeAtEnd) * 100).toFixed(2)) : 0;
+      months.push({ key, retirements, activeAtEnd, rate });
     }
 
-    // Cada mes es independiente: se resuelven en paralelo (Promise.all conserva el orden).
-    return Promise.all(
-      monthDefs.map(async ({ key, from, to }) => {
-        const [retirements, activeAtEnd] = await Promise.all([
-          this.retirementsRepo
-            .createQueryBuilder('r')
-            .where('r.retirementDate BETWEEN :from AND :to', { from, to })
-            .getCount(),
-          this.associatesRepo
-            .createQueryBuilder('a')
-            .where('a.hireDate <= :to', { to })
-            .andWhere(
-              `(a.status = 'ACTIVO' OR (a.status = 'RETIRADO' AND NOT EXISTS (
-                SELECT 1 FROM associate_retirements ar WHERE ar.associate_id = a.id AND ar.retirement_date <= :to
-              )))`,
-              { to },
-            )
-            .getCount(),
-        ]);
-        const rate = activeAtEnd > 0 ? Number(((retirements / activeAtEnd) * 100).toFixed(2)) : 0;
-        return { key, retirements, activeAtEnd, rate };
-      }),
-    );
+    return months;
   }
 
   /** Distribución demográfica: agrupación por catálogo (EPS, género…). */
   async demographics() {
-    const [byEps, byGender, byEducation] = await Promise.all([
-      this.groupByCatalog('epsId', 'eps'),
-      this.groupByCatalog('genderId', 'gender'),
-      this.groupByCatalog('educationLevelId', 'educationLevel'),
-    ]);
+    const byEps = await this.groupByCatalog('epsId', 'eps');
+    const byGender = await this.groupByCatalog('genderId', 'gender');
+    const byEducation = await this.groupByCatalog('educationLevelId', 'educationLevel');
     return { byEps, byGender, byEducation, byAgeBucket: await this.ageBuckets() };
   }
 
@@ -260,14 +255,13 @@ export class HrDashboardService {
 
   /** Bundle único para pintar el dashboard en un solo request. */
   async overview() {
-    const [counts, rotation, demographics, reasons, positions, workCenters] = await Promise.all([
-      this.counts(),
-      this.monthlyRotation(),
-      this.demographics(),
-      this.retirementReasons(),
-      this.byPosition(),
-      this.byWorkCenter(),
-    ]);
+    // Secuencial: evita EMAXCONNSESSION del pooler Supabase al cargar el panel.
+    const counts = await this.counts();
+    const rotation = await this.monthlyRotation();
+    const demographics = await this.demographics();
+    const reasons = await this.retirementReasons();
+    const positions = await this.byPosition();
+    const workCenters = await this.byWorkCenter();
     return { counts, rotation, demographics, retirementReasons: reasons, positions, workCenters };
   }
 }

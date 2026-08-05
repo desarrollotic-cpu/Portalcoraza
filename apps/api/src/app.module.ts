@@ -44,11 +44,13 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
       ssl: isSupabaseDatabaseUrl(process.env.DATABASE_URL)
         ? { rejectUnauthorized: false }
         : false,
-      // Pool del driver pg. Evita que las requests "se queden pensando":
-      // si el pool se agota, falla rápido en lugar de colgarse indefinidamente,
-      // y mantiene vivas las conexiones reutilizadas (menos latencia en frío).
+      // Pool del driver pg. En Supabase (session pooler) el tope real es bajo
+      // (~15); varias instancias Nest + Promise.all lo saturan (EMAXCONNSESSION).
       extra: {
-        max: Number(process.env.DB_POOL_MAX ?? 20),
+        max: Number(
+          process.env.DB_POOL_MAX ??
+            (isSupabaseDatabaseUrl(process.env.DATABASE_URL) ? 5 : 20),
+        ),
         connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS ?? 10000),
         idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30000),
         keepAlive: true,
