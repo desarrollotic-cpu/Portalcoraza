@@ -57,6 +57,7 @@ describe('DeliveriesService', () => {
           provide: getRepositoryToken(InventoryVariant),
           useValue: {
             find: jest.fn(),
+            findBy: jest.fn(),
             findOne: jest.fn(),
             save: jest.fn(),
           },
@@ -113,10 +114,9 @@ describe('DeliveriesService', () => {
       };
 
       deliveriesRepo.findOne.mockResolvedValue(delivery as Delivery);
-      variantsRepo.findOne.mockResolvedValue({
-        id: variantId,
-        stockCurrent: 2,
-      } as InventoryVariant);
+      variantsRepo.findBy.mockResolvedValue([
+        { id: variantId, stockCurrent: 2 } as InventoryVariant,
+      ]);
 
       await expect(
         service.sign(deliveryId, { signatureData: 'data:image/png;base64,abc' }, userId),
@@ -152,7 +152,7 @@ describe('DeliveriesService', () => {
       const variant = { id: variantId, stockCurrent: 10 } as InventoryVariant;
 
       deliveriesRepo.findOne.mockResolvedValue(delivery as Delivery);
-      variantsRepo.findOne.mockResolvedValue(variant);
+      variantsRepo.findBy.mockResolvedValue([variant]);
       deliveriesRepo.save.mockImplementation(async (entity) => entity as Delivery);
 
       const result = await service.revert(
@@ -163,7 +163,7 @@ describe('DeliveriesService', () => {
 
       expect(result.status).toBe(DeliveryStatus.REVERTED);
       expect(variant.stockCurrent).toBe(13);
-      expect(variantsRepo.save).toHaveBeenCalledWith(variant);
+      expect(variantsRepo.save).toHaveBeenCalledWith([variant]);
     });
   });
 

@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { EXTERNAL_APPS } from './core/config/external-apps';
 import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/guards/permission.guard';
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
@@ -327,20 +326,83 @@ export const routes: Routes = [
         ],
       },
       {
-        // Fase 1: Portal → Documental oficial (Google Apps Script).
+        // Gestión Documental nativa (SGD Coraza sobre NestJS + Supabase).
         path: 'documental',
         canActivate: [permissionGuard],
-        data: {
-          permission: 'documental.view',
-          externalUrl: EXTERNAL_APPS.documental,
-          externalLabel: 'Gestión Documental',
-          externalHint:
-            'Usa Google (SGD CORAZA). Puede pedir cuenta Google la primera vez y tardar unos segundos en cargar.',
-        },
+        data: { permission: 'documental.view' },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
+          import('./features/documental/documental-layout/documental-layout').then(
+            (m) => m.DocumentalLayout,
           ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/documental/documental-panel/documental-panel').then(
+                (m) => m.DocumentalPanel,
+              ),
+          },
+          {
+            path: 'buscador',
+            loadComponent: () =>
+              import('./features/documental/search/search').then((m) => m.SearchScreen),
+          },
+          {
+            path: 'informes',
+            loadComponent: () =>
+              import('./features/documental/reports/reports').then((m) => m.ReportsScreen),
+          },
+          {
+            path: 'correspondencia',
+            loadComponent: () =>
+              import('./features/documental/correspondence/correspondence').then(
+                (m) => m.CorrespondenceScreen,
+              ),
+          },
+          {
+            path: 'minutas',
+            loadComponent: () =>
+              import('./features/documental/minutes/minutes').then((m) => m.MinutesScreen),
+          },
+          {
+            path: 'asociados',
+            loadComponent: () =>
+              import('./features/documental/retired-personnel/retired-personnel').then(
+                (m) => m.RetiredPersonnelScreen,
+              ),
+          },
+          {
+            path: 'contratos',
+            loadComponent: () =>
+              import('./features/documental/contracts/contracts').then((m) => m.ContractsScreen),
+          },
+          {
+            path: 'prestamos',
+            loadComponent: () =>
+              import('./features/documental/loans/loans').then((m) => m.LoansScreen),
+          },
+          {
+            path: 'biblioteca',
+            loadComponent: () =>
+              import('./features/documental/library/library').then((m) => m.LibraryScreen),
+          },
+          {
+            path: 'voxelsera',
+            loadComponent: () =>
+              import('./features/documental/voxelsera/voxelsera').then((m) => m.VoxelseraScreen),
+          },
+          {
+            path: 'workflows',
+            loadComponent: () =>
+              import('./features/documental/workflows/workflows').then((m) => m.WorkflowsScreen),
+          },
+          {
+            path: 'trd',
+            loadComponent: () =>
+              import('./features/documental/retention/retention').then((m) => m.RetentionScreen),
+          },
+        ],
       },
       {
         path: 'recepcion',

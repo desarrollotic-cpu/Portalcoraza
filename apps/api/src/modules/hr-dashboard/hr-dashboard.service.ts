@@ -45,38 +45,41 @@ export class HrDashboardService {
    * rotationRate = retiros del mes / plantilla activa promedio del mes.
    */
   async monthlyRotation() {
-    const months: { key: string; retirements: number; activeAtEnd: number; rate: number }[] = [];
     const now = new Date();
-
+    const monthDefs: { key: string; from: string; to: string }[] = [];
     for (let i = 5; i >= 0; i--) {
       const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-      const key = `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`;
-
-      const retirements = await this.retirementsRepo
-        .createQueryBuilder('r')
-        .where('r.retirementDate BETWEEN :from AND :to', {
-          from: monthStart.toISOString().slice(0, 10),
-          to: monthEnd.toISOString().slice(0, 10),
-        })
-        .getCount();
-
-      const activeAtEnd = await this.associatesRepo
-        .createQueryBuilder('a')
-        .where('a.hireDate <= :to', { to: monthEnd.toISOString().slice(0, 10) })
-        .andWhere(
-          `(a.status = 'ACTIVO' OR (a.status = 'RETIRADO' AND NOT EXISTS (
-            SELECT 1 FROM associate_retirements ar WHERE ar.associate_id = a.id AND ar.retirement_date <= :to
-          )))`,
-          { to: monthEnd.toISOString().slice(0, 10) },
-        )
-        .getCount();
-
-      const rate = activeAtEnd > 0 ? Number(((retirements / activeAtEnd) * 100).toFixed(2)) : 0;
-      months.push({ key, retirements, activeAtEnd, rate });
+      monthDefs.push({
+        key: `${monthStart.getFullYear()}-${String(monthStart.getMonth() + 1).padStart(2, '0')}`,
+        from: monthStart.toISOString().slice(0, 10),
+        to: monthEnd.toISOString().slice(0, 10),
+      });
     }
 
-    return months;
+    // Cada mes es independiente: se resuelven en paralelo (Promise.all conserva el orden).
+    return Promise.all(
+      monthDefs.map(async ({ key, from, to }) => {
+        const [retirements, activeAtEnd] = await Promise.all([
+          this.retirementsRepo
+            .createQueryBuilder('r')
+            .where('r.retirementDate BETWEEN :from AND :to', { from, to })
+            .getCount(),
+          this.associatesRepo
+            .createQueryBuilder('a')
+            .where('a.hireDate <= :to', { to })
+            .andWhere(
+              `(a.status = 'ACTIVO' OR (a.status = 'RETIRADO' AND NOT EXISTS (
+                SELECT 1 FROM associate_retirements ar WHERE ar.associate_id = a.id AND ar.retirement_date <= :to
+              )))`,
+              { to },
+            )
+            .getCount(),
+        ]);
+        const rate = activeAtEnd > 0 ? Number(((retirements / activeAtEnd) * 100).toFixed(2)) : 0;
+        return { key, retirements, activeAtEnd, rate };
+      }),
+    );
   }
 
   /** Distribución demográfica: agrupación por catálogo (EPS, género…). */

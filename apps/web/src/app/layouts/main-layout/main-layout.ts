@@ -40,7 +40,6 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { EXTERNAL_APPS } from '../../core/config/external-apps';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
 
@@ -964,7 +963,6 @@ export class MainLayout implements OnDestroy {
           route: '/documental',
           icon: LucideClipboardList,
           permission: 'documental.view',
-          externalUrl: EXTERNAL_APPS.documental,
         },
         {
           label: 'Recepción',

@@ -15,7 +15,6 @@ import {
   LucideUsersRound,
 } from '@lucide/angular';
 import { AuthService } from '../../core/services/auth.service';
-import { EXTERNAL_APPS } from '../../core/config/external-apps';
 import { Icon } from '../../shared/components/icon/icon';
 import { DashboardApiService, DashboardStats } from './dashboard-api.service';
 
@@ -65,7 +64,7 @@ interface KpiCard {
                 </a>
               }
               @if (auth.hasPermission('documental.view')) {
-                <a [href]="externalApps.documental" class="hero-btn ghost" target="_blank" rel="noopener noreferrer">
+                <a routerLink="/documental" class="hero-btn ghost">
                   <app-icon [icon]="icons.FileText" [size]="16" [strokeWidth]="2" />
                   Ir a Documental
                 </a>
@@ -484,7 +483,6 @@ interface KpiCard {
 export class Dashboard implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(DashboardApiService);
-  readonly externalApps = EXTERNAL_APPS;
 
   readonly icons = {
     ArrowUpRight: LucideArrowUpRight,
@@ -551,7 +549,7 @@ export class Dashboard implements OnInit {
           label: 'Documentos a revisar',
           value: s.documentsToReview ?? 0,
           icon: LucideFileText,
-          externalUrl: EXTERNAL_APPS.documental,
+          route: '/documental',
           cta: 'Ir a Documental',
           gradient: 'var(--gradient-success)',
         },

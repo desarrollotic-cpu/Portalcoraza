@@ -1,0 +1,3284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DOCUMENTAL-ref — Complete Call Flow &amp; Architecture Documentation</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+:root {
+  --bg: #0f172a; --surface: #1e293b; --border: #334155;
+  --text: #e2e8f0; --muted: #94a3b8; --accent: #38bdf8;
+  --warn: #fbbf24; --err: #f87171; --ok: #34d399;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+.container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+h1 { font-size: 2.4rem; margin-bottom: 8px; background: linear-gradient(135deg, var(--accent), #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h2 { font-size: 1.7rem; margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.25rem; margin: 32px 0 12px; color: var(--accent); }
+h4 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--warn); }
+p { margin: 8px 0; color: var(--muted); }
+.subtitle { color: var(--muted); font-size: 1.1rem; margin-bottom: 32px; }
+.mermaid { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 20px 0; overflow-x: auto; position: relative; }
+.mermaid.is-enhanced { padding: 0; overflow: hidden; min-height: 260px; }
+.mermaid-viewport { padding: 54px 24px 24px; overflow: hidden; cursor: grab; touch-action: none; min-height: 260px; }
+.mermaid-viewport.is-dragging { cursor: grabbing; }
+.mermaid-viewport svg { max-width: none !important; height: auto; transform-origin: 0 0; transition: transform 120ms ease; }
+.mermaid-toolbar { position: absolute; top: 10px; right: 10px; z-index: 3; display: flex; align-items: center; gap: 6px; padding: 6px; background: rgba(15,23,42,0.92); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,0.28); }
+.mermaid-toolbar button, .mermaid-toolbar .zoom-level { height: 28px; min-width: 32px; border: 1px solid var(--border); border-radius: 6px; background: #1e293b; color: var(--text); font: 600 0.78rem system-ui, sans-serif; display: inline-flex; align-items: center; justify-content: center; }
+.mermaid-toolbar button { cursor: pointer; }
+.mermaid-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+.mermaid-toolbar .zoom-level { min-width: 52px; color: var(--muted); background: transparent; }
+.call-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.92rem; }
+.call-table th { background: #1a2744; color: var(--accent); text-align: left; padding: 10px 14px; border: 1px solid var(--border); }
+.call-table td { padding: 8px 14px; border: 1px solid var(--border); vertical-align: top; }
+.call-table tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+.tag-async { background: #7c3aed33; color: #a78bfa; }
+.tag-class { background: #05966933; color: var(--ok); }
+.tag-func { background: #2563eb33; color: var(--accent); }
+.tag-cmd { background: #d9770633; color: var(--warn); }
+.tag-endpoint { background: #dc262633; color: var(--err); }
+.tag-hook { background: #db277733; color: #f472b6; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 16px; margin: 16px 0; }
+.arrow-chain { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: var(--accent); padding: 10px; background: rgba(56,189,248,0.06); border-radius: 6px; }
+code { font-family: 'Fira Code', 'Cascadia Code', monospace; background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 3px; font-size: 0.88em; }
+ul, ol { margin: 8px 0 8px 24px; color: var(--muted); }
+li { margin: 4px 0; }
+a { color: var(--accent); }
+hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+.nav { position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 12px 0; border-bottom: 1px solid var(--border); display: flex; gap: 20px; flex-wrap: wrap; font-size: 0.9rem; }
+.nav a { text-decoration: none; }
+.nav a:hover { text-decoration: underline; }
+@media (max-width: 768px) { .container { padding: 16px; } h1 { font-size: 1.8rem; } }
+
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>DOCUMENTAL-ref — Complete Call Flow &amp; Architecture Documentation</h1>
+<p class="subtitle">Generated from graphify knowledge graph: 301 nodes, 440 edges, 28 communities. Commit: 02a66a7</p>
+
+<div class="nav">
+    <a href="#overview">Architecture Overview</a>
+    <a href="#build-graph">Graph Build</a>
+    <a href="#analysis-clustering">Analysis &amp; Clustering</a>
+    <a href="#ingest-cache-update">Ingestion &amp; Updates</a>
+    <a href="#serve-api">Serving API</a>
+    <a href="#appjs-frontend-deptos">Appjs Frontend Deptos</a>
+    <a href="#frontend-appjs-apicall">Frontend Appjs Apicall</a>
+    <a href="#import-datajs-backend">Import Datajs Backend</a>
+    <a href="#import-100-percentjs">Import 100 Percentjs</a>
+    <a href="#reindex-contratos-exactjs">Reindex Contratos Exactjs</a>
+    <a href="#restore-original-logojs">Restore Original Logojs</a>
+    <a href="#contratos-sync-supabasejs">Contratos Sync Supabasejs</a>
+    <a href="#verify-all-excel">Verify All Excel</a>
+    <a href="#inspect-datajs-backend">Inspect Datajs Backend</a>
+    <a href="#inspect-personaljs-backend">Inspect Personaljs Backend</a>
+    <a href="#other">Other</a>
+</div>
+
+<!-- ====== Architecture Overview ====== -->
+<h2 id="overview">1. Architecture Overview</h2>
+
+<div class="mermaid">
+
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    BUILD_GRAPH_321CBB04("Graph Build<br/><small>48 nodes</small>")
+    class BUILD_GRAPH_321CBB04 module;
+    ANALYSIS_CLUSTERING_C79796DA("Analysis &amp; Clustering<br/><small>22 nodes</small>")
+    class ANALYSIS_CLUSTERING_C79796DA module;
+    INGEST_CACHE_UPDATE_FF457338("Ingestion &amp; Updates<br/><small>3 nodes</small>")
+    class INGEST_CACHE_UPDATE_FF457338 module;
+    SERVE_API_35EC8E86("Serving API<br/><small>5 nodes</small>")
+    class SERVE_API_35EC8E86 module;
+    APPJS_FRONTEND_DEPTOS_E7C4A77C("Appjs Frontend Deptos<br/><small>65 nodes</small>")
+    class APPJS_FRONTEND_DEPTOS_E7C4A77C module;
+    FRONTEND_APPJS_APICALL_FFEFFDA2("Frontend Appjs Apicall<br/><small>39 nodes</small>")
+    class FRONTEND_APPJS_APICALL_FFEFFDA2 module;
+    IMPORT_DATAJS_BACKEND_9AD60E59("Import Datajs Backend<br/><small>17 nodes</small>")
+    class IMPORT_DATAJS_BACKEND_9AD60E59 module;
+    IMPORT_100_PERCENTJS_E02FB7C8("Import 100 Percentjs<br/><small>10 nodes</small>")
+    class IMPORT_100_PERCENTJS_E02FB7C8 module;
+    REINDEX_CONTRATOS_EXACTJS_CC18FB68("Reindex Contratos Exactjs<br/><small>8 nodes</small>")
+    class REINDEX_CONTRATOS_EXACTJS_CC18FB68 module;
+    RESTORE_ORIGINAL_LOGOJS_071053A6("Restore Original Logojs<br/><small>7 nodes</small>")
+    class RESTORE_ORIGINAL_LOGOJS_071053A6 module;
+    CONTRATOS_SYNC_SUPABASEJS_E14A22D0("Contratos Sync Supabasejs<br/><small>7 nodes</small>")
+    class CONTRATOS_SYNC_SUPABASEJS_E14A22D0 module;
+    VERIFY_ALL_EXCEL_94A4ACE4("Verify All Excel<br/><small>7 nodes</small>")
+    class VERIFY_ALL_EXCEL_94A4ACE4 module;
+    INSPECT_DATAJS_BACKEND_EF5BD407("Inspect Datajs Backend<br/><small>7 nodes</small>")
+    class INSPECT_DATAJS_BACKEND_EF5BD407 module;
+    INSPECT_PERSONALJS_BACKEND_BFE6628A("Inspect Personaljs Backend<br/><small>7 nodes</small>")
+    class INSPECT_PERSONALJS_BACKEND_BFE6628A module;
+    OTHER_D0941E68("Other<br/><small>49 nodes</small>")
+    class OTHER_D0941E68 module;
+    APPJS_FRONTEND_DEPTOS_E7C4A77C -->|contains x45| FRONTEND_APPJS_APICALL_FFEFFDA2
+    FRONTEND_APPJS_APICALL_FFEFFDA2 -->|calls x16| APPJS_FRONTEND_DEPTOS_E7C4A77C
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h4>Architecture Layers</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>Layer</th><th>Nodes</th><th>Communities</th></tr>
+      <tr><td>Graph Build</td><td>48</td><td><code>2, 4, 20</code></td></tr><tr><td>Analysis &amp; Clustering</td><td>22</td><td><code>3</code></td></tr><tr><td>Ingestion &amp; Updates</td><td>3</td><td><code>25</code></td></tr><tr><td>Serving API</td><td>5</td><td><code>18</code></td></tr><tr><td>Appjs Frontend Deptos</td><td>65</td><td><code>0</code></td></tr><tr><td>Frontend Appjs Apicall</td><td>39</td><td><code>1</code></td></tr><tr><td>Import Datajs Backend</td><td>17</td><td><code>5</code></td></tr><tr><td>Import 100 Percentjs</td><td>10</td><td><code>6</code></td></tr><tr><td>Reindex Contratos Exactjs</td><td>8</td><td><code>7</code></td></tr><tr><td>Restore Original Logojs</td><td>7</td><td><code>10</code></td></tr><tr><td>Contratos Sync Supabasejs</td><td>7</td><td><code>11</code></td></tr><tr><td>Verify All Excel</td><td>7</td><td><code>12</code></td></tr><tr><td>Inspect Datajs Backend</td><td>7</td><td><code>8</code></td></tr><tr><td>Inspect Personaljs Backend</td><td>7</td><td><code>9</code></td></tr><tr><td>Other</td><td>49</td><td><code>13, 14, 15, 16, 17, 19, 21, 22, 23, 24, 26, 27</code></td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Core Flow</h4>
+    <div class="arrow-chain">Graph Build -&gt; Analysis &amp; Clustering -&gt; Ingestion &amp; Updates -&gt; Serving API -&gt; Appjs Frontend Deptos -&gt; Frontend Appjs Apicall -&gt; Import Datajs Backend</div>
+  </div>
+</div>
+<div class="grid">
+  <div class="card">
+    <h4>Graph Report Highlights</h4>
+    <ul>
+      <li>301 nodes · 440 edges · 28 communities (22 shown, 6 thin omitted)</li>
+      <li>Extraction: 99% EXTRACTED · 1% INFERRED · 0% AMBIGUOUS · INFERRED: 4 edges (avg confidence: 0.5)</li>
+      <li>Token cost: 0 input · 0 output</li>
+      <li>1. `apiCall()` - 36 edges</li>
+      <li>2. `cargarTodoElSistema()` - 15 edges</li>
+      <li>3. `showSection()` - 12 edges</li>
+    </ul>
+  </div>
+</div>
+<hr>
+<!-- ====== 2. Graph Build ====== -->
+<h2 id="build-graph">2. Graph Build</h2>
+<p>Graph Build groups implementation around packagejson, backend, verceljson, bcryptjs, mostly in backend/package.json, package.json, vercel.json. This section covers 48 nodes and 45 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Graph Build (48 nodes, 45 edges)
+    subgraph build_graph_backend_package_json_fef74fa2["backend/package.json"]
+        backend_package_dependencies_bcryptjs_6932c29c("bcryptjs<br/><small>backend/package.json</small>")
+        backend_package_dependencies_cors_91963911("cors<br/><small>backend/package.json</small>")
+        backend_package_dependencies_dotenv_8389886b("dotenv<br/><small>backend/package.json</small>")
+        backend_package_dependencies_express_9f41d3cf("express<br/><small>backend/package.json</small>")
+        backend_package_dependencies_jsonwebtoken_09925f13("jsonwebtoken<br/><small>backend/package.json</small>")
+        backend_package_dependencies_pg_e8aa420e("pg<br/><small>backend/package.json</small>")
+        backend_package_json_bcryptjs_55981ef1("bcryptjs<br/><small>backend/package.json</small>")
+        backend_package_json_cors_9a7c39e7("cors<br/><small>backend/package.json</small>")
+        backend_package_json_dotenv_e75f06e7("dotenv<br/><small>backend/package.json</small>")
+        backend_package_json_express_4a2d067d("express<br/><small>backend/package.json</small>")
+        backend_package_json_jsonwebtoken_1f0aaef4("jsonwebtoken<br/><small>backend/package.json</small>")
+        backend_package_json_pg_b7535d33("pg<br/><small>backend/package.json</small>")
+    end
+    subgraph build_graph_package_json_4e40bfbd["package.json"]
+        package_dependencies_bcryptjs_bd74bb60("bcryptjs<br/><small>package.json</small>")
+        package_json_bcryptjs_ac74d982("bcryptjs<br/><small>package.json</small>")
+        package_dependencies_cors_480ae172("cors<br/><small>package.json</small>")
+        package_json_cors_3a0099b5("cors<br/><small>package.json</small>")
+        package_dependencies_dotenv_27698e94("dotenv<br/><small>package.json</small>")
+        package_json_dotenv_8ccd5596("dotenv<br/><small>package.json</small>")
+    end
+    backend_package_dependencies_bcryptjs_6932c29c -->|imports| backend_package_json_bcryptjs_55981ef1
+    backend_package_dependencies_cors_91963911 -->|imports| backend_package_json_cors_9a7c39e7
+    backend_package_dependencies_dotenv_8389886b -->|imports| backend_package_json_dotenv_e75f06e7
+    backend_package_dependencies_express_9f41d3cf -->|imports| backend_package_json_express_4a2d067d
+    backend_package_dependencies_jsonwebtoken_09925f13 -->|imports| backend_package_json_jsonwebtoken_1f0aaef4
+    backend_package_dependencies_pg_e8aa420e -->|imports| backend_package_json_pg_b7535d33
+    package_dependencies_bcryptjs_bd74bb60 -->|imports| package_json_bcryptjs_ac74d982
+    package_dependencies_cors_480ae172 -->|imports| package_json_cors_3a0099b5
+    package_dependencies_dotenv_27698e94 -->|imports| package_json_dotenv_8ccd5596
+    %% Omitted for readability: 30 nodes, 0 edges
+    class backend_package_dependencies_bcryptjs_6932c29c function;
+    class backend_package_dependencies_cors_91963911 function;
+    class backend_package_dependencies_dotenv_8389886b function;
+    class backend_package_dependencies_express_9f41d3cf function;
+    class backend_package_dependencies_jsonwebtoken_09925f13 function;
+    class backend_package_dependencies_pg_e8aa420e function;
+    class backend_package_json_bcryptjs_55981ef1 function;
+    class backend_package_json_cors_9a7c39e7 function;
+    class backend_package_json_dotenv_e75f06e7 function;
+    class backend_package_json_express_4a2d067d function;
+    class backend_package_json_jsonwebtoken_1f0aaef4 function;
+    class backend_package_json_pg_b7535d33 function;
+    class package_dependencies_bcryptjs_bd74bb60 function;
+    class package_json_bcryptjs_ac74d982 function;
+    class package_dependencies_cors_480ae172 function;
+    class package_json_cors_3a0099b5 function;
+    class package_dependencies_dotenv_27698e94 function;
+    class package_json_dotenv_8ccd5596 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>backend/package.json</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>backend/package.json node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>name</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>name node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>version</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>version node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>description</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>description node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>main</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>scripts</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>scripts node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>start</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>dev</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>dev node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>dependencies</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>dependencies node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>bcryptjs</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>bcryptjs</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>bcryptjs node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>bcryptjs</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>bcryptjs</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>bcryptjs node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>cors node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cors</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>cors node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>dotenv</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>dotenv</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>dotenv node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>dotenv</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>dotenv</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>dotenv node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>express</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>express</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>express node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>express</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>express</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>express node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>jsonwebtoken</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>jsonwebtoken</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>jsonwebtoken node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>jsonwebtoken</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>jsonwebtoken</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>jsonwebtoken node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>pg</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>pg</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>pg node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>pg</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>pg</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td>No direct outbound edge</td>
+  <td>pg node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>author</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>author node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>license</code><br><small style="color:var(--muted)">backend/package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>license node in backend/package.json.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>package.json</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>package.json node in package.json.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>name</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>name node in package.json.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>version</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>version node in package.json.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>description</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>description node in package.json.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>main</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main node in package.json.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>scripts</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>scripts node in package.json.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>start</code><br><small style="color:var(--muted)">package.json</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>start node in package.json.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/package.json</code></td><td>23 nodes</td></tr>
+<tr><td><code>package.json</code></td><td>21 nodes</td></tr>
+<tr><td><code>vercel.json</code></td><td>4 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x33, imports x12. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 3. Analysis & Clustering ====== -->
+<h2 id="analysis-clustering">3. Analysis &amp; Clustering</h2>
+<p>Analysis &amp; Clustering groups implementation around backend, serverjs, dbjs, path, mostly in backend/server.js, backend/db.js. This section covers 22 nodes and 23 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Analysis &amp; Clustering (22 nodes, 23 edges)
+    subgraph analysis_clustering_backend_server_js_4ad4d9ae["backend/server.js"]
+        backend_server_0a3f8905("server.js")
+        backend_server_app_f3146f7f("app<br/><small>backend/server.js</small>")
+        backend_server_autenticartoken_aecd2a97("autenticarToken()<br/><small>backend/server.js</small>")
+        backend_server_bcrypt_be361cb0("bcrypt<br/><small>backend/server.js</small>")
+        backend_server_buildmultiwordwhere_4aa340a7("buildMultiWordWhere()<br/><small>backend/server.js</small>")
+        backend_server_cors_f91d0d3a("cors<br/><small>backend/server.js</small>")
+        backend_server_db_0e517874("db<br/><small>backend/server.js</small>")
+        backend_server_express_1dc3eba0("express<br/><small>backend/server.js</small>")
+        backend_server_fs_f92ad05f("fs<br/><small>backend/server.js</small>")
+        backend_server_jwt_27c39130("jwt<br/><small>backend/server.js</small>")
+    end
+    subgraph analysis_clustering_backend_db_js_44755415["backend/db.js"]
+        backend_db_1a6c1025("db.js")
+        backend_db_getjsondata_7b336672("getJsonData()<br/><small>backend/db.js</small>")
+        backend_db_savejsondata_0dfc86d7("saveJsonData()<br/><small>backend/db.js</small>")
+        backend_db_query_dee9aeba("query()<br/><small>backend/db.js</small>")
+        backend_db_data_dir_6de78fa7("DATA_DIR<br/><small>backend/db.js</small>")
+        backend_db_fs_9d197e37("fs<br/><small>backend/db.js</small>")
+        backend_db_path_e7810f5d("path<br/><small>backend/db.js</small>")
+        backend_db_pool_3ee4a879("Pool<br/><small>backend/db.js</small>")
+    end
+    backend_db_getjsondata_7b336672 -->|calls| backend_db_query_dee9aeba
+    backend_db_savejsondata_0dfc86d7 -->|calls| backend_db_query_dee9aeba
+    backend_db_1a6c1025 -->|imports| backend_server_0a3f8905
+    %% Omitted for readability: 4 nodes, 0 edges
+    class backend_server_0a3f8905 module;
+    class backend_server_app_f3146f7f function;
+    class backend_server_autenticartoken_aecd2a97 function;
+    class backend_server_bcrypt_be361cb0 function;
+    class backend_server_buildmultiwordwhere_4aa340a7 function;
+    class backend_server_cors_f91d0d3a function;
+    class backend_server_db_0e517874 function;
+    class backend_server_express_1dc3eba0 function;
+    class backend_server_fs_f92ad05f function;
+    class backend_server_jwt_27c39130 function;
+    class backend_db_1a6c1025 module;
+    class backend_db_getjsondata_7b336672 function;
+    class backend_db_savejsondata_0dfc86d7 function;
+    class backend_db_query_dee9aeba function;
+    class backend_db_data_dir_6de78fa7 klass;
+    class backend_db_fs_9d197e37 function;
+    class backend_db_path_e7810f5d function;
+    class backend_db_pool_3ee4a879 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>db.js</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>server.js</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td>db.js node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>DATA_DIR</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DATA_DIR node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>getJsonData()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>query()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td>getJsonData() node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>saveJsonData()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>query()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td>saveJsonData() node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>query()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>getJsonData()</code><br><small style="color:var(--muted)">backend/db.js</small><br><code>saveJsonData()</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>query() node in backend/db.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>server.js</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td><code>db.js</code><br><small style="color:var(--muted)">backend/db.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>server.js node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>express</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>express node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>cors</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>cors node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>bcrypt</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>bcrypt node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>jwt</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>jwt node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>db</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>db node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>app</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>app node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>registrarAuditoria()</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>registrarAuditoria() node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>autenticarToken()</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>autenticarToken() node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>soloAdmin()</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>soloAdmin() node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>obtenerSiguienteNumeroSecuencial()</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>obtenerSiguienteNumeroSecuencial() node in backend/server.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>buildMultiWordWhere()</code><br><small style="color:var(--muted)">backend/server.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>buildMultiWordWhere() node in backend/server.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/server.js</code></td><td>14 nodes</td></tr>
+<tr><td><code>backend/db.js</code></td><td>8 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x17, calls x2, imports x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 4. Ingestion & Updates ====== -->
+<h2 id="ingest-cache-update">4. Ingestion &amp; Updates</h2>
+<p>Ingestion &amp; Updates groups implementation around update, all, asociadosjs, backend, mostly in backend/update_all_asociados.js. This section covers 3 nodes and 2 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Ingestion &amp; Updates (3 nodes, 2 edges)
+    backend_update_all_asociados_5135ad05("update_all_asociados.js")
+    backend_update_all_asociados_main_ed985ebd("main()<br/><small>backend/update_all_asociados.js</small>")
+    backend_update_all_asociados_pool_15d9fcc8("Pool<br/><small>backend/update_all_asociados.js</small>")
+    backend_update_all_asociados_5135ad05 -->|contains| backend_update_all_asociados_main_ed985ebd
+    backend_update_all_asociados_5135ad05 -->|contains| backend_update_all_asociados_pool_15d9fcc8
+    class backend_update_all_asociados_5135ad05 module;
+    class backend_update_all_asociados_main_ed985ebd function;
+    class backend_update_all_asociados_pool_15d9fcc8 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>update_all_asociados.js</code><br><small style="color:var(--muted)">backend/update_all_asociados.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>update_all_asociados.js node in backend/update_all_asociados.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/update_all_asociados.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/update_all_asociados.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/update_all_asociados.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in backend/update_all_asociados.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/update_all_asociados.js</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 5. Serving API ====== -->
+<h2 id="serve-api">5. Serving API</h2>
+<p>Serving API groups implementation around search, tierra, grata, 810, mostly in backend/search_tierra_grata_810_25.js. This section covers 5 nodes and 4 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Serving API (5 nodes, 4 edges)
+    backend_search_tierra_grata_810_25_836c16a7("search_tierra_grata_810_25.js")
+    backend_search_tierra_grata_810_25_pool_3d334b2d("Pool<br/><small>backend/search_tierra_grata_810_25.js</small>")
+    backend_search_tierra_grata_810_25_querydb_72c7a865("queryDb()<br/><small>backend/search_tierra_grata_810_25.js</small>")
+    backend_search_tierra_grata_810_25_wb_8b1d14ef("wb<br/><small>backend/search_tierra_grata_810_25.js</small>")
+    backend_search_tierra_grata_810_25_xlsx_1523ec35("XLSX<br/><small>backend/search_tierra_grata_810_25.js</small>")
+    backend_search_tierra_grata_810_25_836c16a7 -->|contains| backend_search_tierra_grata_810_25_pool_3d334b2d
+    backend_search_tierra_grata_810_25_836c16a7 -->|contains| backend_search_tierra_grata_810_25_querydb_72c7a865
+    backend_search_tierra_grata_810_25_836c16a7 -->|contains| backend_search_tierra_grata_810_25_wb_8b1d14ef
+    backend_search_tierra_grata_810_25_836c16a7 -->|contains| backend_search_tierra_grata_810_25_xlsx_1523ec35
+    class backend_search_tierra_grata_810_25_836c16a7 module;
+    class backend_search_tierra_grata_810_25_pool_3d334b2d function;
+    class backend_search_tierra_grata_810_25_querydb_72c7a865 function;
+    class backend_search_tierra_grata_810_25_wb_8b1d14ef function;
+    class backend_search_tierra_grata_810_25_xlsx_1523ec35 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>search_tierra_grata_810_25.js</code><br><small style="color:var(--muted)">backend/search_tierra_grata_810_25.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>search_tierra_grata_810_25.js node in backend/search_tierra_grata_810_25.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/search_tierra_grata_810_25.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/search_tierra_grata_810_25.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/search_tierra_grata_810_25.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/search_tierra_grata_810_25.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>wb</code><br><small style="color:var(--muted)">backend/search_tierra_grata_810_25.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>wb node in backend/search_tierra_grata_810_25.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>queryDb()</code><br><small style="color:var(--muted)">backend/search_tierra_grata_810_25.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>queryDb() node in backend/search_tierra_grata_810_25.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/search_tierra_grata_810_25.js</code></td><td>5 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x4. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 6. Appjs Frontend Deptos ====== -->
+<h2 id="appjs-frontend-deptos">6. Appjs Frontend Deptos</h2>
+<p>Appjs Frontend Deptos groups implementation around appjs, frontend, deptos, cachearbol, mostly in frontend/app.js. This section covers 65 nodes and 111 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Appjs Frontend Deptos (65 nodes, 111 edges)
+    frontend_app_actualizarbadgecola_7f28ee74("actualizarBadgeCola()<br/><small>frontend/app.js</small>")
+    frontend_app_imprimirareaelemento_8c7d0a01("imprimirAreaElemento()<br/><small>frontend/app.js</small>")
+    frontend_app_exportarexcelmodulo_a323d34c("exportarExcelModulo()<br/><small>frontend/app.js</small>")
+    frontend_app_registrarcorrespondencia_c32af7dc("registrarCorrespondencia()<br/><small>frontend/app.js</small>")
+    frontend_app_registrarpersonal_bdd6eaec("registrarPersonal()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarcorrespondencia_ba57597f("cargarCorrespondencia()<br/><small>frontend/app.js</small>")
+    frontend_app_cerrarsesion_d36f7e95("cerrarSesion()<br/><small>frontend/app.js</small>")
+    frontend_app_popularselectsconfig_db5fccf3("popularSelectsConfig()<br/><small>frontend/app.js</small>")
+    frontend_app_actualizarseriestrd_15dcea44("actualizarSeriesTRD()<br/><small>frontend/app.js</small>")
+    frontend_app_generarcodigodoc_82b4ab51("generarCodigoDoc()<br/><small>frontend/app.js</small>")
+    frontend_app_resetformcorr_6944ee88("resetFormCorr()<br/><small>frontend/app.js</small>")
+    frontend_app_mostrarmodalconfirmacion_d3336cbb("mostrarModalConfirmacion()<br/><small>frontend/app.js</small>")
+    frontend_app_registrarminuta_b8794594("registrarMinuta()<br/><small>frontend/app.js</small>")
+    frontend_app_agregaracolaimpresion_8aab95b1("agregarAColaImpresion()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarpersonal_d9f903cd("cargarPersonal()<br/><small>frontend/app.js</small>")
+    frontend_app_renderpersonal_9c357f15("renderPersonal()<br/><small>frontend/app.js</small>")
+    frontend_app_renderpersonalstats_2b583f83("renderPersonalStats()<br/><small>frontend/app.js</small>")
+    frontend_app_cambiartipopersonafila_25425946("cambiarTipoPersonaFila()<br/><small>frontend/app.js</small>")
+    frontend_app_cerrarsesion_d36f7e95 -->|calls| frontend_app_actualizarbadgecola_7f28ee74
+    frontend_app_popularselectsconfig_db5fccf3 -->|calls| frontend_app_actualizarseriestrd_15dcea44
+    frontend_app_actualizarseriestrd_15dcea44 -->|calls| frontend_app_generarcodigodoc_82b4ab51
+    frontend_app_generarcodigodoc_82b4ab51 -->|calls| frontend_app_resetformcorr_6944ee88
+    frontend_app_registrarcorrespondencia_c32af7dc -->|calls| frontend_app_cargarcorrespondencia_ba57597f
+    frontend_app_registrarcorrespondencia_c32af7dc -->|calls| frontend_app_mostrarmodalconfirmacion_d3336cbb
+    frontend_app_registrarcorrespondencia_c32af7dc -->|calls| frontend_app_resetformcorr_6944ee88
+    frontend_app_registrarminuta_b8794594 -->|calls| frontend_app_agregaracolaimpresion_8aab95b1
+    frontend_app_registrarminuta_b8794594 -->|calls| frontend_app_mostrarmodalconfirmacion_d3336cbb
+    frontend_app_registrarpersonal_bdd6eaec -->|calls| frontend_app_agregaracolaimpresion_8aab95b1
+    frontend_app_registrarpersonal_bdd6eaec -->|calls| frontend_app_cargarpersonal_d9f903cd
+    frontend_app_registrarpersonal_bdd6eaec -->|calls| frontend_app_mostrarmodalconfirmacion_d3336cbb
+    frontend_app_cargarpersonal_d9f903cd -->|calls| frontend_app_renderpersonal_9c357f15
+    frontend_app_cargarpersonal_d9f903cd -->|calls| frontend_app_renderpersonalstats_2b583f83
+    frontend_app_renderpersonalstats_2b583f83 -->|calls| frontend_app_cambiartipopersonafila_25425946
+    frontend_app_renderpersonal_9c357f15 -->|calls| frontend_app_cambiartipopersonafila_25425946
+    frontend_app_actualizarbadgecola_7f28ee74 -->|calls| frontend_app_agregaracolaimpresion_8aab95b1
+    %% Omitted for readability: 47 nodes, 0 edges
+    class frontend_app_actualizarbadgecola_7f28ee74 function;
+    class frontend_app_imprimirareaelemento_8c7d0a01 function;
+    class frontend_app_exportarexcelmodulo_a323d34c function;
+    class frontend_app_registrarcorrespondencia_c32af7dc function;
+    class frontend_app_registrarpersonal_bdd6eaec function;
+    class frontend_app_cargarcorrespondencia_ba57597f function;
+    class frontend_app_cerrarsesion_d36f7e95 function;
+    class frontend_app_popularselectsconfig_db5fccf3 function;
+    class frontend_app_actualizarseriestrd_15dcea44 function;
+    class frontend_app_generarcodigodoc_82b4ab51 function;
+    class frontend_app_resetformcorr_6944ee88 function;
+    class frontend_app_mostrarmodalconfirmacion_d3336cbb function;
+    class frontend_app_registrarminuta_b8794594 function;
+    class frontend_app_agregaracolaimpresion_8aab95b1 function;
+    class frontend_app_cargarpersonal_d9f903cd function;
+    class frontend_app_renderpersonal_9c357f15 function;
+    class frontend_app_renderpersonalstats_2b583f83 function;
+    class frontend_app_cambiartipopersonafila_25425946 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>app.js</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>app.js node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>cacheArbol</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>Caches analysis results or computes cache keys.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>cerrarSesion()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>actualizarBadgeCola()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cerrarSesion() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>DEPTOS_MOCK</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>DEPTOS_MOCK node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>MAPA_TRD_DEPTOS</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>MAPA_TRD_DEPTOS node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>popularSelectsConfig()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>actualizarSeriesTRD()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>Reads, resolves, or persists project configuration.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>actualizarSeriesTRD()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>popularSelectsConfig()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>generarCodigoDoc()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>actualizarSeriesTRD() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>generarCodigoDoc()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>actualizarSeriesTRD()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>resetFormCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>generarCodigoDoc() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>registrarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>cargarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>mostrarModalConfirmacion()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>resetFormCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>registrarCorrespondencia() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>registrarMinuta()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>agregarAColaImpresion()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>mostrarModalConfirmacion()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>registrarMinuta() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>registrarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>agregarAColaImpresion()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>mostrarModalConfirmacion()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>registrarPersonal() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>listPersonal</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>listPersonal node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>cargarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>registrarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>renderPersonalStats()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarPersonal() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>renderPersonalStats()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cargarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cambiarTipoPersonaFila()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>renderPersonalStats() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>filtrarPersonalTipo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>filtrarPersonalTipo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>buscarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>buscarPersonal() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>buscarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>filtrarPersonalTipo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cambiarPaginaPers()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cambiarTipoPersonaFila()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>renderPersonal() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>cambiarPaginaPers()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>cambiarPaginaPers() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>cambiarTipoPersonaFila()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>renderPersonal()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>renderPersonalStats()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>cambiarTipoPersonaFila() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>listCorr</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>listCorr node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>cargarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>registrarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cambiarEstadoFila()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>popularFiltroOrigenesCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>renderCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarCorrespondencia() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>popularFiltroOrigenesCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cargarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>popularFiltroOrigenesCorr() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>renderCorr()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cargarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>renderCorr() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>cambiarEstadoFila()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cargarCorrespondencia()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>cambiarEstadoFila() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>toggleFiltrosAvanzados()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>toggleFiltrosAvanzados() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>imprimirDirectoDesdeDetalle()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_construirEImprimirRotulo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>imprimirAreaElemento()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>imprimirDirectoDesdeDetalle() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>cambiarFormatoEtiqueta()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>cambiarFormatoEtiqueta() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>generarEtiquetaQR()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>_construirEImprimirRotulo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>generarEtiquetaDesdeDetalle()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>generarEtiquetaQR() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>imprimirAreaElemento()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>imprimirDirectoDesdeDetalle()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>_construirEImprimirRotulo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>imprimirEtiquetaQR()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>imprimirFichaCustodia()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+1 more</td>
+  <td>imprimirAreaElemento() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>imprimirEtiquetaQR()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>imprimirAreaElemento()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>imprimirEtiquetaQR() node in frontend/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>frontend/app.js</code></td><td>65 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x64, calls x46, references x1. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 7. Frontend Appjs Apicall ====== -->
+<h2 id="frontend-appjs-apicall">7. Frontend Appjs Apicall</h2>
+<p>Frontend Appjs Apicall groups implementation around frontend, appjs, apicall, iniciarsesion, mostly in frontend/app.js. This section covers 39 nodes and 69 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Frontend Appjs Apicall (39 nodes, 69 edges)
+    frontend_app_apicall_027fc9ec("apiCall()<br/><small>frontend/app.js</small>")
+    frontend_app_showsection_e14d5707("showSection()<br/><small>frontend/app.js</small>")
+    frontend_app_ejecutarbusqueda_22b1575f("ejecutarBusqueda()<br/><small>frontend/app.js</small>")
+    frontend_app_verificartokenactivo_97bfeccf("verificarTokenActivo()<br/><small>frontend/app.js</small>")
+    frontend_app_actualizarnotificacionessistema_f5c02e81("actualizarNotificacionesSistema()<br/><small>frontend/app.js</small>")
+    frontend_app_iniciarsesion_5d9386bc("iniciarSesion()<br/><small>frontend/app.js</small>")
+    frontend_app_aprobarsolicitudprestamo_c8eebe08("aprobarSolicitudPrestamo()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarbiblioteca_4970e089("cargarBiblioteca()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarcontratos_0e07f394("cargarContratos()<br/><small>frontend/app.js</small>")
+    frontend_app_cargardashboard_5e70c661("cargarDashboard()<br/><small>frontend/app.js</small>")
+    frontend_app_cargargrafoconocimiento_30abbe00("cargarGrafoConocimiento()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarmapaarchivo_866511c5("cargarMapaArchivo()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarprestamos_2ecdafc9("cargarPrestamos()<br/><small>frontend/app.js</small>")
+    frontend_app_cargarworkflows_c51befde("cargarWorkflows()<br/><small>frontend/app.js</small>")
+    frontend_app_devolverprestamo_59cded1a("devolverPrestamo()<br/><small>frontend/app.js</small>")
+    frontend_app_eliminararchivobiblioteca_b236e4da("eliminarArchivoBiblioteca()<br/><small>frontend/app.js</small>")
+    frontend_app_eliminarcarpetabiblioteca_6211d876("eliminarCarpetaBiblioteca()<br/><small>frontend/app.js</small>")
+    frontend_app_generarinforme_ce26a53e("generarInforme()<br/><small>frontend/app.js</small>")
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_actualizarnotificacionessistema_f5c02e81
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_aprobarsolicitudprestamo_c8eebe08
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargarbiblioteca_4970e089
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargarcontratos_0e07f394
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargardashboard_5e70c661
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargargrafoconocimiento_30abbe00
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargarmapaarchivo_866511c5
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargarprestamos_2ecdafc9
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_cargarworkflows_c51befde
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_devolverprestamo_59cded1a
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_ejecutarbusqueda_22b1575f
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_eliminararchivobiblioteca_b236e4da
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_eliminarcarpetabiblioteca_6211d876
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_generarinforme_ce26a53e
+    frontend_app_apicall_027fc9ec -->|calls| frontend_app_iniciarsesion_5d9386bc
+    frontend_app_ejecutarbusqueda_22b1575f -->|calls| frontend_app_showsection_e14d5707
+    frontend_app_showsection_e14d5707 -->|calls| frontend_app_cargarbiblioteca_4970e089
+    frontend_app_showsection_e14d5707 -->|calls| frontend_app_cargarcontratos_0e07f394
+    frontend_app_showsection_e14d5707 -->|calls| frontend_app_cargardashboard_5e70c661
+    frontend_app_showsection_e14d5707 -->|calls| frontend_app_cargargrafoconocimiento_30abbe00
+    frontend_app_showsection_e14d5707 -->|calls| frontend_app_cargarprestamos_2ecdafc9
+    frontend_app_actualizarnotificacionessistema_f5c02e81 -->|calls| frontend_app_devolverprestamo_59cded1a
+    frontend_app_cargarprestamos_2ecdafc9 -->|calls| frontend_app_aprobarsolicitudprestamo_c8eebe08
+    frontend_app_cargarprestamos_2ecdafc9 -->|calls| frontend_app_devolverprestamo_59cded1a
+    %% Omitted for readability: 21 nodes, 3 edges
+    class frontend_app_apicall_027fc9ec api;
+    class frontend_app_showsection_e14d5707 function;
+    class frontend_app_ejecutarbusqueda_22b1575f function;
+    class frontend_app_verificartokenactivo_97bfeccf function;
+    class frontend_app_actualizarnotificacionessistema_f5c02e81 function;
+    class frontend_app_iniciarsesion_5d9386bc function;
+    class frontend_app_aprobarsolicitudprestamo_c8eebe08 function;
+    class frontend_app_cargarbiblioteca_4970e089 function;
+    class frontend_app_cargarcontratos_0e07f394 function;
+    class frontend_app_cargardashboard_5e70c661 function;
+    class frontend_app_cargargrafoconocimiento_30abbe00 function;
+    class frontend_app_cargarmapaarchivo_866511c5 function;
+    class frontend_app_cargarprestamos_2ecdafc9 function;
+    class frontend_app_cargarworkflows_c51befde function;
+    class frontend_app_devolverprestamo_59cded1a function;
+    class frontend_app_eliminararchivobiblioteca_b236e4da function;
+    class frontend_app_eliminarcarpetabiblioteca_6211d876 function;
+    class frontend_app_generarinforme_ce26a53e function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-endpoint">API</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>actualizarNotificacionesSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>aprobarSolicitudPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+21 more</td>
+  <td>apiCall() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>iniciarSesion()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarInfoUsuario()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>iniciarClocksYPolling()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>iniciarSesion() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>verificarTokenActivo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>cargarInfoUsuario()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>iniciarClocksYPolling()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>verificarTokenActivo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>cargarInfoUsuario()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>iniciarSesion()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>verificarTokenActivo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>aplicarPermisosPorRol()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarInfoUsuario() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>aplicarPermisosPorRol()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>cargarInfoUsuario()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>aplicarPermisosPorRol() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>registrarContrato()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarWorkflows()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>registrarContrato() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>registrarPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarPrestamos()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>resetFormPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>registrarPrestamo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>cargarMapaArchivo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarMapaArchivo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>verDetallesSlot()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>verDetallesSlot() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>ejecutarBusqueda()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>abrirEscanerCamaraQR()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>limpiarBusquedaInput()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+1 more</td>
+  <td>ejecutarBusqueda() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>mostrarDetalleRegistro()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>mostrarDetalleRegistro() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>iluminarUbicacionFisica()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>showSection()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>iluminarUbicacionFisica() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>busquedaInstantanea()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>busquedaInstantanea() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>limpiarBusquedaInput()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ejecutarBusqueda()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>limpiarBusquedaInput() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>abrirEscanerCamaraQR()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>ejecutarBusqueda()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>showSection()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>Starts scanning or handles scan status.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>cargarWorkflows()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>registrarContrato()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>resolverWF()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarWorkflows() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>resolverWF()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarWorkflows()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarDashboard()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>resolverWF() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>inicializarBD()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>inicializarBD() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>showSection()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>abrirEscanerCamaraQR()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>ejecutarBusqueda()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>iluminarUbicacionFisica()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarContratos()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarDashboard()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+3 more</td>
+  <td>showSection() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>actualizarNotificacionesSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>devolverPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>iniciarClocksYPolling()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>actualizarNotificacionesSistema() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>iniciarClocksYPolling()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>actualizarNotificacionesSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>iniciarSesion()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>verificarTokenActivo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>iniciarClocksYPolling() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>actualizarNotificacionesSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarMapaArchivo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarWorkflows()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+4 more</td>
+  <td><code>cargarBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarContratos()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarDashboard()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+1 more</td>
+  <td>cargarTodoElSistema() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>cargarPrestamos()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>registrarPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+1 more</td>
+  <td><code>aprobarSolicitudPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>devolverPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>rechazarSolicitudPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>cargarPrestamos() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>aprobarSolicitudPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarPrestamos()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>aprobarSolicitudPrestamo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>rechazarSolicitudPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarPrestamos()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>rechazarSolicitudPrestamo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>devolverPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>actualizarNotificacionesSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarPrestamos()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>cargarDashboard()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>devolverPrestamo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>cargarDashboard()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>devolverPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+2 more</td>
+  <td>No direct outbound edge</td>
+  <td>cargarDashboard() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>resetFormPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>registrarPrestamo()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>resetFormPrestamo() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>cargarBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarTodoElSistema()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>showSection()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><code>eliminarArchivoBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>eliminarCarpetaBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>mostrarModalCarpeta()</code><br><small style="color:var(--muted)">frontend/app.js</small><br>+1 more</td>
+  <td>cargarBiblioteca() node in frontend/app.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>eliminarCarpetaBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>apiCall()</code><br><small style="color:var(--muted)">frontend/app.js</small><br><code>cargarBiblioteca()</code><br><small style="color:var(--muted)">frontend/app.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>eliminarCarpetaBiblioteca() node in frontend/app.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>frontend/app.js</code></td><td>39 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x68. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 8. Import Datajs Backend ====== -->
+<h2 id="import-datajs-backend">8. Import Datajs Backend</h2>
+<p>Import Datajs Backend groups implementation around import, datajs, backend, xlsx, mostly in backend/import_data.js. This section covers 17 nodes and 37 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Import Datajs Backend (17 nodes, 37 edges)
+    backend_import_data_exceldatetodate_eb34cd1b("excelDateToDate()<br/><small>backend/import_data.js</small>")
+    backend_import_data_genid_b869cbca("genId()<br/><small>backend/import_data.js</small>")
+    backend_import_data_leerhoja_b3f73edf("leerHoja()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarusuarios_1925595b("importarUsuarios()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarcontratos_1f95cad5("importarContratos()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarcorrespondencia_79a88764("importarCorrespondencia()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarpersonal_0ee9f922("importarPersonal()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarprestamos_982d35a4("importarPrestamos()<br/><small>backend/import_data.js</small>")
+    backend_import_data_importarminutas_01919d05("importarMinutas()<br/><small>backend/import_data.js</small>")
+    backend_import_data_main_fc2c090e("main()<br/><small>backend/import_data.js</small>")
+    backend_import_data_xlsx_c3ba55d2("XLSX<br/><small>backend/import_data.js</small>")
+    backend_import_data_db11b65a("import_data.js")
+    backend_import_data_importados_fbdc6e8b("importados<br/><small>backend/import_data.js</small>")
+    backend_import_data_mainfile_80e80d44("mainFile<br/><small>backend/import_data.js</small>")
+    backend_import_data_minutasfile_5e002ecd("minutasFile<br/><small>backend/import_data.js</small>")
+    backend_import_data_path_208ed678("path<br/><small>backend/import_data.js</small>")
+    backend_import_data_pool_4e6e8db9("Pool<br/><small>backend/import_data.js</small>")
+    backend_import_data_leerhoja_b3f73edf -->|calls| backend_import_data_importarcontratos_1f95cad5
+    backend_import_data_leerhoja_b3f73edf -->|calls| backend_import_data_importarcorrespondencia_79a88764
+    backend_import_data_leerhoja_b3f73edf -->|calls| backend_import_data_importarpersonal_0ee9f922
+    backend_import_data_leerhoja_b3f73edf -->|calls| backend_import_data_importarprestamos_982d35a4
+    backend_import_data_leerhoja_b3f73edf -->|calls| backend_import_data_importarusuarios_1925595b
+    backend_import_data_exceldatetodate_eb34cd1b -->|calls| backend_import_data_importarcontratos_1f95cad5
+    backend_import_data_exceldatetodate_eb34cd1b -->|calls| backend_import_data_importarcorrespondencia_79a88764
+    backend_import_data_exceldatetodate_eb34cd1b -->|calls| backend_import_data_importarminutas_01919d05
+    backend_import_data_exceldatetodate_eb34cd1b -->|calls| backend_import_data_importarpersonal_0ee9f922
+    backend_import_data_exceldatetodate_eb34cd1b -->|calls| backend_import_data_importarprestamos_982d35a4
+    backend_import_data_genid_b869cbca -->|calls| backend_import_data_importarcontratos_1f95cad5
+    backend_import_data_genid_b869cbca -->|calls| backend_import_data_importarcorrespondencia_79a88764
+    backend_import_data_genid_b869cbca -->|calls| backend_import_data_importarminutas_01919d05
+    backend_import_data_genid_b869cbca -->|calls| backend_import_data_importarpersonal_0ee9f922
+    backend_import_data_genid_b869cbca -->|calls| backend_import_data_importarprestamos_982d35a4
+    backend_import_data_importarminutas_01919d05 -->|calls| backend_import_data_main_fc2c090e
+    backend_import_data_importarcorrespondencia_79a88764 -->|calls| backend_import_data_main_fc2c090e
+    backend_import_data_importarcontratos_1f95cad5 -->|calls| backend_import_data_main_fc2c090e
+    backend_import_data_importarpersonal_0ee9f922 -->|calls| backend_import_data_main_fc2c090e
+    backend_import_data_importarusuarios_1925595b -->|calls| backend_import_data_main_fc2c090e
+    backend_import_data_importarprestamos_982d35a4 -->|calls| backend_import_data_main_fc2c090e
+    class backend_import_data_exceldatetodate_eb34cd1b function;
+    class backend_import_data_genid_b869cbca function;
+    class backend_import_data_leerhoja_b3f73edf function;
+    class backend_import_data_importarusuarios_1925595b function;
+    class backend_import_data_importarcontratos_1f95cad5 function;
+    class backend_import_data_importarcorrespondencia_79a88764 function;
+    class backend_import_data_importarpersonal_0ee9f922 function;
+    class backend_import_data_importarprestamos_982d35a4 function;
+    class backend_import_data_importarminutas_01919d05 function;
+    class backend_import_data_main_fc2c090e function;
+    class backend_import_data_xlsx_c3ba55d2 klass;
+    class backend_import_data_db11b65a module;
+    class backend_import_data_importados_fbdc6e8b function;
+    class backend_import_data_mainfile_80e80d44 function;
+    class backend_import_data_minutasfile_5e002ecd function;
+    class backend_import_data_path_208ed678 function;
+    class backend_import_data_pool_4e6e8db9 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>import_data.js</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>import_data.js node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>mainFile</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>mainFile node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>minutasFile</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minutasFile node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>importarContratos()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarCorrespondencia()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarPersonal()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br>+2 more</td>
+  <td>leerHoja() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>importarContratos()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarCorrespondencia()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarMinutas()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br>+2 more</td>
+  <td>excelDateToDate() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>importarContratos()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarCorrespondencia()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarMinutas()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br>+2 more</td>
+  <td>genId() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>importados</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>importados node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>importarMinutas()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarMinutas() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>importarCorrespondencia()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarCorrespondencia() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>importarContratos()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarContratos() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>importarPersonal()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarPersonal() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>importarUsuarios()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarUsuarios() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>importarPrestamos()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td>importarPrestamos() node in backend/import_data.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>importarContratos()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarCorrespondencia()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br><code>importarMinutas()</code><br><small style="color:var(--muted)">backend/import_data.js</small><br>+3 more</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in backend/import_data.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/import_data.js</code></td><td>17 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: calls x21, contains x16. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 9. Import 100 Percentjs ====== -->
+<h2 id="import-100-percentjs">9. Import 100 Percentjs</h2>
+<p>Import 100 Percentjs groups implementation around import, 100, percentjs, backend, mostly in backend/import_100_percent.js. This section covers 10 nodes and 12 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Import 100 Percentjs (10 nodes, 12 edges)
+    backend_import_100_percent_exceldatetodate_7dc19ede("excelDateToDate()<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_genid_af4285bb("genId()<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_leerhoja_f017c427("leerHoja()<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_main_bcbad68d("main()<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_xlsx_9ad78dd3("XLSX<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_842504ba("import_100_percent.js")
+    backend_import_100_percent_mainfile_f38c33ca("mainFile<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_minutasfile_dda5ab75("minutasFile<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_path_5345d165("path<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_pool_0a4e5a19("Pool<br/><small>backend/import_100_percent.js</small>")
+    backend_import_100_percent_leerhoja_f017c427 -->|calls| backend_import_100_percent_main_bcbad68d
+    backend_import_100_percent_exceldatetodate_7dc19ede -->|calls| backend_import_100_percent_main_bcbad68d
+    backend_import_100_percent_genid_af4285bb -->|calls| backend_import_100_percent_main_bcbad68d
+    class backend_import_100_percent_exceldatetodate_7dc19ede function;
+    class backend_import_100_percent_genid_af4285bb function;
+    class backend_import_100_percent_leerhoja_f017c427 function;
+    class backend_import_100_percent_main_bcbad68d function;
+    class backend_import_100_percent_xlsx_9ad78dd3 klass;
+    class backend_import_100_percent_842504ba module;
+    class backend_import_100_percent_mainfile_f38c33ca function;
+    class backend_import_100_percent_minutasfile_dda5ab75 function;
+    class backend_import_100_percent_path_5345d165 function;
+    class backend_import_100_percent_pool_0a4e5a19 function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>import_100_percent.js</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>import_100_percent.js node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>mainFile</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>mainFile node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>minutasFile</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minutasFile node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td>leerHoja() node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td>excelDateToDate() node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>genId()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td>genId() node in backend/import_100_percent.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToDate()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small><br><code>genId()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small><br><code>leerHoja()</code><br><small style="color:var(--muted)">backend/import_100_percent.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>main() node in backend/import_100_percent.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/import_100_percent.js</code></td><td>10 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x9, calls x3. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 10. Reindex Contratos Exactjs ====== -->
+<h2 id="reindex-contratos-exactjs">10. Reindex Contratos Exactjs</h2>
+<p>Reindex Contratos Exactjs groups implementation around reindex, contratos, exactjs, backend, mostly in backend/reindex_contratos_exact.js. This section covers 8 nodes and 9 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Reindex Contratos Exactjs (8 nodes, 9 edges)
+    backend_reindex_contratos_exact_isvalidcalendard_5728233a("isValidCalendarDate()<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_exceldatetostrin_e771e6ac("excelDateToString()<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_reindexcontratos_88aa758b("reindexContratos()<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_xlsx_5baac074("XLSX<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_fs_e9cea7cc("fs<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_path_02cff804("path<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_97c34ae1("reindex_contratos_exact.js")
+    backend_reindex_contratos_exact_pool_76aad4dc("Pool<br/><small>backend/reindex_contratos_exact.js</small>")
+    backend_reindex_contratos_exact_isvalidcalendard_5728233a -->|calls| backend_reindex_contratos_exact_exceldatetostrin_e771e6ac
+    backend_reindex_contratos_exact_exceldatetostrin_e771e6ac -->|calls| backend_reindex_contratos_exact_reindexcontratos_88aa758b
+    class backend_reindex_contratos_exact_isvalidcalendard_5728233a function;
+    class backend_reindex_contratos_exact_exceldatetostrin_e771e6ac function;
+    class backend_reindex_contratos_exact_reindexcontratos_88aa758b function;
+    class backend_reindex_contratos_exact_xlsx_5baac074 klass;
+    class backend_reindex_contratos_exact_fs_e9cea7cc function;
+    class backend_reindex_contratos_exact_path_02cff804 function;
+    class backend_reindex_contratos_exact_97c34ae1 module;
+    class backend_reindex_contratos_exact_pool_76aad4dc function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>reindex_contratos_exact.js</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>reindex_contratos_exact.js node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>isValidCalendarDate()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td><code>excelDateToString()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td>isValidCalendarDate() node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>excelDateToString()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>isValidCalendarDate()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><code>reindexContratos()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td>excelDateToString() node in backend/reindex_contratos_exact.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>reindexContratos()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td><code>excelDateToString()</code><br><small style="color:var(--muted)">backend/reindex_contratos_exact.js</small></td>
+  <td>No direct outbound edge</td>
+  <td>reindexContratos() node in backend/reindex_contratos_exact.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/reindex_contratos_exact.js</code></td><td>8 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x7, calls x2. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 11. Restore Original Logojs ====== -->
+<h2 id="restore-original-logojs">11. Restore Original Logojs</h2>
+<p>Restore Original Logojs groups implementation around restore, original, logojs, backend, mostly in backend/restore_original_logo.js. This section covers 7 nodes and 6 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Restore Original Logojs (7 nodes, 6 edges)
+    backend_restore_original_logo_fa388328("restore_original_logo.js")
+    backend_restore_original_logo_destjpg_e36fb25c("destJpg<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_destpng_61029047("destPng<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_fs_fb396ac8("fs<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_path_a74f1582("path<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_srcoriginaljpg_4b703b44("srcOriginalJpg<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_srcoriginalpng_08aef89f("srcOriginalPng<br/><small>backend/restore_original_logo.js</small>")
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_destjpg_e36fb25c
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_destpng_61029047
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_fs_fb396ac8
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_path_a74f1582
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_srcoriginaljpg_4b703b44
+    backend_restore_original_logo_fa388328 -->|contains| backend_restore_original_logo_srcoriginalpng_08aef89f
+    class backend_restore_original_logo_fa388328 ui;
+    class backend_restore_original_logo_destjpg_e36fb25c function;
+    class backend_restore_original_logo_destpng_61029047 function;
+    class backend_restore_original_logo_fs_fb396ac8 function;
+    class backend_restore_original_logo_path_a74f1582 function;
+    class backend_restore_original_logo_srcoriginaljpg_4b703b44 function;
+    class backend_restore_original_logo_srcoriginalpng_08aef89f function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>restore_original_logo.js</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>restore_original_logo.js node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>srcOriginalJpg</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>srcOriginalJpg node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>srcOriginalPng</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>srcOriginalPng node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>destPng</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destPng node in backend/restore_original_logo.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>destJpg</code><br><small style="color:var(--muted)">backend/restore_original_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destJpg node in backend/restore_original_logo.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/restore_original_logo.js</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 12. Contratos Sync Supabasejs ====== -->
+<h2 id="contratos-sync-supabasejs">12. Contratos Sync Supabasejs</h2>
+<p>Contratos Sync Supabasejs groups implementation around contratos, sync, supabasejs, backend, mostly in backend/sync_contratos_supabase.js. This section covers 7 nodes and 6 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Contratos Sync Supabasejs (7 nodes, 6 edges)
+    backend_sync_contratos_supabase_8fed02dc("sync_contratos_supabase.js")
+    backend_sync_contratos_supabase_contratos_f53fa016("contratos<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_contratosfile_b70f22b3("contratosFile<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_fs_1192eed8("fs<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_path_04621c74("path<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_pool_bb557d13("Pool<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_synctosupabase_155bde2c("syncToSupabase()<br/><small>backend/sync_contratos_supabase.js</small>")
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_contratos_f53fa016
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_contratosfile_b70f22b3
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_fs_1192eed8
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_path_04621c74
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_pool_bb557d13
+    backend_sync_contratos_supabase_8fed02dc -->|contains| backend_sync_contratos_supabase_synctosupabase_155bde2c
+    class backend_sync_contratos_supabase_8fed02dc module;
+    class backend_sync_contratos_supabase_contratos_f53fa016 function;
+    class backend_sync_contratos_supabase_contratosfile_b70f22b3 function;
+    class backend_sync_contratos_supabase_fs_1192eed8 function;
+    class backend_sync_contratos_supabase_path_04621c74 function;
+    class backend_sync_contratos_supabase_pool_bb557d13 function;
+    class backend_sync_contratos_supabase_synctosupabase_155bde2c function;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>sync_contratos_supabase.js</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>sync_contratos_supabase.js node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>contratosFile</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>contratosFile node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>contratos</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>contratos node in backend/sync_contratos_supabase.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>syncToSupabase()</code><br><small style="color:var(--muted)">backend/sync_contratos_supabase.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>syncToSupabase() node in backend/sync_contratos_supabase.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/sync_contratos_supabase.js</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 13. Verify All Excel ====== -->
+<h2 id="verify-all-excel">13. Verify All Excel</h2>
+<p>Verify All Excel groups implementation around verify, all, excel, datajs, mostly in backend/verify_all_excel_data.js. This section covers 7 nodes and 6 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Verify All Excel (7 nodes, 6 edges)
+    backend_verify_all_excel_data_0d3d01cc("verify_all_excel_data.js")
+    backend_verify_all_excel_data_main_8103ecad("main()<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_mainfile_63b7fc91("mainFile<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_minutasfile_2ab42a5a("minutasFile<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_path_9562b270("path<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_pool_8974adde("Pool<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_xlsx_8d8828e1("XLSX<br/><small>backend/verify_all_excel_data.js</small>")
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_main_8103ecad
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_mainfile_63b7fc91
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_minutasfile_2ab42a5a
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_path_9562b270
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_pool_8974adde
+    backend_verify_all_excel_data_0d3d01cc -->|contains| backend_verify_all_excel_data_xlsx_8d8828e1
+    class backend_verify_all_excel_data_0d3d01cc module;
+    class backend_verify_all_excel_data_main_8103ecad function;
+    class backend_verify_all_excel_data_mainfile_63b7fc91 function;
+    class backend_verify_all_excel_data_minutasfile_2ab42a5a function;
+    class backend_verify_all_excel_data_path_9562b270 function;
+    class backend_verify_all_excel_data_pool_8974adde function;
+    class backend_verify_all_excel_data_xlsx_8d8828e1 klass;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>verify_all_excel_data.js</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>verify_all_excel_data.js node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-class">Class</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>mainFile</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>mainFile node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>minutasFile</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minutasFile node in backend/verify_all_excel_data.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>main()</code><br><small style="color:var(--muted)">backend/verify_all_excel_data.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>main() node in backend/verify_all_excel_data.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/verify_all_excel_data.js</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 14. Inspect Datajs Backend ====== -->
+<h2 id="inspect-datajs-backend">14. Inspect Datajs Backend</h2>
+<p>Inspect Datajs Backend groups implementation around inspect, datajs, backend, xlsx, mostly in backend/inspect_data.js. This section covers 7 nodes and 6 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Inspect Datajs Backend (7 nodes, 6 edges)
+    backend_inspect_data_faa73ecf("inspect_data.js")
+    backend_inspect_data_mainfile_06a888c2("mainFile<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_minutasfile_7890a861("minutasFile<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_path_8bde02a8("path<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_wbmain_21a79134("wbMain<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_wbminutas_383c8143("wbMinutas<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_xlsx_4f26fdbe("XLSX<br/><small>backend/inspect_data.js</small>")
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_mainfile_06a888c2
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_minutasfile_7890a861
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_path_8bde02a8
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_wbmain_21a79134
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_wbminutas_383c8143
+    backend_inspect_data_faa73ecf -->|contains| backend_inspect_data_xlsx_4f26fdbe
+    class backend_inspect_data_faa73ecf test;
+    class backend_inspect_data_mainfile_06a888c2 test;
+    class backend_inspect_data_minutasfile_7890a861 test;
+    class backend_inspect_data_path_8bde02a8 test;
+    class backend_inspect_data_wbmain_21a79134 test;
+    class backend_inspect_data_wbminutas_383c8143 test;
+    class backend_inspect_data_xlsx_4f26fdbe test;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>inspect_data.js</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>inspect_data.js node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>mainFile</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>mainFile node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>minutasFile</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>minutasFile node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>wbMain</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>wbMain node in backend/inspect_data.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>wbMinutas</code><br><small style="color:var(--muted)">backend/inspect_data.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>wbMinutas node in backend/inspect_data.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/inspect_data.js</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 15. Inspect Personaljs Backend ====== -->
+<h2 id="inspect-personaljs-backend">15. Inspect Personaljs Backend</h2>
+<p>Inspect Personaljs Backend groups implementation around inspect, personaljs, backend, xlsx, mostly in backend/inspect_personal.js. This section covers 7 nodes and 6 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Inspect Personaljs Backend (7 nodes, 6 edges)
+    backend_inspect_personal_f059e9e8("inspect_personal.js")
+    backend_inspect_personal_data_af19f578("data<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_mainfile_81077b06("mainFile<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_path_e404971c("path<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_rows_01a7d4ef("rows<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_wb_da9f39f9("wb<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_xlsx_feedd495("XLSX<br/><small>backend/inspect_personal.js</small>")
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_data_af19f578
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_mainfile_81077b06
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_path_e404971c
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_rows_01a7d4ef
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_wb_da9f39f9
+    backend_inspect_personal_f059e9e8 -->|contains| backend_inspect_personal_xlsx_feedd495
+    class backend_inspect_personal_f059e9e8 test;
+    class backend_inspect_personal_data_af19f578 test;
+    class backend_inspect_personal_mainfile_81077b06 test;
+    class backend_inspect_personal_path_e404971c test;
+    class backend_inspect_personal_rows_01a7d4ef test;
+    class backend_inspect_personal_wb_da9f39f9 test;
+    class backend_inspect_personal_xlsx_feedd495 test;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>inspect_personal.js</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>inspect_personal.js node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>mainFile</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>mainFile node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>wb</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>wb node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>data</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>data node in backend/inspect_personal.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>rows</code><br><small style="color:var(--muted)">backend/inspect_personal.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>rows node in backend/inspect_personal.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/inspect_personal.js</code></td><td>7 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x6. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<!-- ====== 16. Other ====== -->
+<h2 id="other">16. Other</h2>
+<p>Other groups implementation around backend, check, logojs, inspect, mostly in backend/check_excel.js, backend/copy_logo.js, backend/inspect_tierra_grata.js. This section covers 49 nodes and 37 internal edges; the diagram shows only representative relationships to stay readable.</p>
+
+<div class="mermaid">
+%%{init: {"theme": "dark", "themeVariables": {"fontSize": "15.0px", "fontFamily": "Segoe UI, system-ui, sans-serif", "primaryColor": "#1e293b", "primaryTextColor": "#e2e8f0", "primaryBorderColor": "#38bdf8", "secondaryColor": "#0f172a", "tertiaryColor": "#334155", "lineColor": "#64748b", "textColor": "#e2e8f0"}, "flowchart": {"htmlLabels": true, "curve": "basis", "nodeSpacing": 48, "rankSpacing": 64, "padding": 14, "diagramPadding": 10, "useMaxWidth": true}}}%%
+flowchart LR
+    %% Section: Other (49 nodes, 37 edges)
+    subgraph other_backend_check_excel_js_fab87f62["backend/check_excel.js"]
+        backend_check_excel_32a24eea("check_excel.js")
+        backend_check_excel_filepath_49acf34e("filePath<br/><small>backend/check_excel.js</small>")
+        backend_check_excel_fs_1e94d328("fs<br/><small>backend/check_excel.js</small>")
+        backend_check_excel_path_b94f0f8e("path<br/><small>backend/check_excel.js</small>")
+        backend_check_excel_workbook_a06f160e("workbook<br/><small>backend/check_excel.js</small>")
+        backend_check_excel_xlsx_845aff6c("xlsx<br/><small>backend/check_excel.js</small>")
+    end
+    subgraph other_backend_check_logo_images_js_237bd8bf["backend/check_logo_images.js"]
+        backend_check_logo_images_17a5616f("check_logo_images.js")
+        backend_check_logo_images_folders_9490ae73("folders<br/><small>backend/check_logo_images.js</small>")
+        backend_check_logo_images_fs_20b1b2ab("fs<br/><small>backend/check_logo_images.js</small>")
+        backend_check_logo_images_path_bef4a789("path<br/><small>backend/check_logo_images.js</small>")
+    end
+    subgraph other_backend_alter_personal_js_56a2c06a["backend/alter_personal.js"]
+        backend_alter_personal_0ec96adf("alter_personal.js")
+        backend_alter_personal_main_ad7e3d51("main()<br/><small>backend/alter_personal.js</small>")
+        backend_alter_personal_pool_41e0dfdc("Pool<br/><small>backend/alter_personal.js</small>")
+    end
+    backend_check_pg_contratos_1cf7ed12("check_pg_contratos.js")
+    backend_copy_logo_0bd9143e("copy_logo.js")
+    backend_init_db_14c72140("init_db.js")
+    backend_inspect_tierra_grata_7b20b963("inspect_tierra_grata.js")
+    backend_use_hd_logo_ace1d444("use_hd_logo.js")
+    backend_alter_personal_0ec96adf -->|contains| backend_alter_personal_main_ad7e3d51
+    backend_alter_personal_0ec96adf -->|contains| backend_alter_personal_pool_41e0dfdc
+    backend_check_excel_32a24eea -->|contains| backend_check_excel_filepath_49acf34e
+    backend_check_excel_32a24eea -->|contains| backend_check_excel_fs_1e94d328
+    backend_check_excel_32a24eea -->|contains| backend_check_excel_path_b94f0f8e
+    backend_check_excel_32a24eea -->|contains| backend_check_excel_workbook_a06f160e
+    backend_check_excel_32a24eea -->|contains| backend_check_excel_xlsx_845aff6c
+    backend_check_logo_images_17a5616f -->|contains| backend_check_logo_images_folders_9490ae73
+    backend_check_logo_images_17a5616f -->|contains| backend_check_logo_images_fs_20b1b2ab
+    backend_check_logo_images_17a5616f -->|contains| backend_check_logo_images_path_bef4a789
+    %% Omitted for readability: 31 nodes, 0 edges
+    class backend_check_excel_32a24eea module;
+    class backend_check_excel_filepath_49acf34e function;
+    class backend_check_excel_fs_1e94d328 function;
+    class backend_check_excel_path_b94f0f8e function;
+    class backend_check_excel_workbook_a06f160e function;
+    class backend_check_excel_xlsx_845aff6c function;
+    class backend_check_logo_images_17a5616f module;
+    class backend_check_logo_images_folders_9490ae73 function;
+    class backend_check_logo_images_fs_20b1b2ab function;
+    class backend_check_logo_images_path_bef4a789 function;
+    class backend_alter_personal_0ec96adf module;
+    class backend_alter_personal_main_ad7e3d51 function;
+    class backend_alter_personal_pool_41e0dfdc function;
+    class backend_check_pg_contratos_1cf7ed12 module;
+    class backend_copy_logo_0bd9143e module;
+    class backend_init_db_14c72140 module;
+    class backend_inspect_tierra_grata_7b20b963 test;
+    class backend_use_hd_logo_ace1d444 ui;
+    classDef entry fill:#422006,stroke:#fbbf24,color:#fde68a,stroke-width:1px;
+    classDef api fill:#450a0a,stroke:#f87171,color:#fee2e2,stroke-width:1px;
+    classDef async fill:#2e1065,stroke:#a78bfa,color:#ede9fe,stroke-width:1px;
+    classDef klass fill:#064e3b,stroke:#34d399,color:#d1fae5,stroke-width:1px;
+    classDef ui fill:#831843,stroke:#f472b6,color:#fce7f3,stroke-width:1px;
+    classDef module fill:#172554,stroke:#60a5fa,color:#dbeafe,stroke-width:1px;
+    classDef test fill:#3f3f46,stroke:#a1a1aa,color:#f4f4f5,stroke-width:1px;
+    classDef concept fill:#292524,stroke:#a8a29e,color:#fafaf9,stroke-dasharray:4 3;
+    classDef function fill:#0f172a,stroke:#38bdf8,color:#e0f2fe,stroke-width:1px;
+</div>
+
+<h3>Call Details</h3>
+<table class="call-table">
+<tr>
+  <th style="width:5%">#</th>
+  <th style="width:28%">Node</th>
+  <th style="width:10%">Type</th>
+  <th style="width:17%">Caller</th>
+  <th style="width:20%">Callees</th>
+  <th style="width:20%">Description</th>
+</tr>
+<tr>
+  <td>1</td>
+  <td><code>check_excel.js</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>check_excel.js node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>2</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>3</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>4</td>
+  <td><code>xlsx</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>xlsx node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>5</td>
+  <td><code>filePath</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>filePath node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>6</td>
+  <td><code>workbook</code><br><small style="color:var(--muted)">backend/check_excel.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>workbook node in backend/check_excel.js.</td>
+</tr>
+<tr>
+  <td>7</td>
+  <td><code>copy_logo.js</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>copy_logo.js node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>8</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>9</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>10</td>
+  <td><code>destFolder</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destFolder node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>11</td>
+  <td><code>destPng</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destPng node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>12</td>
+  <td><code>destJpg</code><br><small style="color:var(--muted)">backend/copy_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destJpg node in backend/copy_logo.js.</td>
+</tr>
+<tr>
+  <td>13</td>
+  <td><code>inspect_tierra_grata.js</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>inspect_tierra_grata.js node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>14</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>15</td>
+  <td><code>XLSX</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>XLSX node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>16</td>
+  <td><code>wb</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>wb node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>17</td>
+  <td><code>data</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>data node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>18</td>
+  <td><code>checkDb()</code><br><small style="color:var(--muted)">backend/inspect_tierra_grata.js</small></td>
+  <td><span class="tag tag-func">Test</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>checkDb() node in backend/inspect_tierra_grata.js.</td>
+</tr>
+<tr>
+  <td>19</td>
+  <td><code>use_hd_logo.js</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-hook">UI</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>use_hd_logo.js node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>20</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>21</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>22</td>
+  <td><code>srcHdPng</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>srcHdPng node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>23</td>
+  <td><code>destPng</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destPng node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>24</td>
+  <td><code>destJpg</code><br><small style="color:var(--muted)">backend/use_hd_logo.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>destJpg node in backend/use_hd_logo.js.</td>
+</tr>
+<tr>
+  <td>25</td>
+  <td><code>init_db.js</code><br><small style="color:var(--muted)">backend/init_db.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>init_db.js node in backend/init_db.js.</td>
+</tr>
+<tr>
+  <td>26</td>
+  <td><code>{ Pool }</code><br><small style="color:var(--muted)">backend/init_db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>{ Pool } node in backend/init_db.js.</td>
+</tr>
+<tr>
+  <td>27</td>
+  <td><code>fs</code><br><small style="color:var(--muted)">backend/init_db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>fs node in backend/init_db.js.</td>
+</tr>
+<tr>
+  <td>28</td>
+  <td><code>path</code><br><small style="color:var(--muted)">backend/init_db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>path node in backend/init_db.js.</td>
+</tr>
+<tr>
+  <td>29</td>
+  <td><code>initDB()</code><br><small style="color:var(--muted)">backend/init_db.js</small></td>
+  <td><span class="tag tag-func">Function</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>initDB() node in backend/init_db.js.</td>
+</tr>
+<tr>
+  <td>30</td>
+  <td><code>check_logo_images.js</code><br><small style="color:var(--muted)">backend/check_logo_images.js</small></td>
+  <td><span class="tag tag-class">Module</span></td>
+  <td>External entry / no inbound edge</td>
+  <td>No direct outbound edge</td>
+  <td>check_logo_images.js node in backend/check_logo_images.js.</td>
+</tr>
+</table>
+
+<div class="grid">
+  <div class="card">
+    <h4>Key Files</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><th>File</th><th>Coverage</th></tr>
+      <tr><td><code>backend/check_excel.js</code></td><td>6 nodes</td></tr>
+<tr><td><code>backend/copy_logo.js</code></td><td>6 nodes</td></tr>
+<tr><td><code>backend/inspect_tierra_grata.js</code></td><td>6 nodes</td></tr>
+<tr><td><code>backend/use_hd_logo.js</code></td><td>6 nodes</td></tr>
+<tr><td><code>backend/init_db.js</code></td><td>5 nodes</td></tr>
+<tr><td><code>backend/check_logo_images.js</code></td><td>4 nodes</td></tr>
+<tr><td><code>backend/alter_personal.js</code></td><td>3 nodes</td></tr>
+<tr><td><code>backend/check_pg_contratos.js</code></td><td>3 nodes</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Design Notes</h4>
+    <p>This section comes from graphify community clustering. Relationship summary: contains x37. The diagram prioritizes high-confidence calls or usage relationships; the table keeps the broader node inventory.</p>
+  </div>
+</div>
+<hr>
+
+<h2 id="stats">Project Statistics</h2>
+
+<div class="grid">
+  <div class="card">
+    <h4>Graph</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>Nodes</td><td>301</td></tr>
+      <tr><td>Edges</td><td>440</td></tr>
+      <tr><td>Hyperedges</td><td>0</td></tr>
+      <tr><td>Communities</td><td>28</td></tr>
+      <tr><td>Documented Sections</td><td>15</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <h4>Edge Confidence</h4>
+    <table style="width:100%;font-size:0.85rem;">
+      <tr><td>EXTRACTED</td><td>436</td></tr>
+      <tr><td>INFERRED</td><td>4</td></tr>
+      <tr><td>AMBIGUOUS</td><td>0</td></tr>
+    </table>
+  </div>
+</div>
+
+<div style="text-align:center; padding:40px 0; color: var(--muted); font-size:0.9rem;">
+  <p>DOCUMENTAL-ref — Architecture Documentation</p>
+  <p>Generated: 2026-08-05 15:42 UTC · graphify callflow-html</p>
+</div>
+
+</div><!-- .container -->
+
+<script>
+(function () {
+  const mermaidConfig = {
+    startOnLoad: false,
+    theme: 'dark',
+    securityLevel: 'loose',
+    flowchart: { htmlLabels: true, useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#1e293b',
+      primaryTextColor: '#e2e8f0',
+      primaryBorderColor: '#38bdf8',
+      secondaryColor: '#0f172a',
+      tertiaryColor: '#334155',
+      lineColor: '#64748b',
+      textColor: '#e2e8f0',
+    }
+  };
+
+  mermaid.initialize(mermaidConfig);
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
+  function enhanceMermaidDiagrams() {
+    document.querySelectorAll('.mermaid').forEach((container) => {
+      if (container.dataset.zoomReady === 'true') return;
+      const svg = container.querySelector('svg');
+      if (!svg) return;
+
+      container.dataset.zoomReady = 'true';
+      container.classList.add('is-enhanced');
+
+      const viewport = document.createElement('div');
+      viewport.className = 'mermaid-viewport';
+      svg.parentNode.insertBefore(viewport, svg);
+      viewport.appendChild(svg);
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'mermaid-toolbar';
+      toolbar.innerHTML = [
+        '<button type="button" data-action="zoom-out" title="Zoom out">-</button>',
+        '<span class="zoom-level" data-role="level">100%</span>',
+        '<button type="button" data-action="zoom-in" title="Zoom in">+</button>',
+        '<button type="button" data-action="fit" title="Fit width">Fit</button>',
+        '<button type="button" data-action="reset" title="Reset view">Reset</button>'
+      ].join('');
+      container.insertBefore(toolbar, viewport);
+
+      const state = { scale: 1, x: 0, y: 0, dragging: false, startX: 0, startY: 0, originX: 0, originY: 0 };
+      const level = toolbar.querySelector('[data-role="level"]');
+
+      function applyTransform() {
+        svg.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+        level.textContent = `${Math.round(state.scale * 100)}%`;
+      }
+
+      function zoomBy(delta) {
+        state.scale = clamp(state.scale + delta, 0.25, 3);
+        applyTransform();
+      }
+
+      function reset() {
+        state.scale = 1;
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      function fitWidth() {
+        const rawWidth = svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width
+          ? svg.viewBox.baseVal.width
+          : svg.getBoundingClientRect().width / state.scale;
+        if (!rawWidth) {
+          reset();
+          return;
+        }
+        state.scale = clamp((viewport.clientWidth - 48) / rawWidth, 0.25, 1.4);
+        state.x = 0;
+        state.y = 0;
+        applyTransform();
+      }
+
+      toolbar.addEventListener('click', (event) => {
+        const button = event.target.closest('button[data-action]');
+        if (!button) return;
+        const action = button.dataset.action;
+        if (action === 'zoom-in') zoomBy(0.15);
+        if (action === 'zoom-out') zoomBy(-0.15);
+        if (action === 'fit') fitWidth();
+        if (action === 'reset') reset();
+      });
+
+      viewport.addEventListener('wheel', (event) => {
+        if (!event.ctrlKey && !event.metaKey) return;
+        event.preventDefault();
+        zoomBy(event.deltaY < 0 ? 0.1 : -0.1);
+      }, { passive: false });
+
+      viewport.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        state.dragging = true;
+        state.startX = event.clientX;
+        state.startY = event.clientY;
+        state.originX = state.x;
+        state.originY = state.y;
+        viewport.classList.add('is-dragging');
+        viewport.setPointerCapture(event.pointerId);
+      });
+
+      viewport.addEventListener('pointermove', (event) => {
+        if (!state.dragging) return;
+        state.x = state.originX + event.clientX - state.startX;
+        state.y = state.originY + event.clientY - state.startY;
+        applyTransform();
+      });
+
+      function endDrag(event) {
+        if (!state.dragging) return;
+        state.dragging = false;
+        viewport.classList.remove('is-dragging');
+        if (viewport.hasPointerCapture(event.pointerId)) {
+          viewport.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      viewport.addEventListener('pointerup', endDrag);
+      viewport.addEventListener('pointercancel', endDrag);
+      applyTransform();
+    });
+  }
+
+  function renderMermaid() {
+    const result = mermaid.run
+      ? mermaid.run({ querySelector: '.mermaid' })
+      : Promise.resolve();
+    Promise.resolve(result)
+      .then(enhanceMermaidDiagrams)
+      .catch((error) => {
+        console.error('Mermaid render failed:', error);
+        enhanceMermaidDiagrams();
+      });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', renderMermaid);
+  } else {
+    renderMermaid();
+  }
+})();
+</script>
+
+</body>
+</html>

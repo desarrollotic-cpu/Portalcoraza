@@ -4,5 +4,4 @@ import { environment } from '../../../environments/environment';
 export const EXTERNAL_APPS = {
   gestionHumana: environment.externalApps.gestionHumana,
   programacion: environment.externalApps.programacion,
-  documental: environment.externalApps.documental,
 } as const;

@@ -21,6 +21,7 @@
     "db:apply-hr": "ts-node scripts/apply-hr-module.ts",
     "db:apply-absences": "ts-node scripts/apply-hr-absenteeism.ts",
     "db:apply-inventory": "ts-node scripts/apply-inventory-fields.ts",
+    "db:apply-documental": "ts-node scripts/apply-documental-sgd.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },
   "dependencies": {

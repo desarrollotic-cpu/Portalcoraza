@@ -10,7 +10,5 @@ export const environment = {
   externalApps: {
     gestionHumana: 'https://gestion-humana-2qop.onrender.com',
     programacion: 'https://freidercao-spec.github.io/APP-CONTABILIDAD/',
-    documental:
-      'https://script.google.com/macros/s/AKfycbyQxP4bY3_-GTuSsCH3zrIp7kMrlt8BZUVTOfB-RC1sBctTT783CF3kN9wWJxAEdk-i/exec',
   },
 };

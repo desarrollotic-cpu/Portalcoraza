@@ -45,6 +45,15 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
       ssl: isSupabaseDatabaseUrl(process.env.DATABASE_URL)
         ? { rejectUnauthorized: false }
         : false,
+      // Pool del driver pg. Evita que las requests "se queden pensando":
+      // si el pool se agota, falla rápido en lugar de colgarse indefinidamente,
+      // y mantiene vivas las conexiones reutilizadas (menos latencia en frío).
+      extra: {
+        max: Number(process.env.DB_POOL_MAX ?? 20),
+        connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS ?? 10000),
+        idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30000),
+        keepAlive: true,
+      },
     }),
     AuthModule,
     UsersModule,

@@ -505,8 +505,12 @@ export class DeliveriesService {
 
     const signatureUrl = await this.uploadSignature(id, dto.signatureData);
 
+    const variants = await this.variantsRepo.findBy({
+      id: In(delivery.details.map((d) => d.variantId)),
+    });
+    const variantById = new Map(variants.map((v) => [v.id, v]));
     for (const detail of delivery.details) {
-      const variant = await this.variantsRepo.findOne({ where: { id: detail.variantId } });
+      const variant = variantById.get(detail.variantId);
       if (!variant) {
         throw new NotFoundException('Variante de inventario no encontrada');
       }
@@ -514,8 +518,8 @@ export class DeliveriesService {
         throw new ConflictException('Stock insuficiente para confirmar entrega');
       }
       variant.stockCurrent -= detail.quantity;
-      await this.variantsRepo.save(variant);
     }
+    await this.variantsRepo.save(variants);
 
     const oldStatus = delivery.status;
     delivery.signatureUrl = signatureUrl;
@@ -568,14 +572,18 @@ export class DeliveriesService {
       );
     }
 
+    const variants = await this.variantsRepo.findBy({
+      id: In(delivery.details.map((d) => d.variantId)),
+    });
+    const variantById = new Map(variants.map((v) => [v.id, v]));
     for (const detail of delivery.details) {
-      const variant = await this.variantsRepo.findOne({ where: { id: detail.variantId } });
+      const variant = variantById.get(detail.variantId);
       if (!variant) {
         throw new NotFoundException('Variante de inventario no encontrada');
       }
       variant.stockCurrent += detail.quantity;
-      await this.variantsRepo.save(variant);
     }
+    await this.variantsRepo.save(variants);
 
     const oldStatus = delivery.status;
     delivery.status = DeliveryStatus.REVERTED;
