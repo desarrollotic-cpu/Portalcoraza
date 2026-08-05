@@ -1,7 +1,7 @@
 # Module stats panels — design
 
 **Date:** 2026-08-05  
-**Status:** approved for planning (pending user review of this file)  
+**Status:** approved (2026-08-05) — implementation plan ready  
 **Scope:** Unify/improve per-module main panels with KPIs + 1–2 short charts/lists.
 
 ## Goals
