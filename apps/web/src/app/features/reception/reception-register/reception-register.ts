@@ -1,6 +1,5 @@
 import { Component, ElementRef, OnInit, inject, signal, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   ReceptionApiService,
@@ -33,7 +32,12 @@ import {
             </p>
             <label>
               Cédula
-              <input [(ngModel)]="form.documentNumber" name="documentNumber" autocomplete="off" />
+              <input
+                #documentInput
+                [(ngModel)]="form.documentNumber"
+                name="documentNumber"
+                autocomplete="off"
+              />
             </label>
             <label>
               Primer apellido
@@ -250,9 +254,9 @@ import {
 export class ReceptionRegister implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
-  private readonly router = inject(Router);
 
   private readonly visitReasonInput = viewChild<ElementRef<HTMLInputElement>>('visitReasonInput');
+  private readonly documentInput = viewChild<ElementRef<HTMLInputElement>>('documentInput');
 
   readonly authorizedByOptions = [
     'Recursos humanos',
@@ -355,9 +359,10 @@ export class ReceptionRegister implements OnInit {
     this.api.register(payload).subscribe({
       next: (v) => {
         this.saving.set(false);
-        this.success.set(`Ingreso registrado: ${v.displayName}`);
+        this.success.set(`Ingreso registrado: ${v.displayName}. Puedes registrar el siguiente.`);
         this.form = this.emptyForm();
-        setTimeout(() => this.router.navigateByUrl('/recepcion/panel'), 900);
+        // Quedarse en el formulario para encadenar registros (recepción).
+        queueMicrotask(() => this.documentInput()?.nativeElement.focus());
       },
       error: (err) => {
         this.saving.set(false);
