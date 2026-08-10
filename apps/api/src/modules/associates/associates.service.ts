@@ -5,11 +5,13 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
+import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AssociateDerivedService } from '../hr-shared/services/associate-derived.service';
 import { HrAuditService } from '../hr-shared/services/hr-audit.service';
 import { SensitiveDataService } from '../hr-shared/services/sensitive-data.service';
+import { Retirement } from '../hr-retirements/entities/retirement.entity';
 import { AssociatesQueryDto } from './dto/associates-query.dto';
 import { CreateAssociateDto } from './dto/create-associate.dto';
 import { ReadmitAssociateDto } from './dto/readmit-associate.dto';
@@ -54,10 +56,13 @@ export class AssociatesService {
     private readonly historyRepo: Repository<AssociateHistory>,
     @InjectRepository(PositionHistory)
     private readonly positionHistoryRepo: Repository<PositionHistory>,
+    @InjectRepository(Retirement)
+    private readonly retirementRepo: Repository<Retirement>,
     private readonly hrAudit: HrAuditService,
     private readonly derived: AssociateDerivedService,
     private readonly sensitive: SensitiveDataService,
     private readonly notifications: NotificationsService,
+    private readonly audit: AuditService,
   ) {}
 
   // ─── Consultas ────────────────────────────────────────────────────────
@@ -98,6 +103,11 @@ export class AssociatesService {
 
     let rows = await qb.getMany();
 
+    const retiredIds = rows
+      .filter((a) => a.status === AssociateStatus.RETIRADO)
+      .map((a) => a.id);
+    const retirementByAssociate = await this.latestRetirementDates(retiredIds);
+
     // Filtros post-hoc (antigüedad en memoria porque depende de derivados)
     if (query.tenureMinYears || query.tenureMaxYears) {
       const min = query.tenureMinYears ? parseFloat(query.tenureMinYears) : 0;
@@ -107,12 +117,13 @@ export class AssociatesService {
           birthDate: a.birthDate,
           hireDate: a.hireDate,
           status: a.status,
+          retirementDate: retirementByAssociate.get(a.id) ?? null,
         });
         return tenureYears >= min && tenureYears <= max;
       });
     }
 
-    return rows.map((a) => this.enrich(a, user));
+    return rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id)));
   }
 
   async findOne(id: string, user: JwtPayload) {
@@ -121,7 +132,20 @@ export class AssociatesService {
       relations: AssociatesService.RELATIONS,
     });
     if (!associate) throw new NotFoundException('Asociado no encontrado');
-    return this.enrich(associate, user);
+
+    // Bitácora de acceso a ficha (Ley 1581 / trazabilidad) — no bloquea la respuesta.
+    void this.audit
+      .log({
+        userId: user.sub,
+        module: 'hr',
+        action: 'view_record',
+        entityType: 'associate',
+        entityId: id,
+      })
+      .catch(() => undefined);
+
+    const retirementDate = await this.latestRetirementDate(id);
+    return this.enrich(associate, user, retirementDate);
   }
 
   async history(id: string) {
@@ -334,11 +358,16 @@ export class AssociatesService {
   }
 
   /** Añade campos derivados y aplica enmascaramiento sensible. */
-  private enrich(associate: Associate, user: JwtPayload) {
+  private enrich(
+    associate: Associate,
+    user: JwtPayload,
+    retirementDate?: string | null,
+  ) {
     const derived = this.derived.compute({
       birthDate: associate.birthDate,
       hireDate: associate.hireDate,
       status: associate.status,
+      retirementDate: retirementDate ?? null,
     });
     const enriched = {
       ...associate,
@@ -356,5 +385,31 @@ export class AssociatesService {
         .trim(),
     };
     return this.sensitive.maskAssociate(enriched, user);
+  }
+
+  private async latestRetirementDate(associateId: string): Promise<string | null> {
+    const row = await this.retirementRepo.findOne({
+      where: { associateId },
+      order: { retirementDate: 'DESC' },
+    });
+    return row?.retirementDate ?? null;
+  }
+
+  private async latestRetirementDates(
+    associateIds: string[],
+  ): Promise<Map<string, string>> {
+    const map = new Map<string, string>();
+    if (!associateIds.length) return map;
+    const rows = await this.retirementRepo
+      .createQueryBuilder('r')
+      .where('r.associateId IN (:...ids)', { ids: associateIds })
+      .orderBy('r.retirementDate', 'DESC')
+      .getMany();
+    for (const r of rows) {
+      if (!map.has(r.associateId)) {
+        map.set(r.associateId, r.retirementDate);
+      }
+    }
+    return map;
   }
 }

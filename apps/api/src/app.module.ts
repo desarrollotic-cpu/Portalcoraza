@@ -18,7 +18,6 @@ import { HrPositionsModule } from './modules/hr-positions/hr-positions.module';
 import { HrRetirementsModule } from './modules/hr-retirements/hr-retirements.module';
 import { HrWorkCentersModule } from './modules/hr-work-centers/hr-work-centers.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { ResidentialModule } from './modules/residential/residential.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -45,6 +44,17 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
       ssl: isSupabaseDatabaseUrl(process.env.DATABASE_URL)
         ? { rejectUnauthorized: false }
         : false,
+      // Pool del driver pg. En Supabase (session pooler) el tope real es bajo
+      // (~15); varias instancias Nest + Promise.all lo saturan (EMAXCONNSESSION).
+      extra: {
+        max: Number(
+          process.env.DB_POOL_MAX ??
+            (isSupabaseDatabaseUrl(process.env.DATABASE_URL) ? 5 : 20),
+        ),
+        connectionTimeoutMillis: Number(process.env.DB_CONN_TIMEOUT_MS ?? 10000),
+        idleTimeoutMillis: Number(process.env.DB_IDLE_TIMEOUT_MS ?? 30000),
+        keepAlive: true,
+      },
     }),
     AuthModule,
     UsersModule,
@@ -64,7 +74,6 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     DeliveriesModule,
     SchedulingModule,
     DocumentalModule,
-    ResidentialModule,
     NotificationsModule,
     PostsModule,
     PostEquipmentModule,

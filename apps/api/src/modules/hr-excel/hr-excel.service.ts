@@ -8,6 +8,7 @@ import {
   AssociateDocumentType,
   AssociateStatus,
 } from '../associates/entities/associate.entity';
+import { PositionHistory } from '../associates/entities/position-history.entity';
 import { AuditService } from '../audit/audit.service';
 import {
   CatalogKind,
@@ -81,6 +82,8 @@ export class HrExcelService {
     private readonly workCentersRepo: Repository<WorkCenter>,
     @InjectRepository(CatalogValue)
     private readonly catalogsRepo: Repository<CatalogValue>,
+    @InjectRepository(PositionHistory)
+    private readonly positionHistoryRepo: Repository<PositionHistory>,
     private readonly audit: AuditService,
   ) {}
 
@@ -192,34 +195,95 @@ export class HrExcelService {
   async executeImport(
     rows: (Partial<Associate> & { jobPositionName?: string; workCenterCode?: string })[],
     userId: string,
+    mode: 'IGNORE_DUPLICATES' | 'UPDATE_DUPLICATES' = 'UPDATE_DUPLICATES',
   ) {
     let created = 0;
     let updated = 0;
     let skipped = 0;
+    let reentries = 0;
+    const seenInFile = new Set<string>();
 
     for (const row of rows) {
       if (!row.documentNumber) {
         skipped++;
         continue;
       }
+      const doc = String(row.documentNumber).trim();
+      if (seenInFile.has(doc)) {
+        skipped++;
+        continue;
+      }
+      seenInFile.add(doc);
+
       const existing = await this.associatesRepo.findOne({
-        where: { documentNumber: row.documentNumber as string },
+        where: { documentNumber: doc },
       });
-      const { jobPositionName, workCenterCode, ...clean } = row;
+      const { jobPositionName: _jp, workCenterCode: _wc, ...clean } = row;
+
       if (existing) {
-        await this.associatesRepo.update({ id: existing.id }, {
-          ...clean,
-          updatedBy: userId,
-        } as Partial<Associate>);
+        if (existing.status === AssociateStatus.RETIRADO) {
+          if (mode === 'IGNORE_DUPLICATES') {
+            skipped++;
+            continue;
+          }
+          await this.associatesRepo.update(
+            { id: existing.id },
+            {
+              ...clean,
+              status: AssociateStatus.ACTIVO,
+              updatedBy: userId,
+            } as Partial<Associate>,
+          );
+          const jobPositionId = (clean.jobPositionId as string | undefined) ?? existing.jobPositionId;
+          if (jobPositionId) {
+            await this.positionHistoryRepo.save(
+              this.positionHistoryRepo.create({
+                associateId: existing.id,
+                jobPositionId,
+                workCenterId:
+                  (clean.workCenterId as string | undefined) ?? existing.workCenterId,
+                changeReason: 'Reingreso mediante migración Excel',
+                changedBy: userId,
+              }),
+            );
+          }
+          reentries++;
+          continue;
+        }
+
+        if (mode === 'IGNORE_DUPLICATES') {
+          skipped++;
+          continue;
+        }
+
+        await this.associatesRepo.update(
+          { id: existing.id },
+          {
+            ...clean,
+            updatedBy: userId,
+          } as Partial<Associate>,
+        );
         updated++;
       } else {
-        await this.associatesRepo.save(
+        const saved = await this.associatesRepo.save(
           this.associatesRepo.create({
             ...clean,
+            status: AssociateStatus.ACTIVO,
             createdBy: userId,
             updatedBy: userId,
           } as Partial<Associate>),
         );
+        if (saved.jobPositionId) {
+          await this.positionHistoryRepo.save(
+            this.positionHistoryRepo.create({
+              associateId: saved.id,
+              jobPositionId: saved.jobPositionId,
+              workCenterId: saved.workCenterId,
+              changeReason: 'Cargado mediante migración Excel',
+              changedBy: userId,
+            }),
+          );
+        }
         created++;
       }
     }
@@ -230,10 +294,10 @@ export class HrExcelService {
       action: 'excel_import',
       entityType: 'associate',
       entityId: 'batch',
-      newValue: { created, updated, skipped, total: rows.length },
+      newValue: { created, updated, skipped, reentries, mode, total: rows.length },
     });
 
-    return { created, updated, skipped, total: rows.length };
+    return { created, updated, skipped, reentries, mode, total: rows.length };
   }
 
   /**

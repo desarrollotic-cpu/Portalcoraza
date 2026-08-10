@@ -1,8 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { Post, PostStatus } from '../posts/entities/post.entity';
 import {
   MonthlySchedule,
   PersonalRole,
@@ -10,8 +11,14 @@ import {
 } from './entities/monthly-schedule.entity';
 import { ScheduleAssignment } from './entities/schedule-assignment.entity';
 import {
+  ScheduleTemplate,
+  TemplatePatternItem,
+} from './entities/schedule-template.entity';
+import {
   CreateMonthlyScheduleDto,
+  CreateScheduleTemplateDto,
   GenerateMotorDto,
+  GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   SaveMonthlyScheduleDto,
@@ -32,6 +39,8 @@ export class MonthlySchedulingService {
     private readonly schedulesRepo: Repository<MonthlySchedule>,
     @InjectRepository(ScheduleAssignment)
     private readonly assignmentsRepo: Repository<ScheduleAssignment>,
+    @InjectRepository(ScheduleTemplate)
+    private readonly templatesRepo: Repository<ScheduleTemplate>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
@@ -45,11 +54,71 @@ export class MonthlySchedulingService {
     });
   }
 
-  async listByMonth(query: ListMonthlyScheduleDto): Promise<MonthlySchedule[]> {
-    return this.schedulesRepo.find({
+  async listByMonth(query: ListMonthlyScheduleDto) {
+    const schedules = await this.schedulesRepo.find({
       where: { year: query.year, month: query.month },
+      relations: { assignments: true },
       order: { createdAt: 'ASC' },
     });
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const postRows =
+      postIds.length === 0
+        ? []
+        : await this.dataSource.getRepository(Post).find({
+            where: { id: In(postIds) },
+          });
+    const postMap = new Map(postRows.map((p) => [p.id, p]));
+
+    return schedules.map((s) => {
+      const post = postMap.get(s.postId);
+      return {
+        ...s,
+        post: post
+          ? {
+              id: post.id,
+              code: post.code,
+              name: post.name,
+              type: post.type,
+              clientName: post.clientName,
+              status: post.status,
+            }
+          : null,
+      };
+    });
+  }
+
+  /**
+   * Detecta asociados asignados el mismo día en más de un puesto (mismo mes).
+   */
+  async findConflicts(query: ListMonthlyScheduleDto) {
+    const rows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', {
+        year: query.year,
+        month: query.month,
+      })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada NOT IN ('sin_asignar')`)
+      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N')`)
+      .select([
+        'a.associate_id AS "associateId"',
+        'a.day AS day',
+        'COUNT(DISTINCT s.post_id)::int AS "postCount"',
+        'ARRAY_AGG(DISTINCT s.post_id::text) AS "postIds"',
+      ])
+      .groupBy('a.associate_id')
+      .addGroupBy('a.day')
+      .having('COUNT(DISTINCT s.post_id) > 1')
+      .getRawMany();
+
+    return rows.map((r) => ({
+      associateId: r.associateId as string,
+      day: Number(r.day),
+      postCount: Number(r.postCount),
+      postIds: (r.postIds as string[]) ?? [],
+    }));
   }
 
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {
@@ -165,13 +234,27 @@ export class MonthlySchedulingService {
   async generateWithMotor(id: string, dto: GenerateMotorDto, userId: string) {
     const schedule = await this.getById(id);
     const daysInMonth = new Date(schedule.year, schedule.month, 0).getDate();
+    const tipoCiclo = dto.tipoCiclo ?? '12x3';
 
     let personal = schedule.personal ?? [];
     if (dto.roles?.length) {
       personal = personal.filter((p) => dto.roles!.includes(p.rol));
     }
 
-    const generated = this.motor.generate(personal, daysInMonth);
+    const startPositions = await this.resolveStartPositions(
+      schedule.postId,
+      schedule.year,
+      schedule.month,
+      personal,
+      tipoCiclo,
+    );
+
+    const generated = this.motor.generate(
+      personal,
+      daysInMonth,
+      startPositions,
+      tipoCiclo,
+    );
 
     await this.dataSource.transaction(async (manager) => {
       await manager.delete(ScheduleAssignment, { scheduleId: id });
@@ -200,10 +283,296 @@ export class MonthlySchedulingService {
       action: 'monthly_schedule.motor',
       entityType: 'monthly_schedule',
       entityId: id,
-      newValue: { assignments: generated.length },
+      newValue: {
+        assignments: generated.length,
+        tipoCiclo,
+        alerts: this.motor.validateBoard(generated, daysInMonth).length,
+      },
     });
 
-    return this.getById(id);
+    const saved = await this.getById(id);
+    return {
+      ...saved,
+      motorAlerts: this.motor.validateBoard(generated, daysInMonth),
+    };
+  }
+
+  /**
+   * Aplica el motor a todas las programaciones del mes (opcionalmente crea faltantes).
+   */
+  async generateMotorGlobal(dto: GenerateMotorGlobalDto, userId: string) {
+    const tipoCiclo = dto.tipoCiclo ?? '12x3';
+    let schedules = await this.schedulesRepo.find({
+      where: { year: dto.year, month: dto.month },
+    });
+
+    if (dto.createMissing) {
+      const posts = await this.dataSource.getRepository(Post).find({
+        where: { status: PostStatus.ACTIVO },
+      });
+      const have = new Set(schedules.map((s) => s.postId));
+      for (const post of posts) {
+        if (have.has(post.id)) continue;
+        const created = await this.createOrGet(
+          { postId: post.id, year: dto.year, month: dto.month },
+          userId,
+        );
+        schedules.push(created);
+      }
+    }
+
+    const results: Array<{
+      scheduleId: string;
+      postId: string;
+      ok: boolean;
+      assignments?: number;
+      error?: string;
+    }> = [];
+
+    for (const s of schedules) {
+      try {
+        const out = await this.generateWithMotor(
+          s.id,
+          { tipoCiclo },
+          userId,
+        );
+        results.push({
+          scheduleId: s.id,
+          postId: s.postId,
+          ok: true,
+          assignments: out.assignments?.length ?? 0,
+        });
+      } catch (err) {
+        results.push({
+          scheduleId: s.id,
+          postId: s.postId,
+          ok: false,
+          error: err instanceof Error ? err.message : 'Error',
+        });
+      }
+    }
+
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'monthly_schedule.motor_global',
+      entityType: 'monthly_schedule',
+      entityId: `${dto.year}-${dto.month}`,
+      newValue: {
+        tipoCiclo,
+        processed: results.length,
+        ok: results.filter((r) => r.ok).length,
+      },
+    });
+
+    return {
+      year: dto.year,
+      month: dto.month,
+      tipoCiclo,
+      processed: results.length,
+      ok: results.filter((r) => r.ok).length,
+      failed: results.filter((r) => !r.ok).length,
+      results,
+    };
+  }
+
+  listTemplates() {
+    return this.templatesRepo.find({ order: { createdAt: 'DESC' } });
+  }
+
+  /**
+   * Bundle de KPIs del mes para el panel de Programación.
+   * Secuencial a propósito (pooler Supabase session).
+   */
+  async overview(year: number, month: number) {
+    const schedules = await this.listByMonth({ year, month });
+    const conflicts = await this.findConflicts({ year, month });
+    const templates = await this.listTemplates();
+
+    let assignedCells = 0;
+    const assignedByPost = new Map<string, { label: string; value: number }>();
+
+    for (const s of schedules) {
+      const postLabel =
+        (s as { post?: { code?: string; name?: string } | null }).post?.code ||
+        (s as { post?: { name?: string } | null }).post?.name ||
+        s.postId.slice(0, 8);
+      const asg = s.assignments ?? [];
+      let postAssigned = 0;
+      for (const a of asg) {
+        if (a.associateId && a.jornada !== 'sin_asignar') {
+          assignedCells += 1;
+          postAssigned += 1;
+        }
+      }
+      assignedByPost.set(s.postId, { label: postLabel, value: postAssigned });
+    }
+
+    const conflictByPost = new Map<string, number>();
+    for (const c of conflicts) {
+      for (const postId of c.postIds ?? []) {
+        conflictByPost.set(postId, (conflictByPost.get(postId) ?? 0) + 1);
+      }
+    }
+
+    let series: Array<{ key: string; label: string; value: number }>;
+    if (conflictByPost.size > 0) {
+      series = [...conflictByPost.entries()]
+        .map(([key, value]) => ({
+          key,
+          label: assignedByPost.get(key)?.label ?? key.slice(0, 8),
+          value,
+        }))
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+    } else {
+      series = [...assignedByPost.entries()]
+        .map(([key, { label, value }]) => ({ key, label, value }))
+        .filter((p) => p.value > 0)
+        .sort((a, b) => b.value - a.value)
+        .slice(0, 8);
+    }
+
+    return {
+      year,
+      month,
+      kpis: {
+        postsInMonth: schedules.length,
+        assignedCells,
+        conflicts: conflicts.length,
+        templates: templates.length,
+      },
+      series,
+    };
+  }
+
+  async createTemplate(dto: CreateScheduleTemplateDto, userId: string) {
+    let personal: PersonalRole[] = [];
+    let patron: TemplatePatternItem[] = [];
+    let postId = dto.postId ?? null;
+
+    if (dto.fromScheduleId) {
+      const schedule = await this.getById(dto.fromScheduleId);
+      personal = (schedule.personal ?? []).map((p) => ({ ...p }));
+      postId = postId ?? schedule.postId;
+      patron = (schedule.assignments ?? []).map((a) => ({
+        diaRelativo: a.day,
+        rol: a.role,
+        turno: a.turno,
+        jornada: a.jornada,
+        codigo: a.codigo,
+      }));
+    }
+
+    const saved = await this.templatesRepo.save(
+      this.templatesRepo.create({
+        name: dto.name.trim(),
+        postId,
+        personal,
+        patron,
+        createdBy: userId,
+      }),
+    );
+
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'schedule_template.create',
+      entityType: 'schedule_template',
+      entityId: saved.id,
+      newValue: { name: saved.name, patternItems: patron.length },
+    });
+
+    return saved;
+  }
+
+  async applyTemplate(scheduleId: string, templateId: string, userId: string) {
+    const schedule = await this.getById(scheduleId);
+    const template = await this.templatesRepo.findOne({ where: { id: templateId } });
+    if (!template) throw new NotFoundException('Plantilla no encontrada');
+
+    const personal =
+      template.personal?.length > 0
+        ? template.personal.map((p) => ({ ...p }))
+        : schedule.personal;
+
+    const assignments = (template.patron ?? []).map((p) => ({
+      day: p.diaRelativo,
+      role: p.rol,
+      associateId:
+        personal.find((x) => x.rol === p.rol)?.associateId ?? null,
+      turno: (p.turno as ScheduleAssignment['turno']) ?? null,
+      jornada: p.jornada as ScheduleAssignment['jornada'],
+      codigo: p.codigo ?? null,
+      inicio: null as string | null,
+      fin: null as string | null,
+    }));
+
+    return this.save(
+      scheduleId,
+      { personal, assignments },
+      userId,
+    );
+  }
+
+  /**
+   * Continuidad de ciclo: posición día 1 = última del mes anterior + 1.
+   * Si no hay mes anterior, offsets por índice de rol (como APP).
+   */
+  private async resolveStartPositions(
+    postId: string,
+    year: number,
+    month: number,
+    personal: PersonalRole[],
+    tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2',
+  ): Promise<Record<string, number>> {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear = month === 1 ? year - 1 : year;
+    const previous = await this.schedulesRepo.findOne({
+      where: { postId, year: prevYear, month: prevMonth },
+      relations: { assignments: true },
+    });
+
+    if (!previous?.assignments?.length) {
+      return {};
+    }
+
+    const daysInPrev = new Date(prevYear, prevMonth, 0).getDate();
+    const starts: Record<string, number> = {};
+
+    for (const role of personal) {
+      const last = previous.assignments.find(
+        (a) => a.role === role.rol && a.day === daysInPrev,
+      );
+      if (!last) continue;
+      const inferred = this.inferPosition(last.codigo, last.jornada, last.turno, tipoCiclo);
+      if (inferred !== null) {
+        starts[role.rol] = this.motor.normalizePosition(inferred + 1, tipoCiclo);
+      }
+    }
+    return starts;
+  }
+
+  private inferPosition(
+    codigo: string | null,
+    jornada: string,
+    turno: string | null,
+    tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2',
+  ): number | null {
+    const config = this.motor.configs[tipoCiclo];
+    const code = codigo === 'R' ? 'DR' : codigo;
+    for (let i = 0; i < config.phases.length; i++) {
+      const f = config.phases[i];
+      if (code && f.codigo === code) return i;
+      if (
+        !code &&
+        f.jornada === jornada &&
+        (f.turno === turno || (!f.turno && !turno))
+      ) {
+        return i;
+      }
+    }
+    return null;
   }
 
   private async getById(id: string): Promise<MonthlySchedule> {

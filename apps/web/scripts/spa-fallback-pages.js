@@ -23,7 +23,6 @@ const routes = [
   'programacion',
   'documental',
   'recepcion',
-  'residential',
   'admin',
 ];
 

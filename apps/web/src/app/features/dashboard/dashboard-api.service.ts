@@ -7,11 +7,7 @@ export interface DashboardStats {
   activeAssociates: number;
   pendingDeliveries: number;
   documentsToReview: number;
-  openIncidents: number;
-  pendingReservations: number;
   todayShifts: number;
-  activeVisitors: number;
-  pendingPackages: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -47,23 +43,11 @@ export class DashboardApiService {
       documents: this.safeArray(
         this.http.get<Array<{ registeredAt: string }>>(`${this.baseUrl}/documental/records`),
       ),
-      incidents: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/incidents`, {
-          params: new HttpParams().set('status', 'ABIERTA'),
-        }),
-      ),
-      reservations: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/reservations`, {
-          params: new HttpParams().set('status', 'PENDING'),
-        }),
-      ),
     }).pipe(
-      map(({ associates, deliveries, documents, incidents, reservations }) => ({
+      map(({ associates, deliveries, documents }) => ({
         activeAssociates: associates.length,
         pendingDeliveries: deliveries.filter((d) => d.status === 'PENDING').length,
         documentsToReview: this.countDocumentsToReview(documents),
-        openIncidents: incidents.length,
-        pendingReservations: reservations.length,
       })),
     );
   }
@@ -74,18 +58,12 @@ export class DashboardApiService {
       deliveries: this.safeArray(
         this.http.get<Array<{ status: string }>>(`${this.baseUrl}/deliveries`),
       ),
-      incidents: this.safeArray(
-        this.http.get<unknown[]>(`${this.baseUrl}/residential/incidents`, {
-          params: new HttpParams().set('status', 'ABIERTA'),
-        }),
-      ),
       posts: this.safeArray(this.http.get<Array<{ id: string }>>(`${this.baseUrl}/posts`)),
     }).pipe(
-      switchMap(({ deliveries, incidents, posts }) => {
+      switchMap(({ deliveries, posts }) => {
         if (posts.length === 0) {
           return of({
             pendingDeliveries: deliveries.filter((d) => d.status === 'PENDING').length,
-            openIncidents: incidents.length,
             todayShifts: 0,
           });
         }
@@ -102,7 +80,6 @@ export class DashboardApiService {
         return forkJoin(shiftRequests).pipe(
           map((shiftLists) => ({
             pendingDeliveries: deliveries.filter((d) => d.status === 'PENDING').length,
-            openIncidents: incidents.length,
             todayShifts: shiftLists.reduce((sum, list) => sum + list.length, 0),
           })),
         );
@@ -110,9 +87,7 @@ export class DashboardApiService {
     );
   }
 
-  private countDocumentsToReview(
-    documents: Array<{ registeredAt: string }>,
-  ): number {
+  private countDocumentsToReview(documents: Array<{ registeredAt: string }>): number {
     const now = Date.now();
     const msPerDay = 86400000;
     return documents.filter((doc) => {

@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
 import {
@@ -12,103 +12,21 @@ import {
 } from '@lucide/angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { Icon } from '../../../shared/components/icon/icon';
+import { StatsKpiGrid, StatsKpiItem } from '../../../shared/components/stats-kpi-grid/stats-kpi-grid';
 import { DotacionOverview, InventoryApiService, InventoryItem } from '../inventory-api.service';
 
 @Component({
   selector: 'app-dotacion-panel',
-  imports: [RouterLink, DatePipe, Icon],
+  imports: [RouterLink, DatePipe, Icon, StatsKpiGrid],
   template: `
     <div class="dot-page">
-      @if (loading()) {
-        <div class="dot-dash-kpi-grid">
-          @for (i of [0, 1, 2, 3]; track i) {
-            <div class="dot-skeleton"></div>
-          }
-        </div>
-      } @else if (error()) {
+      @if (error()) {
         <div class="dot-error">{{ error() }}</div>
-      } @else if (data(); as d) {
-        <section class="dot-dash-kpi-grid">
-          <a routerLink="/dotacion/asociados" class="dot-dash-kpi">
-            <div class="dot-dash-kpi__icon">
-              <app-icon [icon]="icons.Users" [size]="22" />
-            </div>
-            <div class="dot-dash-kpi__body">
-              <span class="dot-dash-kpi__label">Asociados</span>
-              <strong class="dot-dash-kpi__value">{{ d.totalActiveAssociates }}</strong>
-              <span class="dot-dash-kpi__hint">Activos y vacaciones</span>
-            </div>
-          </a>
+      }
 
-          <a routerLink="/dotacion/inventario" class="dot-dash-kpi">
-            <div class="dot-dash-kpi__icon">
-              <app-icon [icon]="icons.Boxes" [size]="22" />
-            </div>
-            <div class="dot-dash-kpi__body">
-              <span class="dot-dash-kpi__label">Artículos</span>
-              <strong class="dot-dash-kpi__value">{{ d.inventoryItemCount }}</strong>
-              <span class="dot-dash-kpi__hint">{{ d.inventoryVariantCount }} variantes</span>
-            </div>
-          </a>
+      <app-stats-kpi-grid [items]="kpiItems()" [loading]="loading()" />
 
-          <a routerLink="/dotacion/inventario" class="dot-dash-kpi">
-            <div class="dot-dash-kpi__icon dot-dash-kpi__icon--warn">
-              <app-icon [icon]="icons.Alert" [size]="22" />
-            </div>
-            <div class="dot-dash-kpi__body">
-              <span class="dot-dash-kpi__label">Stock bajo</span>
-              <strong class="dot-dash-kpi__value">{{ d.lowStockCount }}</strong>
-              <span class="dot-dash-kpi__hint">Variantes bajo umbral</span>
-            </div>
-          </a>
-
-          @if (auth.hasPermission('deliveries.view') || auth.hasPermission('inventory.view')) {
-            <a routerLink="/dotacion/asociados" class="dot-dash-kpi">
-              <div class="dot-dash-kpi__icon">
-                <app-icon [icon]="icons.Clock" [size]="22" />
-              </div>
-              <div class="dot-dash-kpi__body">
-                <span class="dot-dash-kpi__label">Pendientes</span>
-                <strong class="dot-dash-kpi__value">{{ d.pendingDeliveries }}</strong>
-                <span class="dot-dash-kpi__hint">Entregas por firmar</span>
-              </div>
-            </a>
-          } @else {
-            <div class="dot-dash-kpi">
-              <div class="dot-dash-kpi__icon">
-                <app-icon [icon]="icons.Clock" [size]="22" />
-              </div>
-              <div class="dot-dash-kpi__body">
-                <span class="dot-dash-kpi__label">Pendientes</span>
-                <strong class="dot-dash-kpi__value">{{ d.pendingDeliveries }}</strong>
-                <span class="dot-dash-kpi__hint">Entregas por firmar</span>
-              </div>
-            </div>
-          }
-
-          <div class="dot-dash-kpi">
-            <div class="dot-dash-kpi__icon dot-dash-kpi__icon--ok">
-              <app-icon [icon]="icons.Truck" [size]="22" />
-            </div>
-            <div class="dot-dash-kpi__body">
-              <span class="dot-dash-kpi__label">Hoy / semana</span>
-              <strong class="dot-dash-kpi__value">{{ d.deliveredToday }} / {{ d.deliveredThisWeek }}</strong>
-              <span class="dot-dash-kpi__hint">Entregas confirmadas</span>
-            </div>
-          </div>
-
-          <a routerLink="/dotacion/sin-dotacion" class="dot-dash-kpi">
-            <div class="dot-dash-kpi__icon dot-dash-kpi__icon--alert">
-              <app-icon [icon]="icons.PackageSearch" [size]="22" />
-            </div>
-            <div class="dot-dash-kpi__body">
-              <span class="dot-dash-kpi__label">Sin dotación 7+ meses</span>
-              <strong class="dot-dash-kpi__value">{{ d.withoutDotacionCount }}</strong>
-              <span class="dot-dash-kpi__hint">De {{ d.totalActiveAssociates }} activos/vacaciones</span>
-            </div>
-          </a>
-        </section>
-
+      @if (!loading() && data(); as d) {
         <div class="dot-dash-two-col">
           <section class="dot-dash-panel">
             <header class="dot-dash-panel__head">
@@ -356,6 +274,51 @@ export class DotacionPanel implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly data = signal<DotacionOverview | null>(null);
+
+  readonly kpiItems = computed<StatsKpiItem[]>(() => {
+    const d = this.data();
+    const canDeliveries =
+      this.auth.hasPermission('deliveries.view') || this.auth.hasPermission('inventory.view');
+    return [
+      {
+        label: 'Asociados',
+        value: d?.totalActiveAssociates ?? '—',
+        hint: 'Activos y vacaciones',
+        link: '/dotacion/asociados',
+      },
+      {
+        label: 'Artículos',
+        value: d?.inventoryItemCount ?? '—',
+        hint: d ? `${d.inventoryVariantCount} variantes` : undefined,
+        link: '/dotacion/inventario',
+      },
+      {
+        label: 'Stock bajo',
+        value: d?.lowStockCount ?? '—',
+        hint: 'Variantes bajo umbral',
+        link: '/dotacion/inventario',
+        warn: (d?.lowStockCount ?? 0) > 0,
+      },
+      {
+        label: 'Pendientes',
+        value: d?.pendingDeliveries ?? '—',
+        hint: 'Entregas por firmar',
+        link: canDeliveries ? '/dotacion/asociados' : null,
+      },
+      {
+        label: 'Hoy / semana',
+        value: d ? `${d.deliveredToday} / ${d.deliveredThisWeek}` : '—',
+        hint: 'Entregas confirmadas',
+      },
+      {
+        label: 'Sin dotación 7+ meses',
+        value: d?.withoutDotacionCount ?? '—',
+        hint: d ? `De ${d.totalActiveAssociates} activos/vacaciones` : undefined,
+        link: '/dotacion/sin-dotacion',
+        warn: (d?.withoutDotacionCount ?? 0) > 0,
+      },
+    ];
+  });
   readonly items = signal<InventoryItem[]>([]);
   readonly associateOptions = signal<{ id: string; fullName: string; documentNumber: string }[]>([]);
   readonly selectedItemId = signal('');

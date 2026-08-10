@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Associate } from '../associates/entities/associate.entity';
+import { PositionHistory } from '../associates/entities/position-history.entity';
 import { AuditModule } from '../audit/audit.module';
 import { CatalogValue } from '../hr-catalogs/entities/catalog-value.entity';
 import { JobPosition } from '../hr-positions/entities/job-position.entity';
@@ -10,7 +11,13 @@ import { HrExcelService } from './hr-excel.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Associate, JobPosition, WorkCenter, CatalogValue]),
+    TypeOrmModule.forFeature([
+      Associate,
+      JobPosition,
+      WorkCenter,
+      CatalogValue,
+      PositionHistory,
+    ]),
     AuditModule,
   ],
   controllers: [HrExcelController],

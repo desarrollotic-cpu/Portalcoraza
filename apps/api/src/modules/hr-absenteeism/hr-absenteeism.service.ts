@@ -196,8 +196,13 @@ export class HrAbsenteeismService {
       diagnosesUpserted: 0,
       medicalCreated: 0,
       otherCreated: 0,
+      clearedBeforeImport: 0,
       errors: [] as string[],
     };
+
+    // Paridad GESTION-HUMANA: importación destructiva (reemplazo total).
+    await this.absencesRepo.clear();
+    report.clearedBeforeImport = 1;
 
     const diagSheet =
       wb.Sheets['Código del Diagnóstico'] ||
@@ -291,8 +296,16 @@ export class HrAbsenteeismService {
       .toUpperCase();
     let diagnosisId: string | undefined;
     if (diagCode) {
-      const d = await this.diagnosesRepo.findOne({ where: { codigo: diagCode } });
-      if (d) diagnosisId = d.id;
+      let d = await this.diagnosesRepo.findOne({ where: { codigo: diagCode } });
+      if (!d) {
+        d = await this.diagnosesRepo.save(
+          this.diagnosesRepo.create({
+            codigo: diagCode,
+            descripcion: 'Sin descripción (importación)',
+          }),
+        );
+      }
+      diagnosisId = d.id;
     }
 
     await this.create(

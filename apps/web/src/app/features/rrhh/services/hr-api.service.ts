@@ -233,16 +233,23 @@ export class HrApiService {
     return this.http.post<ExcelImportPreview>(`${this.api}/hr/excel/import/preview`, form);
   }
 
-  executeExcelImport(rows: Record<string, unknown>[]): Observable<{
+  executeExcelImport(
+    rows: Record<string, unknown>[],
+    mode: 'IGNORE_DUPLICATES' | 'UPDATE_DUPLICATES' = 'UPDATE_DUPLICATES',
+  ): Observable<{
     created: number;
     updated: number;
     skipped: number;
+    reentries?: number;
     total: number;
   }> {
-    return this.http.post<{ created: number; updated: number; skipped: number; total: number }>(
-      `${this.api}/hr/excel/import/execute`,
-      { rows },
-    );
+    return this.http.post<{
+      created: number;
+      updated: number;
+      skipped: number;
+      reentries?: number;
+      total: number;
+    }>(`${this.api}/hr/excel/import/execute`, { rows, mode });
   }
 
   exportAssociatesUrl(): string {

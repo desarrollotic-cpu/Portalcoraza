@@ -16,7 +16,9 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   CreateMonthlyScheduleDto,
+  CreateScheduleTemplateDto,
   GenerateMotorDto,
+  GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   SaveMonthlyScheduleDto,
@@ -35,10 +37,46 @@ export class MonthlySchedulingController {
     return this.service.getOne(query);
   }
 
+  @Get('overview')
+  @RequirePermissions('scheduling.view')
+  overview(@Query() query: ListMonthlyScheduleDto) {
+    return this.service.overview(query.year, query.month);
+  }
+
   @Get('by-month')
   @RequirePermissions('scheduling.view')
   listByMonth(@Query() query: ListMonthlyScheduleDto) {
     return this.service.listByMonth(query);
+  }
+
+  @Get('conflicts')
+  @RequirePermissions('scheduling.view')
+  findConflicts(@Query() query: ListMonthlyScheduleDto) {
+    return this.service.findConflicts(query);
+  }
+
+  @Get('templates')
+  @RequirePermissions('scheduling.view')
+  listTemplates() {
+    return this.service.listTemplates();
+  }
+
+  @Post('templates')
+  @RequirePermissions('scheduling.create')
+  createTemplate(
+    @Body() dto: CreateScheduleTemplateDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.createTemplate(dto, user.sub);
+  }
+
+  @Post('motor-global')
+  @RequirePermissions('scheduling.edit')
+  generateMotorGlobal(
+    @Body() dto: GenerateMotorGlobalDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.generateMotorGlobal(dto, user.sub);
   }
 
   @Post()
@@ -78,5 +116,15 @@ export class MonthlySchedulingController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.service.generateWithMotor(id, dto, user.sub);
+  }
+
+  @Post(':id/apply-template/:templateId')
+  @RequirePermissions('scheduling.edit')
+  applyTemplate(
+    @Param('id') id: string,
+    @Param('templateId') templateId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.applyTemplate(id, templateId, user.sub);
   }
 }

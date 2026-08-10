@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { EXTERNAL_APPS } from './core/config/external-apps';
 import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/guards/permission.guard';
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
@@ -28,8 +27,7 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
-        // Fase 1: Portal = puerta de entrada → Gestión Humana oficial (datos en Render).
-        // El código interno /rrhh se conserva en el repo para fases posteriores / SSO.
+        // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],
         data: {
@@ -46,13 +44,139 @@ export const routes: Routes = [
             'hr_audit.view',
           ],
           permissionMode: 'any',
-          externalUrl: EXTERNAL_APPS.gestionHumana,
-          externalLabel: 'Gestión Humana',
         },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
-          ),
+          import('./features/rrhh/rrhh-layout/rrhh-layout').then((m) => m.RrhhLayout),
+        children: [
+          {
+            path: '',
+            loadComponent: () =>
+              import('./features/rrhh/hr-dashboard/hr-dashboard').then((m) => m.HrDashboard),
+          },
+          {
+            path: 'ausentismo',
+            canActivate: [permissionGuard],
+            data: { permission: 'absences.view' },
+            loadComponent: () =>
+              import('./features/rrhh/absenteeism-panel/absenteeism-panel').then(
+                (m) => m.AbsenteeismPanel,
+              ),
+          },
+          {
+            path: 'asociados',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.view' },
+            loadComponent: () =>
+              import('./features/rrhh/associates-list/associates-list').then((m) => m.AssociatesList),
+          },
+          {
+            path: 'asociados/nuevo',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.create' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-form/associate-form').then((m) => m.AssociateForm),
+          },
+          {
+            path: 'asociados/:id/editar',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.edit' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-form/associate-form').then((m) => m.AssociateForm),
+          },
+          {
+            path: 'asociados/:id/reingreso',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.readmit' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/readmit-form/readmit-form').then(
+                (m) => m.ReadmitForm,
+              ),
+          },
+          {
+            path: 'asociados/:id',
+            canActivate: [permissionGuard],
+            data: { permission: 'associates.view' },
+            loadComponent: () =>
+              import('./features/rrhh/associate-detail/associate-detail').then(
+                (m) => m.AssociateDetail,
+              ),
+          },
+          {
+            path: 'matriz',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_dashboard.view' },
+            loadComponent: () =>
+              import('./features/rrhh/compliance-matrix/compliance-matrix').then(
+                (m) => m.ComplianceMatrix,
+              ),
+          },
+          {
+            path: 'alertas',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_alerts.view' },
+            loadComponent: () =>
+              import('./features/rrhh/alerts-panel/alerts-panel').then((m) => m.AlertsPanel),
+          },
+          {
+            path: 'retiros',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.view' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/retirements-list/retirements-list').then(
+                (m) => m.RetirementsList,
+              ),
+          },
+          {
+            path: 'retiros/nuevo/:associateId',
+            canActivate: [permissionGuard],
+            data: { permission: 'retirements.create' },
+            loadComponent: () =>
+              import('./features/rrhh/retirements/retirement-form/retirement-form').then(
+                (m) => m.RetirementForm,
+              ),
+          },
+          {
+            path: 'admin/cargos',
+            canActivate: [permissionGuard],
+            data: { permission: 'job_positions.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/job-positions-admin/job-positions-admin').then(
+                (m) => m.JobPositionsAdmin,
+              ),
+          },
+          {
+            path: 'admin/centros',
+            canActivate: [permissionGuard],
+            data: { permission: 'work_centers.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/work-centers-admin/work-centers-admin').then(
+                (m) => m.WorkCentersAdmin,
+              ),
+          },
+          {
+            path: 'admin/catalogos',
+            canActivate: [permissionGuard],
+            data: { permission: 'catalogs.view' },
+            loadComponent: () =>
+              import('./features/rrhh/admin/catalogs-admin/catalogs-admin').then(
+                (m) => m.CatalogsAdmin,
+              ),
+          },
+          {
+            path: 'importar',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_import.execute' },
+            loadComponent: () =>
+              import('./features/rrhh/excel-import/excel-import').then((m) => m.ExcelImport),
+          },
+          {
+            path: 'bitacora',
+            canActivate: [permissionGuard],
+            data: { permission: 'hr_audit.view' },
+            loadComponent: () =>
+              import('./features/rrhh/hr-audit-log/hr-audit-log').then((m) => m.HrAuditLog),
+          },
+        ],
       },
       {
         path: 'dotacion',
@@ -172,34 +296,122 @@ export const routes: Routes = [
         ],
       },
       {
-        // Fase 1: Portal → Programación oficial (GitHub Pages).
         path: 'programacion',
         canActivate: [permissionGuard],
-        data: {
-          permission: 'scheduling.view',
-          externalUrl: EXTERNAL_APPS.programacion,
-          externalLabel: 'Programación',
-        },
+        data: { permission: 'scheduling.view' },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
+          import('./features/programacion/programacion-layout/programacion-layout').then(
+            (m) => m.ProgramacionLayout,
           ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-panel/programacion-panel').then(
+                (m) => m.ProgramacionPanel,
+              ),
+          },
+          {
+            path: 'matriz',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/master-grid/master-grid').then(
+                (m) => m.MasterGrid,
+              ),
+          },
+          {
+            path: 'cuadro',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/schedule-board/schedule-board').then(
+                (m) => m.ScheduleBoard,
+              ),
+          },
+        ],
       },
       {
-        // Fase 1: Portal → Documental oficial (Google Apps Script).
+        // Gestión Documental nativa (SGD Coraza sobre NestJS + Supabase).
         path: 'documental',
         canActivate: [permissionGuard],
-        data: {
-          permission: 'documental.view',
-          externalUrl: EXTERNAL_APPS.documental,
-          externalLabel: 'Gestión Documental',
-          externalHint:
-            'Usa Google (SGD CORAZA). Puede pedir cuenta Google la primera vez y tardar unos segundos en cargar.',
-        },
+        data: { permission: 'documental.view' },
         loadComponent: () =>
-          import('./features/portal-bridge/external-app-redirect').then(
-            (m) => m.ExternalAppRedirect,
+          import('./features/documental/documental-layout/documental-layout').then(
+            (m) => m.DocumentalLayout,
           ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            loadComponent: () =>
+              import('./features/documental/documental-panel/documental-panel').then(
+                (m) => m.DocumentalPanel,
+              ),
+          },
+          {
+            path: 'buscador',
+            loadComponent: () =>
+              import('./features/documental/search/search').then((m) => m.SearchScreen),
+          },
+          {
+            path: 'informes',
+            loadComponent: () =>
+              import('./features/documental/reports/reports').then((m) => m.ReportsScreen),
+          },
+          {
+            path: 'correspondencia',
+            loadComponent: () =>
+              import('./features/documental/correspondence/correspondence').then(
+                (m) => m.CorrespondenceScreen,
+              ),
+          },
+          {
+            path: 'minutas',
+            loadComponent: () =>
+              import('./features/documental/minutes/minutes').then((m) => m.MinutesScreen),
+          },
+          {
+            path: 'asociados',
+            loadComponent: () =>
+              import('./features/documental/retired-personnel/retired-personnel').then(
+                (m) => m.RetiredPersonnelScreen,
+              ),
+          },
+          {
+            path: 'contratos',
+            loadComponent: () =>
+              import('./features/documental/contracts/contracts').then((m) => m.ContractsScreen),
+          },
+          {
+            path: 'prestamos',
+            loadComponent: () =>
+              import('./features/documental/loans/loans').then((m) => m.LoansScreen),
+          },
+          {
+            path: 'biblioteca',
+            loadComponent: () =>
+              import('./features/documental/library/library').then((m) => m.LibraryScreen),
+          },
+          {
+            path: 'voxelsera',
+            loadComponent: () =>
+              import('./features/documental/voxelsera/voxelsera').then((m) => m.VoxelseraScreen),
+          },
+          {
+            path: 'workflows',
+            loadComponent: () =>
+              import('./features/documental/workflows/workflows').then((m) => m.WorkflowsScreen),
+          },
+          {
+            path: 'trd',
+            loadComponent: () =>
+              import('./features/documental/retention/retention').then((m) => m.RetentionScreen),
+          },
+        ],
       },
       {
         path: 'recepcion',
@@ -250,51 +462,20 @@ export const routes: Routes = [
         ],
       },
       {
-        path: 'residential',
-        canActivate: [permissionGuard],
-        data: { permission: 'residential.view' },
-        loadComponent: () =>
-          import('./features/residential/residential-layout/residential-layout').then(
-            (m) => m.ResidentialLayout,
-          ),
-        children: [
-          { path: '', redirectTo: 'unidades', pathMatch: 'full' },
-          {
-            path: 'unidades',
-            loadComponent: () =>
-              import('./features/residential/units-list/units-list').then((m) => m.UnitsList),
-          },
-          {
-            path: 'visitantes',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.visitors' },
-            loadComponent: () =>
-              import('./features/residential/visitors-log/visitors-log').then((m) => m.VisitorsLog),
-          },
-          {
-            path: 'paquetes',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.packages' },
-            loadComponent: () =>
-              import('./features/residential/packages/packages').then((m) => m.Packages),
-          },
-          {
-            path: 'reservas',
-            canActivate: [permissionGuard],
-            data: { permission: 'residential.reservations' },
-            loadComponent: () =>
-              import('./features/residential/reservations/reservations').then((m) => m.Reservations),
-          },
-        ],
-      },
-      {
         path: 'admin',
         canActivate: [permissionGuard],
         data: { permission: 'users.view' },
         loadComponent: () =>
           import('./features/admin/admin-layout/admin-layout').then((m) => m.AdminLayout),
         children: [
-          { path: '', redirectTo: 'usuarios', pathMatch: 'full' },
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'users.view' },
+            loadComponent: () =>
+              import('./features/admin/admin-panel/admin-panel').then((m) => m.AdminPanel),
+          },
           {
             path: 'usuarios',
             loadComponent: () =>

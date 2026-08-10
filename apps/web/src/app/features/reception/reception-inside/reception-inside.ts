@@ -17,7 +17,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           <p>Personas que tienen entrada registrada y aún no tienen salida.</p>
         </div>
         <button type="button" class="ghost" (click)="reload()" [disabled]="loading()">
-          Actualizar
+          {{ loading() && visitors().length ? 'Actualizando…' : 'Actualizar' }}
         </button>
       </header>
 
@@ -34,11 +34,17 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
         <strong>{{ filtered().length }} dentro</strong>
       </div>
 
-      @if (loading()) {
+      @if (loading() && !visitors().length) {
         <p>Cargando...</p>
-      } @else if (error()) {
+      } @else if (error() && !visitors().length) {
         <p class="error">{{ error() }}</p>
       } @else {
+        @if (loading() && visitors().length) {
+          <p class="updating">Actualizando lista…</p>
+        }
+        @if (error() && visitors().length) {
+          <p class="error">{{ error() }}</p>
+        }
         <table>
           <thead>
             <tr>
@@ -187,6 +193,11 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
     .btn-sm:disabled { opacity: 0.6; cursor: not-allowed; }
     .empty { color: var(--text-secondary); }
     .error { color: var(--coraza-error); }
+    .updating {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
   `,
 })
 export class ReceptionInside implements OnInit {

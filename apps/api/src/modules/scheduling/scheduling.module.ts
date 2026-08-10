@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { Post } from '../posts/entities/post.entity';
 import { SchedulingController } from './scheduling.controller';
 import { SchedulingService } from './scheduling.service';
 import { ShiftSchedule } from './entities/shift-schedule.entity';
@@ -19,6 +20,7 @@ import { MotorTurnosService } from './motor-turnos.service';
       MonthlySchedule,
       ScheduleAssignment,
       ScheduleTemplate,
+      Post,
     ]),
     AuditModule,
     NotificationsModule,

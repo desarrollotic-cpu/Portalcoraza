@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   LucideAlertTriangle,
@@ -20,7 +21,7 @@ type Step = 'upload' | 'preview' | 'done';
  */
 @Component({
   selector: 'app-excel-import',
-  imports: [CommonModule, RouterLink, Icon, HrPageHeader],
+  imports: [CommonModule, FormsModule, RouterLink, Icon, HrPageHeader],
   template: `
     <div class="hr-page">
       <app-hr-page-header
@@ -129,16 +130,25 @@ type Step = 'upload' | 'preview' | 'done';
             </table>
           </div>
 
-          <div class="hr-form-actions">
-            <button type="button" class="hr-btn hr-btn-ghost" (click)="reset()">Cancelar</button>
-            <button
-              type="button"
-              class="hr-btn hr-btn-primary"
-              [disabled]="p.validRows === 0 || importing()"
-              (click)="confirm()"
-            >
-              {{ importing() ? 'Importando...' : 'Importar ' + p.validRows + ' filas válidas' }}
-            </button>
+          <div class="hr-form-actions" style="flex-direction: column; align-items: stretch; gap: 0.75rem">
+            <label class="hr-field">
+              <span>Duplicados en base de datos</span>
+              <select [(ngModel)]="importMode">
+                <option value="UPDATE_DUPLICATES">Actualizar existentes (y reingresar retirados)</option>
+                <option value="IGNORE_DUPLICATES">Omitir duplicados</option>
+              </select>
+            </label>
+            <div style="display: flex; gap: 0.75rem; justify-content: flex-end">
+              <button type="button" class="hr-btn hr-btn-ghost" (click)="reset()">Cancelar</button>
+              <button
+                type="button"
+                class="hr-btn hr-btn-primary"
+                [disabled]="p.validRows === 0 || importing()"
+                (click)="confirm()"
+              >
+                {{ importing() ? 'Importando...' : 'Importar ' + p.validRows + ' filas válidas' }}
+              </button>
+            </div>
           </div>
         </section>
       }
@@ -150,6 +160,7 @@ type Step = 'upload' | 'preview' | 'done';
           <div class="hr-import-done-summary">
             <div><span>Creados</span><strong>{{ r.created }}</strong></div>
             <div><span>Actualizados</span><strong>{{ r.updated }}</strong></div>
+            <div><span>Reingresos</span><strong>{{ r.reentries ?? 0 }}</strong></div>
             <div><span>Omitidos</span><strong>{{ r.skipped }}</strong></div>
             <div><span>Total procesado</span><strong>{{ r.total }}</strong></div>
           </div>
@@ -181,10 +192,17 @@ export class ExcelImport {
   readonly previewData = signal<ExcelImportPreview | null>(null);
   readonly uploading = signal(false);
   readonly importing = signal(false);
-  readonly result = signal<{ created: number; updated: number; skipped: number; total: number } | null>(null);
+  readonly result = signal<{
+    created: number;
+    updated: number;
+    skipped: number;
+    reentries?: number;
+    total: number;
+  } | null>(null);
   readonly error = signal<string | null>(null);
 
   selectedFile: File | null = null;
+  importMode: 'IGNORE_DUPLICATES' | 'UPDATE_DUPLICATES' = 'UPDATE_DUPLICATES';
 
   readonly exportUrl = computed(() => this.api.exportAssociatesUrl());
   readonly templateUrl = computed(() => this.api.excelTemplateUrl());
@@ -219,7 +237,7 @@ export class ExcelImport {
     if (validRows.length === 0) return;
 
     this.importing.set(true);
-    this.api.executeExcelImport(validRows).subscribe({
+    this.api.executeExcelImport(validRows, this.importMode).subscribe({
       next: (r) => {
         this.importing.set(false);
         this.result.set(r);

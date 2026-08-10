@@ -23,13 +23,6 @@ INSERT INTO permissions (code, name, module) VALUES
   ('documental.view', 'Ver documental', 'documental'),
   ('documental.create', 'Crear registro documental', 'documental'),
   ('documental.manage', 'Gestionar tipos documentales', 'documental'),
-  ('residential.view', 'Ver residencial', 'residential'),
-  ('residential.manage', 'Gestionar unidades residenciales', 'residential'),
-  ('residential.visitors', 'Gestionar visitantes', 'residential'),
-  ('residential.packages', 'Gestionar paqueteria', 'residential'),
-  ('residential.reservations', 'Gestionar reservas', 'residential'),
-  ('residential.incidents', 'Gestionar novedades residenciales', 'residential'),
-  ('residential.parking', 'Gestionar parqueaderos visitantes', 'residential'),
   ('notifications.view', 'Ver notificaciones', 'notifications'),
   ('notifications.read', 'Marcar notificaciones como leidas', 'notifications')
 ON CONFLICT (code) DO NOTHING;
@@ -48,13 +41,11 @@ WHERE r.code = 'GERENCIA' AND p.code IN (
   'post_equipment.view', 'post_equipment.assign', 'post_equipment.return', 'post_equipment.manage',
   'scheduling.view', 'scheduling.create', 'scheduling.edit',
   'documental.view', 'documental.create', 'documental.manage',
-  'residential.view', 'residential.manage', 'residential.visitors', 'residential.packages',
-  'residential.reservations', 'residential.incidents', 'residential.parking',
   'notifications.view', 'notifications.read'
 )
 ON CONFLICT DO NOTHING;
 
--- SUPERVISOR: programación, entregas, novedades, puestos
+-- SUPERVISOR: programación, entregas, puestos
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id FROM roles r, permissions p
 WHERE r.code = 'SUPERVISOR' AND p.code IN (
@@ -62,7 +53,6 @@ WHERE r.code = 'SUPERVISOR' AND p.code IN (
   'posts.view',
   'scheduling.view', 'scheduling.create', 'scheduling.edit',
   'deliveries.view',
-  'residential.incidents',
   'notifications.view', 'notifications.read'
 )
 ON CONFLICT DO NOTHING;

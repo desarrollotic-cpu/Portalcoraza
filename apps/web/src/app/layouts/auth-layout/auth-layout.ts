@@ -35,7 +35,7 @@ import { Icon } from '../../shared/components/icon/icon';
           <div class="brand-copy">
             <h2>Portal operativo <br />para tu equipo de seguridad.</h2>
             <p>
-              Recursos Humanos, dotación, programación y unidades residenciales
+              Recursos Humanos, dotación, programación, documental y recepción
               en una sola plataforma integrada.
             </p>
           </div>

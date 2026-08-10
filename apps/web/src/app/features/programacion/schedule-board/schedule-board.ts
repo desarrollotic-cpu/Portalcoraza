@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
@@ -10,8 +11,10 @@ import {
   MonthlySchedulingApiService,
   PersonalRole,
   ScheduleAssignment,
+  ScheduleTemplate,
   Turno,
 } from '../monthly-scheduling-api.service';
+import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
 
 interface CodeConfig {
   codigo: string;
@@ -64,6 +67,15 @@ const CODES: CodeConfig[] = [
             Mes
             <input type="month" [(ngModel)]="month" (ngModelChange)="onSelectionChange()" />
           </label>
+          <label>
+            Ciclo
+            <select [(ngModel)]="tipoCiclo">
+              <option value="12x3">12×3 (6D-6N-3Desc)</option>
+              <option value="10x5">10×5 (5D-5N-5Desc)</option>
+              <option value="2x2">2×2 (2D-2N-2NR)</option>
+              <option value="13x2">13×2 (13D-2R-13N-2R)</option>
+            </select>
+          </label>
           @if (schedule()) {
             <span class="status" [class]="'st-' + schedule()!.status">{{ statusLabel() }}</span>
           }
@@ -86,8 +98,29 @@ const CODES: CodeConfig[] = [
       } @else {
         <div class="actions">
           <button type="button" (click)="runMotor()" [disabled]="saving()">
-            Motor de ciclo D/N/R/NR
+            Aplicar motor ({{ tipoCiclo }})
           </button>
+          <button type="button" (click)="saveAsTemplate()" [disabled]="saving()">
+            Guardar plantilla
+          </button>
+          @if (templates().length) {
+            <label class="tpl">
+              Plantilla
+              <select [(ngModel)]="selectedTemplateId">
+                <option value="">—</option>
+                @for (t of templates(); track t.id) {
+                  <option [value]="t.id">{{ t.name }}</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              (click)="applySelectedTemplate()"
+              [disabled]="saving() || !selectedTemplateId"
+            >
+              Aplicar plantilla
+            </button>
+          }
           <button type="button" class="primary" (click)="save()" [disabled]="saving() || !dirty()">
             Guardar
           </button>
@@ -136,7 +169,11 @@ const CODES: CodeConfig[] = [
               <tr>
                 <th class="sticky-col">Rol / Titular</th>
                 @for (day of days(); track day) {
-                  <th [class.weekend]="isWeekend(day)">{{ day }}</th>
+                  <th
+                    [class.weekend]="isWeekend(day)"
+                    [class.holiday]="holidayName(day)"
+                    [title]="holidayName(day) || ''"
+                  >{{ day }}</th>
                 }
               </tr>
             </thead>
@@ -230,7 +267,8 @@ const CODES: CodeConfig[] = [
     .st-borrador { background: #fff3cd; color: #8a6d00; }
     .st-publicado { background: #d1e7dd; color: #0f5132; }
     .st-anulado { background: #f8d7da; color: #842029; }
-    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+    .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
+    .tpl { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; color: var(--coraza-text-muted); }
     button { padding: 0.5rem 0.9rem; border: 1px solid var(--coraza-border); border-radius: 8px; background: var(--coraza-surface); cursor: pointer; font: inherit; }
     button:hover:not(:disabled) { background: var(--primary-50); }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -249,6 +287,7 @@ const CODES: CodeConfig[] = [
     th, td { border: 1px solid var(--coraza-border); padding: 0.35rem; text-align: center; min-width: 30px; }
     th { background: var(--primary-50); position: sticky; top: 0; z-index: 1; }
     th.weekend, td.weekend { background: #fafafa; }
+    th.holiday, td.holiday { background: #fff3cd; }
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
     .role-label { font-weight: 600; }
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
@@ -279,6 +318,7 @@ export class ScheduleBoard implements OnInit {
   private readonly api = inject(MonthlySchedulingApiService);
   private readonly schedulingApi = inject(SchedulingApiService);
   private readonly associatesApi = inject(AssociatesApiService);
+  private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthService);
 
   readonly codes = CODES;
@@ -291,15 +331,23 @@ export class ScheduleBoard implements OnInit {
 
   postId = '';
   month = this.currentMonth();
+  tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
+  selectedTemplateId = '';
 
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly dirty = signal(false);
   readonly error = signal<string | null>(null);
+  readonly templates = signal<ScheduleTemplate[]>([]);
 
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
   editAssociateId: string | null = null;
   editCodigo = '';
+
+  readonly holidays = computed(() => {
+    const [year] = this.month.split('-').map(Number);
+    return getColombiaHolidays(year || new Date().getFullYear());
+  });
 
   readonly days = computed(() => {
     const [year, mon] = this.month.split('-').map(Number);
@@ -314,6 +362,12 @@ export class ScheduleBoard implements OnInit {
   });
 
   ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
+    const qPost = qp.get('postId');
+    const qMonth = qp.get('month');
+    if (qPost) this.postId = qPost;
+    if (qMonth) this.month = qMonth;
+
     this.schedulingApi.listPosts().subscribe({
       next: (posts) => this.posts.set(posts),
       error: () => this.error.set('No se pudieron cargar los puestos'),
@@ -322,6 +376,17 @@ export class ScheduleBoard implements OnInit {
       next: (list) => this.associates.set(list),
       error: () => this.error.set('No se pudieron cargar los asociados'),
     });
+    this.api.listTemplates().subscribe({
+      next: (rows) => this.templates.set(rows),
+    });
+    if (this.postId && this.month) {
+      this.onSelectionChange();
+    }
+  }
+
+  holidayName(day: number): string | null {
+    const [year, mon] = this.month.split('-').map(Number);
+    return isColombiaHoliday(year, mon, day, this.holidays())?.name ?? null;
   }
 
   onSelectionChange(): void {
@@ -370,7 +435,7 @@ export class ScheduleBoard implements OnInit {
     if (!sched) return;
     if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
     this.saving.set(true);
-    this.api.generateMotor(sched.id).subscribe({
+    this.api.generateMotor(sched.id, { tipoCiclo: this.tipoCiclo }).subscribe({
       next: (updated) => {
         this.applySchedule(updated);
         this.saving.set(false);
@@ -378,6 +443,41 @@ export class ScheduleBoard implements OnInit {
       error: () => {
         this.saving.set(false);
         this.error.set('No se pudo ejecutar el motor de ciclo');
+      },
+    });
+  }
+
+  saveAsTemplate(): void {
+    const sched = this.schedule();
+    if (!sched) return;
+    const name = prompt('Nombre de la plantilla', `Plantilla ${this.month}`);
+    if (!name?.trim()) return;
+    this.saving.set(true);
+    this.api.createTemplate({ name: name.trim(), fromScheduleId: sched.id }).subscribe({
+      next: (t) => {
+        this.templates.update((list) => [t, ...list]);
+        this.saving.set(false);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('No se pudo guardar la plantilla');
+      },
+    });
+  }
+
+  applySelectedTemplate(): void {
+    const sched = this.schedule();
+    if (!sched || !this.selectedTemplateId) return;
+    if (!confirm('¿Aplicar la plantilla? Se reemplazarán las celdas actuales.')) return;
+    this.saving.set(true);
+    this.api.applyTemplate(sched.id, this.selectedTemplateId).subscribe({
+      next: (updated) => {
+        this.applySchedule(updated);
+        this.saving.set(false);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('No se pudo aplicar la plantilla');
       },
     });
   }

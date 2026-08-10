@@ -50,6 +50,38 @@ export interface MonthlySchedule {
   updatedAt: string;
 }
 
+export interface SchedulePostSummary {
+  id: string;
+  code: string;
+  name: string;
+  type: string;
+  clientName: string | null;
+  status: string;
+}
+
+export interface MonthlyScheduleWithPost extends MonthlySchedule {
+  post: SchedulePostSummary | null;
+}
+
+export interface ScheduleConflict {
+  associateId: string;
+  day: number;
+  postCount: number;
+  postIds: string[];
+}
+
+export interface ProgramacionOverview {
+  year: number;
+  month: number;
+  kpis: {
+    postsInMonth: number;
+    assignedCells: number;
+    conflicts: number;
+    templates: number;
+  };
+  series: Array<{ key: string; label: string; value: number }>;
+}
+
 export interface SavePayload {
   personal: PersonalRole[];
   assignments: Array<{
@@ -77,6 +109,27 @@ export class MonthlySchedulingApiService {
     return this.http.get<MonthlySchedule | null>(this.baseUrl, { params });
   }
 
+  listByMonth(year: number, month: number): Observable<MonthlyScheduleWithPost[]> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<MonthlyScheduleWithPost[]>(`${this.baseUrl}/by-month`, { params });
+  }
+
+  getMonthlyOverview(year: number, month: number): Observable<ProgramacionOverview> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<ProgramacionOverview>(`${this.baseUrl}/overview`, { params });
+  }
+
+  findConflicts(year: number, month: number): Observable<ScheduleConflict[]> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<ScheduleConflict[]>(`${this.baseUrl}/conflicts`, { params });
+  }
+
   createOrGet(postId: string, year: number, month: number): Observable<MonthlySchedule> {
     return this.http.post<MonthlySchedule>(this.baseUrl, { postId, year, month });
   }
@@ -89,7 +142,70 @@ export class MonthlySchedulingApiService {
     return this.http.patch<MonthlySchedule>(`${this.baseUrl}/${id}/status`, { status });
   }
 
-  generateMotor(id: string, roles?: string[]): Observable<MonthlySchedule> {
-    return this.http.post<MonthlySchedule>(`${this.baseUrl}/${id}/motor`, { roles });
+  generateMotor(
+    id: string,
+    opts?: { roles?: string[]; tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2' },
+  ): Observable<MonthlySchedule & { motorAlerts?: unknown[] }> {
+    return this.http.post<MonthlySchedule & { motorAlerts?: unknown[] }>(
+      `${this.baseUrl}/${id}/motor`,
+      opts ?? {},
+    );
   }
+
+  generateMotorGlobal(payload: {
+    year: number;
+    month: number;
+    tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+    createMissing?: boolean;
+  }): Observable<{
+    year: number;
+    month: number;
+    tipoCiclo: string;
+    processed: number;
+    ok: number;
+    failed: number;
+  }> {
+    return this.http.post<{
+      year: number;
+      month: number;
+      tipoCiclo: string;
+      processed: number;
+      ok: number;
+      failed: number;
+    }>(`${this.baseUrl}/motor-global`, payload);
+  }
+
+  listTemplates(): Observable<ScheduleTemplate[]> {
+    return this.http.get<ScheduleTemplate[]>(`${this.baseUrl}/templates`);
+  }
+
+  createTemplate(payload: {
+    name: string;
+    fromScheduleId?: string;
+    postId?: string | null;
+  }): Observable<ScheduleTemplate> {
+    return this.http.post<ScheduleTemplate>(`${this.baseUrl}/templates`, payload);
+  }
+
+  applyTemplate(scheduleId: string, templateId: string): Observable<MonthlySchedule> {
+    return this.http.post<MonthlySchedule>(
+      `${this.baseUrl}/${scheduleId}/apply-template/${templateId}`,
+      {},
+    );
+  }
+}
+
+export interface ScheduleTemplate {
+  id: string;
+  name: string;
+  postId: string | null;
+  personal: PersonalRole[];
+  patron: Array<{
+    diaRelativo: number;
+    rol: string;
+    turno: string | null;
+    jornada: string;
+    codigo?: string | null;
+  }>;
+  createdAt: string;
 }

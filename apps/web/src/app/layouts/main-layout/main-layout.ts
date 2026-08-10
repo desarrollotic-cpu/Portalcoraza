@@ -29,7 +29,6 @@ import {
   LucideLogOut,
   LucideMoon,
   LucideSearch,
-  LucideShieldCheck,
   LucideSparkles,
   LucideSun,
   LucideUserCog,
@@ -40,7 +39,6 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
-import { EXTERNAL_APPS } from '../../core/config/external-apps';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
 
@@ -916,7 +914,6 @@ export class MainLayout implements OnDestroy {
     LogOut: LucideLogOut,
     Moon: LucideMoon,
     Search: LucideSearch,
-    ShieldCheck: LucideShieldCheck,
     DoorOpen: LucideDoorOpen,
     Sparkles: LucideSparkles,
     Sun: LucideSun,
@@ -946,7 +943,6 @@ export class MainLayout implements OnDestroy {
           route: '/rrhh',
           icon: LucideUsersRound,
           permissions: ['associates.view', 'hr_dashboard.view'],
-          externalUrl: EXTERNAL_APPS.gestionHumana,
         },
         {
           label: 'Dotación',
@@ -959,26 +955,18 @@ export class MainLayout implements OnDestroy {
           route: '/programacion',
           icon: LucideCalendarClock,
           permission: 'scheduling.view',
-          externalUrl: EXTERNAL_APPS.programacion,
         },
         {
           label: 'Documental',
           route: '/documental',
           icon: LucideClipboardList,
           permission: 'documental.view',
-          externalUrl: EXTERNAL_APPS.documental,
         },
         {
           label: 'Recepción',
           route: '/recepcion',
           icon: LucideDoorOpen,
           permission: 'reception.view',
-        },
-        {
-          label: 'Residencial',
-          route: '/residential',
-          icon: LucideShieldCheck,
-          permission: 'residential.view',
         },
       ],
     },

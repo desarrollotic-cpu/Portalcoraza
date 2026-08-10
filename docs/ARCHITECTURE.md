@@ -21,4 +21,5 @@ Usuarios, roles, permisos, asociados, puestos, auditoría, notificaciones.
 
 ## Roles iniciales
 
-`GERENCIA` · `RRHH` · `PROGRAMADOR` · `ALMACENISTA` · `VIGILANTE` · `ADMINISTRADOR_UNIDAD`
+`GERENCIA` · `RRHH` · `PROGRAMADOR` · `ALMACENISTA` · `VIGILANTE` · `RECEPCIONISTA` · `SUPERVISOR` · `AUDITOR`  
+(`ADMINISTRADOR_UNIDAD` retirado: módulo residencial fuera de alcance.)

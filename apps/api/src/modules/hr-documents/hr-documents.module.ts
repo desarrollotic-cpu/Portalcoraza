@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SupabaseStorageService } from '../../common/services/supabase-storage.service';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditModule } from '../audit/audit.module';
+import { HrAlert } from '../hr-alerts/entities/hr-alert.entity';
 import { AssociateDocument } from './entities/associate-document.entity';
 import { HrDocumentsController } from './hr-documents.controller';
 import { HrDocumentsService } from './hr-documents.service';
@@ -11,7 +12,7 @@ import { HrDocumentsService } from './hr-documents.service';
 @Module({
   imports: [
     ConfigModule,
-    TypeOrmModule.forFeature([AssociateDocument, Associate]),
+    TypeOrmModule.forFeature([AssociateDocument, Associate, HrAlert]),
     AuditModule,
   ],
   controllers: [HrDocumentsController],

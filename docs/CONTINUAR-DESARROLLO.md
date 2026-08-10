@@ -40,6 +40,7 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 6 | `docs/DEPLOY-RENDER.md` | Producción, URLs, video login, troubleshooting |
 | 7 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
 | 8 | `docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md` | **Reglas de negocio y procedimientos por módulo** |
+| 9 | `docs/GESTION-HUMANA-NATIVA.md` | **RRHH nativo en portal** (ya no puente a Render) |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 
@@ -58,9 +59,13 @@ copy apps\api\.env.example apps\api\.env
 # Editar apps\api\.env con contraseña Supabase, service_role, JWT secrets
 
 npm run db:setup              # migraciones + seeds + admin (requiere .env)
+npm run db:ensure-hr -w @coraza/api   # esquema Gestión Humana (010+012) si falta
+npm run db:check-hr -w @coraza/api    # verificar tablas/permisos HR
 npm run api:dev               # http://localhost:3000/api/v1
 npm run web:dev               # http://localhost:4200
 ```
+
+> **Gestión Humana** es módulo **nativo** (`/rrhh`). No usar el puente a Render. Ver [`docs/GESTION-HUMANA-NATIVA.md`](GESTION-HUMANA-NATIVA.md).
 
 **Guía completa paso a paso:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md) (Partes 2 y 3).
 
