@@ -978,7 +978,7 @@ export class MainLayout implements OnDestroy {
           permission: 'reception.view',
         },
         {
-          label: 'SST / IPT',
+          label: 'SST / Salud y Seguridad',
           route: '/sst',
           icon: LucideShieldCheck,
           permission: 'sst.view',

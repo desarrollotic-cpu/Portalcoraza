@@ -7,6 +7,7 @@ import { SstInspection } from './entities/sst-inspection.entity';
 import { SstResponse } from './entities/sst-response.entity';
 import { SstWorkplace } from './entities/sst-workplace.entity';
 import { SstController } from './sst.controller';
+import { SstSchemaBootstrap } from './sst-schema.bootstrap';
 import { SstService } from './sst.service';
 
 @Module({
@@ -21,7 +22,7 @@ import { SstService } from './sst.service';
     ]),
   ],
   controllers: [SstController],
-  providers: [SstService],
+  providers: [SstService, SstSchemaBootstrap],
   exports: [SstService],
 })
 export class SstModule {}

@@ -13,8 +13,8 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   imports: [RouterOutlet, ModuleShell],
   template: `
     <app-module-shell
-      title="SST / IPT"
-      subtitle="Inspecciones preventivas de puesto, seguimiento y planes de acción."
+      title="SST / Salud y Seguridad"
+      subtitle="IPT, seguimiento de puestos, hallazgos y planes de acción."
       [nav]="nav"
     >
       <router-outlet />
