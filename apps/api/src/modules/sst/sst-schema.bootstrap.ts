@@ -79,6 +79,6 @@ export class SstSchemaBootstrap implements OnModuleInit {
       `,
       [clientId],
     );
-    this.log.log('Sitios demo SST creados (Coraza + 2 puestos)');
+    this.log.log('Sitios sede Coraza creados (cliente + 2 puestos)');
   }
 }

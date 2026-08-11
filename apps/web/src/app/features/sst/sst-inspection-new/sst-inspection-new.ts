@@ -27,8 +27,8 @@ import { SstApiService, SstInspectionType, SstWorkplace } from '../sst-api.servi
           <div class="row">
             @if (auth.hasPermission('sst.manage')) {
               <a class="btn" routerLink="/sst/puestos">Ir a clientes y puestos</a>
-              <button type="button" class="btn ghost" [disabled]="seeding()" (click)="seedDemo()">
-                Crear puestos demo Coraza
+              <button type="button" class="btn ghost" [disabled]="seeding()" (click)="seedSites()">
+                Crear puestos sede Coraza
               </button>
             }
           </div>
@@ -115,17 +115,17 @@ export class SstInspectionNew implements OnInit {
     this.reloadWorkplaces();
   }
 
-  seedDemo(): void {
+  seedSites(): void {
     this.seeding.set(true);
     this.api.bootstrapDemo().subscribe({
       next: () => {
         this.seeding.set(false);
-        this.toast.success('Puestos demo listos');
+        this.toast.success('Puestos de sede listos');
         this.reloadWorkplaces();
       },
       error: (e) => {
         this.seeding.set(false);
-        this.toast.error(e?.error?.message || 'No se pudieron crear puestos');
+        this.toast.error(e?.error?.message || 'No se pudieron crear los puestos');
       },
     });
   }

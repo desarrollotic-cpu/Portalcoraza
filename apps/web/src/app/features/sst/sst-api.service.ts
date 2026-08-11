@@ -199,7 +199,7 @@ export class SstApiService {
 
   bootstrapDemo(): Observable<{ created: boolean; clientId?: string }> {
     return this.http.post<{ created: boolean; clientId?: string }>(
-      `${this.baseUrl}/bootstrap-demo`,
+      `${this.baseUrl}/sites/seed-sede`,
       {},
     );
   }

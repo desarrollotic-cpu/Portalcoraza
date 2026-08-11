@@ -19,7 +19,7 @@ import { SstApiService, SstOverview } from '../sst-api.service';
             reincidencias). Semáforo: BAJO ≥90% · MEDIO ≥70% · ALTO &lt;70%.
           </p>
         </div>
-        @if (auth.hasPermission('sst.inspect') && !needsSetup()) {
+        @if (auth.hasPermission('sst.inspect') && !needsSites()) {
           <a class="btn" routerLink="/sst/inspecciones/nueva">Nueva inspección</a>
         }
       </header>
@@ -30,41 +30,39 @@ import { SstApiService, SstOverview } from '../sst-api.service';
 
       <app-stats-kpi-grid [items]="kpiItems()" [loading]="loading()" />
 
-      @if (!loading() && needsSetup()) {
+      @if (!loading() && needsSites()) {
         <div class="wizard">
-          <h3>Puesta en marcha SST</h3>
-          <ol>
-            <li>
-              <strong>Cliente y puestos</strong> — define dónde se inspecciona (sede, portería,
-              recepción…).
-            </li>
-            <li>
-              <strong>IPT inicial</strong> — califica los 34 ítems (SEGURO / RIESGOSO / N/A). Si es
-              RIESGOSO: hallazgo + plan obligatorios.
-            </li>
-            <li>
-              <strong>Seguimiento</strong> — reabre el puesto, precarga hallazgos previos y marca
-              reincidencia.
-            </li>
-            <li>
-              <strong>Planes e informes</strong> — tablero de acciones e informe MD/TXT al completar.
-            </li>
-          </ol>
+          <h3>Configuración inicial</h3>
+          <p>
+            Para operar SST debes registrar al menos un cliente y un puesto de trabajo (portería,
+            recepción, perímetro, etc.).
+          </p>
           <div class="wizard-actions">
             @if (auth.hasPermission('sst.manage')) {
-              <button type="button" class="btn" [disabled]="seeding()" (click)="seedDemo()">
-                {{ seeding() ? 'Creando…' : 'Crear puestos demo Coraza' }}
+              <button type="button" class="btn" [disabled]="seeding()" (click)="seedSites()">
+                {{ seeding() ? 'Creando…' : 'Crear puestos sede Coraza' }}
               </button>
               <a class="btn ghost" routerLink="/sst/puestos">Gestionar clientes y puestos</a>
             }
-            @if (auth.hasPermission('sst.inspect') && (data()?.workplaces ?? 0) > 0) {
+          </div>
+          <p class="meta">Catálogo oficial: {{ data()?.checklistItems ?? 0 }} ítems IPT</p>
+        </div>
+      } @else if (!loading() && needsFirstIpt()) {
+        <div class="wizard">
+          <h3>Listo para la primera IPT</h3>
+          <p>
+            Hay {{ data()?.workplaces }} puesto(s) y el checklist de 34 ítems. Crea la Inspección
+            Preventiva de Puesto (IPT inicial), califica SEGURO / RIESGOSO / N/A y, si es RIESGOSO,
+            registra hallazgo y plan de acción.
+          </p>
+          <div class="wizard-actions">
+            @if (auth.hasPermission('sst.inspect')) {
               <a class="btn" routerLink="/sst/inspecciones/nueva">Iniciar IPT inicial</a>
             }
+            @if (auth.hasPermission('sst.manage')) {
+              <a class="btn ghost" routerLink="/sst/puestos">Ver puestos</a>
+            }
           </div>
-          <p class="meta">
-            Catálogo activo: {{ data()?.checklistItems ?? 0 }} ítems · Puestos:
-            {{ data()?.workplaces ?? 0 }}
-          </p>
         </div>
       }
 
@@ -106,9 +104,9 @@ import { SstApiService, SstOverview } from '../sst-api.service';
               } @empty {
                 <tr>
                   <td colspan="7" class="empty">
-                    Aún no hay inspecciones.
-                    @if (!needsSetup() && auth.hasPermission('sst.inspect')) {
-                      <a class="link" routerLink="/sst/inspecciones/nueva"> Crear la primera IPT</a>
+                    Sin inspecciones registradas.
+                    @if (auth.hasPermission('sst.inspect') && !needsSites()) {
+                      <a class="link" routerLink="/sst/inspecciones/nueva"> Crear IPT inicial</a>
                     }
                   </td>
                 </tr>
@@ -137,9 +135,9 @@ import { SstApiService, SstOverview } from '../sst-api.service';
       background: color-mix(in srgb, var(--brand, #0f766e) 8%, var(--surface, #fff));
       border: 1px solid var(--border, #e2e8f0); border-radius: 0.75rem; padding: 1.1rem 1.25rem;
     }
-    .wizard h3 { margin: 0 0 0.6rem; font-size: 1.05rem; }
-    .wizard ol { margin: 0 0 1rem; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.9rem; }
-    .wizard-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.5rem; }
+    .wizard h3 { margin: 0 0 0.45rem; font-size: 1.05rem; }
+    .wizard p { margin: 0 0 0.85rem; font-size: 0.9rem; color: var(--text-muted, #475569); }
+    .wizard-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem; }
     .card {
       background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
       border-radius: 0.75rem; padding: 1rem; overflow: auto;
@@ -167,10 +165,10 @@ export class SstPanel implements OnInit {
   readonly error = signal('');
   readonly data = signal<SstOverview | null>(null);
 
-  readonly needsSetup = computed(() => {
+  readonly needsSites = computed(() => (this.data()?.workplaces ?? 0) === 0);
+  readonly needsFirstIpt = computed(() => {
     const d = this.data();
-    if (!d) return false;
-    return d.workplaces === 0 || d.inspections === 0;
+    return !!d && d.workplaces > 0 && d.inspections === 0;
   });
 
   readonly kpiItems = computed<StatsKpiItem[]>(() => {
@@ -201,19 +199,19 @@ export class SstPanel implements OnInit {
     this.reload();
   }
 
-  seedDemo(): void {
+  seedSites(): void {
     this.seeding.set(true);
     this.api.bootstrapDemo().subscribe({
       next: (r) => {
         this.seeding.set(false);
         this.toast.success(
-          r.created ? 'Puestos demo Coraza creados' : 'Ya existían clientes/puestos',
+          r.created ? 'Puestos de sede Coraza creados' : 'Los puestos ya estaban registrados',
         );
         this.reload();
       },
       error: (e) => {
         this.seeding.set(false);
-        this.toast.error(e?.error?.message || 'No se pudieron crear puestos demo');
+        this.toast.error(e?.error?.message || 'No se pudieron crear los puestos');
       },
     });
   }

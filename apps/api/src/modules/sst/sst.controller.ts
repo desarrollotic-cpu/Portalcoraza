@@ -34,9 +34,9 @@ export class SstController {
     return this.sst.overview();
   }
 
-  @Post('bootstrap-demo')
+  @Post('sites/seed-sede')
   @RequirePermissions('sst.manage')
-  bootstrapDemo() {
+  seedSede() {
     return this.sst.ensureDemoSites();
   }
 
