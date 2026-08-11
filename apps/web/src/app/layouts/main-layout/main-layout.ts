@@ -34,6 +34,7 @@ import {
   LucideUserCog,
   LucideUsersRound,
   LucideDoorOpen,
+  LucideShieldCheck,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -967,6 +968,12 @@ export class MainLayout implements OnDestroy {
           route: '/recepcion',
           icon: LucideDoorOpen,
           permission: 'reception.view',
+        },
+        {
+          label: 'SST / IPT',
+          route: '/sst',
+          icon: LucideShieldCheck,
+          permission: 'sst.view',
         },
       ],
     },
