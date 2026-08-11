@@ -492,6 +492,57 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'sst',
+        canActivate: [permissionGuard],
+        data: { permission: 'sst.view' },
+        loadComponent: () =>
+          import('./features/sst/sst-layout/sst-layout').then((m) => m.SstLayout),
+        children: [
+          { path: '', redirectTo: 'panel', pathMatch: 'full' },
+          {
+            path: 'panel',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-panel/sst-panel').then((m) => m.SstPanel),
+          },
+          {
+            path: 'inspecciones/nueva',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.inspect' },
+            loadComponent: () =>
+              import('./features/sst/sst-inspection-new/sst-inspection-new').then(
+                (m) => m.SstInspectionNew,
+              ),
+          },
+          {
+            path: 'inspecciones/:id',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-inspection-detail/sst-inspection-detail').then(
+                (m) => m.SstInspectionDetail,
+              ),
+          },
+          {
+            path: 'planes',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-action-plans/sst-action-plans').then(
+                (m) => m.SstActionPlans,
+              ),
+          },
+          {
+            path: 'puestos',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.manage' },
+            loadComponent: () =>
+              import('./features/sst/sst-sites/sst-sites').then((m) => m.SstSites),
+          },
+        ],
+      },
+      {
         path: 'admin',
         canActivate: [permissionGuard],
         data: { permission: 'users.view' },

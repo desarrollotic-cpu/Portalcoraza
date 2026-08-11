@@ -25,6 +25,7 @@ import { PostsModule } from './modules/posts/posts.module';
 import { PostEquipmentModule } from './modules/post-equipment/post-equipment.module';
 import { ReceptionModule } from './modules/reception/reception.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { SstModule } from './modules/sst/sst.module';
 import { UsersModule } from './modules/users/users.module';
 
 function isSupabaseDatabaseUrl(url?: string): boolean {
@@ -78,6 +79,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     PostsModule,
     PostEquipmentModule,
     ReceptionModule,
+    SstModule,
     AuditModule,
   ],
 })
