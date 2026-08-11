@@ -414,6 +414,36 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'operaciones',
+        canActivate: [permissionGuard],
+        data: { permission: 'posts.view' },
+        loadComponent: () =>
+          import('./features/operaciones/operaciones-layout/operaciones-layout').then(
+            (m) => m.OperacionesLayout,
+          ),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import('./features/operaciones/operaciones-panel/operaciones-panel').then(
+                (m) => m.OperacionesPanel,
+              ),
+          },
+          {
+            path: 'puestos',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import('./features/operaciones/puestos-list/puestos-list').then(
+                (m) => m.PuestosList,
+              ),
+          },
+        ],
+      },
+      {
         path: 'recepcion',
         canActivate: [permissionGuard],
         data: { permission: 'reception.view' },

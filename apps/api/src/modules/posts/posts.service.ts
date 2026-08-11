@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
@@ -96,7 +100,17 @@ export class PostsService {
   }
 
   async create(dto: CreatePostDto, userId: string) {
-    const post = this.postsRepo.create(dto);
+    const code = dto.code.trim();
+    const existing = await this.postsRepo.findOne({ where: { code } });
+    if (existing) {
+      throw new ConflictException(`Ya existe un puesto con código ${code}`);
+    }
+
+    const post = this.postsRepo.create({
+      ...dto,
+      code,
+      name: dto.name.trim(),
+    });
     const saved = await this.postsRepo.save(post);
 
     await this.auditService.log({
@@ -113,8 +127,21 @@ export class PostsService {
 
   async update(id: string, dto: UpdatePostDto, userId: string) {
     const existing = await this.findOne(id);
+    if (dto.code && dto.code.trim() !== existing.code) {
+      const clash = await this.postsRepo.findOne({
+        where: { code: dto.code.trim() },
+      });
+      if (clash && clash.id !== id) {
+        throw new ConflictException(`Ya existe un puesto con código ${dto.code.trim()}`);
+      }
+    }
+
     const oldSnapshot = { ...existing };
-    Object.assign(existing, dto);
+    Object.assign(existing, {
+      ...dto,
+      ...(dto.code !== undefined ? { code: dto.code.trim() } : {}),
+      ...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+    });
     const saved = await this.postsRepo.save(existing);
 
     await this.auditService.log({

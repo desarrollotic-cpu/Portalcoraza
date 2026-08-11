@@ -20,6 +20,7 @@ import {
 import {
   LucideBell,
   LucideBoxes,
+  LucideBriefcaseBusiness,
   LucideCalendarClock,
   LucideChevronDown,
   LucideClipboardList,
@@ -905,6 +906,7 @@ export class MainLayout implements OnDestroy {
   readonly icons = {
     Bell: LucideBell,
     Boxes: LucideBoxes,
+    BriefcaseBusiness: LucideBriefcaseBusiness,
     CalendarClock: LucideCalendarClock,
     ChevronDown: LucideChevronDown,
     ClipboardList: LucideClipboardList,
@@ -938,6 +940,12 @@ export class MainLayout implements OnDestroy {
     {
       label: 'Operación',
       items: [
+        {
+          label: 'Operaciones',
+          route: '/operaciones',
+          icon: LucideBriefcaseBusiness,
+          permission: 'posts.view',
+        },
         {
           label: 'Recursos Humanos',
           route: '/rrhh',

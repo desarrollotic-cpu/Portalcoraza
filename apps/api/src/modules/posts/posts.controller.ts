@@ -34,13 +34,13 @@ export class PostsController {
   }
 
   @Post()
-  @RequirePermissions('work_centers.create')
+  @RequirePermissions('posts.create')
   create(@Body() dto: CreatePostDto, @CurrentUser() user: JwtPayload) {
     return this.postsService.create(dto, user.sub);
   }
 
   @Patch(':id')
-  @RequirePermissions('work_centers.edit')
+  @RequirePermissions('posts.edit')
   update(
     @Param('id') id: string,
     @Body() dto: UpdatePostDto,

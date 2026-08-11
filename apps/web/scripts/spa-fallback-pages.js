@@ -21,6 +21,7 @@ const routes = [
   'rrhh',
   'dotacion',
   'programacion',
+  'operaciones',
   'documental',
   'recepcion',
   'admin',

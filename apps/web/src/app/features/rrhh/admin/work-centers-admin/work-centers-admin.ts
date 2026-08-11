@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { HrPageHeader } from '../../../../shared/components/hr-page-header/hr-page-header';
 import { ToastService } from '../../../../shared/services/toast.service';
@@ -14,7 +15,7 @@ import type { WorkCenter } from '../../services/hr.types';
  */
 @Component({
   selector: 'app-work-centers-admin',
-  imports: [CommonModule, FormsModule, HrPageHeader],
+  imports: [CommonModule, FormsModule, HrPageHeader, RouterLink],
   template: `
     <div class="hr-page">
       <app-hr-page-header title="Centros de trabajo (puestos)">
@@ -27,9 +28,10 @@ import type { WorkCenter } from '../../services/hr.types';
         }
       </app-hr-page-header>
       <p class="hr-muted sync-hint">
-        Solo <strong>RRHH</strong> puede crear, editar o desactivar puestos. Cada centro activo se
-        refleja automáticamente en <strong>Programación</strong> (turnos) y en
-        <strong>Dotación</strong> (entrega de elementos). Dotación no crea puestos: solo entrega.
+        Los <strong>centros de trabajo RRHH</strong> se sincronizan a puestos de Programación/Dotación.
+        El catálogo operativo principal vive en
+        <a routerLink="/operaciones/puestos">Operaciones → Puestos</a>.
+        Dotación no crea puestos: solo entrega elementos.
       </p>
 
       @if (editing() !== null) {
