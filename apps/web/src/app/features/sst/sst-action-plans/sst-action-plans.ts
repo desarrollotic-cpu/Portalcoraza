@@ -1,8 +1,9 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../shared/services/toast.service';
-import { SstApiService, SstResponseRow } from '../sst-api.service';
+import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service';
 
 @Component({
   selector: 'app-sst-action-plans',
@@ -12,7 +13,10 @@ import { SstApiService, SstResponseRow } from '../sst-api.service';
       <header class="head">
         <div>
           <h2>Planes de acción</h2>
-          <p>Hallazgos RIESGOSO, vencidos y reincidencias críticas.</p>
+          <p>
+            Hallazgos RIESGOSO. Reincidencia ≥3 = alerta crítica. Puedes pasar a En proceso / Cerrado
+            desde aquí.
+          </p>
         </div>
         <div class="filters">
           @for (f of filters; track f.id) {
@@ -61,16 +65,24 @@ import { SstApiService, SstResponseRow } from '../sst-api.service';
                 <td>
                   <span [class.alert]="r.reincidenciaCount >= 3">{{ r.reincidenciaCount }}</span>
                 </td>
-                <td>
+                <td class="ops">
                   @if (r.inspection?.id) {
                     <a class="link" [routerLink]="['/sst/inspecciones', r.inspection!.id]">Ver</a>
+                  }
+                  @if (canEditPlans() && r.estadoPlanAccion !== 'CERRADO') {
+                    <button type="button" class="mini" (click)="setStatus(r, 'EN_PROCESO')">
+                      En proceso
+                    </button>
+                    <button type="button" class="mini" (click)="setStatus(r, 'CERRADO')">
+                      Cerrar
+                    </button>
                   }
                 </td>
               </tr>
             } @empty {
               <tr>
                 <td colspan="7" class="empty">
-                  {{ loading() ? 'Cargando…' : 'Sin planes para este filtro.' }}
+                  {{ loading() ? 'Cargando…' : 'Sin planes para este filtro. Completa un IPT con ítems RIESGOSO.' }}
                 </td>
               </tr>
             }
@@ -102,11 +114,17 @@ import { SstApiService, SstResponseRow } from '../sst-api.service';
     .link { color: var(--brand, #0f766e); font-weight: 600; text-decoration: none; }
     tr.critical { background: color-mix(in srgb, #fecaca 35%, transparent); }
     .alert { color: #b91c1c; font-weight: 800; }
+    .ops { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
+    .mini {
+      border: 1px solid var(--border, #cbd5e1); background: var(--surface, #fff);
+      border-radius: 0.35rem; padding: 0.2rem 0.45rem; font-size: 0.75rem; cursor: pointer;
+    }
   `,
 })
 export class SstActionPlans implements OnInit {
   private readonly api = inject(SstApiService);
   private readonly toast = inject(ToastService);
+  private readonly auth = inject(AuthService);
 
   readonly filters = [
     { id: '', label: 'Todos' },
@@ -124,9 +142,23 @@ export class SstActionPlans implements OnInit {
     this.load();
   }
 
+  canEditPlans(): boolean {
+    return this.auth.hasPermission('sst.inspect');
+  }
+
   setFilter(id: string): void {
     this.filter.set(id);
     this.load();
+  }
+
+  setStatus(row: SstResponseRow, estadoPlanAccion: SstPlanStatus): void {
+    this.api.updatePlan(row.id, { estadoPlanAccion }).subscribe({
+      next: () => {
+        this.toast.success(`Plan → ${estadoPlanAccion}`);
+        this.load();
+      },
+      error: (e) => this.toast.error(e?.error?.message || 'No se pudo actualizar el plan'),
+    });
   }
 
   private load(): void {

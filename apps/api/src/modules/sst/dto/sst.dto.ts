@@ -131,3 +131,12 @@ export class SaveSstInspectionDto {
   @IsBoolean()
   completar?: boolean;
 }
+
+export class UpdateSstPlanDto {
+  @IsEnum(SstPlanStatus)
+  estadoPlanAccion!: SstPlanStatus;
+
+  @IsOptional()
+  @IsDateString()
+  fechaCompromiso?: string;
+}

@@ -10,6 +10,7 @@ import {
   CreateSstInspectionDto,
   CreateSstWorkplaceDto,
   SaveSstInspectionDto,
+  UpdateSstPlanDto,
   UpsertSstResponseDto,
 } from './dto/sst.dto';
 import { SstChecklistItem } from './entities/sst-checklist-item.entity';
@@ -92,26 +93,64 @@ export class SstService {
   }
 
   async overview() {
-    const [inspections, critical, openPlans] = await Promise.all([
-      this.inspections.count(),
-      this.responses
-        .createQueryBuilder('r')
-        .where('r.reincidencia_count >= 3')
-        .andWhere('r.valoracion = :v', { v: SstValoracion.RIESGOSO })
-        .getCount(),
-      this.responses
-        .createQueryBuilder('r')
-        .where('r.estado_plan_accion IN (:...st)', {
-          st: [SstPlanStatus.ABIERTO, SstPlanStatus.EN_PROCESO, SstPlanStatus.REINCIDENTE],
-        })
-        .getCount(),
-    ]);
+    const [inspections, critical, openPlans, workplaces, checklistItems] =
+      await Promise.all([
+        this.inspections.count(),
+        this.responses
+          .createQueryBuilder('r')
+          .where('r.reincidencia_count >= 3')
+          .andWhere('r.valoracion = :v', { v: SstValoracion.RIESGOSO })
+          .getCount(),
+        this.responses
+          .createQueryBuilder('r')
+          .where('r.estado_plan_accion IN (:...st)', {
+            st: [
+              SstPlanStatus.ABIERTO,
+              SstPlanStatus.EN_PROCESO,
+              SstPlanStatus.REINCIDENTE,
+            ],
+          })
+          .getCount(),
+        this.workplaces.count({ where: { activo: true } }),
+        this.items.count({ where: { activo: true } }),
+      ]);
     const recent = await this.inspections.find({
       relations: { workplace: { client: true } },
       order: { createdAt: 'DESC' },
       take: 8,
     });
-    return { inspections, criticalAlerts: critical, openPlans, recent };
+    return {
+      inspections,
+      criticalAlerts: critical,
+      openPlans,
+      workplaces,
+      checklistItems,
+      recent,
+    };
+  }
+
+  async ensureDemoSites() {
+    const n = await this.clients.count();
+    if (n > 0) return { created: false };
+    const client = await this.createClient({
+      nombre: 'Coraza Seguridad C.T.A.',
+      nit: 'N/A',
+      contacto: 'SST',
+    });
+    await this.createWorkplace({
+      clientId: client.id,
+      nombre: 'Sede principal — Portería',
+      ciudad: 'Medellín',
+      tipoPuesto: SstWorkplaceType.PORTERIA,
+      direccion: 'Sede administrativa',
+    });
+    await this.createWorkplace({
+      clientId: client.id,
+      nombre: 'Sede principal — Recepción',
+      ciudad: 'Medellín',
+      tipoPuesto: SstWorkplaceType.RECEPCION,
+    });
+    return { created: true, clientId: client.id };
   }
 
   async listActionPlans(filter?: string) {
@@ -249,7 +288,7 @@ export class SstService {
     const byItem = new Map(insp.respuestas.map((r) => [r.itemId, r]));
 
     for (const row of dto.respuestas) {
-      await this.applyResponse(insp, byItem.get(row.itemId), row);
+      await this.applyResponse(insp, byItem.get(row.itemId), row, !!dto.completar);
     }
 
     const fresh = await this.getInspection(id);
@@ -270,24 +309,71 @@ export class SstService {
     const insp = await this.getInspection(id);
     if (insp.estado === SstInspectionStatus.BORRADOR) {
       this.assertCompletable(insp);
+      for (const r of insp.respuestas ?? []) {
+        if (!r.valoracion) continue;
+        await this.applyResponse(
+          insp,
+          r,
+          {
+            itemId: r.itemId,
+            valoracion: r.valoracion,
+            hallazgo: r.hallazgo ?? undefined,
+            planAccionPropuesto: r.planAccionPropuesto ?? undefined,
+            responsablePlanAccion: r.responsablePlanAccion ?? undefined,
+            fechaCompromiso: r.fechaCompromiso ?? undefined,
+            estadoPlanAccion: r.estadoPlanAccion ?? undefined,
+          },
+          true,
+        );
+      }
       insp.estado = SstInspectionStatus.COMPLETADA;
     }
     insp.estado = SstInspectionStatus.CERRADA;
-    const stats = computeCompliance(insp.respuestas.map((r) => r.valoracion));
-    insp.cumplimientoGlobal = stats.percent != null ? String(stats.percent) : null;
-    insp.nivelRiesgo = stats.nivel;
-    await this.inspections.save(insp);
+    const fresh = await this.getInspection(id);
+    const stats = computeCompliance(fresh.respuestas.map((r) => r.valoracion));
+    fresh.cumplimientoGlobal = stats.percent != null ? String(stats.percent) : null;
+    fresh.nivelRiesgo = stats.nivel;
+    fresh.estado = SstInspectionStatus.CERRADA;
+    await this.inspections.save(fresh);
     return this.getInspection(id);
   }
 
   async report(id: string) {
     const insp = await this.getInspection(id);
+    if (
+      insp.estado !== SstInspectionStatus.COMPLETADA &&
+      insp.estado !== SstInspectionStatus.CERRADA
+    ) {
+      throw new BadRequestException(
+        'El informe solo está disponible cuando la inspección está COMPLETADA o CERRADA',
+      );
+    }
     return {
       markdown: buildMarkdownReport(insp),
       ascii: buildAsciiReport(insp),
       cumplimientoGlobal: insp.cumplimientoGlobal,
       nivelRiesgo: insp.nivelRiesgo,
     };
+  }
+
+  async updatePlan(responseId: string, dto: UpdateSstPlanDto) {
+    const row = await this.responses.findOne({
+      where: { id: responseId },
+      relations: { item: true, inspection: { workplace: { client: true } } },
+    });
+    if (!row) throw new NotFoundException('Plan / respuesta no encontrada');
+    if (row.valoracion !== SstValoracion.RIESGOSO) {
+      throw new BadRequestException('Solo aplica a ítems RIESGOSO');
+    }
+    row.estadoPlanAccion = dto.estadoPlanAccion;
+    if (dto.fechaCompromiso !== undefined) {
+      row.fechaCompromiso = dto.fechaCompromiso || null;
+    }
+    if (dto.estadoPlanAccion === SstPlanStatus.CERRADO) {
+      row.fechaCierre = new Date().toISOString().slice(0, 10);
+    }
+    await this.responses.save(row);
+    return row;
   }
 
   private assertCompletable(insp: SstInspection) {
@@ -312,6 +398,7 @@ export class SstService {
     insp: SstInspection,
     existing: SstResponse | undefined,
     row: UpsertSstResponseDto,
+    finalize: boolean,
   ) {
     if (!existing) throw new BadRequestException(`Ítem no pertenece a la inspección`);
 
@@ -325,25 +412,33 @@ export class SstService {
 
     existing.valoracion = row.valoracion;
 
-    if (insp.tipo === SstInspectionType.SEGUIMIENTO && existing.valoracionAnterior) {
-      if (
-        existing.valoracionAnterior === SstValoracion.RIESGOSO &&
-        row.valoracion === SstValoracion.SEGURO
-      ) {
-        existing.estadoPlanAccion = SstPlanStatus.CERRADO;
-        existing.fechaCierre = new Date().toISOString().slice(0, 10);
-      } else if (
-        existing.valoracionAnterior === SstValoracion.RIESGOSO &&
-        row.valoracion === SstValoracion.RIESGOSO
-      ) {
-        existing.estadoPlanAccion = SstPlanStatus.REINCIDENTE;
-        existing.reincidenciaCount = (existing.reincidenciaCount || 0) + 1;
+    // Reincidencia / cierre de plan solo al completar (no en cada guardado borrador).
+    if (finalize) {
+      if (insp.tipo === SstInspectionType.SEGUIMIENTO && existing.valoracionAnterior) {
+        if (
+          existing.valoracionAnterior === SstValoracion.RIESGOSO &&
+          row.valoracion === SstValoracion.SEGURO
+        ) {
+          existing.estadoPlanAccion = SstPlanStatus.CERRADO;
+          existing.fechaCierre = new Date().toISOString().slice(0, 10);
+        } else if (
+          existing.valoracionAnterior === SstValoracion.RIESGOSO &&
+          row.valoracion === SstValoracion.RIESGOSO
+        ) {
+          if (existing.estadoPlanAccion !== SstPlanStatus.REINCIDENTE) {
+            existing.estadoPlanAccion = SstPlanStatus.REINCIDENTE;
+            existing.reincidenciaCount = (existing.reincidenciaCount || 0) + 1;
+          }
+        }
+      } else if (row.valoracion === SstValoracion.RIESGOSO) {
+        existing.estadoPlanAccion = row.estadoPlanAccion ?? SstPlanStatus.ABIERTO;
+        if (!existing.reincidenciaCount) existing.reincidenciaCount = 1;
+      } else {
+        existing.estadoPlanAccion = null;
       }
     } else if (row.valoracion === SstValoracion.RIESGOSO) {
-      existing.estadoPlanAccion = row.estadoPlanAccion ?? SstPlanStatus.ABIERTO;
-      if (!existing.reincidenciaCount) existing.reincidenciaCount = 1;
-    } else {
-      existing.estadoPlanAccion = null;
+      existing.estadoPlanAccion =
+        existing.estadoPlanAccion ?? row.estadoPlanAccion ?? SstPlanStatus.ABIERTO;
     }
 
     existing.hallazgo = row.hallazgo?.trim() || null;

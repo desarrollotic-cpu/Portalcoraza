@@ -27,18 +27,19 @@ export class SstSchemaBootstrap implements OnModuleInit {
         ) AS has_perm
       `);
 
-      if (has_table && has_perm) {
+      if (!(has_table && has_perm)) {
+        const sqlPath = path.join(__dirname, 'ensure-sst.sql');
+        if (!fs.existsSync(sqlPath)) {
+          this.log.error(`No se encontró ${sqlPath}`);
+          return;
+        }
+        await this.ds.query(fs.readFileSync(sqlPath, 'utf8'));
+        this.log.log('Esquema y permisos SST aplicados (ensure-sst.sql)');
+      } else {
         await this.ensureGerenciaGrants();
-        return;
       }
 
-      const sqlPath = path.join(__dirname, 'ensure-sst.sql');
-      if (!fs.existsSync(sqlPath)) {
-        this.log.error(`No se encontró ${sqlPath}`);
-        return;
-      }
-      await this.ds.query(fs.readFileSync(sqlPath, 'utf8'));
-      this.log.log('Esquema y permisos SST aplicados (ensure-sst.sql)');
+      await this.ensureDemoSites();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.error(`Bootstrap SST falló: ${msg}`);
@@ -53,5 +54,31 @@ export class SstSchemaBootstrap implements OnModuleInit {
         AND p.code IN ('sst.view', 'sst.inspect', 'sst.manage', 'sst.alerts')
       ON CONFLICT DO NOTHING
     `);
+  }
+
+  /** Primer uso: cliente Coraza + 2 puestos si la tabla está vacía. */
+  private async ensureDemoSites(): Promise<void> {
+    const [{ n }] = await this.ds.query(
+      `SELECT COUNT(*)::int AS n FROM sst_clients`,
+    );
+    if (n > 0) return;
+
+    const [{ id: clientId }] = await this.ds.query(
+      `
+      INSERT INTO sst_clients (nombre, nit, contacto)
+      VALUES ('Coraza Seguridad C.T.A.', 'N/A', 'SST')
+      RETURNING id
+      `,
+    );
+    await this.ds.query(
+      `
+      INSERT INTO sst_workplaces (client_id, nombre, ciudad, tipo_puesto, direccion)
+      VALUES
+        ($1, 'Sede principal — Portería', 'Medellín', 'PORTERIA', 'Sede administrativa'),
+        ($1, 'Sede principal — Recepción', 'Medellín', 'RECEPCION', NULL)
+      `,
+      [clientId],
+    );
+    this.log.log('Sitios demo SST creados (Coraza + 2 puestos)');
   }
 }

@@ -19,6 +19,7 @@ import {
   CreateSstInspectionDto,
   CreateSstWorkplaceDto,
   SaveSstInspectionDto,
+  UpdateSstPlanDto,
 } from './dto/sst.dto';
 import { SstService } from './sst.service';
 
@@ -31,6 +32,12 @@ export class SstController {
   @RequirePermissions('sst.view')
   overview() {
     return this.sst.overview();
+  }
+
+  @Post('bootstrap-demo')
+  @RequirePermissions('sst.manage')
+  bootstrapDemo() {
+    return this.sst.ensureDemoSites();
   }
 
   @Get('checklist')
@@ -67,6 +74,15 @@ export class SstController {
   @RequirePermissions('sst.view')
   actionPlans(@Query('filter') filter?: string) {
     return this.sst.listActionPlans(filter);
+  }
+
+  @Put('action-plans/:id')
+  @RequirePermissions('sst.inspect')
+  updatePlan(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateSstPlanDto,
+  ) {
+    return this.sst.updatePlan(id, dto);
   }
 
   @Get('inspections')

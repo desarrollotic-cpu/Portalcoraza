@@ -87,6 +87,8 @@ export interface SstOverview {
   inspections: number;
   criticalAlerts: number;
   openPlans: number;
+  workplaces: number;
+  checklistItems: number;
   recent: SstInspection[];
 }
 
@@ -186,5 +188,19 @@ export class SstApiService {
     let params = new HttpParams();
     if (filter) params = params.set('filter', filter);
     return this.http.get<SstResponseRow[]>(`${this.baseUrl}/action-plans`, { params });
+  }
+
+  updatePlan(
+    id: string,
+    body: { estadoPlanAccion: SstPlanStatus; fechaCompromiso?: string },
+  ): Observable<SstResponseRow> {
+    return this.http.put<SstResponseRow>(`${this.baseUrl}/action-plans/${id}`, body);
+  }
+
+  bootstrapDemo(): Observable<{ created: boolean; clientId?: string }> {
+    return this.http.post<{ created: boolean; clientId?: string }>(
+      `${this.baseUrl}/bootstrap-demo`,
+      {},
+    );
   }
 }

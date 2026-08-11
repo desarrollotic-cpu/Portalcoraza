@@ -1,7 +1,7 @@
 # Diseño — Módulo SST IPT y Seguimiento (Portal Coraza)
 
 **Fecha:** 2026-08-11  
-**Estado:** MVP implementado en `feature/sst-ipt-seguimiento` (aplicar migración `029_sst_ipt.sql`)
+**Estado:** MVP en `main` — flujo guiado, semáforo live, planes accionables, seed demo Coraza
 
 ## Decisiones
 

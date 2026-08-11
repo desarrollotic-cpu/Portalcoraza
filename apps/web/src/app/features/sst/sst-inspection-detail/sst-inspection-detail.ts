@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../shared/services/toast.service';
+import { liveCompliance } from '../sst-compliance';
 import {
   SstApiService,
   SstInspection,
@@ -42,10 +43,19 @@ interface DraftRow {
             <p>
               {{ i.workplace?.client?.nombre }} · {{ i.fecha | date: 'dd/MM/yyyy' }} ·
               {{ i.responsableNombre }} · <strong>{{ i.estado }}</strong>
-              @if (i.cumplimientoGlobal != null) {
-                · Cumpl. {{ i.cumplimientoGlobal }}% ({{ i.nivelRiesgo }})
-              }
             </p>
+            @if (live(); as live) {
+              <p class="live">
+                Progreso {{ live.rated }}/{{ live.total }} ·
+                @if (live.percent != null) {
+                  Cumpl. {{ live.percent }}%
+                  <span class="risk" [attr.data-nivel]="live.nivel">{{ live.nivel }}</span>
+                  · SEGURO {{ live.seguro }} · RIESGOSO {{ live.riesgoso }} · N/A {{ live.na }}
+                } @else {
+                  Sin ítems evaluables aún (N/A no cuenta en %)
+                }
+              </p>
+            }
           </div>
           <div class="actions">
             @if (canEdit()) {
@@ -61,12 +71,14 @@ interface DraftRow {
                 Cerrar
               </button>
             }
-            <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('md')">
-              Informe MD
-            </button>
-            <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('txt')">
-              Informe TXT
-            </button>
+            @if (canReport()) {
+              <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('md')">
+                Informe MD
+              </button>
+              <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('txt')">
+                Informe TXT
+              </button>
+            }
           </div>
         </header>
 
@@ -100,6 +112,7 @@ interface DraftRow {
                         [name]="'v-' + row.itemId"
                         [value]="v"
                         [(ngModel)]="row.valoracion"
+                        (ngModelChange)="bump()"
                         [disabled]="!canEdit()"
                       />
                       {{ v === 'N_A' ? 'N/A' : v }}
@@ -152,6 +165,10 @@ interface DraftRow {
     .back { color: var(--brand, #0f766e); text-decoration: none; font-size: 0.85rem; }
     .head h2 { margin: 0.2rem 0; font-size: 1.2rem; }
     .head p { margin: 0; color: var(--text-muted, #64748b); font-size: 0.88rem; }
+    .live { margin: 0.35rem 0 0 !important; font-weight: 600; }
+    .risk[data-nivel='BAJO'] { color: #15803d; font-weight: 700; }
+    .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
+    .risk[data-nivel='ALTO'] { color: #b91c1c; font-weight: 700; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; }
     .btn {
       border: 0; border-radius: 0.5rem; padding: 0.45rem 0.8rem; font-weight: 600; cursor: pointer;
@@ -195,6 +212,7 @@ export class SstInspectionDetail implements OnInit {
   readonly busy = signal(false);
   readonly insp = signal<SstInspection | null>(null);
   readonly drafts = signal<DraftRow[]>([]);
+  readonly tick = signal(0);
   observaciones = '';
 
   readonly canEdit = computed(() => {
@@ -210,6 +228,20 @@ export class SstInspectionDetail implements OnInit {
       this.auth.hasPermission('sst.inspect')
     );
   });
+
+  readonly canReport = computed(() => {
+    const i = this.insp();
+    return !!i && (i.estado === 'COMPLETADA' || i.estado === 'CERRADA');
+  });
+
+  readonly live = computed(() => {
+    this.tick();
+    return liveCompliance(this.drafts().map((d) => d.valoracion));
+  });
+
+  bump(): void {
+    this.tick.update((n) => n + 1);
+  }
 
   readonly categories = computed(() => {
     const set = new Set(this.drafts().map((d) => d.categoria));
