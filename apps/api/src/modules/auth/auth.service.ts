@@ -101,7 +101,17 @@ export class AuthService {
     };
 
     const accessToken = await this.signAccess(payload);
-    return { accessToken };
+    const user = stored.user;
+    return {
+      accessToken,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        role: { code: user.role.code, name: user.role.name },
+        permissions,
+      },
+    };
   }
 
   async logout(userId: string, refreshToken?: string) {

@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthUser, LoginResponse } from '../models/auth.model';
 
@@ -16,6 +16,33 @@ export class AuthService {
 
   readonly currentUser = signal<AuthUser | null>(this.loadUser());
 
+  constructor() {
+    // Menú usa coraza_user; el access JWT puede traer permisos más frescos tras grants en BD.
+    this.syncPermissionsFromAccessToken();
+  }
+
+  /** Actualiza permisos del usuario en memoria/localStorage desde el JWT actual. */
+  syncPermissionsFromAccessToken(): void {
+    const token = this.getAccessToken();
+    const user = this.currentUser();
+    if (!token || !user) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1] ?? '')) as {
+        permissions?: string[];
+      };
+      if (!Array.isArray(payload.permissions)) return;
+      const same =
+        payload.permissions.length === user.permissions.length &&
+        payload.permissions.every((p) => user.permissions.includes(p));
+      if (same) return;
+      const next: AuthUser = { ...user, permissions: payload.permissions };
+      localStorage.setItem(USER_KEY, JSON.stringify(next));
+      this.currentUser.set(next);
+    } catch {
+      /* token malformado: ignorar */
+    }
+  }
+
   login(email: string, password: string): Observable<LoginResponse> {
     return this.http
       .post<LoginResponse>(`${environment.apiUrl}/auth/login`, {
@@ -28,6 +55,30 @@ export class AuthService {
           localStorage.setItem(REFRESH_KEY, res.refreshToken);
           localStorage.setItem(USER_KEY, JSON.stringify(res.user));
           this.currentUser.set(res.user);
+        }),
+      );
+  }
+
+  /** Relee permisos desde el servidor (p. ej. tras grants nuevos en BD). */
+  refreshSession(): Observable<{ accessToken: string; user?: AuthUser }> {
+    const refreshToken = localStorage.getItem(REFRESH_KEY);
+    if (!refreshToken) {
+      return throwError(() => new Error('Sin refresh token'));
+    }
+    return this.http
+      .post<{ accessToken: string; user?: AuthUser }>(
+        `${environment.apiUrl}/auth/refresh`,
+        { refreshToken },
+      )
+      .pipe(
+        tap((res) => {
+          localStorage.setItem(ACCESS_KEY, res.accessToken);
+          if (res.user) {
+            localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+            this.currentUser.set(res.user);
+          } else {
+            this.syncPermissionsFromAccessToken();
+          }
         }),
       );
   }

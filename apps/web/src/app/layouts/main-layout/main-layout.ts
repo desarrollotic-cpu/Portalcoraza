@@ -904,6 +904,11 @@ export class MainLayout implements OnDestroy {
   readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
+  constructor() {
+    // Relee permisos (p. ej. sst.view tras migración) sin forzar logout.
+    this.auth.refreshSession().subscribe({ error: () => undefined });
+  }
+
   readonly icons = {
     Bell: LucideBell,
     Boxes: LucideBoxes,
