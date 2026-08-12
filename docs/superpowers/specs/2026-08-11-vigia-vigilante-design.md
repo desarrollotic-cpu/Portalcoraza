@@ -8,14 +8,14 @@
 | Tema | Decisión |
 |------|----------|
 | Ubicación | `/vigia` nativo Angular + Nest + Supabase |
-| Auth | Cédula + primer nombre (asociado ACTIVO). JWT `aud=vigia` (sin password) |
+| Auth | Cédula + PIN 4 dígitos. Primera vez: cédula + nombre para crear PIN (hash bcrypt). JWT `aud=vigia` |
 | Offline | Fase 2 (online-first; sesión local solo si API cae en login) |
 | Acceso | Fuera del menú admin; URL directa móvil |
 | Lectura | Vigilante solo ve/registra lo suyo; sin admin de puestos |
 
 ## MVP
 
-1. Login cédula+nombre → sesión + inicio turno + primer puesto activo  
+1. Login cédula+PIN → sesión + inicio turno. Primera vez: setup con cédula+nombre+PIN  
 2. Dashboard: turnero, consignas, SOS, dotación, colillas + cronómetro  
 3. SOS + alerta de vida (cliente)  
 4. Consignas (directorio/reglas)  

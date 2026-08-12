@@ -20,7 +20,7 @@ import { RouterLink } from '@angular/router';
       <div class="grid">
         <article class="card">
           <h3>App de campo</h3>
-          <p>Acceso móvil para asociados activos. Login: cédula + primer nombre (sin clave admin).</p>
+          <p>Acceso móvil para asociados activos. Primera vez: cédula + nombre + PIN. Luego: cédula + PIN.</p>
           <a class="link" routerLink="/vigia/login">/vigia/login</a>
         </article>
         <article class="card">

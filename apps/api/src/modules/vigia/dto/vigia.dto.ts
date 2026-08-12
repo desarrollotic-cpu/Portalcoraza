@@ -5,6 +5,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
   MinLength,
 } from 'class-validator';
 
@@ -14,8 +15,22 @@ export class VigiaLoginDto {
   cedula!: string;
 
   @IsString()
+  @Matches(/^\d{4}$/, { message: 'El PIN debe ser exactamente 4 dígitos' })
+  pin!: string;
+}
+
+export class VigiaSetupPinDto {
+  @IsString()
+  @MinLength(4)
+  cedula!: string;
+
+  @IsString()
   @MinLength(2)
   nombre!: string;
+
+  @IsString()
+  @Matches(/^\d{4}$/, { message: 'El PIN debe ser exactamente 4 dígitos' })
+  pin!: string;
 }
 
 export class VigiaStartTurnoDto {

@@ -12,6 +12,7 @@ import {
   VigiaNominaReclamo,
 } from './entities/vigia-misc.entity';
 import { VigiaMinuta } from './entities/vigia-minuta.entity';
+import { VigiaPin } from './entities/vigia-pin.entity';
 import { VigiaSos } from './entities/vigia-sos.entity';
 import { VigiaTurno } from './entities/vigia-turno.entity';
 import { VigiaAuthGuard } from './vigia-auth.guard';
@@ -40,6 +41,7 @@ import { VigiaService } from './vigia.service';
       VigiaNomina,
       VigiaNominaReclamo,
       VigiaDotacionFirma,
+      VigiaPin,
     ]),
   ],
   controllers: [VigiaController],

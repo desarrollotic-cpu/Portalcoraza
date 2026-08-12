@@ -20,6 +20,7 @@ import {
   VigiaFirmarDotacionDto,
   VigiaLoginDto,
   VigiaReclamoNominaDto,
+  VigiaSetupPinDto,
   VigiaSosDto,
   VigiaStartTurnoDto,
 } from './dto/vigia.dto';
@@ -30,9 +31,11 @@ import {
   VigiaNominaReclamo,
 } from './entities/vigia-misc.entity';
 import { VigiaMinuta } from './entities/vigia-minuta.entity';
+import { VigiaPin } from './entities/vigia-pin.entity';
 import { VigiaSos } from './entities/vigia-sos.entity';
 import { VigiaTurno } from './entities/vigia-turno.entity';
 import { VigiaJwtPayload } from './vigia-jwt-payload';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class VigiaService {
@@ -56,6 +59,8 @@ export class VigiaService {
     private readonly firmas: Repository<VigiaDotacionFirma>,
     @InjectRepository(Delivery)
     private readonly deliveries: Repository<Delivery>,
+    @InjectRepository(VigiaPin)
+    private readonly pins: Repository<VigiaPin>,
   ) {}
 
   private fullName(a: Associate): string {
@@ -78,9 +83,18 @@ export class VigiaService {
     };
   }
 
-  async login(dto: VigiaLoginDto) {
+  private assertPin(pin: string): string {
+    const p = pin.replace(/\D/g, '');
+    if (!/^\d{4}$/.test(p)) {
+      throw new BadRequestException('El PIN debe ser exactamente 4 dígitos');
+    }
+    return p;
+  }
+
+  async setupPin(dto: VigiaSetupPinDto) {
     const cedula = dto.cedula.replace(/\D/g, '');
     const nombre = dto.nombre.trim();
+    const pin = this.assertPin(dto.pin);
     if (cedula.length < 4 || nombre.length < 2) {
       throw new BadRequestException('Cédula (≥4) y nombre (≥2) son obligatorios');
     }
@@ -99,6 +113,59 @@ export class VigiaService {
       );
     }
 
+    const existing = await this.pins.findOne({ where: { associateId: associate.id } });
+    if (existing) {
+      throw new BadRequestException(
+        'Este vigilante ya tiene PIN. Ingresa con cédula y PIN.',
+      );
+    }
+
+    await this.pins.save(
+      this.pins.create({
+        associateId: associate.id,
+        pinHash: await bcrypt.hash(pin, 12),
+      }),
+    );
+
+    return this.openSession(associate);
+  }
+
+  async login(dto: VigiaLoginDto) {
+    const cedula = dto.cedula.replace(/\D/g, '');
+    const pin = this.assertPin(dto.pin);
+    if (cedula.length < 4) {
+      throw new BadRequestException('Cédula (≥4) es obligatoria');
+    }
+
+    const associate = await this.associates.findOne({
+      where: {
+        documentNumber: cedula,
+        status: AssociateStatus.ACTIVO,
+      },
+      relations: { jobPosition: true },
+    });
+    if (!associate) {
+      throw new UnauthorizedException(
+        'Vigilante no encontrado o inactivo. Verifica cédula.',
+      );
+    }
+
+    const cred = await this.pins.findOne({ where: { associateId: associate.id } });
+    if (!cred) {
+      throw new UnauthorizedException(
+        'Aún no tienes PIN. Usa “Primera vez” para crearlo con tu cédula y primer nombre.',
+      );
+    }
+
+    const ok = await bcrypt.compare(pin, cred.pinHash);
+    if (!ok) {
+      throw new UnauthorizedException('PIN incorrecto');
+    }
+
+    return this.openSession(associate);
+  }
+
+  private async openSession(associate: Associate) {
     const posts = await this.listPuestos();
     const post = posts[0];
     if (!post) {

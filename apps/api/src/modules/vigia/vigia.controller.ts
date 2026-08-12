@@ -16,6 +16,7 @@ import {
   VigiaFirmarDotacionDto,
   VigiaLoginDto,
   VigiaReclamoNominaDto,
+  VigiaSetupPinDto,
   VigiaSosDto,
   VigiaStartTurnoDto,
 } from './dto/vigia.dto';
@@ -30,6 +31,11 @@ export class VigiaController {
   @Post('auth/login')
   login(@Body() dto: VigiaLoginDto) {
     return this.vigia.login(dto);
+  }
+
+  @Post('auth/setup')
+  setup(@Body() dto: VigiaSetupPinDto) {
+    return this.vigia.setupPin(dto);
   }
 
   @Get('puestos')

@@ -26,7 +26,14 @@ export class VigiaSchemaBootstrap implements OnModuleInit {
         ) AS has_perm
       `);
 
-      if (!(has_table && has_perm)) {
+      const [{ has_pins }] = await this.ds.query(`
+        SELECT EXISTS (
+          SELECT 1 FROM information_schema.tables
+          WHERE table_schema = 'public' AND table_name = 'vigia_pins'
+        ) AS has_pins
+      `);
+
+      if (!(has_table && has_perm) || !has_pins) {
         const sqlPath = path.join(__dirname, 'ensure-vigia.sql');
         if (!fs.existsSync(sqlPath)) {
           this.log.error(`No se encontró ${sqlPath}`);
