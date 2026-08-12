@@ -110,6 +110,9 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
                   {{ n['recargoNocturno'] }} · Fest {{ n['recargoFestivo'] }}
                 </p>
                 <p>Neto: $ {{ n['neto'] }}</p>
+                @if (n['pdfUrl']) {
+                  <a class="link" [href]="'' + n['pdfUrl']" target="_blank" rel="noopener">Ver / descargar PDF</a>
+                }
                 <button type="button" class="mini" (click)="openReclamo('' + n['periodo'])">Reclamar</button>
               </div>
             } @empty {
@@ -124,6 +127,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           <div class="modal-card">
             <h3>Cerrar turno</h3>
             <label>Nombre del relevo<input [(ngModel)]="relevoNombre" name="relevo" /></label>
+            <label>Foto del puesto (opcional)<input type="file" accept="image/*" (change)="onRelevoFoto($event)" /></label>
             <button type="button" class="btn" (click)="cerrarTurno()">Confirmar entrega</button>
             <button type="button" class="mini" (click)="cierreOpen.set(false)">Cancelar</button>
           </div>
@@ -256,6 +260,7 @@ export class VigiaHome implements OnInit, OnDestroy {
   readonly reclamoOpen = signal(false);
 
   relevoNombre = '';
+  relevoFoto = '';
   solicitudItem = '';
   solicitudMotivo = '';
   solicitudFoto = '';
@@ -303,7 +308,18 @@ export class VigiaHome implements OnInit, OnDestroy {
 
   openCierre(): void {
     this.relevoNombre = '';
+    this.relevoFoto = '';
     this.cierreOpen.set(true);
+  }
+
+  onRelevoFoto(ev: Event): void {
+    const file = (ev.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.relevoFoto = String(reader.result || '');
+    };
+    reader.readAsDataURL(file);
   }
 
   cerrarTurno(): void {
@@ -313,7 +329,7 @@ export class VigiaHome implements OnInit, OnDestroy {
       this.auth.logout();
       return;
     }
-    this.api.cerrarTurno(this.relevoNombre.trim()).subscribe({
+    this.api.cerrarTurno(this.relevoNombre.trim(), this.relevoFoto || undefined).subscribe({
       next: () => {
         this.cierreOpen.set(false);
         this.auth.logout();
@@ -324,21 +340,34 @@ export class VigiaHome implements OnInit, OnDestroy {
 
   sendSos(): void {
     const s = this.session();
-    const body = {
-      empleado_id: s?.empleado.id,
-      turno_id: this.auth.turnoId(),
-      puesto_id: s?.puesto_id,
-      motivo: 'Pánico manual',
-      timestamp: Date.now(),
+    const send = (lat?: number, lng?: number) => {
+      const body: Record<string, unknown> = {
+        turnoId: this.auth.turnoId() || undefined,
+        postId: s?.puesto_id && s.puesto_id !== 'PUE-01' ? s.puesto_id : undefined,
+        motivo: 'Pánico manual',
+      };
+      if (lat != null && lng != null) {
+        body['lat'] = lat;
+        body['lng'] = lng;
+      }
+      if (s?.accessToken === 'local') {
+        this.msg.set('SOS registrado en modo local');
+        return;
+      }
+      this.api.sos(body).subscribe({
+        next: () => this.msg.set('Alerta SOS enviada al centro de control'),
+        error: () => this.msg.set('No se pudo enviar SOS'),
+      });
     };
-    if (s?.accessToken === 'local') {
-      this.msg.set('SOS registrado en modo local');
+    if (!navigator.geolocation) {
+      send();
       return;
     }
-    this.api.sos(body).subscribe({
-      next: () => this.msg.set('Alerta SOS enviada al centro de control'),
-      error: () => this.msg.set('No se pudo enviar SOS'),
-    });
+    navigator.geolocation.getCurrentPosition(
+      (pos) => send(pos.coords.latitude, pos.coords.longitude),
+      () => send(),
+      { timeout: 4000, maximumAge: 60000 },
+    );
   }
 
   toggleAlerta(ev: Event): void {
