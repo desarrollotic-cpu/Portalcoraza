@@ -509,6 +509,13 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'vigilantes',
+        canActivate: [permissionGuard],
+        data: { permission: 'vigia.view' },
+        loadComponent: () =>
+          import('./features/vigia/vigia-portal/vigia-portal').then((m) => m.VigiaPortal),
+      },
+      {
         path: 'sst',
         canActivate: [permissionGuard],
         data: { permission: 'sst.view' },

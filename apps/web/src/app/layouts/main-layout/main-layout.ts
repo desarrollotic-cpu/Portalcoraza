@@ -35,6 +35,7 @@ import {
   LucideUserCog,
   LucideUsersRound,
   LucideDoorOpen,
+  LucideEye,
   LucideShieldCheck,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
@@ -988,8 +989,15 @@ export class MainLayout implements OnDestroy {
           icon: LucideShieldCheck,
           permission: 'sst.view',
         },
+        {
+          label: 'Coraza Vigía',
+          route: '/vigilantes',
+          icon: LucideEye,
+          permission: 'vigia.view',
+        },
       ],
     },
+
     {
       label: 'Sistema',
       items: [

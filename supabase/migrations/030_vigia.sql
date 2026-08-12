@@ -97,4 +97,15 @@ CREATE TRIGGER vigia_turnos_updated_at
   BEFORE UPDATE ON vigia_turnos
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 
+INSERT INTO permissions (code, name, module) VALUES
+  ('vigia.view', 'Ver módulo Coraza Vigía (Portal)', 'vigia'),
+  ('vigia.manage', 'Gestionar consignas, SOS y colillas Vigía', 'vigia')
+ON CONFLICT (code) DO NOTHING;
+
+INSERT INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id FROM roles r, permissions p
+WHERE r.code IN ('GERENCIA', 'ADMIN', 'SUPERADMIN')
+  AND p.code IN ('vigia.view', 'vigia.manage')
+ON CONFLICT DO NOTHING;
+
 COMMIT;
