@@ -1,18 +1,18 @@
 # Diseño — Minuta Virtual CORAZA (MVP)
 
 **Fecha:** 2026-08-12  
-**Estado:** Aprobado por decisión (opción A + MVP operativo)
+**Estado:** Módulo independiente Portal Coraza (no parte de Vigía)
 
 ## Decisiones
 
 | Tema | Decisión |
 |------|----------|
-| Ubicación | `/minuta` (campo) + hub Portal `/minutas` |
-| Auth | Misma sesión Vigía (JWT `aud=vigia`, cédula+PIN) |
+| Ubicación | Solo Portal `/minutas` (MainLayout). **No** en la app de vigilantes (`/vigia`) |
+| Auth | JWT Portal (`JwtAuthGuard` + `minuta.view`) |
 | Alcance MVP | Visitantes, Correspondencia, Contratistas, Domiciliarios, Incidentes, Servicio, Entrega de puesto + dashboard + historial + salida/entrega |
 | Fuera de MVP | Mapa/Ubicaciones, biblioteca Archivos, usuarios demo Apps Script |
 | Persistencia | Tablas `minuta_*` en Postgres + bootstrap SQL en API |
-| Recepción | Sigue existiendo; Minuta es bitácora de puesto/vigilante |
+| Relación con Vigía | Independiente. Vigía = app de campo del vigilante; Minuta = bitácora operativa en Portal |
 
 ## Eficiencia (dashboard)
 
@@ -20,4 +20,4 @@
 
 ## APIs
 
-Prefijo `/api/v1/minuta/*` protegido con `VigiaAuthGuard`.
+Prefijo `/api/v1/minuta/*` protegido con `JwtAuthGuard` + `PermissionsGuard` + permiso `minuta.view`.

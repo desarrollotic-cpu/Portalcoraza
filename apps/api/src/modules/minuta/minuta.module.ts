@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { VigiaModule } from '../vigia/vigia.module';
 import {
   MinutaContratista,
   MinutaCorrespondencia,
@@ -16,7 +15,6 @@ import { MinutaService } from './minuta.service';
 
 @Module({
   imports: [
-    VigiaModule,
     TypeOrmModule.forFeature([
       MinutaVisitante,
       MinutaCorrespondencia,

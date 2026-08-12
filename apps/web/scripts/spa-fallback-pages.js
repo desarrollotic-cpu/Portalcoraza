@@ -42,7 +42,6 @@ const routes = [
   'admin/roles',
   'vigilantes',
   'minutas',
-  'minuta',
   'vigia',
   'vigia/login',
 ];

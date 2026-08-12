@@ -1,7 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
-import { VigiaAuthService } from '../../vigia/vigia-auth.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { MinutaApiService } from '../minuta-api.service';
 
 type Tab = 'inicio' | 'nuevo' | 'historial' | 'perfil';
@@ -45,15 +44,15 @@ interface MinutaForm {
 
 @Component({
   selector: 'app-minuta-home',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule],
   template: `
     <div class="app">
       <header class="top">
         <div>
           <strong>Minuta Virtual</strong>
-          <span>{{ session()?.empleado?.nombre_completo }}</span>
+          <span>{{ userLabel() }}</span>
         </div>
-        <span class="badge">{{ session()?.empleado?.cargo || 'Vigilante' }}</span>
+        <span class="badge">Portal Coraza</span>
       </header>
 
       <main class="body">
@@ -134,12 +133,10 @@ interface MinutaForm {
 
         @if (tab() === 'perfil') {
           <div class="card">
-            <p><strong>{{ session()?.empleado?.nombre_completo }}</strong></p>
-            <p class="muted">Cédula {{ session()?.empleado?.cedula }}</p>
-            <p class="muted">Puesto {{ session()?.puesto_nombre }}</p>
-            <p class="muted">Minuta Virtual 8.0 Pro MVP</p>
-            <a class="link" routerLink="/vigia">Ir a Coraza Vigía</a>
-            <button type="button" class="btn danger" (click)="logout()">Cerrar sesión</button>
+            <p><strong>{{ user()?.fullName || user()?.email }}</strong></p>
+            <p class="muted">{{ user()?.email }}</p>
+            <p class="muted">Rol {{ user()?.role?.name || user()?.role?.code || '—' }}</p>
+            <p class="muted">Minuta Virtual 8.0 Pro · módulo Portal</p>
           </div>
         }
       </main>
@@ -239,8 +236,8 @@ interface MinutaForm {
     </div>
   `,
   styles: `
-    :host { display:block; min-height:100dvh; background:#F8FAFC; color:#0f172a; font-family:system-ui,sans-serif; }
-    .app { max-width:480px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; background:#fff; }
+    :host { display:block; color:#0f172a; }
+    .app { max-width:720px; margin:0 auto; display:flex; flex-direction:column; background:#fff; border:1px solid #e2e8f0; border-radius:1rem; overflow:hidden; }
     .top { display:flex; justify-content:space-between; gap:.5rem; padding:.9rem 1rem; background:linear-gradient(135deg,#1E3A8A,#3B82F6); color:#fff; }
     .top span { display:block; font-size:.75rem; opacity:.9; }
     .badge { align-self:flex-start; background:rgba(255,255,255,.2); border-radius:999px; padding:.2rem .55rem; font-size:.72rem; }
@@ -273,11 +270,10 @@ interface MinutaForm {
   `,
 })
 export class MinutaHome implements OnInit {
-  private readonly auth = inject(VigiaAuthService);
+  private readonly auth = inject(AuthService);
   private readonly api = inject(MinutaApiService);
-  private readonly router = inject(Router);
 
-  readonly session = this.auth.session;
+  readonly user = this.auth.currentUser;
   readonly tab = signal<Tab>('inicio');
   readonly form = signal<FormKind>(null);
   readonly busy = signal(false);
@@ -305,11 +301,12 @@ export class MinutaHome implements OnInit {
 
   f: MinutaForm = this.emptyForm();
 
+  userLabel(): string {
+    const u = this.user();
+    return u?.fullName || u?.email || 'Usuario Portal';
+  }
+
   ngOnInit(): void {
-    if (!this.auth.isLoggedIn()) {
-      void this.router.navigateByUrl('/vigia/login');
-      return;
-    }
     this.refresh();
   }
 
@@ -320,8 +317,8 @@ export class MinutaHome implements OnInit {
 
   openForm(k: Exclude<FormKind, null>): void {
     this.f = this.emptyForm();
-    this.f.vigilanteSaliente = this.session()?.empleado?.nombre_completo || '';
-    this.f.nombreDelPuesto = this.session()?.puesto_nombre || 'Portería';
+    this.f.vigilanteSaliente = this.userLabel();
+    this.f.nombreDelPuesto = 'Portería';
     this.form.set(k);
     this.tab.set('nuevo');
   }
@@ -377,10 +374,6 @@ export class MinutaHome implements OnInit {
       },
       error: (e) => this.msg.set(e?.error?.message || 'Error al entregar'),
     });
-  }
-
-  logout(): void {
-    if (confirm('¿Cerrar sesión?')) this.auth.logout();
   }
 
   private refresh(): void {

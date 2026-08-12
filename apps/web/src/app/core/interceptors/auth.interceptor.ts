@@ -10,8 +10,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     !token ||
     req.url.includes('/auth/login') ||
     req.url.includes('/auth/recover-admin') ||
-    req.url.includes('/vigia/') ||
-    req.url.includes('/minuta/')
+    req.url.includes('/vigia/')
   ) {
     return next(req);
   }

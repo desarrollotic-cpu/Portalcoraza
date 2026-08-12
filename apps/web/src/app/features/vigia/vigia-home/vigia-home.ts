@@ -28,7 +28,6 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           <button type="button" class="tile danger" (click)="go('sos')"><span>🚨</span> Seguridad / SOS</button>
           <button type="button" class="tile" (click)="go('dotacion')"><span>👔</span> Mi Dotación</button>
           <button type="button" class="tile" (click)="go('nomina')"><span>💰</span> Mis Colillas</button>
-          <a class="tile link-tile" href="/minuta/"><span>📒</span> Minuta Virtual</a>
         </main>
       } @else {
         <main class="panel">

@@ -8,9 +8,11 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { CurrentVigia } from '../vigia/current-vigia.decorator';
-import { VigiaAuthGuard } from '../vigia/vigia-auth.guard';
-import { VigiaJwtPayload } from '../vigia/vigia-jwt-payload';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   MinutaContratistaDto,
   MinutaCorrespondenciaDto,
@@ -25,84 +27,92 @@ import {
 import { MinutaService } from './minuta.service';
 
 @Controller('minuta')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class MinutaController {
   constructor(private readonly minuta: MinutaService) {}
 
   @Get('diagnostico')
+  @RequirePermissions('minuta.view')
   diagnostico() {
     return this.minuta.diagnostico();
   }
 
   @Get('dashboard')
-  @UseGuards(VigiaAuthGuard)
-  dashboard(@CurrentVigia() v: VigiaJwtPayload) {
-    return this.minuta.dashboard(v);
+  @RequirePermissions('minuta.view')
+  dashboard(@CurrentUser() user: JwtPayload) {
+    return this.minuta.dashboard(user);
   }
 
   @Get('historial')
-  @UseGuards(VigiaAuthGuard)
+  @RequirePermissions('minuta.view')
   historial(
-    @CurrentVigia() v: VigiaJwtPayload,
+    @CurrentUser() user: JwtPayload,
     @Query('limite') limite?: string,
     @Query('tipo') tipo?: string,
+    @Query('scope') scope?: string,
   ) {
-    return this.minuta.historial(v, Number(limite) || 20, tipo);
+    return this.minuta.historial(
+      user,
+      Number(limite) || 20,
+      tipo,
+      scope === 'TODOS',
+    );
   }
 
   @Post('visitantes')
-  @UseGuards(VigiaAuthGuard)
-  visitante(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaVisitanteDto) {
-    return this.minuta.crearVisitante(v, dto);
+  @RequirePermissions('minuta.view')
+  visitante(@CurrentUser() user: JwtPayload, @Body() dto: MinutaVisitanteDto) {
+    return this.minuta.crearVisitante(user, dto);
   }
 
   @Post('correspondencia')
-  @UseGuards(VigiaAuthGuard)
-  corr(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaCorrespondenciaDto) {
-    return this.minuta.crearCorrespondencia(v, dto);
+  @RequirePermissions('minuta.view')
+  corr(@CurrentUser() user: JwtPayload, @Body() dto: MinutaCorrespondenciaDto) {
+    return this.minuta.crearCorrespondencia(user, dto);
   }
 
   @Patch('correspondencia/:id/entregar')
-  @UseGuards(VigiaAuthGuard)
+  @RequirePermissions('minuta.view')
   entregar(
-    @CurrentVigia() v: VigiaJwtPayload,
+    @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
     @Body() dto: MinutaEntregarCorrDto,
   ) {
-    return this.minuta.entregarCorrespondencia(v, id, dto.recibidoPor);
+    return this.minuta.entregarCorrespondencia(user, id, dto.recibidoPor);
   }
 
   @Post('contratistas')
-  @UseGuards(VigiaAuthGuard)
-  cont(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaContratistaDto) {
-    return this.minuta.crearContratista(v, dto);
+  @RequirePermissions('minuta.view')
+  cont(@CurrentUser() user: JwtPayload, @Body() dto: MinutaContratistaDto) {
+    return this.minuta.crearContratista(user, dto);
   }
 
   @Post('domiciliarios')
-  @UseGuards(VigiaAuthGuard)
-  dom(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaDomiciliarioDto) {
-    return this.minuta.crearDomiciliario(v, dto);
+  @RequirePermissions('minuta.view')
+  dom(@CurrentUser() user: JwtPayload, @Body() dto: MinutaDomiciliarioDto) {
+    return this.minuta.crearDomiciliario(user, dto);
   }
 
   @Post('incidentes')
-  @UseGuards(VigiaAuthGuard)
-  inc(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaIncidenteDto) {
-    return this.minuta.crearIncidente(v, dto);
+  @RequirePermissions('minuta.view')
+  inc(@CurrentUser() user: JwtPayload, @Body() dto: MinutaIncidenteDto) {
+    return this.minuta.crearIncidente(user, dto);
   }
 
   @Post('servicio')
-  @UseGuards(VigiaAuthGuard)
-  serv(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaServicioDto) {
-    return this.minuta.crearServicio(v, dto);
+  @RequirePermissions('minuta.view')
+  serv(@CurrentUser() user: JwtPayload, @Body() dto: MinutaServicioDto) {
+    return this.minuta.crearServicio(user, dto);
   }
 
   @Post('entrega-puesto')
-  @UseGuards(VigiaAuthGuard)
-  entrega(@CurrentVigia() v: VigiaJwtPayload, @Body() dto: MinutaEntregaDto) {
-    return this.minuta.crearEntrega(v, dto);
+  @RequirePermissions('minuta.view')
+  entrega(@CurrentUser() user: JwtPayload, @Body() dto: MinutaEntregaDto) {
+    return this.minuta.crearEntrega(user, dto);
   }
 
   @Post(':id/salida')
-  @UseGuards(VigiaAuthGuard)
+  @RequirePermissions('minuta.view')
   salida(@Param('id') id: string, @Body() dto: MinutaSalidaDto) {
     return this.minuta.registrarSalida(
       id,

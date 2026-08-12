@@ -1000,7 +1000,7 @@ export class MainLayout implements OnDestroy {
           label: 'Minuta Virtual',
           route: '/minutas',
           icon: LucideClipboardList,
-          permissions: ['minuta.view', 'vigia.view', 'posts.view'],
+          permission: 'minuta.view',
         },
       ],
     },
