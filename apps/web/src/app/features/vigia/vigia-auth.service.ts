@@ -94,6 +94,20 @@ export class VigiaAuthService {
       .pipe(tap((res) => this.persistSession(res, pin)));
   }
 
+  resetPin(
+    cedula: string,
+    nombre: string,
+    pin: string,
+  ): Observable<Record<string, unknown>> {
+    return this.http
+      .post<Record<string, unknown>>(`${this.base}/auth/reset-pin`, {
+        cedula,
+        nombre,
+        pin,
+      })
+      .pipe(tap((res) => this.persistSession(res, pin)));
+  }
+
   /** Offline: solo si ya hubo login online con ese cédula+PIN en este dispositivo. */
   loginOffline(cedula: string, pin: string): Observable<boolean> {
     return from(this.matchOfflinePin(cedula, pin)).pipe(

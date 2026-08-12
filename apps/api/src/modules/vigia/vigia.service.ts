@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import {
   Associate,
   AssociateStatus,
@@ -63,6 +63,9 @@ export class VigiaService {
     private readonly pins: Repository<VigiaPin>,
   ) {}
 
+  private readonly maxPinAttempts = 5;
+  private readonly lockMinutes = 15;
+
   private fullName(a: Associate): string {
     return [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
       .filter(Boolean)
@@ -74,7 +77,7 @@ export class VigiaService {
   private employeeDto(a: Associate) {
     return {
       id: a.id,
-      cedula: a.documentNumber,
+      cedula: a.documentNumber.replace(/\D/g, '') || a.documentNumber,
       primer_nombre: a.firstName,
       nombre_completo: this.fullName(a),
       cargo: a.jobPosition?.name || 'Vigilante',
@@ -83,7 +86,7 @@ export class VigiaService {
     };
   }
 
-  private assertPin(pin: string): string {
+  private assertPinFormat(pin: string): string {
     const p = pin.replace(/\D/g, '');
     if (!/^\d{4}$/.test(p)) {
       throw new BadRequestException('El PIN debe ser exactamente 4 dígitos');
@@ -91,22 +94,113 @@ export class VigiaService {
     return p;
   }
 
+  private assertPinStrong(pin: string): string {
+    const p = this.assertPinFormat(pin);
+    if (/^(\d)\1{3}$/.test(p)) {
+      throw new BadRequestException(
+        'PIN demasiado débil: no uses 4 dígitos iguales (ej. 1111)',
+      );
+    }
+    return p;
+  }
+
+  /** Busca asociado ACTIVO por cédula normalizada (ignora puntos/guiones en BD). */
+  private async findActiveByCedula(cedula: string): Promise<Associate | null> {
+    const rows = await this.associates.query(
+      `
+      SELECT id FROM associates
+      WHERE status = $2
+        AND regexp_replace(document_number, '[^0-9]', '', 'g') = $1
+      LIMIT 1
+      `,
+      [cedula, AssociateStatus.ACTIVO],
+    );
+    const id = rows?.[0]?.id as string | undefined;
+    if (!id) return null;
+    return this.associates.findOne({
+      where: { id },
+      relations: { jobPosition: true },
+    });
+  }
+
+  private async findActiveByCedulaAndNombre(
+    cedula: string,
+    nombre: string,
+  ): Promise<Associate | null> {
+    const associate = await this.findActiveByCedula(cedula);
+    if (!associate) return null;
+    const expected = nombre.trim().toLowerCase();
+    const actual = (associate.firstName || '').trim().toLowerCase();
+    if (actual !== expected) return null;
+    return associate;
+  }
+
+  private assertNotLocked(cred: VigiaPin): void {
+    if (cred.lockedUntil && cred.lockedUntil.getTime() > Date.now()) {
+      const mins = Math.max(
+        1,
+        Math.ceil((cred.lockedUntil.getTime() - Date.now()) / 60000),
+      );
+      throw new UnauthorizedException(
+        `PIN bloqueado por intentos fallidos. Espera ${mins} min o restablece el PIN.`,
+      );
+    }
+  }
+
+  private async registerPinFailure(cred: VigiaPin): Promise<never> {
+    cred.failedAttempts = (cred.failedAttempts || 0) + 1;
+    if (cred.failedAttempts >= this.maxPinAttempts) {
+      cred.lockedUntil = new Date(Date.now() + this.lockMinutes * 60_000);
+      cred.failedAttempts = 0;
+      await this.pins.save(cred);
+      throw new UnauthorizedException(
+        `PIN bloqueado ${this.lockMinutes} minutos por demasiados intentos. Usa “Olvidé mi PIN”.`,
+      );
+    }
+    await this.pins.save(cred);
+    const left = this.maxPinAttempts - cred.failedAttempts;
+    throw new UnauthorizedException(
+      `PIN incorrecto. Te quedan ${left} intento(s).`,
+    );
+  }
+
+  private async clearPinFailures(cred: VigiaPin): Promise<void> {
+    if (cred.failedAttempts || cred.lockedUntil) {
+      cred.failedAttempts = 0;
+      cred.lockedUntil = null;
+      await this.pins.save(cred);
+    }
+  }
+
+  private async savePinHash(associateId: string, pin: string): Promise<void> {
+    const hash = await bcrypt.hash(pin, 12);
+    const existing = await this.pins.findOne({ where: { associateId } });
+    if (existing) {
+      existing.pinHash = hash;
+      existing.failedAttempts = 0;
+      existing.lockedUntil = null;
+      await this.pins.save(existing);
+      return;
+    }
+    await this.pins.save(
+      this.pins.create({
+        associateId,
+        pinHash: hash,
+        failedAttempts: 0,
+        lockedUntil: null,
+      }),
+    );
+  }
+
   async setupPin(dto: VigiaSetupPinDto) {
     const cedula = dto.cedula.replace(/\D/g, '');
     const nombre = dto.nombre.trim();
-    const pin = this.assertPin(dto.pin);
+    const pin = this.assertPinStrong(dto.pin);
     if (cedula.length < 4 || nombre.length < 2) {
       throw new BadRequestException('Cédula (≥4) y nombre (≥2) son obligatorios');
     }
 
-    const associate = await this.associates.findOne({
-      where: {
-        documentNumber: cedula,
-        firstName: ILike(nombre),
-        status: AssociateStatus.ACTIVO,
-      },
-      relations: { jobPosition: true },
-    });
+    const associate = await this.findActiveByCedulaAndNombre(cedula, nombre);
     if (!associate) {
       throw new UnauthorizedException(
         'Vigilante no encontrado o inactivo. Verifica cédula y primer nombre.',
@@ -116,34 +210,41 @@ export class VigiaService {
     const existing = await this.pins.findOne({ where: { associateId: associate.id } });
     if (existing) {
       throw new BadRequestException(
-        'Este vigilante ya tiene PIN. Ingresa con cédula y PIN.',
+        'Este vigilante ya tiene PIN. Ingresa con cédula y PIN, o usa “Olvidé mi PIN”.',
       );
     }
 
-    await this.pins.save(
-      this.pins.create({
-        associateId: associate.id,
-        pinHash: await bcrypt.hash(pin, 12),
-      }),
-    );
+    await this.savePinHash(associate.id, pin);
+    return this.openSession(associate);
+  }
 
+  async resetPin(dto: VigiaSetupPinDto) {
+    const cedula = dto.cedula.replace(/\D/g, '');
+    const nombre = dto.nombre.trim();
+    const pin = this.assertPinStrong(dto.pin);
+    if (cedula.length < 4 || nombre.length < 2) {
+      throw new BadRequestException('Cédula (≥4) y nombre (≥2) son obligatorios');
+    }
+
+    const associate = await this.findActiveByCedulaAndNombre(cedula, nombre);
+    if (!associate) {
+      throw new UnauthorizedException(
+        'No se pudo verificar identidad. Cédula y primer nombre deben coincidir.',
+      );
+    }
+
+    await this.savePinHash(associate.id, pin);
     return this.openSession(associate);
   }
 
   async login(dto: VigiaLoginDto) {
     const cedula = dto.cedula.replace(/\D/g, '');
-    const pin = this.assertPin(dto.pin);
+    const pin = this.assertPinFormat(dto.pin);
     if (cedula.length < 4) {
       throw new BadRequestException('Cédula (≥4) es obligatoria');
     }
 
-    const associate = await this.associates.findOne({
-      where: {
-        documentNumber: cedula,
-        status: AssociateStatus.ACTIVO,
-      },
-      relations: { jobPosition: true },
-    });
+    const associate = await this.findActiveByCedula(cedula);
     if (!associate) {
       throw new UnauthorizedException(
         'Vigilante no encontrado o inactivo. Verifica cédula.',
@@ -157,27 +258,33 @@ export class VigiaService {
       );
     }
 
+    this.assertNotLocked(cred);
+
     const ok = await bcrypt.compare(pin, cred.pinHash);
     if (!ok) {
-      throw new UnauthorizedException('PIN incorrecto');
+      await this.registerPinFailure(cred);
     }
 
+    await this.clearPinFailures(cred);
     return this.openSession(associate);
   }
 
   private async openSession(associate: Associate) {
     const posts = await this.listPuestos();
-    const post = posts[0];
-    if (!post) {
-      throw new BadRequestException('No hay puestos activos para asignar turno');
+    if (!posts.length) {
+      throw new BadRequestException(
+        'No hay puestos activos. Un administrador debe crear al menos un puesto en Operaciones.',
+      );
     }
 
-    const open = await this.turnos.findOne({
+    let turno = await this.turnos.findOne({
       where: { associateId: associate.id, estado: 'ABIERTO' },
       order: { startedAt: 'DESC' },
+      relations: { post: true },
     });
-    let turno = open;
+
     if (!turno) {
+      const post = posts[0];
       turno = await this.turnos.save(
         this.turnos.create({
           associateId: associate.id,
@@ -186,11 +293,24 @@ export class VigiaService {
           estado: 'ABIERTO',
         }),
       );
+      turno = await this.turnos.findOne({
+        where: { id: turno.id },
+        relations: { post: true },
+      });
     }
+
+    if (!turno) {
+      throw new BadRequestException('No se pudo abrir el turno');
+    }
+
+    const postName =
+      turno.post?.name ||
+      posts.find((p) => p.id === turno!.postId)?.name ||
+      'Puesto';
 
     const payload: VigiaJwtPayload = {
       sub: associate.id,
-      cedula: associate.documentNumber,
+      cedula: associate.documentNumber.replace(/\D/g, '') || associate.documentNumber,
       nombre: associate.firstName,
       aud: 'vigia',
     };
@@ -204,7 +324,7 @@ export class VigiaService {
       accessToken,
       empleado: this.employeeDto(associate),
       puesto_id: turno.postId,
-      puesto_nombre: post.name,
+      puesto_nombre: postName,
       turno_id: turno.id,
       inicio_timestamp: new Date(turno.startedAt).getTime(),
     };

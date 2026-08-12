@@ -68,6 +68,11 @@ export class VigiaApiService {
 
   cerrarTurno(relevoNombre: string, relevoFotoBase64?: string): Observable<unknown> {
     const id = this.auth.turnoId();
+    if (!id || id.startsWith('TUR-')) {
+      return new Observable((sub) => {
+        sub.error({ status: 400, error: { message: 'No hay turno activo para cerrar' } });
+      });
+    }
     return this.http.post(
       `${this.base}/turnos/${id}/cierre`,
       { relevoNombre, relevoFotoBase64 },

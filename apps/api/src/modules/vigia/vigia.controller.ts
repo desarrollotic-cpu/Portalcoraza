@@ -38,6 +38,11 @@ export class VigiaController {
     return this.vigia.setupPin(dto);
   }
 
+  @Post('auth/reset-pin')
+  resetPin(@Body() dto: VigiaSetupPinDto) {
+    return this.vigia.resetPin(dto);
+  }
+
   @Get('puestos')
   @UseGuards(VigiaAuthGuard)
   puestos() {

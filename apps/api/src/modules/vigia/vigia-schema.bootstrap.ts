@@ -43,11 +43,23 @@ export class VigiaSchemaBootstrap implements OnModuleInit {
         this.log.log('Esquema y permisos Vigía aplicados (ensure-vigia.sql)');
       } else {
         await this.ensureGerenciaGrants();
+        await this.ensurePinLockColumns();
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.error(`Bootstrap Vigía falló: ${msg}`);
     }
+  }
+
+  private async ensurePinLockColumns(): Promise<void> {
+    await this.ds.query(`
+      ALTER TABLE vigia_pins
+        ADD COLUMN IF NOT EXISTS failed_attempts INT NOT NULL DEFAULT 0
+    `);
+    await this.ds.query(`
+      ALTER TABLE vigia_pins
+        ADD COLUMN IF NOT EXISTS locked_until TIMESTAMPTZ
+    `);
   }
 
   private async ensureGerenciaGrants(): Promise<void> {

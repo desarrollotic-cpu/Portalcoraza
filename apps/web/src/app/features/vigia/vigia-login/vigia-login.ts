@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { VigiaAuthService } from '../vigia-auth.service';
 
+type Mode = 'login' | 'setup' | 'reset';
+
 @Component({
   selector: 'app-vigia-login',
   imports: [FormsModule],
@@ -12,10 +14,16 @@ import { VigiaAuthService } from '../vigia-auth.service';
         <img src="/brand/logo-coraza-cta.png" width="56" height="56" alt="Coraza" />
         <h1>Coraza Vigía</h1>
         <p>
-          @if (mode() === 'login') {
-            Acceso con cédula y PIN de 4 dígitos
-          } @else {
-            Primera vez: crea tu PIN con cédula y primer nombre
+          @switch (mode()) {
+            @case ('login') {
+              Acceso con cédula y PIN de 4 dígitos
+            }
+            @case ('setup') {
+              Primera vez: crea tu PIN con cédula y primer nombre
+            }
+            @case ('reset') {
+              Restablecer PIN: verifica cédula y primer nombre
+            }
           }
         </p>
       </div>
@@ -51,12 +59,15 @@ import { VigiaAuthService } from '../vigia-auth.service';
           <button type="submit" [disabled]="busy()">
             {{ busy() ? 'Ingresando…' : 'Ingresar' }}
           </button>
-          <button type="button" class="linkish" (click)="mode.set('setup'); error.set('')">
+          <button type="button" class="linkish" (click)="go('setup')">
             ¿Primera vez? Crear mi PIN
+          </button>
+          <button type="button" class="linkish" (click)="go('reset')">
+            Olvidé mi PIN
           </button>
         </form>
       } @else {
-        <form class="card" (ngSubmit)="submitSetup()">
+        <form class="card" (ngSubmit)="submitIdentityPin()">
           <label>
             Cédula
             <input
@@ -72,7 +83,7 @@ import { VigiaAuthService } from '../vigia-auth.service';
             <input [(ngModel)]="nombre" name="nombre" autocomplete="given-name" required />
           </label>
           <label>
-            Elige tu PIN (4 dígitos)
+            {{ mode() === 'reset' ? 'Nuevo PIN (4 dígitos)' : 'Elige tu PIN (4 dígitos)' }}
             <input
               [(ngModel)]="pin"
               name="pin"
@@ -101,9 +112,15 @@ import { VigiaAuthService } from '../vigia-auth.service';
             <p class="err">{{ error() }}</p>
           }
           <button type="submit" [disabled]="busy()">
-            {{ busy() ? 'Creando…' : 'Crear PIN e ingresar' }}
+            @if (busy()) {
+              Guardando…
+            } @else if (mode() === 'reset') {
+              Restablecer e ingresar
+            } @else {
+              Crear PIN e ingresar
+            }
           </button>
-          <button type="button" class="linkish" (click)="mode.set('login'); error.set('')">
+          <button type="button" class="linkish" (click)="go('login')">
             Ya tengo PIN — volver
           </button>
         </form>
@@ -136,9 +153,34 @@ export class VigiaLogin {
   nombre = '';
   pin = '';
   pin2 = '';
-  readonly mode = signal<'login' | 'setup'>('login');
+  readonly mode = signal<Mode>('login');
   readonly busy = signal(false);
   readonly error = signal('');
+
+  go(m: Mode): void {
+    this.mode.set(m);
+    this.error.set('');
+    this.pin = '';
+    this.pin2 = '';
+  }
+
+  private validatePinPair(): string | null {
+    const pin = this.pin.replace(/\D/g, '');
+    const pin2 = this.pin2.replace(/\D/g, '');
+    if (!/^\d{4}$/.test(pin)) {
+      this.error.set('El PIN debe ser exactamente 4 dígitos');
+      return null;
+    }
+    if (/^(\d)\1{3}$/.test(pin)) {
+      this.error.set('PIN demasiado débil: no uses 4 dígitos iguales');
+      return null;
+    }
+    if (pin !== pin2) {
+      this.error.set('Los PIN no coinciden');
+      return null;
+    }
+    return pin;
+  }
 
   submitLogin(): void {
     this.error.set('');
@@ -166,32 +208,34 @@ export class VigiaLogin {
           return;
         }
         this.busy.set(false);
-        this.error.set(e?.error?.message || 'No se pudo iniciar sesión');
+        const msg = Array.isArray(e?.error?.message)
+          ? e.error.message.join(' ')
+          : e?.error?.message;
+        this.error.set(msg || 'No se pudo iniciar sesión');
       },
     });
   }
 
-  submitSetup(): void {
+  submitIdentityPin(): void {
     this.error.set('');
-    const pin = this.pin.replace(/\D/g, '');
-    const pin2 = this.pin2.replace(/\D/g, '');
-    if (!/^\d{4}$/.test(pin)) {
-      this.error.set('El PIN debe ser exactamente 4 dígitos');
-      return;
-    }
-    if (pin !== pin2) {
-      this.error.set('Los PIN no coinciden');
-      return;
-    }
+    const pin = this.validatePinPair();
+    if (!pin) return;
     this.busy.set(true);
-    this.auth.setupPin(this.cedula, this.nombre, pin).subscribe({
+    const req =
+      this.mode() === 'reset'
+        ? this.auth.resetPin(this.cedula, this.nombre, pin)
+        : this.auth.setupPin(this.cedula, this.nombre, pin);
+    req.subscribe({
       next: () => {
         this.busy.set(false);
         void this.router.navigateByUrl('/vigia');
       },
       error: (e) => {
         this.busy.set(false);
-        this.error.set(e?.error?.message || 'No se pudo crear el PIN');
+        const msg = Array.isArray(e?.error?.message)
+          ? e.error.message.join(' ')
+          : e?.error?.message;
+        this.error.set(msg || 'No se pudo guardar el PIN');
       },
     });
   }
