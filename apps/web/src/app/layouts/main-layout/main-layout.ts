@@ -993,7 +993,8 @@ export class MainLayout implements OnDestroy {
           label: 'Coraza Vigía',
           route: '/vigilantes',
           icon: LucideEye,
-          permission: 'vigia.view',
+          // posts.view: respaldo si el JWT aún no trae vigia.view tras el grant
+          permissions: ['vigia.view', 'posts.view'],
         },
       ],
     },

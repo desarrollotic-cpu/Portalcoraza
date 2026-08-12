@@ -7,6 +7,7 @@ import {
   LucideBuilding2,
   LucideCalendarCheck,
   LucideClipboardCheck,
+  LucideEye,
   LucideFileText,
   LucidePackageOpen,
   LucideShieldCheck,
@@ -73,6 +74,12 @@ interface KpiCard {
                 <a routerLink="/dotacion" class="hero-btn ghost">
                   <app-icon [icon]="icons.Boxes" [size]="16" [strokeWidth]="2" />
                   Módulo Dotación
+                </a>
+              }
+              @if (auth.hasPermission('vigia.view') || auth.hasPermission('posts.view')) {
+                <a routerLink="/vigilantes" class="hero-btn ghost">
+                  <app-icon [icon]="icons.Eye" [size]="16" [strokeWidth]="2" />
+                  Coraza Vigía
                 </a>
               }
             </div>
@@ -491,6 +498,7 @@ export class Dashboard implements OnInit {
     Building2: LucideBuilding2,
     CalendarCheck: LucideCalendarCheck,
     ClipboardCheck: LucideClipboardCheck,
+    Eye: LucideEye,
     FileText: LucideFileText,
     PackageOpen: LucidePackageOpen,
     ShieldCheck: LucideShieldCheck,
