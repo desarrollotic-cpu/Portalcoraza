@@ -24,6 +24,12 @@ export const routes: Routes = [
     ],
   },
   {
+    path: 'minuta',
+    canActivate: [vigiaGuard],
+    loadComponent: () =>
+      import('./features/minuta/minuta-home/minuta-home').then((m) => m.MinutaHome),
+  },
+  {
     path: 'auth',
     component: AuthLayout,
     children: [
@@ -514,6 +520,13 @@ export const routes: Routes = [
         data: { permissions: ['vigia.view', 'posts.view'] },
         loadComponent: () =>
           import('./features/vigia/vigia-portal/vigia-portal').then((m) => m.VigiaPortal),
+      },
+      {
+        path: 'minutas',
+        canActivate: [permissionGuard],
+        data: { permissions: ['minuta.view', 'vigia.view', 'posts.view'] },
+        loadComponent: () =>
+          import('./features/minuta/minuta-portal/minuta-portal').then((m) => m.MinutaPortal),
       },
       {
         path: 'sst',

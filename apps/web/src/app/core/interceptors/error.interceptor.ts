@@ -27,6 +27,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         !req.url.includes('/auth/login') &&
         !req.url.includes('/auth/refresh') &&
         !req.url.includes('/vigia/') &&
+        !req.url.includes('/minuta/') &&
         !req.headers.has(RETRY_HEADER)
       ) {
         const refreshToken = localStorage.getItem(REFRESH_KEY);
@@ -64,11 +65,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           );
       }
 
-      if (error.status === 401 && !req.url.includes('/vigia/')) {
+      if (error.status === 401 && !req.url.includes('/vigia/') && !req.url.includes('/minuta/')) {
         clearSession(auth, router);
-      } else if (error.status === 403 && !req.url.includes('/vigia/')) {
+      } else if (error.status === 403 && !req.url.includes('/vigia/') && !req.url.includes('/minuta/')) {
         window.alert('No tienes permisos para esta accion');
-      } else if (error.status >= 500 && !req.url.includes('/vigia/')) {
+      } else if (error.status >= 500 && !req.url.includes('/vigia/') && !req.url.includes('/minuta/')) {
         window.alert('Error del servidor, intente nuevamente');
       }
 

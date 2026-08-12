@@ -46,5 +46,6 @@ import { VigiaService } from './vigia.service';
   ],
   controllers: [VigiaController],
   providers: [VigiaService, VigiaAuthGuard, VigiaSchemaBootstrap],
+  exports: [VigiaAuthGuard, JwtModule],
 })
 export class VigiaModule {}

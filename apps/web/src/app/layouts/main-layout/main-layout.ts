@@ -996,6 +996,12 @@ export class MainLayout implements OnDestroy {
           // posts.view: respaldo si el JWT aún no trae vigia.view tras el grant
           permissions: ['vigia.view', 'posts.view'],
         },
+        {
+          label: 'Minuta Virtual',
+          route: '/minutas',
+          icon: LucideClipboardList,
+          permissions: ['minuta.view', 'vigia.view', 'posts.view'],
+        },
       ],
     },
 

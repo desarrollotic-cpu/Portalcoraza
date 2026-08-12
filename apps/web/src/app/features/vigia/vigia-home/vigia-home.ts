@@ -28,6 +28,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           <button type="button" class="tile danger" (click)="go('sos')"><span>🚨</span> Seguridad / SOS</button>
           <button type="button" class="tile" (click)="go('dotacion')"><span>👔</span> Mi Dotación</button>
           <button type="button" class="tile" (click)="go('nomina')"><span>💰</span> Mis Colillas</button>
+          <a class="tile link-tile" href="/minuta/"><span>📒</span> Minuta Virtual</a>
         </main>
       } @else {
         <main class="panel">
@@ -206,6 +207,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
     .tile { border:0; border-radius:1rem; padding:1.1rem 0.75rem; background:#121824; color:#F1F5F9; font-weight:700; display:flex; flex-direction:column; gap:0.45rem; align-items:flex-start; cursor:pointer; text-align:left; }
     .tile span { font-size:1.4rem; }
     .tile.danger { outline:1px solid #EF4444; }
+    a.tile.link-tile { text-decoration:none; }
     .panel { padding:1rem; display:flex; flex-direction:column; gap:0.75rem; }
     .back { align-self:flex-start; border:0; background:transparent; color:#FFB700; font-weight:700; cursor:pointer; }
     h2 { margin:0; font-size:1.15rem; color:#FFB700; }
