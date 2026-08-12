@@ -26,6 +26,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         error.status === 401 &&
         !req.url.includes('/auth/login') &&
         !req.url.includes('/auth/refresh') &&
+        !req.url.includes('/vigia/') &&
         !req.headers.has(RETRY_HEADER)
       ) {
         const refreshToken = localStorage.getItem(REFRESH_KEY);
@@ -63,11 +64,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
           );
       }
 
-      if (error.status === 401) {
+      if (error.status === 401 && !req.url.includes('/vigia/')) {
         clearSession(auth, router);
-      } else if (error.status === 403) {
+      } else if (error.status === 403 && !req.url.includes('/vigia/')) {
         window.alert('No tienes permisos para esta accion');
-      } else if (error.status >= 500) {
+      } else if (error.status >= 500 && !req.url.includes('/vigia/')) {
         window.alert('Error del servidor, intente nuevamente');
       }
 

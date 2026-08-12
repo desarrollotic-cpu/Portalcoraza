@@ -40,6 +40,8 @@ const routes = [
   'admin',
   'admin/usuarios',
   'admin/roles',
+  'vigia',
+  'vigia/login',
 ];
 
 for (const route of routes) {

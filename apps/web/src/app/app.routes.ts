@@ -3,9 +3,26 @@ import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/guards/permission.guard';
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
 import { MainLayout } from './layouts/main-layout/main-layout';
+import { vigiaGuard } from './features/vigia/vigia.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+  {
+    path: 'vigia',
+    children: [
+      {
+        path: 'login',
+        loadComponent: () =>
+          import('./features/vigia/vigia-login/vigia-login').then((m) => m.VigiaLogin),
+      },
+      {
+        path: '',
+        canActivate: [vigiaGuard],
+        loadComponent: () =>
+          import('./features/vigia/vigia-home/vigia-home').then((m) => m.VigiaHome),
+      },
+    ],
+  },
   {
     path: 'auth',
     component: AuthLayout,

@@ -5,7 +5,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import {
   LucideEye,
   LucideEyeOff,
@@ -19,7 +19,7 @@ import { Icon } from '../../../shared/components/icon/icon';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, Icon],
+  imports: [ReactiveFormsModule, RouterLink, Icon],
   template: `
     <div class="login-wrap">
     <form class="login-form" [formGroup]="form" (ngSubmit)="submit()">
@@ -104,7 +104,9 @@ import { Icon } from '../../../shared/components/icon/icon';
       </button>
 
       <p class="foot-note">
-        ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el admin y no
+        ¿Eres vigilante?
+        <a routerLink="/vigia/login">Entrar a Coraza Vigía</a>
+        · ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el admin y no
         recuerdas la tuya,
         <button type="button" class="linkish" (click)="showRecover.set(!showRecover())">
           recupera el acceso aquí
