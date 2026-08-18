@@ -67,7 +67,7 @@ export class CreateAssociateDto {
   @IsOptional() @IsString() @MaxLength(30)
   landline?: string | null;
 
-  @IsString() @Length(4, 30)
+  @IsString() @Length(4, 80)
   mobile!: string;
 
   // ─── Emergencia ───────────────────────────────────────────────────────
