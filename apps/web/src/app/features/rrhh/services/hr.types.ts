@@ -179,6 +179,7 @@ export interface AssociatesQuery {
   status?: AssociateStatus;
   workCenterId?: string;
   jobPositionId?: string;
+  educationLevelId?: string;
   isCritical?: 'true' | 'false';
   tenureMinYears?: string;
   tenureMaxYears?: string;

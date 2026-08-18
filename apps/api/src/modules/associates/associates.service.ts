@@ -73,11 +73,15 @@ export class AssociatesService {
       .leftJoinAndSelect('a.workCenter', 'workCenter')
       .leftJoinAndSelect('a.eps', 'eps')
       .leftJoinAndSelect('a.gender', 'gender')
-      .leftJoinAndSelect('a.bloodType', 'bloodType');
+      .leftJoinAndSelect('a.bloodType', 'bloodType')
+      .leftJoinAndSelect('a.educationLevel', 'educationLevel');
 
     if (query.status) qb.andWhere('a.status = :status', { status: query.status });
     if (query.workCenterId) qb.andWhere('a.workCenterId = :wcId', { wcId: query.workCenterId });
     if (query.jobPositionId) qb.andWhere('a.jobPositionId = :jpId', { jpId: query.jobPositionId });
+    if (query.educationLevelId) {
+      qb.andWhere('a.educationLevelId = :eduId', { eduId: query.educationLevelId });
+    }
 
     if (query.isCritical !== undefined) {
       qb.andWhere('jobPosition.isCritical = :isCritical', {

@@ -22,6 +22,7 @@ import type {
   AssociateStatus,
   JobPosition,
   WorkCenter,
+  CatalogValue,
 } from '../services/hr.types';
 
 const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> = {
@@ -89,6 +90,12 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
             <option [ngValue]="wc.id">{{ wc.code }} — {{ wc.clientName }}</option>
           }
         </select>
+        <select [ngModel]="query.educationLevelId" (ngModelChange)="query.educationLevelId = $event; page.set(1); applyFilters()">
+          <option [ngValue]="undefined">Todos los niveles educativos</option>
+          @for (lvl of educationLevels(); track lvl.id) {
+            <option [ngValue]="lvl.id">{{ lvl.value }}</option>
+          }
+        </select>
         <select [ngModel]="query.isCritical" (ngModelChange)="query.isCritical = $event; page.set(1); applyFilters()">
           <option [ngValue]="undefined">Cualquier criticidad</option>
           <option value="true">Solo cargos críticos</option>
@@ -108,6 +115,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                 <th>Documento</th>
                 <th>Nombre</th>
                 <th>Cargo</th>
+                <th>Nivel educativo</th>
                 <th>Centro</th>
                 <th>Estado</th>
                 <th>Antigüedad</th>
@@ -126,6 +134,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                       <span class="hr-pill-critical">crítico</span>
                     }
                   </td>
+                  <td>{{ a.educationLevel?.value ?? '—' }}</td>
                   <td>{{ a.workCenter?.code ?? '—' }}</td>
                   <td>
                     <span class="hr-status" [attr.data-color]="statusColor(a.status)">
@@ -152,7 +161,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="8">
+                  <td colspan="9">
                     <div class="hr-empty-state">
                       <app-icon [icon]="icons.SearchX" [size]="36" />
                       <p>Sin resultados con estos filtros.</p>
@@ -201,6 +210,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   readonly associates = signal<Associate[]>([]);
   readonly positions = signal<JobPosition[]>([]);
   readonly workCenters = signal<WorkCenter[]>([]);
+  readonly educationLevels = signal<CatalogValue[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly page = signal(1);
@@ -235,6 +245,10 @@ export class AssociatesList implements OnInit, OnDestroy {
     });
     this.api.listWorkCenters().subscribe({
       next: (rows) => this.workCenters.set(rows),
+      error: () => {},
+    });
+    this.api.listCatalog('NIVEL_ESTUDIO').subscribe({
+      next: (rows) => this.educationLevels.set(rows),
       error: () => {},
     });
     // Debounce de la búsqueda: 300ms entre pulsaciones para reducir llamadas
