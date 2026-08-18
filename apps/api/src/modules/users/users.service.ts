@@ -39,7 +39,7 @@ export class UsersService {
   findByEmailWithRole(email: string) {
     return this.usersRepo.findOne({
       where: { email: email.toLowerCase() },
-      relations: { role: true },
+      relations: { role: true, warehouse: true },
     });
   }
 
@@ -129,12 +129,14 @@ export class UsersService {
     isActive: true,
     lastLoginAt: true,
     createdAt: true,
+    warehouseId: true,
     role: { id: true, code: true, name: true },
+    warehouse: { id: true, code: true, name: true },
   } as const;
 
   findAll() {
     return this.usersRepo.find({
-      relations: { role: true },
+      relations: { role: true, warehouse: true },
       order: { createdAt: 'DESC' },
       select: this.userListSelect,
     });
@@ -160,7 +162,7 @@ export class UsersService {
 
     const roles = await this.rolesRepo.count();
     const recent = await this.usersRepo.find({
-      relations: { role: true },
+      relations: { role: true, warehouse: true },
       order: { createdAt: 'DESC' },
       take: 8,
       select: this.userListSelect,
@@ -185,7 +187,7 @@ export class UsersService {
   private async findOneForAdmin(id: string) {
     const user = await this.usersRepo.findOne({
       where: { id },
-      relations: { role: true },
+      relations: { role: true, warehouse: true },
       select: this.userListSelect,
     });
     if (!user) {
@@ -213,6 +215,7 @@ export class UsersService {
         passwordHash,
         fullName: dto.fullName ?? null,
         roleId: dto.roleId,
+        warehouseId: dto.warehouseId ?? null,
         isActive: true,
       }),
     );
@@ -272,6 +275,10 @@ export class UsersService {
         throw new BadRequestException('No puedes desactivar tu propio usuario');
       }
       user.isActive = dto.isActive;
+    }
+
+    if (dto.warehouseId !== undefined) {
+      user.warehouseId = dto.warehouseId ?? null;
     }
 
     if (dto.password !== undefined && dto.password.trim().length > 0) {

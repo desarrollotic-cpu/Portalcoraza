@@ -26,7 +26,7 @@ export const ENTRY_REASONS = [
           <strong class="item-name">{{ v.item?.name ?? v.sku }}</strong>
           <div class="meta">
             <span>Código: <code>{{ v.item?.code ?? v.sku }}</code></span>
-            <span class="stock-ok">Stock actual: {{ v.stockCurrent }} unidades</span>
+            <span class="stock-ok">Stock en tu almacén: {{ v.stockCurrent }} unidades</span>
             @if ((v.item?.lowStockThreshold ?? 0) > 0) {
               <span>Stock mínimo: {{ v.item?.lowStockThreshold }} unidades</span>
             }

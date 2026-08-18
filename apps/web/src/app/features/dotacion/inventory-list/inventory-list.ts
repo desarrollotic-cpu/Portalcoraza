@@ -1,6 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { AddStockDialog } from '../add-stock-dialog/add-stock-dialog';
 import { InventoryApiService, InventoryItem, InventoryVariant } from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
@@ -8,18 +10,26 @@ import { ModalShell } from '../modal-shell/modal-shell';
 interface ItemRow {
   item: InventoryItem;
   variants: InventoryVariant[];
-  totalStock: number;
+  stockMedellin: number;
+  stockRionegro: number;
   primaryVariant: InventoryVariant | null;
 }
 
 @Component({
   selector: 'app-inventory-list',
-  imports: [RouterLink, AddStockDialog, ModalShell],
+  imports: [RouterLink, AddStockDialog, ModalShell, FormsModule],
   template: `
     <section>
       <header class="toolbar">
-        <h2>Inventario de Dotación</h2>
-        <a routerLink="/dotacion/inventario/nuevo" class="btn-primary">Agregar elemento</a>
+        <div>
+          <h2>Inventario de Dotación</h2>
+          @if (auth.currentUser()?.warehouse?.name; as wh) {
+            <p class="muted">Tu almacén: <strong>{{ wh }}</strong>. Ves las dos sedes; solo cargas y trasladas desde la tuya.</p>
+          }
+        </div>
+        @if (auth.hasPermission('inventory.create')) {
+          <a routerLink="/dotacion/inventario/nuevo" class="btn-primary">Agregar elemento</a>
+        }
       </header>
 
       @if (loading()) {
@@ -33,20 +43,28 @@ interface ItemRow {
               <th>Elemento</th>
               <th>Código</th>
               <th>Categoría</th>
-              <th>Stock</th>
+              <th>Medellín</th>
+              <th>Rionegro</th>
               <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
             @for (row of rows(); track row.item.id) {
-              <tr [class.low-stock]="row.totalStock < row.item.lowStockThreshold">
+              <tr>
                 <td>
                   <strong class="item-name">{{ row.item.name }}</strong>
-                  @if (row.variants.length > 1) {
+                  @if (row.item.createdByName) {
+                    <div class="muted">Creado por {{ row.item.createdByName }}</div>
+                  }
+                  @if (row.variants.length) {
                     <div class="size-lines">
                       @for (v of row.variants; track v.id) {
                         <span class="size-chip">
-                          {{ sizeLabel(v) }}: {{ v.stockCurrent }}
+                          {{ sizeLabel(v) }} · M {{ stockOf(v, 'MEDELLIN') }} · R {{ stockOf(v, 'RIONEGRO') }}
+                          @if (auth.hasPermission('inventory.move')) {
+                            <button type="button" class="chip-btn" (click)="openAddStock(v, row.item)">+ stock</button>
+                            <button type="button" class="chip-btn" (click)="openTransfer(v, row.item)">traslado</button>
+                          }
                         </span>
                       }
                     </div>
@@ -55,15 +73,17 @@ interface ItemRow {
                 <td><code>{{ row.item.code }}</code></td>
                 <td>{{ row.item.category?.name ?? '—' }}</td>
                 <td>
-                  <span [class.stock-ok]="row.totalStock > 0" [class.stock-zero]="row.totalStock === 0">
-                    {{ row.totalStock }} und.
+                  <span [class.stock-ok]="row.stockMedellin > 0" [class.stock-zero]="row.stockMedellin === 0">
+                    {{ row.stockMedellin }}
                   </span>
-                  @if (row.item.lowStockThreshold > 0) {
-                    <div class="muted">mín. {{ row.item.lowStockThreshold }}</div>
-                  }
+                </td>
+                <td>
+                  <span [class.stock-ok]="row.stockRionegro > 0" [class.stock-zero]="row.stockRionegro === 0">
+                    {{ row.stockRionegro }}
+                  </span>
                 </td>
                 <td class="actions-cell">
-                  @if (row.primaryVariant) {
+                  @if (row.primaryVariant && auth.hasPermission('inventory.move')) {
                     <button
                       type="button"
                       class="btn-stock"
@@ -71,18 +91,27 @@ interface ItemRow {
                     >
                       Agregar Stock
                     </button>
+                    <button
+                      type="button"
+                      class="btn-transfer"
+                      (click)="openTransfer(row.primaryVariant, row.item)"
+                    >
+                      Trasladar
+                    </button>
                   }
-                  <a [routerLink]="['/dotacion/inventario', row.item.id, 'editar']" class="link-edit">
-                    Editar
-                  </a>
-                  <button type="button" class="btn-delete" (click)="askDelete(row.item)">
-                    Eliminar
-                  </button>
+                  @if (auth.hasPermission('inventory.edit')) {
+                    <a [routerLink]="['/dotacion/inventario', row.item.id, 'editar']" class="link-edit">
+                      Editar
+                    </a>
+                    <button type="button" class="btn-delete" (click)="askDelete(row.item)">
+                      Eliminar
+                    </button>
+                  }
                 </td>
               </tr>
             } @empty {
               <tr>
-                <td colspan="5">No hay elementos. Usa “Agregar elemento” para crear el primero.</td>
+                <td colspan="6">No hay elementos. Usa “Agregar elemento” para crear el primero.</td>
               </tr>
             }
           </tbody>
@@ -96,6 +125,37 @@ interface ItemRow {
       (completed)="onStockAdded()"
       (dismissed)="closeAddStock()"
     />
+
+    <app-modal-shell
+      [open]="transferOpen()"
+      title="Trasladar a la otra sede"
+      (closed)="closeTransfer()"
+    >
+      @if (transferVariant(); as v) {
+        <p class="confirm-text">
+          {{ v.item?.name ?? v.sku }} — {{ sizeLabel(v) }}
+        </p>
+        <p class="muted">
+          Sale de <strong>{{ auth.currentUser()?.warehouse?.name ?? 'tu almacén' }}</strong>
+          ({{ v.stockCurrent }} und. en tu sede).
+        </p>
+        <label class="transfer-qty">
+          Cantidad
+          <input type="number" min="1" [(ngModel)]="transferQty" name="transferQty" />
+        </label>
+        @if (transferError()) {
+          <p class="error">{{ transferError() }}</p>
+        }
+        <div class="confirm-actions">
+          <button type="button" class="btn-ghost" (click)="closeTransfer()" [disabled]="transferring()">
+            Cancelar
+          </button>
+          <button type="button" class="btn-primary" (click)="confirmTransfer()" [disabled]="transferring()">
+            {{ transferring() ? 'Trasladando...' : 'Confirmar traslado' }}
+          </button>
+        </div>
+      }
+    </app-modal-shell>
 
     <app-modal-shell
       [open]="deleteDialogOpen()"
@@ -179,6 +239,19 @@ interface ItemRow {
       background: #f1f5f9;
       padding: 0.15rem 0.45rem;
       border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .chip-btn {
+      border: none;
+      background: #e2e8f0;
+      border-radius: 999px;
+      font: inherit;
+      font-size: 0.68rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.05rem 0.4rem;
     }
     .actions-cell {
       display: flex;
@@ -195,6 +268,28 @@ interface ItemRow {
       background: #16a34a;
       color: #fff;
       cursor: pointer;
+    }
+    .btn-transfer {
+      padding: 0.4rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border: 1px solid #c4b5fd;
+      border-radius: 8px;
+      background: #f5f3ff;
+      color: #5b21b6;
+      cursor: pointer;
+    }
+    .transfer-qty {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      margin: 0.75rem 0;
+      font-size: 0.85rem;
+    }
+    .transfer-qty input {
+      padding: 0.5rem 0.7rem;
+      border: 1px solid #d4d4d4;
+      border-radius: 8px;
     }
     .btn-delete {
       padding: 0.4rem 0.75rem;
@@ -256,12 +351,19 @@ interface ItemRow {
 })
 export class InventoryList implements OnInit {
   private readonly api = inject(InventoryApiService);
+  readonly auth = inject(AuthService);
 
   readonly rows = signal<ItemRow[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly stockDialogOpen = signal(false);
   readonly stockVariant = signal<InventoryVariant | null>(null);
+
+  readonly transferOpen = signal(false);
+  readonly transferVariant = signal<InventoryVariant | null>(null);
+  readonly transferring = signal(false);
+  readonly transferError = signal<string | null>(null);
+  transferQty = 1;
 
   readonly deleteDialogOpen = signal(false);
   readonly itemToDelete = signal<InventoryItem | null>(null);
@@ -273,14 +375,59 @@ export class InventoryList implements OnInit {
   }
 
   sizeLabel(v: InventoryVariant): string {
-    const entries = Object.entries(v.attributes ?? {});
-    if (!entries.length) return 'Principal';
-    return entries.map(([, val]) => String(val)).join(' / ');
+    const genero = v.genero ?? (v.attributes?.['genero'] != null ? String(v.attributes['genero']) : '');
+    const talla = v.talla ?? (v.attributes?.['talla'] != null ? String(v.attributes['talla']) : '');
+    const gender =
+      genero === 'M' || genero === 'Hombre' ? 'Hombre'
+      : genero === 'F' || genero === 'Mujer' ? 'Mujer'
+      : genero;
+    const parts = [gender, talla].filter(Boolean);
+    return parts.length ? parts.join(' · ') : v.sku;
+  }
+
+  stockOf(v: InventoryVariant, code: string): number {
+    return v.stocks?.find((s) => s.warehouseCode === code)?.quantity ?? 0;
   }
 
   openAddStock(variant: InventoryVariant, item: InventoryItem): void {
     this.stockVariant.set({ ...variant, item });
     this.stockDialogOpen.set(true);
+  }
+
+  openTransfer(variant: InventoryVariant, item: InventoryItem): void {
+    this.transferVariant.set({ ...variant, item });
+    this.transferQty = 1;
+    this.transferError.set(null);
+    this.transferOpen.set(true);
+  }
+
+  closeTransfer(): void {
+    if (this.transferring()) return;
+    this.transferOpen.set(false);
+    this.transferVariant.set(null);
+  }
+
+  confirmTransfer(): void {
+    const v = this.transferVariant();
+    const qty = Number(this.transferQty);
+    if (!v || !Number.isFinite(qty) || qty < 1) {
+      this.transferError.set('Indica una cantidad válida.');
+      return;
+    }
+    this.transferring.set(true);
+    this.transferError.set(null);
+    this.api.transferStock({ variantId: v.id, quantity: qty }).subscribe({
+      next: () => {
+        this.transferring.set(false);
+        this.transferOpen.set(false);
+        this.transferVariant.set(null);
+        this.reload();
+      },
+      error: (err) => {
+        this.transferring.set(false);
+        this.transferError.set(err?.error?.message ?? 'No se pudo trasladar.');
+      },
+    });
   }
 
   closeAddStock(): void {
@@ -345,16 +492,12 @@ export class InventoryList implements OnInit {
         this.rows.set(
           items.map((item) => {
             const itemVariants = byItem.get(item.id) ?? [];
-            const primary =
-              itemVariants.find((v) => v.sku === item.code) ??
-              itemVariants.find((v) => Object.keys(v.attributes ?? {}).length === 0) ??
-              itemVariants[0] ??
-              null;
             return {
               item,
               variants: itemVariants,
-              totalStock: itemVariants.reduce((sum, v) => sum + v.stockCurrent, 0),
-              primaryVariant: primary,
+              stockMedellin: itemVariants.reduce((sum, v) => sum + this.stockOf(v, 'MEDELLIN'), 0),
+              stockRionegro: itemVariants.reduce((sum, v) => sum + this.stockOf(v, 'RIONEGRO'), 0),
+              primaryVariant: itemVariants[0] ?? null,
             };
           }),
         );

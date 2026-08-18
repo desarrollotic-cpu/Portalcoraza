@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Associate } from '../../associates/entities/associate.entity';
+import { InventoryWarehouse } from '../../inventory/entities/inventory-warehouse.entity';
 import { DeliveryDetail } from './delivery-detail.entity';
 
 export enum DeliveryStatus {
@@ -46,6 +47,13 @@ export class Delivery {
 
   @Column({ name: 'delivered_at', type: 'timestamptz', nullable: true })
   deliveredAt!: Date | null;
+
+  @Column({ name: 'warehouse_id', type: 'uuid', nullable: true })
+  warehouseId!: string | null;
+
+  @ManyToOne(() => InventoryWarehouse, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'warehouse_id' })
+  warehouse?: InventoryWarehouse | null;
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy!: string | null;

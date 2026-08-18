@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { InventoryWarehouse } from '../../inventory/entities/inventory-warehouse.entity';
 import { Role } from '../../roles/entities/role.entity';
 
 @Entity('users')
@@ -29,6 +30,13 @@ export class User {
   @ManyToOne(() => Role, (r) => r.users)
   @JoinColumn({ name: 'role_id' })
   role!: Role;
+
+  @Column({ name: 'warehouse_id', type: 'uuid', nullable: true })
+  warehouseId!: string | null;
+
+  @ManyToOne(() => InventoryWarehouse, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'warehouse_id' })
+  warehouse?: InventoryWarehouse | null;
 
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;

@@ -26,4 +26,8 @@ export class CreateUserDto {
 
   @IsUUID()
   roleId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  warehouseId?: string | null;
 }

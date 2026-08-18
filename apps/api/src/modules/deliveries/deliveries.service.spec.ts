@@ -16,7 +16,10 @@ import { Delivery, DeliveryStatus } from './entities/delivery.entity';
 describe('DeliveriesService', () => {
   let service: DeliveriesService;
   let deliveriesRepo: jest.Mocked<Repository<Delivery>>;
-  let variantsRepo: jest.Mocked<Repository<InventoryVariant>>;
+  let inventoryService: {
+    requireActorWarehouse: jest.Mock;
+    changeStocks: jest.Mock;
+  };
   let storage: {
     uploadPublicObject: jest.Mock;
     downloadObject: jest.Mock;
@@ -95,6 +98,12 @@ describe('DeliveriesService', () => {
             listLowStockVariants: jest.fn(),
             countItems: jest.fn(),
             countVariants: jest.fn(),
+            requireActorWarehouse: jest.fn().mockResolvedValue({
+              id: 'wh-med',
+              code: 'MEDELLIN',
+              name: 'Medellín',
+            }),
+            changeStocks: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -102,7 +111,7 @@ describe('DeliveriesService', () => {
 
     service = module.get(DeliveriesService);
     deliveriesRepo = module.get(getRepositoryToken(Delivery));
-    variantsRepo = module.get(getRepositoryToken(InventoryVariant));
+    inventoryService = module.get(InventoryService);
   });
 
   describe('sign', () => {
@@ -114,9 +123,9 @@ describe('DeliveriesService', () => {
       };
 
       deliveriesRepo.findOne.mockResolvedValue(delivery as Delivery);
-      variantsRepo.findBy.mockResolvedValue([
-        { id: variantId, stockCurrent: 2 } as InventoryVariant,
-      ]);
+      inventoryService.changeStocks.mockRejectedValue(
+        new ConflictException('Stock insuficiente'),
+      );
 
       await expect(
         service.sign(deliveryId, { signatureData: 'data:image/png;base64,abc' }, userId),
@@ -147,12 +156,11 @@ describe('DeliveriesService', () => {
         id: deliveryId,
         status: DeliveryStatus.DELIVERED,
         deliveredAt: oneDayAgo,
+        warehouseId: 'wh-med',
         details: [{ variantId, quantity: 3 } as DeliveryDetail],
       };
-      const variant = { id: variantId, stockCurrent: 10 } as InventoryVariant;
 
       deliveriesRepo.findOne.mockResolvedValue(delivery as Delivery);
-      variantsRepo.findBy.mockResolvedValue([variant]);
       deliveriesRepo.save.mockImplementation(async (entity) => entity as Delivery);
 
       const result = await service.revert(
@@ -162,8 +170,9 @@ describe('DeliveriesService', () => {
       );
 
       expect(result.status).toBe(DeliveryStatus.REVERTED);
-      expect(variant.stockCurrent).toBe(13);
-      expect(variantsRepo.save).toHaveBeenCalledWith([variant]);
+      expect(inventoryService.changeStocks).toHaveBeenCalledWith([
+        { variantId, warehouseId: 'wh-med', delta: 3 },
+      ]);
     });
   });
 

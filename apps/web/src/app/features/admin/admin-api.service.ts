@@ -10,6 +10,8 @@ export interface AdminUser {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  warehouseId?: string | null;
+  warehouse?: { id: string; code: string; name: string } | null;
   role: { id: string; code: string; name: string };
 }
 
@@ -53,6 +55,7 @@ export interface CreateUserPayload {
   password: string;
   fullName?: string;
   roleId: string;
+  warehouseId?: string | null;
 }
 
 export interface UpdateUserPayload {
@@ -61,6 +64,7 @@ export interface UpdateUserPayload {
   fullName?: string | null;
   roleId?: string;
   isActive?: boolean;
+  warehouseId?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -97,6 +101,12 @@ export class AdminApiService {
 
   listRoles(): Observable<AdminRole[]> {
     return this.http.get<AdminRole[]>(`${this.baseUrl}/roles`);
+  }
+
+  listWarehouses(): Observable<Array<{ id: string; code: string; name: string }>> {
+    return this.http.get<Array<{ id: string; code: string; name: string }>>(
+      `${this.baseUrl}/inventory/warehouses`,
+    );
   }
 
   listPermissions(): Observable<Permission[]> {

@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
 import { InventoryCategory } from './inventory-category.entity';
 
 @Entity('inventory_items')
@@ -32,6 +33,16 @@ export class InventoryItem {
 
   @Column({ name: 'low_stock_threshold', type: 'int', default: 0 })
   lowStockThreshold!: number;
+
+  @Column({ name: 'created_by', type: 'uuid', nullable: true })
+  createdBy!: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'created_by' })
+  creator?: User | null;
+
+  @Column({ name: 'updated_by', type: 'uuid', nullable: true })
+  updatedBy!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

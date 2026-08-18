@@ -16,7 +16,15 @@ export interface InventoryItem {
   name: string;
   unit: string;
   lowStockThreshold: number;
+  createdByName?: string | null;
   category?: InventoryCategory;
+}
+
+export interface WarehouseStock {
+  warehouseId: string;
+  warehouseCode: string | null;
+  warehouseName: string | null;
+  quantity: number;
 }
 
 export interface InventoryVariant {
@@ -28,7 +36,16 @@ export interface InventoryVariant {
   color?: string | null;
   genero?: string | null;
   stockCurrent: number;
+  stockOwn?: number | null;
+  stockTotal?: number;
+  stocks?: WarehouseStock[];
   item?: InventoryItem;
+}
+
+export interface InventoryWarehouse {
+  id: string;
+  code: string;
+  name: string;
 }
 
 export interface DeliveryDetail {
@@ -122,8 +139,8 @@ export interface CreateDeliveryPayload {
 
 export interface InventoryMovement {
   id: string;
-  variantId: string;
-  movementType: 'IN' | 'OUT' | 'ADJ';
+  variantId: string | null;
+  movementType: 'IN' | 'OUT' | 'ADJ' | 'TRANSFER' | 'CREATE' | 'UPDATE';
   quantity: number;
   reason: string | null;
   entryReason?: string | null;
@@ -131,8 +148,10 @@ export interface InventoryMovement {
   reference: string | null;
   performedBy?: string | null;
   performedByName?: string | null;
+  warehouseName?: string | null;
+  destWarehouseName?: string | null;
   createdAt: string;
-  variant?: InventoryVariant;
+  variant?: InventoryVariant | null;
 }
 
 export interface DotacionOverview {
@@ -217,6 +236,10 @@ export class InventoryApiService {
     return this.http.get<InventoryCategory[]>(`${this.inventoryUrl}/categories`);
   }
 
+  listWarehouses(): Observable<InventoryWarehouse[]> {
+    return this.http.get<InventoryWarehouse[]>(`${this.inventoryUrl}/warehouses`);
+  }
+
   createCategory(payload: { code: string; name: string }): Observable<InventoryCategory> {
     return this.http.post<InventoryCategory>(`${this.inventoryUrl}/categories`, payload);
   }
@@ -255,6 +278,14 @@ export class InventoryApiService {
     reason?: string;
   }): Observable<unknown> {
     return this.http.post(`${this.inventoryUrl}/movements`, payload);
+  }
+
+  transferStock(payload: {
+    variantId: string;
+    quantity: number;
+    observations?: string;
+  }): Observable<unknown> {
+    return this.http.post(`${this.inventoryUrl}/transfers`, payload);
   }
 
   listMovements(limit = 150): Observable<InventoryMovement[]> {

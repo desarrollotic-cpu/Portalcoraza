@@ -148,6 +148,8 @@ export class AuthService {
         fullName: parsed.fullName ?? null,
         role: parsed.role,
         permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
+        warehouseId: parsed.warehouseId ?? null,
+        warehouse: parsed.warehouse ?? null,
       };
     } catch {
       return null;

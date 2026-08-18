@@ -24,7 +24,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
           <h2>{{ title() }}</h2>
           <p class="hint">
             @if (!itemId()) {
-              Escribe el nombre del elemento. El código se asigna solo.
+              Se crea para hombre y mujer. El stock se agrega después, solo en tu almacén.
             } @else {
               Código del sistema: <strong>{{ assignedCode() || '—' }}</strong>
             }
@@ -64,24 +64,6 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
             Stock mínimo
             <input formControlName="lowStockThreshold" type="number" min="0" />
           </label>
-
-          @if (!itemId()) {
-            <label>
-              Cantidad inicial
-              <input formControlName="initialStock" type="number" min="0" />
-            </label>
-            @if ((form.controls.initialStock.value ?? 0) > 0) {
-              <label>
-                Motivo de entrada *
-                <select formControlName="initialStockReason">
-                  <option value="">Seleccione...</option>
-                  @for (r of entryReasons; track r) {
-                    <option [value]="r">{{ r }}</option>
-                  }
-                </select>
-              </label>
-            }
-          }
         </div>
 
         @if (!itemId()) {
@@ -98,10 +80,9 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
 
       @if (itemId()) {
         <section class="card variants">
-          <h3>Tallas / variantes (opcional)</h3>
+          <h3>Tallas / variantes</h3>
           <p class="hint">
-            Solo si el elemento maneja tallas o colores. El stock principal ya está en la variante
-            por defecto (mismo código del elemento).
+            El elemento ya tiene línea hombre y mujer. Agrega tallas por género si hace falta.
           </p>
 
           @if (variants().length) {
@@ -120,6 +101,12 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
 
           <form [formGroup]="variantForm" (ngSubmit)="addVariant()" class="variant-form">
             <div class="grid">
+              <label>Género *
+                <select formControlName="genero">
+                  <option value="M">Hombre</option>
+                  <option value="F">Mujer</option>
+                </select>
+              </label>
               <label>Talla<input formControlName="talla" placeholder="Ej. M, 40..." /></label>
               <label>Color<input formControlName="color" placeholder="Opcional" /></label>
               <label>Stock inicial<input formControlName="initialStock" type="number" min="0" /></label>
@@ -271,6 +258,7 @@ export class InventoryForm implements OnInit {
   readonly entryReasons = ENTRY_REASONS;
 
   readonly variantForm = this.fb.nonNullable.group({
+    genero: ['M', Validators.required],
     talla: [''],
     color: [''],
     initialStock: [0, [Validators.min(0)]],
@@ -296,7 +284,7 @@ export class InventoryForm implements OnInit {
     this.saving.set(true);
     this.error.set(null);
 
-    const { categoryId, name, lowStockThreshold, initialStock, initialStockReason } =
+    const { categoryId, name, lowStockThreshold } =
       this.form.getRawValue();
     const id = this.itemId();
 
@@ -316,19 +304,11 @@ export class InventoryForm implements OnInit {
       return;
     }
 
-    if (initialStock > 0 && !initialStockReason.trim()) {
-      this.saving.set(false);
-      this.error.set('Selecciona el motivo de entrada para el stock inicial.');
-      return;
-    }
-
     this.api
       .createItem({
         categoryId,
         name,
         lowStockThreshold,
-        initialStock: initialStock > 0 ? initialStock : undefined,
-        initialStockReason: initialStock > 0 ? initialStockReason.trim() : undefined,
       })
       .subscribe({
         next: () => {
@@ -347,7 +327,7 @@ export class InventoryForm implements OnInit {
     const code = this.assignedCode();
     if (!itemId || !code) return;
 
-    const { talla, color, initialStock, entryReason } = this.variantForm.getRawValue();
+    const { talla, color, initialStock, entryReason, genero } = this.variantForm.getRawValue();
     if (!talla.trim() && !color.trim()) {
       this.error.set('Indica al menos talla o color para la variante');
       return;
@@ -360,8 +340,9 @@ export class InventoryForm implements OnInit {
     const attributes: Record<string, unknown> = {};
     if (talla.trim()) attributes['talla'] = talla.trim();
     if (color.trim()) attributes['color'] = color.trim();
+    attributes['genero'] = genero === 'F' ? 'Mujer' : 'Hombre';
 
-    const suffix = [talla.trim(), color.trim()].filter(Boolean).join('-').toUpperCase();
+    const suffix = [genero, talla.trim(), color.trim()].filter(Boolean).join('-').toUpperCase();
     const sku = `${code}-${suffix}`.slice(0, 80);
 
     this.saving.set(true);
@@ -372,6 +353,7 @@ export class InventoryForm implements OnInit {
       attributes,
       talla: talla.trim() || undefined,
       color: color.trim() || undefined,
+      genero,
     }).subscribe({
       next: (variant) => {
         if (initialStock > 0) {
@@ -386,6 +368,7 @@ export class InventoryForm implements OnInit {
               next: () => {
                 this.saving.set(false);
                 this.variantForm.reset({
+                  genero: 'M',
                   talla: '',
                   color: '',
                   initialStock: 0,
@@ -402,6 +385,7 @@ export class InventoryForm implements OnInit {
         } else {
           this.saving.set(false);
           this.variantForm.reset({
+            genero: 'M',
             talla: '',
             color: '',
             initialStock: 0,

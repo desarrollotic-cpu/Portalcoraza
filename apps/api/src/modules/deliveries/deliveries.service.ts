@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -445,6 +446,7 @@ export class DeliveriesService {
       await this.assertDeliverableAssociate(dto.associateId);
     }
 
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
     const variantIds = dto.items.map((i) => i.variantId);
     const variants = await this.variantsRepo.find({
       where: { id: In(variantIds) },
@@ -461,6 +463,7 @@ export class DeliveriesService {
         observations: dto.observations ?? null,
         status: DeliveryStatus.PENDING,
         createdBy: userId,
+        warehouseId: warehouse.id,
       }),
     );
 
@@ -505,21 +508,19 @@ export class DeliveriesService {
 
     const signatureUrl = await this.uploadSignature(id, dto.signatureData);
 
-    const variants = await this.variantsRepo.findBy({
-      id: In(delivery.details.map((d) => d.variantId)),
-    });
-    const variantById = new Map(variants.map((v) => [v.id, v]));
-    for (const detail of delivery.details) {
-      const variant = variantById.get(detail.variantId);
-      if (!variant) {
-        throw new NotFoundException('Variante de inventario no encontrada');
-      }
-      if (detail.quantity > variant.stockCurrent) {
-        throw new ConflictException('Stock insuficiente para confirmar entrega');
-      }
-      variant.stockCurrent -= detail.quantity;
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
+    if (delivery.warehouseId && delivery.warehouseId !== warehouse.id) {
+      throw new ForbiddenException('Esta entrega pertenece a otro almacén');
     }
-    await this.variantsRepo.save(variants);
+    const warehouseId = delivery.warehouseId ?? warehouse.id;
+
+    await this.inventoryService.changeStocks(
+      delivery.details.map((detail) => ({
+        variantId: detail.variantId,
+        warehouseId,
+        delta: -detail.quantity,
+      })),
+    );
 
     const oldStatus = delivery.status;
     delivery.signatureUrl = signatureUrl;
@@ -572,18 +573,19 @@ export class DeliveriesService {
       );
     }
 
-    const variants = await this.variantsRepo.findBy({
-      id: In(delivery.details.map((d) => d.variantId)),
-    });
-    const variantById = new Map(variants.map((v) => [v.id, v]));
-    for (const detail of delivery.details) {
-      const variant = variantById.get(detail.variantId);
-      if (!variant) {
-        throw new NotFoundException('Variante de inventario no encontrada');
-      }
-      variant.stockCurrent += detail.quantity;
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
+    if (delivery.warehouseId && delivery.warehouseId !== warehouse.id) {
+      throw new ForbiddenException('Esta entrega pertenece a otro almacén');
     }
-    await this.variantsRepo.save(variants);
+    const warehouseId = delivery.warehouseId ?? warehouse.id;
+
+    await this.inventoryService.changeStocks(
+      delivery.details.map((detail) => ({
+        variantId: detail.variantId,
+        warehouseId,
+        delta: detail.quantity,
+      })),
+    );
 
     const oldStatus = delivery.status;
     delivery.status = DeliveryStatus.REVERTED;

@@ -4,6 +4,8 @@ export interface AuthUser {
   fullName: string | null;
   role: { code: string; name: string };
   permissions: string[];
+  warehouseId?: string | null;
+  warehouse?: { id: string; code: string; name: string } | null;
 }
 
 export interface LoginResponse {

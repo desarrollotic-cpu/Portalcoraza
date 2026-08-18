@@ -17,6 +17,7 @@ import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { CreateInventoryCategoryDto } from './dto/create-inventory-category.dto';
 import { CreateInventoryItemDto } from './dto/create-inventory-item.dto';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
+import { CreateInventoryTransferDto } from './dto/create-inventory-transfer.dto';
 import { CreateInventoryVariantDto } from './dto/create-inventory-variant.dto';
 import { UpdateInventoryCategoryDto } from './dto/update-inventory-category.dto';
 import { UpdateInventoryItemDto } from './dto/update-inventory-item.dto';
@@ -28,6 +29,12 @@ import { InventoryService } from './inventory.service';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
+
+  @Get('warehouses')
+  @RequirePermissions('inventory.view')
+  listWarehouses() {
+    return this.inventoryService.listWarehouses();
+  }
 
   @Get('categories')
   @RequirePermissions('inventory.view')
@@ -84,8 +91,8 @@ export class InventoryController {
 
   @Get('variants')
   @RequirePermissions('inventory.view')
-  listVariants(@Query('itemId') itemId?: string) {
-    return this.inventoryService.listVariants(itemId);
+  listVariants(@Query('itemId') itemId?: string, @CurrentUser() user?: JwtPayload) {
+    return this.inventoryService.listVariants(itemId, user?.sub);
   }
 
   @Post('variants')
@@ -123,19 +130,29 @@ export class InventoryController {
     return this.inventoryService.createMovement(dto, user.sub);
   }
 
+  @Post('transfers')
+  @RequirePermissions('inventory.move')
+  transfer(
+    @Body() dto: CreateInventoryTransferDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.inventoryService.transfer(dto, user.sub);
+  }
+
   @Get('variants/available-stock')
   @RequirePermissions('inventory.view')
   availableStock(
     @Query('category') category: string,
     @Query('talla') talla?: string,
     @Query('genero') genero?: string,
+    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.inventoryService.getAvailableStock(category, talla, genero);
+    return this.inventoryService.getAvailableStock(category, talla, genero, user?.sub);
   }
 
   @Post('validate-stock')
   @RequirePermissions('inventory.view')
-  validateStock(@Body() dto: ValidateStockDto) {
-    return this.inventoryService.validateStock(dto);
+  validateStock(@Body() dto: ValidateStockDto, @CurrentUser() user: JwtPayload) {
+    return this.inventoryService.validateStock(dto, user.sub);
   }
 }
