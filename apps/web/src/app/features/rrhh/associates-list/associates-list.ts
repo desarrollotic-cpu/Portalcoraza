@@ -43,7 +43,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
     <div class="hr-page">
       <app-hr-page-header
         title="Directorio"
-        [badge]="filtered().length + ' de ' + associates().length"
+        [badge]="rangeLabel()"
       >
         <div actions class="hr-page-header__actions">
           <button type="button" class="hr-btn hr-btn-ghost" (click)="refresh()" [disabled]="loading()">
@@ -77,19 +77,19 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
             >{{ s.label }}</button>
           }
         </div>
-        <select [ngModel]="query.jobPositionId" (ngModelChange)="query.jobPositionId = $event; applyFilters()">
+        <select [ngModel]="query.jobPositionId" (ngModelChange)="query.jobPositionId = $event; page.set(1); applyFilters()">
           <option [ngValue]="undefined">Todos los cargos</option>
           @for (p of positions(); track p.id) {
             <option [ngValue]="p.id">{{ p.name }}</option>
           }
         </select>
-        <select [ngModel]="query.workCenterId" (ngModelChange)="query.workCenterId = $event; applyFilters()">
+        <select [ngModel]="query.workCenterId" (ngModelChange)="query.workCenterId = $event; page.set(1); applyFilters()">
           <option [ngValue]="undefined">Todos los centros</option>
           @for (wc of workCenters(); track wc.id) {
             <option [ngValue]="wc.id">{{ wc.code }} — {{ wc.clientName }}</option>
           }
         </select>
-        <select [ngModel]="query.isCritical" (ngModelChange)="query.isCritical = $event; applyFilters()">
+        <select [ngModel]="query.isCritical" (ngModelChange)="query.isCritical = $event; page.set(1); applyFilters()">
           <option [ngValue]="undefined">Cualquier criticidad</option>
           <option value="true">Solo cargos críticos</option>
           <option value="false">No críticos</option>
@@ -166,6 +166,17 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
             </tbody>
           </table>
         </div>
+        @if (total() > 0) {
+          <div class="hr-pagination">
+            <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" [disabled]="page() <= 1" (click)="goPage(page() - 1)">
+              Anterior
+            </button>
+            <span class="hr-pagination__meta">Página {{ page() }} de {{ totalPages() }}</span>
+            <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" [disabled]="page() >= totalPages()" (click)="goPage(page() + 1)">
+              Siguiente
+            </button>
+          </div>
+        }
       }
     </div>
   `,
@@ -192,13 +203,21 @@ export class AssociatesList implements OnInit, OnDestroy {
   readonly workCenters = signal<WorkCenter[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly page = signal(1);
+  readonly limit = 50;
+  readonly total = signal(0);
+  readonly totalPages = signal(1);
 
   query: AssociatesQuery = { status: 'ACTIVO' };
 
-  readonly filtered = computed(() => {
-    // El backend ya filtra; el signal es directo. Se mantiene por si en el
-    // futuro queremos filtrado adicional en cliente.
-    return this.associates();
+  readonly filtered = computed(() => this.associates());
+
+  readonly rangeLabel = computed(() => {
+    const total = this.total();
+    if (!total) return '0';
+    const from = (this.page() - 1) * this.limit + 1;
+    const to = Math.min(this.page() * this.limit, total);
+    return `${from}–${to} de ${total}`;
   });
 
   readonly statusChips: { value: AssociateStatus | undefined; label: string }[] = [
@@ -229,6 +248,7 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   onSearchChange(term: string): void {
     this.query.search = term;
+    this.page.set(1);
     this.search$.next();
   }
 
@@ -238,15 +258,18 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.query = { status: 'ACTIVO' };
+    this.page.set(1);
     this.applyFilters();
   }
 
   applyFilters(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.listAssociates(this.query).subscribe({
-      next: (rows) => {
-        this.associates.set(rows);
+    this.api.listAssociates({ ...this.query, page: this.page(), limit: this.limit }).subscribe({
+      next: (res) => {
+        this.associates.set(res.items);
+        this.total.set(res.total);
+        this.totalPages.set(res.totalPages);
         this.loading.set(false);
       },
       error: (err) => {
@@ -256,8 +279,15 @@ export class AssociatesList implements OnInit, OnDestroy {
     });
   }
 
+  goPage(next: number): void {
+    if (next < 1 || next > this.totalPages()) return;
+    this.page.set(next);
+    this.applyFilters();
+  }
+
   toggleStatus(value: AssociateStatus | undefined): void {
     this.query.status = this.query.status === value ? undefined : value;
+    this.page.set(1);
     this.applyFilters();
   }
 

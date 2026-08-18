@@ -478,8 +478,8 @@ export class AbsenteeismPanel implements OnInit {
       this.associateHits.set([]);
       return;
     }
-    this.api.listAssociates({ search: q, status: 'ACTIVO' }).subscribe({
-      next: (rows) => this.associateHits.set(rows.slice(0, 8)),
+    this.api.listAssociates({ search: q, status: 'ACTIVO', page: 1, limit: 8 }).subscribe({
+      next: (res) => this.associateHits.set(res.items),
       error: () => this.associateHits.set([]),
     });
   }

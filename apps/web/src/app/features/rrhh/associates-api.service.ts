@@ -88,7 +88,7 @@ export class AssociatesApiService {
 
     const query = status ? { status: status as AssociateStatus } : {};
 
-    return this.hr.listAssociates(query).pipe(map((rows) => rows.map(toLegacy)));
+    return this.hr.listAssociates({ ...query, page: 1, limit: 2000 }).pipe(map((res) => res.items.map(toLegacy)));
 
   }
 

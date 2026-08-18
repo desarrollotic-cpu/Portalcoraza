@@ -101,15 +101,19 @@ export class AssociatesService {
 
     qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
 
-    let rows = await qb.getMany();
+    const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);
+    const limit = Math.min(2000, Math.max(1, parseInt(query.limit ?? '50', 10) || 50));
+    const skip = (page - 1) * limit;
+    const tenureFilter = !!(query.tenureMinYears || query.tenureMaxYears);
 
-    const retiredIds = rows
-      .filter((a) => a.status === AssociateStatus.RETIRADO)
-      .map((a) => a.id);
-    const retirementByAssociate = await this.latestRetirementDates(retiredIds);
-
-    // Filtros post-hoc (antigüedad en memoria porque depende de derivados)
-    if (query.tenureMinYears || query.tenureMaxYears) {
+    let rows: Associate[];
+    let total: number;
+    if (tenureFilter) {
+      rows = await qb.getMany();
+      const retiredIds = rows
+        .filter((a) => a.status === AssociateStatus.RETIRADO)
+        .map((a) => a.id);
+      const retirementByAssociate = await this.latestRetirementDates(retiredIds);
       const min = query.tenureMinYears ? parseFloat(query.tenureMinYears) : 0;
       const max = query.tenureMaxYears ? parseFloat(query.tenureMaxYears) : Number.MAX_SAFE_INTEGER;
       rows = rows.filter((a) => {
@@ -121,9 +125,34 @@ export class AssociatesService {
         });
         return tenureYears >= min && tenureYears <= max;
       });
+      total = rows.length;
+      rows = rows.slice(skip, skip + limit);
+      const pageRetired = rows
+        .filter((a) => a.status === AssociateStatus.RETIRADO)
+        .map((a) => a.id);
+      const pageRetirements = await this.latestRetirementDates(pageRetired);
+      return {
+        items: rows.map((a) => this.enrich(a, user, pageRetirements.get(a.id))),
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      };
     }
 
-    return rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id)));
+    [rows, total] = await qb.skip(skip).take(limit).getManyAndCount();
+    const retiredIds = rows
+      .filter((a) => a.status === AssociateStatus.RETIRADO)
+      .map((a) => a.id);
+    const retirementByAssociate = await this.latestRetirementDates(retiredIds);
+
+    return {
+      items: rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id))),
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
   async findOne(id: string, user: JwtPayload) {

@@ -190,6 +190,25 @@
   overflow-x: auto;
 }
 
+.hr-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.hr-pagination .hr-btn-sm,
+.hr-btn-sm {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.8rem;
+}
+
+.hr-pagination__meta {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 .hr-table {
   width: 100%;
   border-collapse: collapse;

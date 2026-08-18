@@ -25,4 +25,10 @@ export class AssociatesQueryDto {
 
   @IsOptional() @IsNumberString()
   tenureMaxYears?: string;
+
+  @IsOptional() @IsNumberString()
+  page?: string;
+
+  @IsOptional() @IsNumberString()
+  limit?: string;
 }
