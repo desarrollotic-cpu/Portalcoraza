@@ -564,6 +564,40 @@ export class DashboardCommandCenterService {
   }
 
   private activityLabel(module: string, action: string): string {
-    return `${module}: ${action}`;
+    const mod: Record<string, string> = {
+      scheduling: 'Programación',
+      auth: 'Acceso',
+      hr: 'Gestión Humana',
+      associates: 'Asociados',
+      inventory: 'Inventario',
+      deliveries: 'Dotación',
+      reception: 'Recepción',
+      documental: 'Documental',
+      users: 'Administración',
+      posts: 'Puestos',
+      vigia: 'Vigilante',
+      minuta: 'Minuta',
+    };
+    const act: Record<string, string> = {
+      login: 'Inicio de sesión',
+      logout: 'Cierre de sesión',
+      'monthly_schedule.create': 'Cuadro mensual creado',
+      'monthly_schedule.update': 'Cuadro mensual actualizado',
+      'monthly_schedule.motor': 'Motor de turnos ejecutado',
+      'schedule_template.create': 'Plantilla de programación creada',
+      'schedule_template.apply': 'Plantilla aplicada',
+      view_record: 'Consulta de registro',
+      'variant.create': 'Variante de inventario creada',
+      'item.create': 'Elemento de inventario creado',
+      'delivery.create': 'Entrega de dotación creada',
+      'delivery.sign': 'Entrega firmada',
+      'visitor.register': 'Visitante registrado',
+      'visitor.exit': 'Salida de visitante',
+      'user.create': 'Usuario creado',
+      'user.update': 'Usuario actualizado',
+    };
+    const m = mod[module] ?? module;
+    const a = act[action] ?? action.replace(/[._]/g, ' ');
+    return `${m}: ${a}`;
   }
 }

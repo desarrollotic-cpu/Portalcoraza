@@ -236,7 +236,7 @@ type PeriodKey = CommandPeriod;
                     fill="none"
                     stroke="var(--primary-600)"
                     stroke-width="2.5"
-                    [attr.points]="linePoints(hr.rotation.map(r => r.activeAtEnd))"
+                    [attr.points]="linePoints(hr.rotation.map((r: { activeAtEnd: number }) => r.activeAtEnd))"
                   />
                 </svg>
                 <div class="chart-legend">
@@ -441,7 +441,7 @@ type PeriodKey = CommandPeriod;
         <section class="panel">
           <div class="panel-head">
             <h2>Actividad reciente</h2>
-            <span class="muted">Auditoría del sistema</span>
+            <span class="muted">Últimos eventos del sistema</span>
           </div>
           @if (d.activity.length === 0) {
             <p class="empty-inline">Aún no hay eventos de auditoría para mostrar</p>
@@ -452,7 +452,7 @@ type PeriodKey = CommandPeriod;
                   <span class="time">{{ ev.createdAt | date: 'dd/MM HH:mm' }}</span>
                   <div>
                     <strong>{{ ev.label }}</strong>
-                    <span class="muted">{{ ev.module }} · {{ ev.action }}</span>
+                    <span class="muted">{{ moduleName(ev.module) }}</span>
                   </div>
                 </li>
               }
@@ -466,7 +466,9 @@ type PeriodKey = CommandPeriod;
     .dashboard { display: flex; flex-direction: column; gap: 1.25rem; }
     .hero {
       position: relative; overflow: hidden; border-radius: var(--radius-xl);
-      background: var(--gradient-hero-mesh); color: #fff; box-shadow: var(--shadow-lg);
+      background: var(--gradient-hero-mesh, linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%));
+      color: #fff; box-shadow: var(--shadow-lg);
+      min-height: 180px;
     }
     .hero-mesh {
       position: absolute; inset: 0; pointer-events: none;
@@ -770,6 +772,21 @@ export class Dashboard implements OnInit {
     if (tone === 'critical') return 'Crítica';
     if (tone === 'warning') return 'Advertencia';
     return 'Info';
+  }
+
+  moduleName(module: string): string {
+    const map: Record<string, string> = {
+      scheduling: 'Programación',
+      auth: 'Acceso',
+      hr: 'Gestión Humana',
+      associates: 'Asociados',
+      inventory: 'Inventario',
+      deliveries: 'Dotación',
+      reception: 'Recepción',
+      documental: 'Documental',
+      users: 'Administración',
+    };
+    return map[module] ?? module;
   }
 
   scoreLevel(value: number): 'ok' | 'mid' | 'low' {
