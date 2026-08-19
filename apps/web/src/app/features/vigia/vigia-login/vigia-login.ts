@@ -12,7 +12,7 @@ type Mode = 'login' | 'setup' | 'reset';
     <div class="wrap">
       <div class="brand">
         <img src="/brand/logo-coraza-cta.png" width="56" height="56" alt="Coraza" />
-        <h1>Coraza Vigía</h1>
+        <h1>Portal Vigilante</h1>
         <p>
           @switch (mode()) {
             @case ('login') {

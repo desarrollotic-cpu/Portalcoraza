@@ -105,7 +105,7 @@ import { Icon } from '../../../shared/components/icon/icon';
 
       <p class="foot-note">
         ¿Eres vigilante?
-        <a routerLink="/vigia/login">Entrar a Coraza Vigía</a>
+        <a routerLink="/vigia/login">Entrar a Portal Vigilante</a>
         · ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el admin y no
         recuerdas la tuya,
         <button type="button" class="linkish" (click)="showRecover.set(!showRecover())">

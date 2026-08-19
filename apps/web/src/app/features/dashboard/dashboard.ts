@@ -79,7 +79,7 @@ interface KpiCard {
               @if (auth.hasPermission('vigia.view') || auth.hasPermission('posts.view')) {
                 <a routerLink="/vigilantes" class="hero-btn ghost">
                   <app-icon [icon]="icons.Eye" [size]="16" [strokeWidth]="2" />
-                  Coraza Vigía
+                  Vigilante
                 </a>
               }
             </div>

@@ -453,7 +453,7 @@ export class VigiaHome implements OnInit, OnDestroy {
   }
 
   askLogout(): void {
-    if (confirm('¿Cerrar sesión Vigía?')) this.auth.logout();
+    if (confirm('¿Cerrar sesión Vigilante?')) this.auth.logout();
   }
 
   private refreshClock(): void {

@@ -8,7 +8,7 @@ import { RouterLink } from '@angular/router';
     <section class="page">
       <header class="head">
         <div>
-          <h2>Coraza Vigía</h2>
+          <h2>Portal Vigilante</h2>
           <p>
             Módulo de vigilancia en puesto: turnero, consignas, SOS, dotación y colillas. La app de
             campo la usan los vigilantes con cédula y primer nombre.
