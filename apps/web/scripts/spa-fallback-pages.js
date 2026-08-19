@@ -1,7 +1,7 @@
 /**
  * Render Static Site no reescribe /* → index.html desde el repo.
  * Tras el build, copiamos index.html a las rutas SPA para que
- * /auth/login/ y /sst/panel/ (etc.) sirvan la app Angular.
+ * /dotacion/panel, /nomina, /contabilidad, /auth/login (etc.) sirvan la app Angular.
  */
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +19,26 @@ const routes = [
   'auth/login',
   'dashboard',
   'rrhh',
+  'rrhh/panel',
+  'rrhh/directorio',
+  'rrhh/matriz-sst',
+  'rrhh/alertas',
+  'rrhh/retiros',
+  'rrhh/ausentismo',
+  'rrhh/cargos',
+  'rrhh/centros-trabajo',
   'dotacion',
+  'dotacion/panel',
+  'dotacion/asociados',
+  'dotacion/inventario',
+  'dotacion/inventario/nuevo',
+  'dotacion/elementos',
+  'nomina',
+  'nomina/periodos',
+  'nomina/colillas',
+  'contabilidad',
+  'contabilidad/puc',
+  'contabilidad/comprobantes',
   'programacion',
   'programacion/matriz',
   'programacion/cuadro',
