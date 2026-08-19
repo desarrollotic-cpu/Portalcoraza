@@ -35,6 +35,7 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
             AND p.code IN ('minuta.view', 'minuta.create')
           ON CONFLICT DO NOTHING
         `);
+        await this.ensureRegistradoPor();
         return;
       }
       const sqlPath = path.join(__dirname, 'ensure-minuta.sql');
@@ -44,9 +45,27 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
       }
       await this.ds.query(fs.readFileSync(sqlPath, 'utf8'));
       this.log.log('Esquema Minuta Virtual aplicado (ensure-minuta.sql)');
+      await this.ensureRegistradoPor();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.error(`Bootstrap Minuta falló: ${msg}`);
+    }
+  }
+
+  private async ensureRegistradoPor(): Promise<void> {
+    const tables = [
+      'minuta_visitantes',
+      'minuta_correspondencia',
+      'minuta_contratistas',
+      'minuta_domiciliarios',
+      'minuta_incidentes',
+      'minuta_servicio',
+      'minuta_entrega_puesto',
+    ];
+    for (const table of tables) {
+      await this.ds.query(
+        `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS registrado_por TEXT`,
+      );
     }
   }
 }

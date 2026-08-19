@@ -16,3 +16,19 @@ describe('MinutaService parseMonthBounds', () => {
     expect(() => service.parseMonthBounds('agosto')).toThrow(BadRequestException);
   });
 });
+
+describe('MinutaService normalizeRegistradoPor', () => {
+  const service = Object.create(MinutaService.prototype) as MinutaService;
+  const normalize = (value: string) =>
+    (
+      service as unknown as { normalizeRegistradoPor(v: string): string }
+    ).normalizeRegistradoPor(value);
+
+  it('uppercases vigilante name', () => {
+    expect(normalize('  juan perez ')).toBe('JUAN PEREZ');
+  });
+
+  it('rejects empty name', () => {
+    expect(() => normalize(' ')).toThrow(BadRequestException);
+  });
+});

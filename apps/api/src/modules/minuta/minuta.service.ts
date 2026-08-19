@@ -39,6 +39,7 @@ export type OperacionesMinutaRow = {
   fecha: string;
   estado: string;
   resumen: string;
+  registradoPor: string;
 };
 
 @Injectable()
@@ -372,28 +373,48 @@ export class MinutaService {
     return post;
   }
 
+  private normalizeRegistradoPor(value: string): string {
+    const name = (value || '').trim().toUpperCase();
+    if (name.length < 2) {
+      throw new BadRequestException('Indique el vigilante que registra');
+    }
+    return name;
+  }
+
   private resumenMinuta(
     tipo: string,
     row: Record<string, unknown>,
   ): string {
+    const reg = row['registradoPor']
+      ? `Registra: ${row['registradoPor']}`
+      : null;
+    let base: string;
     switch (tipo) {
       case 'VISITANTE':
-        return `${row['nombreCompleto'] || '—'} · Apto ${row['aptoNo'] || '—'}`;
+        base = `${row['nombreCompleto'] || '—'} · Apto ${row['aptoNo'] || '—'}`;
+        break;
       case 'CORRESPONDENCIA':
-        return `${row['clase'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['destinatario'] || '—'}`;
+        base = `${row['clase'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['destinatario'] || '—'}`;
+        break;
       case 'CONTRATISTA':
-        return `${row['nombreCompleto'] || '—'} · ${row['empresa'] || '—'}`;
+        base = `${row['nombreCompleto'] || '—'} · ${row['empresa'] || '—'}`;
+        break;
       case 'DOMICILIARIO':
-        return `${row['empresa'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['tipoPedido'] || '—'}`;
+        base = `${row['empresa'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['tipoPedido'] || '—'}`;
+        break;
       case 'INCIDENTE':
-        return `${row['tipo'] || '—'} · ${row['gravedad'] || '—'} · ${row['ubicacion'] || '—'}`;
+        base = `${row['tipo'] || '—'} · ${row['gravedad'] || '—'} · ${row['ubicacion'] || '—'}`;
+        break;
       case 'SERVICIO':
-        return String(row['anotaciones'] || row['novedades'] || '—').slice(0, 120);
+        base = String(row['anotaciones'] || row['novedades'] || '—').slice(0, 120);
+        break;
       case 'ENTREGA':
-        return `${row['turnoSaliente'] || '—'} → ${row['turnoEntrante'] || '—'} · ${row['vigilanteSaliente'] || '—'} / ${row['vigilanteEntrante'] || '—'}`;
+        base = `${row['turnoSaliente'] || '—'} → ${row['turnoEntrante'] || '—'} · ${row['vigilanteSaliente'] || '—'} / ${row['vigilanteEntrante'] || '—'}`;
+        break;
       default:
-        return '—';
+        base = '—';
     }
+    return reg ? `${reg} · ${base}` : base;
   }
 
   async operacionesHistorial(
@@ -459,6 +480,8 @@ export class MinutaService {
             tipo,
             r as unknown as Record<string, unknown>,
           ),
+          registradoPor:
+            (r as { registradoPor?: string | null }).registradoPor || '—',
         });
       }
     };
@@ -542,12 +565,14 @@ export class MinutaService {
   async crearVisitante(user: JwtPayload, dto: MinutaVisitanteDto) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.visitantes.save(
       this.visitantes.create({
         id: this.newId('VIS'),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         nombreCompleto: dto.nombre.trim().toUpperCase(),
         cedula: dto.cedula?.replace(/\D/g, '') || null,
         aptoNo: dto.apto.trim(),
@@ -557,7 +582,7 @@ export class MinutaService {
         vehiculoPlaca: dto.vehiculo
           ? dto.vehiculo.replace(/\s+/g, '').toUpperCase()
           : null,
-        horaEntrada: dto.horaEntrada || this.fmtHm(now),
+        horaEntrada: this.fmtHm(now),
         observaciones: dto.observaciones || null,
         estado: 'ACTIVO',
         postId,
@@ -572,6 +597,7 @@ export class MinutaService {
   ) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const entregado = dto.estado === 'ENTREGADO';
     const row = await this.correspondencia.save(
       this.correspondencia.create({
@@ -579,13 +605,14 @@ export class MinutaService {
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         clase: dto.clase,
         aptoNo: dto.apto.trim(),
         destinatario: (dto.destinatario || 'Residente').trim(),
         remitente: dto.remitente || null,
         observaciones: dto.observaciones || null,
         estado: entregado ? 'ENTREGADO' : 'PENDIENTE',
-        vigilanteEntrega: entregado ? this.userName(user) : null,
+        vigilanteEntrega: entregado ? registradoPor : null,
         fechaEntrega: entregado ? now : null,
         recibidoPor: entregado ? dto.recibidoPor || 'Residente' : null,
         postId,
@@ -620,17 +647,19 @@ export class MinutaService {
     }
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.contratistas.save(
       this.contratistas.create({
         id: this.newId('CONT'),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         nombreCompleto: dto.nombre.trim().toUpperCase(),
         cedula,
         empresa: dto.empresa.trim(),
         areaTrabajo: dto.areaTrabajo || null,
-        horaIngreso: dto.horaIngreso || this.fmtHm(now),
+        horaIngreso: this.fmtHm(now),
         equipos: dto.equipos || null,
         autorizadoPor: dto.autorizadoPor.trim(),
         observaciones: dto.observaciones || null,
@@ -644,12 +673,14 @@ export class MinutaService {
   async crearDomiciliario(user: JwtPayload, dto: MinutaDomiciliarioDto) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.domiciliarios.save(
       this.domiciliarios.create({
         id: this.newId('DOM'),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         empresa: dto.empresa,
         tipoPedido: dto.tipoPedido,
         aptoNo: dto.apto.trim(),
@@ -657,7 +688,7 @@ export class MinutaService {
         placaMoto: dto.placaMoto
           ? dto.placaMoto.replace(/\s+/g, '').toUpperCase()
           : null,
-        horaLlegada: dto.horaLlegada || this.fmtHm(now),
+        horaLlegada: this.fmtHm(now),
         codigoPedido: dto.codigoPedido || null,
         observaciones: dto.observaciones || null,
         estado: 'ENTREGANDO',
@@ -670,12 +701,14 @@ export class MinutaService {
   async crearIncidente(user: JwtPayload, dto: MinutaIncidenteDto) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.incidentes.save(
       this.incidentes.create({
         id: this.newId('INC'),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         tipo: dto.tipo,
         gravedad: dto.gravedad,
         ubicacion: dto.ubicacion.trim(),
@@ -695,6 +728,7 @@ export class MinutaService {
   async crearServicio(user: JwtPayload, dto: MinutaServicioDto) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.servicio.save(
       this.servicio.create({
         id: this.newId('SERV'),
@@ -703,6 +737,7 @@ export class MinutaService {
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
+        registradoPor,
         anotaciones: dto.anotaciones.trim(),
         novedades: dto.novedades || null,
         postId,
@@ -714,6 +749,7 @@ export class MinutaService {
   async crearEntrega(user: JwtPayload, dto: MinutaEntregaDto) {
     const now = this.nowBogota();
     const postId = await this.resolveCreatePostId(user, dto.postId);
+    const registradoPor = this.normalizeRegistradoPor(dto.registradoPor);
     const row = await this.entregas.save(
       this.entregas.create({
         id: this.newId('ENT'),
@@ -721,6 +757,7 @@ export class MinutaService {
         hora: this.fmtHm(now),
         fechaRegistro: now,
         associateId: null,
+        registradoPor,
         turnoSaliente: dto.turnoSaliente,
         turnoEntrante: dto.turnoEntrante,
         vigilanteSaliente: dto.vigilanteSaliente.trim().toUpperCase(),

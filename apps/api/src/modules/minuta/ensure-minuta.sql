@@ -145,4 +145,12 @@ WHERE r.code IN ('GERENCIA', 'ADMIN', 'SUPERADMIN')
   AND p.code = 'minuta.view'
 ON CONFLICT DO NOTHING;
 
+ALTER TABLE minuta_visitantes ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_correspondencia ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_contratistas ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_domiciliarios ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_incidentes ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_servicio ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+ALTER TABLE minuta_entrega_puesto ADD COLUMN IF NOT EXISTS registrado_por TEXT;
+
 COMMIT;

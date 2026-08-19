@@ -519,7 +519,33 @@ export const routes: Routes = [
         canActivate: [permissionGuard],
         data: { permission: 'minuta.view' },
         loadComponent: () =>
-          import('./features/minuta/minuta-home/minuta-home').then((m) => m.MinutaHome),
+          import('./features/minuta/minuta-layout/minuta-layout').then((m) => m.MinutaLayout),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.view' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-inicio/minuta-inicio').then((m) => m.MinutaInicio),
+          },
+          {
+            path: 'nuevo',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.create' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-nuevo/minuta-nuevo').then((m) => m.MinutaNuevo),
+          },
+          {
+            path: 'historial',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.view' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-historial/minuta-historial').then(
+                (m) => m.MinutaHistorial,
+              ),
+          },
+        ],
       },
       {
         path: 'sig',

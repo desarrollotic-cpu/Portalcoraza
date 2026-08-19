@@ -70,6 +70,7 @@ import {
                   <th>Tipo</th>
                   <th>ID</th>
                   <th>Estado</th>
+                  <th>Registra</th>
                   <th>Resumen</th>
                 </tr>
               </thead>
@@ -80,6 +81,7 @@ import {
                     <td>{{ r.tipo }}</td>
                     <td>{{ r.id }}</td>
                     <td>{{ r.estado }}</td>
+                    <td>{{ r.registradoPor }}</td>
                     <td>{{ r.resumen }}</td>
                   </tr>
                 }

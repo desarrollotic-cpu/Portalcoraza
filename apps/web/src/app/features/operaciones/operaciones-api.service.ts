@@ -61,6 +61,7 @@ export interface OperacionesMinutaRow {
   fecha: string;
   estado: string;
   resumen: string;
+  registradoPor: string;
 }
 
 export interface OperacionesMinutaHistorial {

@@ -49,6 +49,9 @@ export class MinutaVisitante {
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
 
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -96,6 +99,9 @@ export class MinutaCorrespondencia {
 
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
+
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -148,6 +154,9 @@ export class MinutaContratista {
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
 
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -199,6 +208,9 @@ export class MinutaDomiciliario {
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
 
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -247,6 +259,9 @@ export class MinutaIncidente {
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
 
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -279,6 +294,9 @@ export class MinutaServicio {
 
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
+
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -333,6 +351,9 @@ export class MinutaEntregaPuesto {
 
   @Column({ name: 'post_id', type: 'uuid', nullable: true })
   postId!: string | null;
+
+  @Column({ name: 'registrado_por', type: 'text', nullable: true })
+  registradoPor!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
