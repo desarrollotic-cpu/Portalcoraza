@@ -24,10 +24,15 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
       `);
       if (has_table && has_perm) {
         await this.ds.query(`
+          INSERT INTO permissions (code, name, module) VALUES
+            ('minuta.create', 'Crear registros en minuta virtual', 'minuta')
+          ON CONFLICT (code) DO NOTHING
+        `);
+        await this.ds.query(`
           INSERT INTO role_permissions (role_id, permission_id)
           SELECT r.id, p.id FROM roles r, permissions p
           WHERE r.code IN ('GERENCIA', 'ADMIN', 'SUPERADMIN')
-            AND p.code = 'minuta.view'
+            AND p.code IN ('minuta.view', 'minuta.create')
           ON CONFLICT DO NOTHING
         `);
         return;

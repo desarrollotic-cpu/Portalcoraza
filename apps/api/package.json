@@ -16,6 +16,7 @@
     "seed:inventory-categories": "ts-node scripts/seed-inventory-categories.ts",
     "seed:rrhh": "ts-node scripts/seed-rrhh.ts",
     "seed:auditor": "ts-node scripts/seed-auditor.ts",
+    "seed:puesto-amisi": "ts-node scripts/seed-puesto-amisi.ts",
     "db:setup": "ts-node scripts/setup-database.ts",
     "db:check-hr": "ts-node scripts/check-hr-schema.ts",
     "db:ensure-hr": "ts-node scripts/ensure-hr-ready.ts",

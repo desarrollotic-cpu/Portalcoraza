@@ -60,19 +60,19 @@ export class MinutaController {
   }
 
   @Post('visitantes')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   visitante(@CurrentUser() user: JwtPayload, @Body() dto: MinutaVisitanteDto) {
     return this.minuta.crearVisitante(user, dto);
   }
 
   @Post('correspondencia')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   corr(@CurrentUser() user: JwtPayload, @Body() dto: MinutaCorrespondenciaDto) {
     return this.minuta.crearCorrespondencia(user, dto);
   }
 
   @Patch('correspondencia/:id/entregar')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   entregar(
     @CurrentUser() user: JwtPayload,
     @Param('id') id: string,
@@ -82,39 +82,44 @@ export class MinutaController {
   }
 
   @Post('contratistas')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   cont(@CurrentUser() user: JwtPayload, @Body() dto: MinutaContratistaDto) {
     return this.minuta.crearContratista(user, dto);
   }
 
   @Post('domiciliarios')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   dom(@CurrentUser() user: JwtPayload, @Body() dto: MinutaDomiciliarioDto) {
     return this.minuta.crearDomiciliario(user, dto);
   }
 
   @Post('incidentes')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   inc(@CurrentUser() user: JwtPayload, @Body() dto: MinutaIncidenteDto) {
     return this.minuta.crearIncidente(user, dto);
   }
 
   @Post('servicio')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   serv(@CurrentUser() user: JwtPayload, @Body() dto: MinutaServicioDto) {
     return this.minuta.crearServicio(user, dto);
   }
 
   @Post('entrega-puesto')
-  @RequirePermissions('minuta.view')
+  @RequirePermissions('minuta.create')
   entrega(@CurrentUser() user: JwtPayload, @Body() dto: MinutaEntregaDto) {
     return this.minuta.crearEntrega(user, dto);
   }
 
   @Post(':id/salida')
-  @RequirePermissions('minuta.view')
-  salida(@Param('id') id: string, @Body() dto: MinutaSalidaDto) {
+  @RequirePermissions('minuta.create')
+  salida(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() dto: MinutaSalidaDto,
+  ) {
     return this.minuta.registrarSalida(
+      user,
       id,
       dto.tipo as 'VISITANTE' | 'CONTRATISTA' | 'DOMICILIARIO',
     );

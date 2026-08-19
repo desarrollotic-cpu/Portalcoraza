@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserPost } from '../users/entities/user-post.entity';
 import {
   MinutaContratista,
   MinutaCorrespondencia,
@@ -23,6 +24,7 @@ import { MinutaService } from './minuta.service';
       MinutaIncidente,
       MinutaServicio,
       MinutaEntregaPuesto,
+      UserPost,
     ]),
   ],
   controllers: [MinutaController],
