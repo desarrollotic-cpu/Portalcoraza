@@ -47,6 +47,7 @@ Mes en Portal: **1–12** (APP usaba 0–11).
 1. Ciclo **continuo entre meses** (posición del día 1 = última del mes anterior + 1).
 2. Cambios manuales de celda permitidos (sin cascada automática).
 3. Validaciones: cobertura D/N, doble descanso, >6 consecutivos D o N.
+4. Rol **relevante***: no lleva ciclo propio; solo cubre huecos D/N que dejan los titulares ese día (resto NR = libre en ese puesto para otro).
 
 Fuente original: `APP-CONTABILIDAD/src/store/motorTurnos.ts`.
 

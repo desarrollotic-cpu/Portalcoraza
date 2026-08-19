@@ -136,9 +136,8 @@ export class MotorTurnosService {
 
   /**
    * Genera las asignaciones del mes para cada rol del personal.
-   * @param startPositions posición inicial del ciclo por rol (continuidad mes anterior)
-   * @param tipoCiclo ciclo a aplicar (default 12x3)
-   * @param tipoCicloByRole permite ciclo distinto por rol (como en APP)
+   * Titulares siguen el ciclo (12x3, etc.). Roles `relevante*` solo cubren
+   * huecos D/N que dejan los titulares ese día (resto: NR = libre en este puesto).
    */
   generate(
     personal: PersonalRole[],
@@ -147,9 +146,13 @@ export class MotorTurnosService {
     tipoCiclo: TipoCiclo = '12x3',
     tipoCicloByRole?: Record<string, TipoCiclo>,
   ): GeneratedAssignment[] {
+    const titulares = personal.filter((p) => !this.isRelevanteRole(p.rol));
+    const relevantes = personal.filter((p) => this.isRelevanteRole(p.rol));
+    const cycleRoles = titulares.length > 0 ? titulares : personal;
+
     const result: GeneratedAssignment[] = [];
 
-    personal.forEach((role, index) => {
+    cycleRoles.forEach((role, index) => {
       const cycleKey =
         tipoCicloByRole?.[role.rol] ??
         (role as PersonalRole & { tipoCiclo?: TipoCiclo }).tipoCiclo ??
@@ -177,7 +180,85 @@ export class MotorTurnosService {
       }
     });
 
+    if (titulares.length > 0 && relevantes.length > 0) {
+      result.push(
+        ...this.generateRelevanteGapFill(relevantes, result, daysInMonth),
+      );
+    }
+
     return result;
+  }
+
+  /** `relevante`, `relevante_1`, etc. */
+  isRelevanteRole(rol: string): boolean {
+    return /^relevante(_\d+)?$/i.test(rol.trim());
+  }
+
+  /**
+   * Relevante solo trabaja cuando falta D o N entre titulares.
+   * Si no hay hueco, queda NR (disponible para otro puesto / descanso).
+   */
+  generateRelevanteGapFill(
+    relevantes: PersonalRole[],
+    titularAssignments: GeneratedAssignment[],
+    daysInMonth: number,
+  ): GeneratedAssignment[] {
+    const out: GeneratedAssignment[] = [];
+    const rest = nr();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const cells = titularAssignments.filter((a) => a.day === day);
+      const hasD = cells.some((c) => c.codigo === 'D');
+      const hasN = cells.some((c) => c.codigo === 'N');
+      const gaps: Array<'D' | 'N'> = [];
+      if (!hasD) gaps.push('D');
+      if (!hasN) gaps.push('N');
+
+      relevantes.forEach((role, index) => {
+        const gap = gaps[index];
+        if (gap === 'D') {
+          const slot = d();
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: slot.turno,
+            jornada: slot.jornada,
+            codigo: slot.codigo,
+            inicio: slot.inicio,
+            fin: slot.fin,
+            cyclePosition: -1,
+          });
+        } else if (gap === 'N') {
+          const slot = n();
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: slot.turno,
+            jornada: slot.jornada,
+            codigo: slot.codigo,
+            inicio: slot.inicio,
+            fin: slot.fin,
+            cyclePosition: -1,
+          });
+        } else {
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: rest.turno,
+            jornada: rest.jornada,
+            codigo: rest.codigo,
+            inicio: rest.inicio,
+            fin: rest.fin,
+            cyclePosition: -1,
+          });
+        }
+      });
+    }
+
+    return out;
   }
 
   /**
