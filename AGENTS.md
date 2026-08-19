@@ -4,7 +4,7 @@ Guía para agentes de código (Cursor, etc.). El producto es el monorepo NestJS 
 
 ## Preferencias del usuario
 
-- Responder empezando por **JHON**.
+- Responder empezando por **Freider Cárdenas** (o **Freider**).
 - Cambios de recepción/dotación: rama → commit → merge a `main` solo cuando lo pida.
 - Mejorar el *agente* con skills/reglas; no volcar metodologías como código de negocio.
 

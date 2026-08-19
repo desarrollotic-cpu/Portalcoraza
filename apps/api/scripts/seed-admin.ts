@@ -12,6 +12,8 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
+import { Permission } from '../src/modules/permissions/entities/permission.entity';
+import { RolePermission } from '../src/modules/roles/entities/role-permission.entity';
 import { Role } from '../src/modules/roles/entities/role.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 
@@ -22,7 +24,7 @@ async function main() {
   const ds = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
-    entities: [Role, User],
+    entities: [Role, User, RolePermission, Permission],
     ssl: (process.env.DATABASE_URL?.includes('supabase') || process.env.DATABASE_URL?.includes('pooler'))
       ? { rejectUnauthorized: false }
       : false,

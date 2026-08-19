@@ -972,6 +972,18 @@ export class MainLayout implements OnDestroy {
           permission: 'scheduling.view',
         },
         {
+          label: 'Nómina & Colillas',
+          route: '/nomina',
+          icon: LucideBriefcaseBusiness,
+          permission: 'payroll.view',
+        },
+        {
+          label: 'Contabilidad NIIF / PUC',
+          route: '/contabilidad',
+          icon: LucideClipboardList,
+          permission: 'accounting.view',
+        },
+        {
           label: 'Documental',
           route: '/documental',
           icon: LucideClipboardList,
@@ -1001,6 +1013,12 @@ export class MainLayout implements OnDestroy {
           route: '/minutas',
           icon: LucideClipboardList,
           permission: 'minuta.view',
+        },
+        {
+          label: 'SIG-KPI',
+          route: '/sig',
+          icon: LucideSparkles,
+          permission: 'sig.view',
         },
       ],
     },

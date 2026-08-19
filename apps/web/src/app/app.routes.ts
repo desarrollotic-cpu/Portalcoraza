@@ -44,6 +44,20 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'nomina',
+        canActivate: [permissionGuard],
+        data: { permission: 'payroll.view' },
+        loadComponent: () =>
+          import('./features/payroll/payroll-periods').then((m) => m.PayrollPeriodsComponent),
+      },
+      {
+        path: 'contabilidad',
+        canActivate: [permissionGuard],
+        data: { permission: 'accounting.view' },
+        loadComponent: () =>
+          import('./features/accounting/puc-list').then((m) => m.PucListComponent),
+      },
+      {
         // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],
@@ -521,6 +535,13 @@ export const routes: Routes = [
         data: { permission: 'minuta.view' },
         loadComponent: () =>
           import('./features/minuta/minuta-home/minuta-home').then((m) => m.MinutaHome),
+      },
+      {
+        path: 'sig',
+        canActivate: [permissionGuard],
+        data: { permission: 'sig.view' },
+        loadComponent: () =>
+          import('./features/sig/sig-home/sig-home').then((m) => m.SigHome),
       },
       {
         path: 'sst',

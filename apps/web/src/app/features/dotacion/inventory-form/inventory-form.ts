@@ -64,6 +64,23 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
             Stock mínimo
             <input formControlName="lowStockThreshold" type="number" min="0" />
           </label>
+          @if (!itemId()) {
+            <label>
+              Cantidad inicial
+              <input formControlName="initialStock" type="number" min="0" />
+            </label>
+            @if ((form.controls.initialStock.value || 0) > 0) {
+              <label>
+                Motivo de entrada *
+                <select formControlName="initialStockReason">
+                  <option value="">Seleccione...</option>
+                  @for (r of entryReasons; track r) {
+                    <option [value]="r">{{ r }}</option>
+                  }
+                </select>
+              </label>
+            }
+          }
         </div>
 
         @if (!itemId()) {
@@ -110,7 +127,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
               <label>Talla<input formControlName="talla" placeholder="Ej. M, 40..." /></label>
               <label>Color<input formControlName="color" placeholder="Opcional" /></label>
               <label>Stock inicial<input formControlName="initialStock" type="number" min="0" /></label>
-              @if ((variantForm.controls.initialStock.value ?? 0) > 0) {
+              @if ((variantForm.controls.initialStock.value || 0) > 0) {
                 <label>
                   Motivo de entrada *
                   <select formControlName="entryReason">

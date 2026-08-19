@@ -202,7 +202,7 @@ import {
               <tr [class.inactive-row]="!u.isActive">
                 <td>{{ u.email }}</td>
                 <td>{{ u.fullName ?? '—' }}</td>
-                <td>{{ u.role?.name ?? '—' }}</td>
+                <td>{{ u.role ? u.role.name : '—' }}</td>
                 <td>{{ u.warehouse?.name ?? '—' }}</td>
                 <td>{{ u.isActive ? 'Activo' : 'Inactivo' }}</td>
                 <td>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'short') : '—' }}</td>
