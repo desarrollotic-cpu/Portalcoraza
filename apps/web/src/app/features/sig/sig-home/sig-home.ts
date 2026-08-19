@@ -10,17 +10,32 @@ import {
 
 type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
 
+interface DashboardItem {
+  id: string;
+  codigo: string;
+  nombre: string;
+  area: string;
+  frecuencia: string;
+  sentido: string;
+  color: string | null;
+  meta: number | null;
+  resultado: number | null;
+  periodo: string | null;
+  serie: Array<{ periodo: string; meta: number; resultado: number; color: string }>;
+}
+
 @Component({
   selector: 'app-sig-home',
   imports: [FormsModule],
   template: `
     <section class="page">
+      <!-- HEADER CON RESUMEN EJECUTIVO -->
       <header class="head">
         <div class="title-wrap">
           <div class="logo-badge">📊</div>
           <div>
             <h2>SIG-KPI · Sistema Integrado de Gestión</h2>
-            <p>Cuadro de Mando Integral (CMI) · Coraza Seguridad C.T.A.</p>
+            <p>Tablero de Control Gerencial & Cuadro de Mando · Coraza Seguridad C.T.A.</p>
           </div>
         </div>
         <nav class="tabs">
@@ -37,6 +52,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       }
 
       @if (tab() === 'dashboard') {
+        <!-- BARRA DE FILTROS -->
         <div class="filter-bar">
           <div class="field">
             <label for="filter-area">Área Estratégica</label>
@@ -52,14 +68,25 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <label for="filter-anio">Año de Gestión</label>
             <input id="filter-anio" type="number" [(ngModel)]="anio" name="anio" (change)="loadDash()" />
           </div>
+          <div class="global-kpi-pill">
+            <div class="gauge-ring">
+              <span class="pct-num">{{ globalEficacia() }}%</span>
+            </div>
+            <div class="gauge-info">
+              <strong>Índice Global de Eficacia SIG</strong>
+              <small>{{ totalCumplen() }} de {{ totalEvaluados() }} metas cumplidas</small>
+            </div>
+          </div>
         </div>
 
+        <!-- KPI SUMMARY CARDS -->
         <div class="kpis">
           <article class="kpi-card azul">
             <div class="kpi-icon">💎</div>
             <div class="kpi-data">
               <small>Sobresaliente (Azul)</small>
               <b>{{ dash()?.counts?.AZUL || 0 }}</b>
+              <div class="mini-prog"><div class="mini-bar bg-blue" [style.width.%]="pctCount('AZUL')"></div></div>
             </div>
           </article>
           <article class="kpi-card verde">
@@ -67,6 +94,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <div class="kpi-data">
               <small>Cumple Meta (Verde)</small>
               <b>{{ dash()?.counts?.VERDE || 0 }}</b>
+              <div class="mini-prog"><div class="mini-bar bg-green" [style.width.%]="pctCount('VERDE')"></div></div>
             </div>
           </article>
           <article class="kpi-card amarillo">
@@ -74,6 +102,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <div class="kpi-data">
               <small>En Riesgo (Amarillo)</small>
               <b>{{ dash()?.counts?.AMARILLO || 0 }}</b>
+              <div class="mini-prog"><div class="mini-bar bg-yellow" [style.width.%]="pctCount('AMARILLO')"></div></div>
             </div>
           </article>
           <article class="kpi-card rojo">
@@ -81,6 +110,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <div class="kpi-data">
               <small>Crítico (Rojo)</small>
               <b>{{ dash()?.counts?.ROJO || 0 }}</b>
+              <div class="mini-prog"><div class="mini-bar bg-red" [style.width.%]="pctCount('ROJO')"></div></div>
             </div>
           </article>
           <article class="kpi-card sin-dato">
@@ -88,13 +118,16 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <div class="kpi-data">
               <small>Sin Dato</small>
               <b>{{ dash()?.counts?.SIN_DATO || 0 }}</b>
+              <div class="mini-prog"><div class="mini-bar bg-gray" [style.width.%]="pctCount('SIN_DATO')"></div></div>
             </div>
           </article>
         </div>
 
+        <!-- TARJETAS DE INDICADORES CON GRÁFICOS INTERACTIVOS -->
         <div class="cards-grid">
           @for (it of dash()?.items || []; track it.id) {
             <article class="card" [attr.data-c]="it.color || 'NA'">
+              <!-- TOP: Código y Semáforo -->
               <div class="card-top">
                 <span class="code-badge">{{ it.codigo }}</span>
                 <span class="dot" [attr.data-c]="it.color || 'NA'">
@@ -102,13 +135,17 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
                 </span>
               </div>
               
+              <!-- TÍTULO -->
               <h3 class="card-title">{{ it.nombre }}</h3>
               
+              <!-- METADATOS -->
               <div class="card-meta">
                 <span class="meta-tag">🏢 {{ it.area }}</span>
-                <span class="meta-tag">📅 Período: {{ it.periodo || '—' }}</span>
+                <span class="meta-tag">📅 {{ it.periodo || '—' }} ({{ it.frecuencia }})</span>
+                <span class="meta-tag font-mono">{{ it.sentido === 'ASCENDENTE' ? '📈 Creciente' : '📉 Decreciente' }}</span>
               </div>
 
+              <!-- CAJA DE VALORES -->
               <div class="values-box">
                 <div class="val-col">
                   <span class="lbl">Meta</span>
@@ -119,11 +156,43 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
                   <span class="lbl">Resultado</span>
                   <span class="val res-val">{{ formatNum(it.resultado) }}</span>
                 </div>
+                <div class="val-divider"></div>
+                <div class="val-col">
+                  <span class="lbl">Cumplimiento</span>
+                  <span class="val pct-val" [attr.data-c]="it.color || 'NA'">
+                    {{ calcPct(it) }}
+                  </span>
+                </div>
               </div>
 
+              <!-- BARRA DE PROGRESO VISUAL -->
+              <div class="progress-container">
+                <div class="progress-track">
+                  <div class="progress-fill" [attr.data-c]="it.color || 'NA'" [style.width.%]="calcBarWidth(it)"></div>
+                </div>
+              </div>
+
+              <!-- MINI GRÁFICO HISTÓRICO (SPARKLINE DE BARRAS) -->
+              @if (it.serie && it.serie.length > 0) {
+                <div class="sparkline-box">
+                  <span class="sparkline-title">Tendencia histórica ({{ it.serie.length }} períodos):</span>
+                  <div class="bars-row">
+                    @for (pt of it.serie; track pt.periodo) {
+                      <div class="bar-col" [title]="'Período ' + pt.periodo + ': ' + formatNum(pt.resultado) + ' (Meta: ' + formatNum(pt.meta) + ')'">
+                        <div class="bar-stem">
+                          <div class="bar-cap" [attr.data-c]="pt.color" [style.height.px]="calcBarHeight(pt.resultado, it.meta)"></div>
+                        </div>
+                        <span class="bar-lbl">{{ pt.periodo }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- FOOTER DE ACCIONES -->
               <div class="card-footer">
                 <button type="button" class="btn-capturar" (click)="openCaptura(it.id)">
-                  ✎ Capturar Resultado
+                  ✎ Capturar / Registrar
                 </button>
               </div>
             </article>
@@ -363,6 +432,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       border-radius: 0.85rem;
       border: 1px solid #e2e8f0;
       align-items: center;
+      justify-content: space-between;
     }
     .field { display: flex; flex-direction: column; gap: 0.35rem; }
     .field label { font-size: 0.8rem; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.03em; }
@@ -378,6 +448,32 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
     }
     .field select:focus, .field input:focus { border-color: #2563eb; background: #ffffff; }
     .search-field { flex: 1; min-width: 250px; }
+
+    .global-kpi-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 0.6rem 1.1rem;
+      border-radius: 0.75rem;
+    }
+    .gauge-ring {
+      background: #166534;
+      color: #ffffff;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 0.82rem;
+      box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
+    }
+    .gauge-info { display: flex; flex-direction: column; }
+    .gauge-info strong { color: #14532d; font-size: 0.88rem; }
+    .gauge-info small { color: #15803d; font-size: 0.75rem; font-weight: 600; }
 
     .kpis {
       display: grid;
@@ -397,8 +493,18 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
     }
     .kpi-card:hover { transform: translateY(-2px); }
     .kpi-icon { font-size: 1.5rem; }
-    .kpi-data small { display: block; font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .kpi-data b { font-size: 1.6rem; color: #0f172a; font-weight: 900; line-height: 1.1; }
+    .kpi-data { flex: 1; }
+    .kpi-data small { display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+    .kpi-data b { font-size: 1.5rem; color: #0f172a; font-weight: 900; line-height: 1.1; display: block; margin: 0.1rem 0; }
+    
+    .mini-prog { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 0.35rem; }
+    .mini-bar { height: 100%; border-radius: 2px; }
+    .bg-blue { background: #3b82f6; }
+    .bg-green { background: #22c55e; }
+    .bg-yellow { background: #eab308; }
+    .bg-red { background: #ef4444; }
+    .bg-gray { background: #94a3b8; }
+
     .kpi-card.azul { border-left: 4px solid #3b82f6; }
     .kpi-card.verde { border-left: 4px solid #22c55e; }
     .kpi-card.amarillo { border-left: 4px solid #eab308; }
@@ -407,8 +513,8 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
 
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.1rem;
     }
     .card {
       background: #ffffff;
@@ -423,7 +529,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       transition: all 0.2s ease;
     }
     .card:hover {
-      box-shadow: 0 6px 12px -2px rgba(0,0,0,0.08);
+      box-shadow: 0 8px 16px -2px rgba(0,0,0,0.08);
       transform: translateY(-2px);
     }
     .card[data-c='AZUL'] { border-top: 4px solid #3b82f6; }
@@ -463,12 +569,12 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       font-weight: 800;
       color: #1e293b;
       line-height: 1.35;
-      min-height: 2.6rem;
+      min-height: 2.5rem;
     }
 
     .card-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .meta-tag {
-      font-size: 0.75rem;
+      font-size: 0.72rem;
       background: #f8fafc;
       color: #64748b;
       padding: 0.15rem 0.5rem;
@@ -476,6 +582,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       border: 1px solid #f1f5f9;
       font-weight: 600;
     }
+    .font-mono { font-family: monospace; }
 
     .values-box {
       display: flex;
@@ -483,27 +590,96 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
       background: #f8fafc;
       border: 1px solid #f1f5f9;
       border-radius: 0.65rem;
-      padding: 0.6rem 0.85rem;
-      justify-content: space-around;
-      margin-top: 0.25rem;
+      padding: 0.6rem 0.75rem;
+      justify-content: space-between;
     }
     .val-col { display: flex; flex-direction: column; align-items: center; }
-    .val-col .lbl { font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .val-col .val { font-size: 1.05rem; font-weight: 900; }
+    .val-col .lbl { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+    .val-col .val { font-size: 1rem; font-weight: 900; }
     .val-col .meta-val { color: #475569; }
     .val-col .res-val { color: #1e3a8a; }
-    .val-divider { width: 1px; height: 28px; background: #e2e8f0; }
+    .val-col .pct-val[data-c='AZUL'] { color: #2563eb; }
+    .val-col .pct-val[data-c='VERDE'] { color: #16a34a; }
+    .val-col .pct-val[data-c='AMARILLO'] { color: #d97706; }
+    .val-col .pct-val[data-c='ROJO'] { color: #dc2626; }
+    .val-divider { width: 1px; height: 26px; background: #e2e8f0; }
 
-    .card-footer { margin-top: 0.35rem; }
+    /* BARRA DE PROGRESO */
+    .progress-container { margin: 0.1rem 0; }
+    .progress-track {
+      height: 6px;
+      background: #f1f5f9;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 999px;
+      transition: width 0.4s ease;
+    }
+    .progress-fill[data-c='AZUL'] { background: #3b82f6; }
+    .progress-fill[data-c='VERDE'] { background: #22c55e; }
+    .progress-fill[data-c='AMARILLO'] { background: #eab308; }
+    .progress-fill[data-c='ROJO'] { background: #ef4444; }
+    .progress-fill[data-c='NA'] { background: #cbd5e1; }
+
+    /* MINI GRÁFICO HISTÓRICO (SPARKLINE) */
+    .sparkline-box {
+      background: #fcfcfd;
+      border: 1px solid #f1f5f9;
+      border-radius: 0.55rem;
+      padding: 0.5rem 0.65rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .sparkline-title { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .bars-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.35rem;
+      height: 36px;
+      padding-top: 4px;
+    }
+    .bar-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.15rem;
+      height: 100%;
+      justify-content: flex-end;
+      cursor: help;
+    }
+    .bar-stem {
+      width: 100%;
+      height: 24px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .bar-cap {
+      width: 80%;
+      min-height: 4px;
+      border-radius: 2px 2px 0 0;
+      transition: height 0.3s;
+    }
+    .bar-cap[data-c='AZUL'] { background: #3b82f6; }
+    .bar-cap[data-c='VERDE'] { background: #22c55e; }
+    .bar-cap[data-c='AMARILLO'] { background: #eab308; }
+    .bar-cap[data-c='ROJO'] { background: #ef4444; }
+    .bar-lbl { font-size: 0.65rem; color: #94a3b8; font-weight: 700; }
+
+    .card-footer { margin-top: 0.25rem; }
     .btn-capturar {
       width: 100%;
       border: 1px solid #bfdbfe;
       background: #eff6ff;
       color: #1d4ed8;
       border-radius: 0.55rem;
-      padding: 0.5rem;
+      padding: 0.55rem;
       font-weight: 700;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
@@ -719,6 +895,54 @@ export class SigHome implements OnInit {
       return `$${(n / 1_000_000).toLocaleString('es-CO', { maximumFractionDigits: 1 })}M`;
     }
     return n.toLocaleString('es-CO', { maximumFractionDigits: 2 });
+  }
+
+  calcPct(it: DashboardItem): string {
+    if (it.meta === null || it.resultado === null || it.meta === 0) return '100%';
+    const pct = it.sentido === 'ASCENDENTE'
+      ? (it.resultado / it.meta) * 100
+      : (it.meta / it.resultado) * 100;
+    return `${Math.round(pct)}%`;
+  }
+
+  calcBarWidth(it: DashboardItem): number {
+    if (it.meta === null || it.resultado === null) return 0;
+    if (it.meta === 0) return 100;
+    const pct = it.sentido === 'ASCENDENTE'
+      ? (it.resultado / it.meta) * 100
+      : (it.meta / it.resultado) * 100;
+    return Math.min(100, Math.max(5, Math.round(pct)));
+  }
+
+  calcBarHeight(res: number, meta: number | null): number {
+    if (!meta || meta === 0) return 18;
+    const ratio = Math.min(1.5, Math.max(0.2, res / meta));
+    return Math.round(ratio * 16);
+  }
+
+  totalEvaluados(): number {
+    const c = this.dash()?.counts;
+    if (!c) return 0;
+    return (c.AZUL || 0) + (c.VERDE || 0) + (c.AMARILLO || 0) + (c.ROJO || 0);
+  }
+
+  totalCumplen(): number {
+    const c = this.dash()?.counts;
+    if (!c) return 0;
+    return (c.AZUL || 0) + (c.VERDE || 0);
+  }
+
+  globalEficacia(): number {
+    const total = this.totalEvaluados();
+    if (total === 0) return 0;
+    return Math.round((this.totalCumplen() / total) * 100);
+  }
+
+  pctCount(k: keyof SigDashboard['counts']): number {
+    const total = (this.dash()?.items || []).length;
+    if (total === 0) return 0;
+    const count = this.dash()?.counts?.[k] || 0;
+    return Math.round((count / total) * 100);
   }
 
   loadDash(): void {
