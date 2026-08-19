@@ -208,6 +208,17 @@ export class UsersService {
       throw new NotFoundException('Rol no encontrado');
     }
 
+    if (role.code === 'PUESTO' && !dto.postId) {
+      throw new BadRequestException('La cuenta de puesto requiere un puesto asignado');
+    }
+
+    if (dto.postId) {
+      const post = await this.postsRepo.findOne({ where: { id: dto.postId } });
+      if (!post) {
+        throw new NotFoundException('Puesto no encontrado');
+      }
+    }
+
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.usersRepo.save(
       this.usersRepo.create({
@@ -220,6 +231,12 @@ export class UsersService {
       }),
     );
 
+    if (dto.postId) {
+      await this.userPostsRepo.save(
+        this.userPostsRepo.create({ userId: user.id, postId: dto.postId }),
+      );
+    }
+
     await this.auditService.log({
       userId: createdByUserId,
       module: 'users',
@@ -230,6 +247,7 @@ export class UsersService {
         email: user.email,
         fullName: user.fullName,
         roleId: user.roleId,
+        postId: dto.postId ?? null,
       },
     });
 
