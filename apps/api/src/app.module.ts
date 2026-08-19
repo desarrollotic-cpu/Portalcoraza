@@ -32,6 +32,7 @@ import { SigModule } from './modules/sig/sig.module';
 import { UsersModule } from './modules/users/users.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { PayrollsModule } from './modules/payroll/payrolls.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 function isSupabaseDatabaseUrl(url?: string): boolean {
   if (!url) return false;
@@ -90,6 +91,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     SigModule,
     AccountingModule,
     PayrollsModule,
+    DashboardModule,
     AuditModule,
   ],
 })

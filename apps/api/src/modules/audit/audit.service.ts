@@ -44,4 +44,12 @@ export class AuditService {
       take,
     });
   }
+
+  /** Últimas entradas de auditoría (actividad reciente del portal). */
+  listRecent(take = 25) {
+    return this.auditRepo.find({
+      order: { createdAt: 'DESC' },
+      take: Math.min(Math.max(take, 1), 50),
+    });
+  }
 }

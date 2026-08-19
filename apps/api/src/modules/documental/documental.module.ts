@@ -78,6 +78,6 @@ import { WorkflowsService } from './services/workflows.service';
     WorkflowsService,
     OverviewService,
   ],
-  exports: [DocumentalService],
+  exports: [DocumentalService, OverviewService],
 })
 export class DocumentalModule {}

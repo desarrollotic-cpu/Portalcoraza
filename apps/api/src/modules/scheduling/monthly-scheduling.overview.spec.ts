@@ -24,6 +24,7 @@ describe('MonthlySchedulingService.overview', () => {
       orderBy: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       getCount: jest.fn().mockResolvedValue(3),
+      getRawOne: jest.fn().mockResolvedValue({ n: 2 }),
       getRawMany: jest.fn().mockResolvedValue([
         { postId: 'post-a', label: 'P-A', value: '2' },
         { postId: 'post-b', label: 'P-B', value: '1' },

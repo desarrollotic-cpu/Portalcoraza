@@ -75,6 +75,8 @@ export interface ProgramacionOverview {
   month: number;
   kpis: {
     postsInMonth: number;
+    postsCovered: number;
+    postsUncovered: number;
     assignedCells: number;
     conflicts: number;
     templates: number;

@@ -832,6 +832,14 @@ export class InventoryService {
     return rows;
   }
 
+  /** Variantes con cantidad 0 en al menos un almacén (agotado en esa sede). */
+  async countZeroStockVariants(): Promise<number> {
+    return this.stockRepo
+      .createQueryBuilder('s')
+      .where('s.quantity = 0')
+      .getCount();
+  }
+
   async listLowStockVariants(take = 10) {
     const rows = await this.stockRepo
       .createQueryBuilder('s')

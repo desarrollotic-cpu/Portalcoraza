@@ -432,6 +432,16 @@ export class MonthlySchedulingService {
       .andWhere(`a.jornada != 'sin_asignar'`)
       .getCount();
 
+    const postsCoveredRow = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('COUNT(DISTINCT s.post_id)::int', 'n')
+      .getRawOne<{ n: string | number }>();
+    const postsCovered = Number(postsCoveredRow?.n ?? 0);
+
     const assignedRows = await this.assignmentsRepo
       .createQueryBuilder('a')
       .innerJoin('a.schedule', 's')
@@ -490,6 +500,8 @@ export class MonthlySchedulingService {
       month,
       kpis: {
         postsInMonth,
+        postsCovered,
+        postsUncovered: Math.max(0, postsInMonth - postsCovered),
         assignedCells,
         conflicts: conflicts.length,
         templates: templates.length,

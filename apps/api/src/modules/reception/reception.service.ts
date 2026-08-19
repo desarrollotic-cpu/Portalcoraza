@@ -140,6 +140,72 @@ export class ReceptionService {
     };
   }
 
+  /** Insights extra para el command-center (ayer + pico horario). Secuencial. */
+  async getCommandInsights() {
+    const bounds = this.bogotaBounds();
+    const tz = 'America/Bogota';
+    const yesterdayStart = new Date(bounds.dayStart.getTime() - 24 * 60 * 60 * 1000);
+    const days7Start = new Date(bounds.dayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+
+    const yesterdayRows = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [yesterdayStart, bounds.dayStart],
+    )) as { n: number }[];
+
+    const yesterdayExits = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE exit_at IS NOT NULL AND exit_at >= $1 AND exit_at < $2
+      `,
+      [yesterdayStart, bounds.dayStart],
+    )) as { n: number }[];
+
+    const todayExits = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE exit_at IS NOT NULL AND exit_at >= $1 AND exit_at < $2
+      `,
+      [bounds.dayStart, bounds.dayEnd],
+    )) as { n: number }[];
+
+    const byHour = (await this.visitorsRepo.query(
+      `
+        SELECT EXTRACT(HOUR FROM (entry_at AT TIME ZONE $1))::int AS hour,
+               COUNT(*)::int AS entries
+        FROM reception_visitors
+        WHERE entry_at >= $2 AND entry_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, days7Start, bounds.dayEnd],
+    )) as { hour: number; entries: number }[];
+
+    const hourMap = new Map(byHour.map((r) => [Number(r.hour), Number(r.entries) || 0]));
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      entries: hourMap.get(hour) ?? 0,
+    }));
+    const peak = hourly.reduce(
+      (best, cur) => (cur.entries > best.entries ? cur : best),
+      { hour: 0, entries: 0 },
+    );
+
+    return {
+      yesterdayEntries: Number(yesterdayRows[0]?.n ?? 0),
+      yesterdayExits: Number(yesterdayExits[0]?.n ?? 0),
+      todayExits: Number(todayExits[0]?.n ?? 0),
+      hourlyLast7Days: hourly,
+      peakHour: peak.entries > 0 ? peak.hour : null,
+      peakEntries: peak.entries,
+    };
+  }
+
   async list(params: { insideOnly?: boolean; limit?: number } = {}) {
     const take = Math.min(params.limit ?? 100, 500);
 
