@@ -266,6 +266,13 @@ export class MonthlySchedulingService {
     const tipoCiclo = dto.tipoCiclo ?? '12x3';
 
     let personal = schedule.personal ?? [];
+    if (dto.personal?.length) {
+      personal = dto.personal as PersonalRole[];
+      await this.schedulesRepo.update(id, {
+        personal,
+        updatedBy: userId,
+      });
+    }
     if (dto.roles?.length) {
       personal = personal.filter((p) => dto.roles!.includes(p.rol));
     }
@@ -315,13 +322,14 @@ export class MonthlySchedulingService {
       newValue: {
         assignments: generated.length,
         tipoCiclo,
+        roles: personal.length,
         alerts: this.motor.validateBoard(generated, daysInMonth).length,
       },
     });
 
-    const saved = await this.getById(id);
+    const updated = await this.getById(id);
     return {
-      ...saved,
+      ...updated,
       motorAlerts: this.motor.validateBoard(generated, daysInMonth),
     };
   }

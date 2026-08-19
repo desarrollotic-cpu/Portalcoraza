@@ -144,7 +144,11 @@ export class MonthlySchedulingApiService {
 
   generateMotor(
     id: string,
-    opts?: { roles?: string[]; tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2' },
+    opts?: {
+      roles?: string[];
+      tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+      personal?: PersonalRole[];
+    },
   ): Observable<MonthlySchedule & { motorAlerts?: unknown[] }> {
     return this.http.post<MonthlySchedule & { motorAlerts?: unknown[] }>(
       `${this.baseUrl}/${id}/motor`,

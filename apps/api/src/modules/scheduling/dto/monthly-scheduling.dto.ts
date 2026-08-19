@@ -136,6 +136,13 @@ export class GenerateMotorDto {
   @IsString({ each: true })
   roles?: string[];
 
+  /** Si viene, se persiste antes de generar (roles agregados en UI sin Guardar). */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PersonalRoleDto)
+  personal?: PersonalRoleDto[];
+
   /** Ciclo a aplicar: 12x3 | 10x5 | 2x2 | 13x2 (default 12x3). */
   @IsOptional()
   @IsString()

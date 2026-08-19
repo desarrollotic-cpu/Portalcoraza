@@ -435,16 +435,22 @@ export class ScheduleBoard implements OnInit {
     if (!sched) return;
     if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
     this.saving.set(true);
-    this.api.generateMotor(sched.id, { tipoCiclo: this.tipoCiclo }).subscribe({
-      next: (updated) => {
-        this.applySchedule(updated);
-        this.saving.set(false);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.error.set('No se pudo ejecutar el motor de ciclo');
-      },
-    });
+    // Enviar personal actual: roles agregados en UI sin Guardar no deben perderse.
+    this.api
+      .generateMotor(sched.id, {
+        tipoCiclo: this.tipoCiclo,
+        personal: this.personal(),
+      })
+      .subscribe({
+        next: (updated) => {
+          this.applySchedule(updated);
+          this.saving.set(false);
+        },
+        error: () => {
+          this.saving.set(false);
+          this.error.set('No se pudo ejecutar el motor de ciclo');
+        },
+      });
   }
 
   saveAsTemplate(): void {
