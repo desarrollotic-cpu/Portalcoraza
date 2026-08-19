@@ -510,6 +510,105 @@ export class MonthlySchedulingService {
     };
   }
 
+  /**
+   * Cobertura del día actual (Bogotá) + próximo turno con hora de inicio.
+   * Solo datos de cuadros mensuales existentes.
+   */
+  async getTodaySnapshot() {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const num = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((p) => p.type === type)?.value ?? '0');
+    const year = num('year');
+    const month = num('month');
+    const day = num('day');
+    const hour = num('hour');
+    const minute = num('minute');
+    const nowMinutes = hour * 60 + minute;
+
+    const postsInMonth = await this.schedulesRepo.count({ where: { year, month } });
+
+    const coveredTodayRow = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('COUNT(DISTINCT s.post_id)::int', 'n')
+      .getRawOne<{ n: string | number }>();
+    const postsCoveredToday = Number(coveredTodayRow?.n ?? 0);
+
+    const shiftsToday = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .getCount();
+
+    const withInicio = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .andWhere('a.inicio IS NOT NULL')
+      .select('a.inicio', 'inicio')
+      .addSelect('a.turno', 'turno')
+      .addSelect(
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        'postLabel',
+      )
+      .getRawMany<{ inicio: string; turno: string | null; postLabel: string }>();
+
+    let nextShift: {
+      postLabel: string;
+      turno: string | null;
+      inicio: string;
+      minutesUntil: number;
+    } | null = null;
+
+    for (const row of withInicio) {
+      const m = /^(\d{1,2}):(\d{2})/.exec(String(row.inicio ?? '').trim());
+      if (!m) continue;
+      const start = Number(m[1]) * 60 + Number(m[2]);
+      const minutesUntil = start - nowMinutes;
+      if (minutesUntil < 0) continue;
+      if (!nextShift || minutesUntil < nextShift.minutesUntil) {
+        nextShift = {
+          postLabel: row.postLabel,
+          turno: row.turno,
+          inicio: `${String(m[1]).padStart(2, '0')}:${m[2]}`,
+          minutesUntil,
+        };
+      }
+    }
+
+    return {
+      year,
+      month,
+      day,
+      postsInMonth,
+      postsCoveredToday,
+      postsUncoveredToday: Math.max(0, postsInMonth - postsCoveredToday),
+      shiftsToday,
+      coveragePct:
+        postsInMonth > 0 ? Math.round((postsCoveredToday / postsInMonth) * 100) : null,
+      nextShift,
+    };
+  }
+
   async createTemplate(dto: CreateScheduleTemplateDto, userId: string) {
     let personal: PersonalRole[] = [];
     let patron: TemplatePatternItem[] = [];

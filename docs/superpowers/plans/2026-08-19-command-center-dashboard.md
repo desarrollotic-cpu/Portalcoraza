@@ -1,23 +1,24 @@
-# Command Center Dashboard — Implementation Plan (Fase 1)
+# Command Center Dashboard — Implementation Plan
 
-> Executed 2026-08-19 per user approval (“haz todo como lo recomiendes”).
+> Fase 1 + Fase 2 ejecutadas 2026-08-19.
 
-**Goal:** Centro de inteligencia operativa con un endpoint agregado y UI jerárquica.
+**Goal:** Centro de inteligencia operativa con datos reales.
 
-## Done
+## Done — Fase 1
 
-- [x] Spec `docs/superpowers/specs/2026-08-19-command-center-dashboard-design.md`
-- [x] `GET /dashboard/command-center` (permisos, secuencial, datos reales)
-- [x] Extras recepción (ayer, salidas, pico horario 7d)
-- [x] Cobertura programación (`postsCovered` / `postsUncovered`)
-- [x] Zero-stock count inventario
-- [x] Actividad reciente vía audit
-- [x] UI Dashboard: hero + status + highlights + alertas + scores + KPIs + módulos + timeline
+- [x] Spec + `GET /dashboard/command-center`
+- [x] UI jerárquica (highlights, alertas, scores, KPIs, módulos, actividad)
+
+## Done — Fase 2
+
+- [x] Query `?period=today|7d|30d|month` recarga series/comparaciones
+- [x] Sparklines en KPIs con serie real (RRHH rotación, recepción, entregas)
+- [x] Cobertura del día + próximo turno (minutos) desde asignaciones
+- [x] Dotación: con/sin entrega reciente + barras de estado (sin inventar “incompleta”)
+- [x] Series recepción/entregas por período
 - [x] Build API + Web OK
 
-## Fase 2 (pendiente)
+## Fuera de alcance (sin modelo)
 
-- Sparklines históricos persistidos
-- Cobertura diaria / turno próximo
-- Dotación completa vs incompleta (modelo)
-- Filtro periodo global completo
+- Checklist “dotación completa vs incompleta” por elemento obligatorio
+- Sparklines de stock histórico (no hay snapshots de inventario)

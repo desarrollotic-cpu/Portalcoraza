@@ -1,9 +1,10 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export type AlertTone = 'critical' | 'warning' | 'info';
+export type CommandPeriod = 'today' | '7d' | '30d' | 'month';
 
 export interface CommandAlert {
   id: string;
@@ -30,6 +31,7 @@ export interface CommandKpi {
   deltaLabel?: string | null;
   route: string;
   warn?: boolean;
+  sparkline?: number[];
 }
 
 export interface CommandScore {
@@ -50,6 +52,8 @@ export interface CommandActivity {
 
 export interface CommandCenterPayload {
   generatedAt: string;
+  period: CommandPeriod;
+  seriesDays: number;
   operationStatus: { code: 'stable' | 'attention' | 'critical'; label: string };
   highlights: CommandHighlight[];
   alerts: CommandAlert[];
@@ -64,7 +68,10 @@ export class DashboardApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = environment.apiUrl;
 
-  loadCommandCenter(): Observable<CommandCenterPayload> {
-    return this.http.get<CommandCenterPayload>(`${this.baseUrl}/dashboard/command-center`);
+  loadCommandCenter(period: CommandPeriod = '7d'): Observable<CommandCenterPayload> {
+    const params = new HttpParams().set('period', period);
+    return this.http.get<CommandCenterPayload>(`${this.baseUrl}/dashboard/command-center`, {
+      params,
+    });
   }
 }

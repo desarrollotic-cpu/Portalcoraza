@@ -17,16 +17,13 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { Icon } from '../../shared/components/icon/icon';
 import {
-  CommandActivity,
   CommandAlert,
   CommandCenterPayload,
-  CommandHighlight,
-  CommandKpi,
-  CommandScore,
+  CommandPeriod,
   DashboardApiService,
 } from './dashboard-api.service';
 
-type PeriodKey = 'today' | '7d' | '30d' | 'month';
+type PeriodKey = CommandPeriod;
 
 @Component({
   selector: 'app-dashboard',
@@ -62,14 +59,14 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
                   type="button"
                   class="period-btn"
                   [class.active]="period() === p.key"
-                  (click)="period.set(p.key)"
+                  (click)="setPeriod(p.key)"
                 >
                   {{ p.label }}
                 </button>
               }
             </div>
             <p class="period-hint">
-              El período filtra series donde hay histórico (recepción / rotación). Los KPIs puntuales siguen siendo “hoy / mes actual”.
+              El período recarga series y comparaciones reales (recepción, entregas). KPIs puntuales de “hoy” se mantienen.
             </p>
           </div>
 
@@ -192,6 +189,16 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
                 <a [routerLink]="k.route" class="kpi-card" [class.warn]="k.warn">
                   <span class="kpi-label">{{ k.label }}</span>
                   <strong class="kpi-value">{{ k.value | number }}</strong>
+                  @if (k.sparkline?.length) {
+                    <svg class="spark" viewBox="0 0 64 20" aria-hidden="true">
+                      <polyline
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        [attr.points]="linePoints(k.sparkline!, 64, 20)"
+                      />
+                    </svg>
+                  }
                   @if (k.deltaPct != null) {
                     <span class="kpi-delta" [attr.data-dir]="k.deltaPct >= 0 ? 'up' : 'down'">
                       @if (k.deltaPct >= 0) {
@@ -273,7 +280,7 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
                 }
               </svg>
               <p class="muted chart-caption">
-                Serie {{ period() === '7d' ? '7 días' : period() === '30d' ? '14 días (máx. disponible)' : '14 días' }}
+                Serie {{ d.seriesDays }} día(s) · período {{ d.period }}
               </p>
             </section>
           }
@@ -289,10 +296,35 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
               </div>
               <div class="mini-stats">
                 <div><span>Sin dotación</span><strong>{{ dot.withoutDotacionCount }}</strong></div>
+                <div><span>Con entrega</span><strong>{{ dot.withDotacionCount ?? '—' }}</strong></div>
                 <div><span>Stock bajo</span><strong>{{ dot.lowStockCount }}</strong></div>
                 <div><span>Agotados</span><strong>{{ dot.zeroStockCount ?? 0 }}</strong></div>
-                <div><span>Entregadas hoy</span><strong>{{ dot.deliveredToday }}</strong></div>
               </div>
+              @if (dot.statusBreakdown) {
+                <div class="stack-bars" aria-label="Estado de dotación">
+                  <div class="stack-row">
+                    <span>Con entrega reciente</span>
+                    <div class="stack-track">
+                      <div class="stack-fill ok" [style.width.%]="dotShare(dot, 'with')"></div>
+                    </div>
+                    <strong>{{ dot.statusBreakdown.withRecentDelivery }}</strong>
+                  </div>
+                  <div class="stack-row">
+                    <span>Sin entrega reciente</span>
+                    <div class="stack-track">
+                      <div class="stack-fill warn" [style.width.%]="dotShare(dot, 'without')"></div>
+                    </div>
+                    <strong>{{ dot.statusBreakdown.withoutRecentDelivery }}</strong>
+                  </div>
+                  <div class="stack-row">
+                    <span>Entregas pendientes</span>
+                    <div class="stack-track">
+                      <div class="stack-fill info" [style.width.%]="dotShare(dot, 'pending')"></div>
+                    </div>
+                    <strong>{{ dot.statusBreakdown.pendingDeliveries }}</strong>
+                  </div>
+                </div>
+              }
               @if (dot.topDeliveredItems?.length) {
                 <h3 class="subh">Mayor consumo</h3>
                 <ul class="rank-list">
@@ -326,7 +358,7 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
               </div>
               <div class="coverage">
                 <div class="coverage-meta">
-                  <span>Cobertura de puestos</span>
+                  <span>Cobertura de puestos (mes)</span>
                   <strong>
                     @if (prog.kpis.postsInMonth > 0) {
                       {{ coveragePct(prog) }}%
@@ -339,10 +371,33 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
                   <div class="coverage-fill" [style.width.%]="coveragePct(prog)"></div>
                 </div>
               </div>
+              @if (prog.today) {
+                <div class="coverage">
+                  <div class="coverage-meta">
+                    <span>Cobertura hoy (día {{ prog.today.day }})</span>
+                    <strong>
+                      @if (prog.today.coveragePct != null) {
+                        {{ prog.today.coveragePct }}%
+                      } @else {
+                        Sin datos
+                      }
+                    </strong>
+                  </div>
+                  <div class="coverage-track">
+                    <div class="coverage-fill" [style.width.%]="prog.today.coveragePct ?? 0"></div>
+                  </div>
+                  @if (prog.today.nextShift) {
+                    <p class="next-shift">
+                      Próximo turno: {{ prog.today.nextShift.postLabel }} a las {{ prog.today.nextShift.inicio }}
+                      (en {{ prog.today.nextShift.minutesUntil }} min)
+                    </p>
+                  }
+                </div>
+              }
               <div class="mini-stats">
                 <div><span>Programados</span><strong>{{ prog.kpis.postsInMonth }}</strong></div>
                 <div><span>Cubiertos</span><strong>{{ prog.kpis.postsCovered }}</strong></div>
-                <div><span>Sin cubrir</span><strong>{{ prog.kpis.postsUncovered }}</strong></div>
+                <div><span>Sin cubrir hoy</span><strong>{{ prog.today?.postsUncoveredToday ?? '—' }}</strong></div>
                 <div><span>Conflictos</span><strong>{{ prog.kpis.conflicts }}</strong></div>
               </div>
             </section>
@@ -533,6 +588,7 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
     }
     .kpi-card:hover { transform: translateY(-1px); border-color: var(--primary-200); }
     .kpi-card.warn { border-color: rgba(245,158,11,0.45); }
+    .spark { width: 100%; height: 22px; color: var(--primary-600); margin-top: 0.15rem; }
     .kpi-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
     .kpi-value { font-family: var(--font-display); font-size: 1.7rem; line-height: 1.1; color: var(--text-primary); }
     .kpi-hint { font-size: 0.75rem; color: var(--text-muted); }
@@ -576,6 +632,17 @@ type PeriodKey = 'today' | '7d' | '30d' | 'month';
     .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; }
     .coverage-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
     .coverage-fill { height: 100%; background: linear-gradient(90deg, var(--primary-500), #22c55e); }
+    .next-shift { margin: 0.45rem 0 0; font-size: 0.8rem; color: var(--text-secondary); }
+    .stack-bars { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.75rem; }
+    .stack-row {
+      display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.5rem; align-items: center;
+      font-size: 0.78rem;
+    }
+    .stack-track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+    .stack-fill { height: 100%; border-radius: 999px; }
+    .stack-fill.ok { background: #22c55e; }
+    .stack-fill.warn { background: #f59e0b; }
+    .stack-fill.info { background: #3b82f6; }
     .timeline .time {
       min-width: 78px; font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums;
     }
@@ -675,7 +742,19 @@ export class Dashboard implements OnInit {
   readonly documental = computed(() => this.data()?.modules?.['documental'] as any);
 
   ngOnInit(): void {
-    this.api.loadCommandCenter().subscribe({
+    this.reload();
+  }
+
+  setPeriod(key: PeriodKey): void {
+    if (this.period() === key) return;
+    this.period.set(key);
+    this.reload();
+  }
+
+  reload(): void {
+    this.loading.set(true);
+    this.error.set(null);
+    this.api.loadCommandCenter(this.period()).subscribe({
       next: (payload) => {
         this.data.set(payload);
         this.loading.set(false);
@@ -710,22 +789,44 @@ export class Dashboard implements OnInit {
     return Math.round((prog.kpis.postsCovered / prog.kpis.postsInMonth) * 100);
   }
 
-  receptionSeries(rec: { last14Days: { day: string; entries: number }[] }): number[] {
-    const all = rec.last14Days ?? [];
-    if (this.period() === '7d' || this.period() === 'today') return all.slice(-7).map((d) => d.entries);
-    return all.map((d) => d.entries);
+  receptionSeries(rec: {
+    last14Days?: { day: string; entries: number }[];
+    insights?: { dailySeries?: { day: string; entries: number }[] };
+  }): number[] {
+    const series = rec.insights?.dailySeries;
+    if (series?.length) return series.map((d) => d.entries);
+    return (rec.last14Days ?? []).map((d) => d.entries);
   }
 
-  linePoints(values: number[]): string {
+  dotShare(
+    dot: {
+      statusBreakdown?: {
+        withRecentDelivery: number;
+        withoutRecentDelivery: number;
+        pendingDeliveries: number;
+      };
+    },
+    kind: 'with' | 'without' | 'pending',
+  ): number {
+    const b = dot.statusBreakdown;
+    if (!b) return 0;
+    const total = Math.max(
+      1,
+      b.withRecentDelivery + b.withoutRecentDelivery + b.pendingDeliveries,
+    );
+    if (kind === 'with') return Math.round((b.withRecentDelivery / total) * 100);
+    if (kind === 'without') return Math.round((b.withoutRecentDelivery / total) * 100);
+    return Math.round((b.pendingDeliveries / total) * 100);
+  }
+
+  linePoints(values: number[], width = 320, height = 120): string {
     if (!values.length) return '';
     const max = Math.max(...values, 1);
-    const w = 320;
-    const h = 120;
-    const pad = 8;
+    const pad = width < 100 ? 2 : 8;
     return values
       .map((v, i) => {
-        const x = pad + (i * (w - pad * 2)) / Math.max(values.length - 1, 1);
-        const y = h - pad - (v / max) * (h - pad * 2);
+        const x = pad + (i * (width - pad * 2)) / Math.max(values.length - 1, 1);
+        const y = height - pad - (v / max) * (height - pad * 2);
         return `${x},${y}`;
       })
       .join(' ');

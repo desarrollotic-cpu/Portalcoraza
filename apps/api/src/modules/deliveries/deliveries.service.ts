@@ -263,6 +263,53 @@ export class DeliveriesService {
     };
   }
 
+  /** Entregas DELIVERED por día (últimos N días, Bogotá). */
+  async getDeliveredPerDay(days = 14): Promise<{ day: string; count: number }[]> {
+    const n = Math.min(Math.max(days, 1), 60);
+    const tz = 'America/Bogota';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const y = Number(parts.find((p) => p.type === 'year')?.value);
+    const m = Number(parts.find((p) => p.type === 'month')?.value);
+    const d = Number(parts.find((p) => p.type === 'day')?.value);
+    const dayEnd = new Date(
+      `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T00:00:00-05:00`,
+    );
+    dayEnd.setTime(dayEnd.getTime() + 24 * 60 * 60 * 1000);
+    const seriesStart = new Date(dayEnd.getTime() - n * 24 * 60 * 60 * 1000);
+
+    const rows = (await this.deliveriesRepo.query(
+      `
+        SELECT (delivered_at AT TIME ZONE $1)::date::text AS day,
+               COUNT(*)::int AS count
+        FROM deliveries
+        WHERE status = 'DELIVERED'
+          AND delivered_at >= $2 AND delivered_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, seriesStart, dayEnd],
+    )) as { day: string; count: number }[];
+
+    const map = new Map(rows.map((r) => [r.day, Number(r.count) || 0]));
+    const out: { day: string; count: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = new Date(seriesStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(t);
+      out.push({ day, count: map.get(day) ?? 0 });
+    }
+    return out;
+  }
+
   async listWithoutDotacion(months = 7): Promise<WithoutDotacionRowDto[]> {
     const cutoff = new Date();
     cutoff.setMonth(cutoff.getMonth() - months);

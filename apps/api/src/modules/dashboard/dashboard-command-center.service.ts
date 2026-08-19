@@ -35,6 +35,7 @@ export interface CommandKpi {
   deltaLabel?: string | null;
   route: string;
   warn?: boolean;
+  sparkline?: number[];
 }
 
 export interface CommandScore {
@@ -42,6 +43,21 @@ export interface CommandScore {
   label: string;
   value: number | null;
   hint?: string;
+}
+
+export type CommandPeriod = 'today' | '7d' | '30d' | 'month';
+
+function periodToDays(period: CommandPeriod): number {
+  if (period === 'today') return 1;
+  if (period === '7d') return 7;
+  if (period === '30d') return 30;
+  // este mes: días transcurridos (mín 1)
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/Bogota',
+    day: 'numeric',
+  }).formatToParts(new Date());
+  const day = Number(parts.find((p) => p.type === 'day')?.value ?? '1');
+  return Math.max(1, day);
 }
 
 @Injectable()
@@ -57,11 +73,12 @@ export class DashboardCommandCenterService {
     private readonly audit: AuditService,
   ) {}
 
-  async build(permissions: string[]) {
+  async build(permissions: string[], period: CommandPeriod = '7d') {
     const has = (code: string) => permissions.includes(code);
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth() + 1;
+    const seriesDays = periodToDays(period);
 
     const alerts: CommandAlert[] = [];
     const kpis: CommandKpi[] = [];
@@ -112,6 +129,7 @@ export class DashboardCommandCenterService {
           if (kpi) {
             kpi.deltaPct = deltaPct;
             kpi.deltaLabel = 'vs mes anterior (rotación)';
+            kpi.sparkline = rotation.map((r) => Number(r.activeAtEnd) || 0);
           }
         }
       }
@@ -122,7 +140,22 @@ export class DashboardCommandCenterService {
       const zeroStock = has('inventory.view')
         ? await this.inventory.countZeroStockVariants()
         : 0;
-      modules['dotacion'] = { ...dot, zeroStockCount: zeroStock };
+      const deliveredSeries = await this.deliveries.getDeliveredPerDay(seriesDays);
+      const withDotacion = Math.max(
+        0,
+        Number(dot.totalActiveAssociates) - Number(dot.withoutDotacionCount),
+      );
+      modules['dotacion'] = {
+        ...dot,
+        zeroStockCount: zeroStock,
+        withDotacionCount: withDotacion,
+        statusBreakdown: {
+          withRecentDelivery: withDotacion,
+          withoutRecentDelivery: dot.withoutDotacionCount,
+          pendingDeliveries: dot.pendingDeliveries,
+        },
+        deliveredSeries,
+      };
 
       kpis.push({
         id: 'dot-pending',
@@ -137,6 +170,21 @@ export class DashboardCommandCenterService {
         value: dot.lowStockCount,
         route: '/dotacion/inventario',
         warn: dot.lowStockCount > 0,
+        sparkline: deliveredSeries.map((d) => d.count),
+      });
+      kpis.push({
+        id: 'dot-with',
+        label: 'Con entrega reciente',
+        value: withDotacion,
+        hint: 'Activos con entrega en ventana de seguimiento',
+        route: '/dotacion',
+      });
+      kpis.push({
+        id: 'dot-without',
+        label: 'Sin dotación reciente',
+        value: dot.withoutDotacionCount,
+        route: '/dotacion/sin-dotacion',
+        warn: dot.withoutDotacionCount > 0,
       });
 
       if (dot.lowStockCount > 0) {
@@ -193,20 +241,31 @@ export class DashboardCommandCenterService {
 
     if (has('reception.view')) {
       const dash = await this.reception.getDashboard();
-      const insights = await this.reception.getCommandInsights();
-      modules['recepcion'] = { ...dash, insights };
+      const insights = await this.reception.getCommandInsights(seriesDays);
+      modules['recepcion'] = { ...dash, insights, period };
 
       const today = dash.stats.todayEntries;
       const yesterday = insights.yesterdayEntries;
       let deltaPct: number | null = null;
       let deltaLabel: string | null = null;
-      if (yesterday > 0) {
+      if (period === 'today' && yesterday > 0) {
         deltaPct = Number((((today - yesterday) / yesterday) * 100).toFixed(1));
         deltaLabel = 'vs ayer';
-      } else if (today > 0) {
+      } else if (insights.previousPeriodEntries > 0) {
+        deltaPct = Number(
+          (
+            ((insights.periodEntries - insights.previousPeriodEntries) /
+              insights.previousPeriodEntries) *
+            100
+          ).toFixed(1),
+        );
+        deltaLabel = `vs período anterior (${seriesDays}d)`;
+      } else if (today > 0 && period === 'today') {
         deltaPct = null;
         deltaLabel = 'Sin entradas ayer para comparar';
       }
+
+      const spark = insights.dailySeries.map((d) => d.entries);
 
       kpis.push({
         id: 'rec-inside',
@@ -217,11 +276,12 @@ export class DashboardCommandCenterService {
       });
       kpis.push({
         id: 'rec-today',
-        label: 'Entradas del día',
-        value: today,
+        label: period === 'today' ? 'Entradas del día' : `Entradas (${seriesDays}d)`,
+        value: period === 'today' ? today : insights.periodEntries,
         deltaPct,
         deltaLabel,
         route: '/recepcion',
+        sparkline: spark,
       });
 
       if (dash.stats.insideNow > 0) {
@@ -261,7 +321,8 @@ export class DashboardCommandCenterService {
 
     if (has('scheduling.view')) {
       const prog = await this.scheduling.overview(year, month);
-      modules['programacion'] = prog;
+      const todaySnap = await this.scheduling.getTodaySnapshot();
+      modules['programacion'] = { ...prog, today: todaySnap };
       const { postsInMonth, postsCovered, postsUncovered, conflicts } = prog.kpis;
 
       kpis.push({
@@ -272,12 +333,39 @@ export class DashboardCommandCenterService {
       });
       kpis.push({
         id: 'prog-uncovered',
-        label: 'Puestos sin cubrir',
+        label: 'Puestos sin cubrir (mes)',
         value: postsUncovered,
         route: '/programacion',
         warn: postsUncovered > 0,
       });
+      kpis.push({
+        id: 'prog-today-uncovered',
+        label: 'Sin cobertura hoy',
+        value: todaySnap.postsUncoveredToday,
+        route: '/programacion',
+        warn: todaySnap.postsUncoveredToday > 0,
+      });
 
+      if (todaySnap.postsUncoveredToday > 0) {
+        alerts.push({
+          id: 'prog-today-uncovered',
+          tone: 'warning',
+          title: 'Puestos sin cobertura hoy',
+          message: `${todaySnap.postsUncoveredToday} puesto(s) sin asignación para el día ${todaySnap.day}`,
+          route: '/programacion',
+          module: 'programacion',
+        });
+      }
+      if (todaySnap.nextShift) {
+        alerts.push({
+          id: 'prog-next-shift',
+          tone: 'info',
+          title: 'Próximo turno',
+          message: `${todaySnap.nextShift.postLabel} a las ${todaySnap.nextShift.inicio} (en ${todaySnap.nextShift.minutesUntil} min)`,
+          route: '/programacion',
+          module: 'programacion',
+        });
+      }
       if (postsUncovered > 0) {
         alerts.push({
           id: 'prog-uncovered',
@@ -304,7 +392,7 @@ export class DashboardCommandCenterService {
           key: 'programacion',
           label: 'Programación',
           value: Math.round((postsCovered / postsInMonth) * 100),
-          hint: `${postsCovered}/${postsInMonth} puestos con asignaciones`,
+          hint: `${postsCovered}/${postsInMonth} puestos con asignaciones · hoy ${todaySnap.coveragePct ?? '—'}%`,
         });
       } else {
         scores.push({
@@ -384,6 +472,8 @@ export class DashboardCommandCenterService {
 
     return {
       generatedAt: new Date().toISOString(),
+      period,
+      seriesDays,
       operationStatus,
       highlights,
       alerts: rankedAlerts.slice(0, 40),

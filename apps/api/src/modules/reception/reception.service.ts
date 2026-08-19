@@ -140,12 +140,15 @@ export class ReceptionService {
     };
   }
 
-  /** Insights extra para el command-center (ayer + pico horario). Secuencial. */
-  async getCommandInsights() {
+  /** Insights extra para el command-center (ayer + pico horario + series). Secuencial. */
+  async getCommandInsights(seriesDays = 14) {
     const bounds = this.bogotaBounds();
     const tz = 'America/Bogota';
+    const days = Math.min(Math.max(seriesDays, 1), 60);
     const yesterdayStart = new Date(bounds.dayStart.getTime() - 24 * 60 * 60 * 1000);
     const days7Start = new Date(bounds.dayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const seriesStart = new Date(bounds.dayStart.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    const prevPeriodStart = new Date(seriesStart.getTime() - days * 24 * 60 * 60 * 1000);
 
     const yesterdayRows = (await this.visitorsRepo.query(
       `
@@ -174,6 +177,36 @@ export class ReceptionService {
       [bounds.dayStart, bounds.dayEnd],
     )) as { n: number }[];
 
+    const periodEntries = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [seriesStart, bounds.dayEnd],
+    )) as { n: number }[];
+
+    const prevPeriodEntries = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [prevPeriodStart, seriesStart],
+    )) as { n: number }[];
+
+    const byDay = (await this.visitorsRepo.query(
+      `
+        SELECT (entry_at AT TIME ZONE $1)::date::text AS day,
+               COUNT(*)::int AS entries
+        FROM reception_visitors
+        WHERE entry_at >= $2 AND entry_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, seriesStart, bounds.dayEnd],
+    )) as { day: string; entries: number }[];
+
     const byHour = (await this.visitorsRepo.query(
       `
         SELECT EXTRACT(HOUR FROM (entry_at AT TIME ZONE $1))::int AS hour,
@@ -196,10 +229,27 @@ export class ReceptionService {
       { hour: 0, entries: 0 },
     );
 
+    const dayMap = new Map(byDay.map((r) => [r.day, Number(r.entries) || 0]));
+    const dailySeries: { day: string; entries: number }[] = [];
+    for (let i = 0; i < days; i++) {
+      const t = new Date(seriesStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(t);
+      dailySeries.push({ day, entries: dayMap.get(day) ?? 0 });
+    }
+
     return {
       yesterdayEntries: Number(yesterdayRows[0]?.n ?? 0),
       yesterdayExits: Number(yesterdayExits[0]?.n ?? 0),
       todayExits: Number(todayExits[0]?.n ?? 0),
+      periodEntries: Number(periodEntries[0]?.n ?? 0),
+      previousPeriodEntries: Number(prevPeriodEntries[0]?.n ?? 0),
+      seriesDays: days,
+      dailySeries,
       hourlyLast7Days: hourly,
       peakHour: peak.entries > 0 ? peak.hour : null,
       peakEntries: peak.entries,
