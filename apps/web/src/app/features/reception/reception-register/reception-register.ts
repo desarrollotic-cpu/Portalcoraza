@@ -37,8 +37,19 @@ import {
                 [(ngModel)]="form.documentNumber"
                 name="documentNumber"
                 autocomplete="off"
+                (ngModelChange)="onDocumentChange($event)"
+                (blur)="lookupDocument()"
               />
             </label>
+            @if (associatePreview()) {
+              <p
+                class="associate-hint"
+                [class.yes]="associatePreview()!.isAssociate"
+                [class.no]="!associatePreview()!.isAssociate"
+              >
+                {{ associatePreview()!.label }}
+              </p>
+            }
             <label>
               Primer apellido
               <input [(ngModel)]="form.firstSurname" name="firstSurname" autocomplete="off" />
@@ -202,6 +213,14 @@ import {
       font-size: 0.8rem;
       color: var(--text-secondary);
     }
+    .associate-hint {
+      grid-column: 1 / -1;
+      margin: -0.35rem 0 0.15rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+    }
+    .associate-hint.yes { color: #166534; }
+    .associate-hint.no { color: var(--text-secondary); }
     label {
       display: flex;
       flex-direction: column;
@@ -284,11 +303,30 @@ export class ReceptionRegister implements OnInit {
   readonly formError = signal<string | null>(null);
   readonly success = signal<string | null>(null);
   readonly clock = signal(new Date());
+  readonly associatePreview = signal<{ isAssociate: boolean; label: string } | null>(null);
+  private lookupTimer: ReturnType<typeof setTimeout> | null = null;
 
   form = this.emptyForm();
 
   ngOnInit(): void {
     setInterval(() => this.clock.set(new Date()), 1000);
+  }
+
+  onDocumentChange(_value: string): void {
+    if (this.lookupTimer) clearTimeout(this.lookupTimer);
+    this.lookupTimer = setTimeout(() => this.lookupDocument(), 350);
+  }
+
+  lookupDocument(): void {
+    const doc = this.form.documentNumber.trim();
+    if (!doc) {
+      this.associatePreview.set(null);
+      return;
+    }
+    this.api.lookupAssociate(doc).subscribe({
+      next: (r) => this.associatePreview.set(r),
+      error: () => this.associatePreview.set(null),
+    });
   }
 
   /** Los lectores envían Enter al final; no debe guardar el formulario. */
@@ -314,6 +352,7 @@ export class ReceptionRegister implements OnInit {
     this.form = this.emptyForm();
     this.formError.set(null);
     this.success.set(null);
+    this.associatePreview.set(null);
   }
 
   onOriginPlaceChoiceChange(value: string): void {

@@ -48,6 +48,12 @@ export class ReceptionController {
     });
   }
 
+  @Get('visitors/lookup-associate')
+  @RequirePermissions('reception.register')
+  lookupAssociate(@Query('document') document?: string) {
+    return this.service.lookupAssociate(document);
+  }
+
   @Post('visitors')
   @RequirePermissions('reception.register')
   register(@Body() dto: RegisterReceptionVisitorDto, @CurrentUser() user: JwtPayload) {

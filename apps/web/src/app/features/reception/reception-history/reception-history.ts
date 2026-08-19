@@ -71,6 +71,13 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
                   <span class="badge" [class.inside]="v.isInside">
                     {{ v.isInside ? 'Dentro' : 'Cerrado' }}
                   </span>
+                  <span
+                    class="badge"
+                    [class.associate]="v.isAssociate"
+                    [class.visitor]="!v.isAssociate"
+                  >
+                    {{ v.isAssociate ? 'Asociado' : 'Visitante' }}
+                  </span>
                 </td>
                 <td>
                   <div>{{ v.entryAt | date: 'dd/MM/yyyy' }}</div>
@@ -249,6 +256,8 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       font-weight: 700;
     }
     .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: #15803d; }
+    .badge.associate { background: #dcfce7; color: #166534; }
+    .badge.visitor { background: #f3f4f6; color: #4b5563; }
     .actions { text-align: right; white-space: nowrap; }
     .btn-sm {
       padding: 0.35rem 0.75rem;

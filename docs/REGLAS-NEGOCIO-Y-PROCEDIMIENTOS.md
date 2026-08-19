@@ -308,12 +308,12 @@ SGD nativo del portal (ya no hay redirección a Google Apps Script): radicación
 
 ### Para qué sirve
 
-Control de ingreso/salida de visitantes a **sede** (independiente de asociados RRHH). **No** es el antiguo módulo Residencial.
+Control de ingreso/salida de visitantes a **sede**. Al registrar con cédula, el sistema cruza con RRHH (ACTIVO / VACACIONES) y etiqueta **Asociado** o **Visitante** (se guarda y se ve en Dentro, Historial y PDF).
 
 ### Procedimiento
 
-1. **Registrar** ingreso (muchos campos son opcionales).
-2. Ver quién está **dentro**.
+1. **Registrar** ingreso (muchos campos son opcionales). Si hay cédula, aparece la etiqueta Asociado/Visitante.
+2. Ver quién está **dentro** (con la misma etiqueta).
 3. Registrar **salida** (no se borra el registro: se cierra con hora de salida). La pantalla **no** salta al historial: se puede dar salida a varios seguidos desde “Visitantes dentro” o el panel.
 4. Consultar **historial** (y PDF de historial si aplica).
 
@@ -322,7 +322,7 @@ Control de ingreso/salida de visitantes a **sede** (independiente de asociados R
 | Regla | Detalle |
 |-------|---------|
 | Historial permanente | No hay borrado de visitas; se cierra con salida |
-| Independencia | No se liga automáticamente a Asociados RRHH |
+| Asociado vs Visitante | Por documento (solo dígitos) contra asociados ACTIVO/VACACIONES; se guarda al registrar |
 
 ---
 

@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import PDFDocument = require('pdfkit');
 import { IsNull, Repository } from 'typeorm';
+import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
 import { ExitReceptionVisitorDto } from './dto/exit-visitor.dto';
 import { RegisterReceptionVisitorDto } from './dto/register-visitor.dto';
@@ -26,13 +27,18 @@ const LIST_COLUMNS: (keyof ReceptionVisitor)[] = [
   'transportMeans',
   'travelTimeMinutes',
   'exitAt',
+  'isAssociate',
 ];
+
+const ASSOCIATE_MATCH_STATUSES = [AssociateStatus.ACTIVO, AssociateStatus.VACACIONES];
 
 @Injectable()
 export class ReceptionService {
   constructor(
     @InjectRepository(ReceptionVisitor)
     private readonly visitorsRepo: Repository<ReceptionVisitor>,
+    @InjectRepository(Associate)
+    private readonly associatesRepo: Repository<Associate>,
     private readonly audit: AuditService,
   ) {}
 
@@ -105,6 +111,7 @@ export class ReceptionService {
           'v.transportMeans',
           'v.travelTimeMinutes',
           'v.exitAt',
+          'v.isAssociate',
         ])
         .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
           dayStart: bounds.dayStart,
@@ -154,10 +161,17 @@ export class ReceptionService {
     return rows.map((v) => this.toDto(v));
   }
 
+  async lookupAssociate(document?: string) {
+    const isAssociate = await this.resolveIsAssociate(document);
+    return { isAssociate, label: isAssociate ? 'Asociado' : 'Visitante' };
+  }
+
   async register(dto: RegisterReceptionVisitorDto, userId: string) {
+    const documentNumber = this.trimOrNull(dto.documentNumber);
+    const isAssociate = await this.resolveIsAssociate(documentNumber);
     const saved = await this.visitorsRepo.save(
       this.visitorsRepo.create({
-        documentNumber: this.trimOrNull(dto.documentNumber),
+        documentNumber,
         firstSurname: this.trimOrNull(dto.firstSurname),
         secondSurname: this.trimOrNull(dto.secondSurname),
         firstName: this.trimOrNull(dto.firstName),
@@ -177,6 +191,7 @@ export class ReceptionService {
             ? null
             : Number(dto.travelTimeMinutes),
         notes: this.trimOrNull(dto.notes),
+        isAssociate,
         exitAt: null,
       }),
     );
@@ -271,6 +286,7 @@ export class ReceptionService {
         .text(
           [
             dto.documentNumber ? `C.C. ${dto.documentNumber}` : null,
+            dto.isAssociate ? 'Tipo: Asociado' : 'Tipo: Visitante',
             `Ingreso: ${this.formatDateTime(v.entryAt)}`,
             v.exitAt ? `Salida: ${this.formatDateTime(v.exitAt)}` : 'Salida: sin registrar',
             v.exitAt ? `Permanencia: ${this.durationLabel(v.entryAt, v.exitAt)}` : null,
@@ -396,6 +412,29 @@ export class ReceptionService {
     }
   }
 
+  private digitsOnly(value: string | null | undefined): string {
+    return String(value ?? '').replace(/\D/g, '');
+  }
+
+  private async resolveIsAssociate(document?: string | null): Promise<boolean> {
+    const digits = this.digitsOnly(document);
+    if (!digits) return false;
+
+    const hit = await this.associatesRepo
+      .createQueryBuilder('a')
+      .select(['a.id'])
+      .where('a.status IN (:...statuses)', { statuses: ASSOCIATE_MATCH_STATUSES })
+      .andWhere(
+        `(regexp_replace(COALESCE(a.document_number, ''), '[^0-9]', '', 'g') = :digits
+          OR a.document_number = :raw)`,
+        { digits, raw: String(document ?? '').trim() },
+      )
+      .limit(1)
+      .getOne();
+
+    return !!hit;
+  }
+
   private trimOrNull(v?: string | null): string | null {
     const t = v?.trim();
     return t ? t : null;
@@ -432,6 +471,7 @@ export class ReceptionService {
       exitNotes: v.exitNotes ?? null,
       exitedBy: v.exitedBy ?? null,
       notes: v.notes ?? null,
+      isAssociate: !!v.isAssociate,
       isInside: !v.exitAt,
       createdAt: v.createdAt ?? v.entryAt,
       updatedAt: v.updatedAt ?? v.entryAt,

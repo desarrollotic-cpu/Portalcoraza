@@ -88,6 +88,10 @@ export class ReceptionVisitor {
   @Column({ name: 'exited_by', type: 'uuid', nullable: true })
   exitedBy!: string | null;
 
+  /** Cruzado con RRHH al registrar (ACTIVO / VACACIONES por documento). */
+  @Column({ name: 'is_associate', type: 'boolean', default: false })
+  isAssociate!: boolean;
+
   @Column({ type: 'text', nullable: true })
   notes!: string | null;
 
