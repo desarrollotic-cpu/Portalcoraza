@@ -57,6 +57,33 @@ export class Post {
   @Column({ name: 'work_center_id', type: 'uuid', nullable: true, unique: true })
   workCenterId!: string | null;
 
+  @Column({ type: 'varchar', nullable: true, length: 80 })
+  zone!: string | null;
+
+  @Column({ name: 'contact_name', type: 'varchar', nullable: true, length: 120 })
+  contactName!: string | null;
+
+  @Column({ type: 'varchar', nullable: true, length: 40 })
+  phone!: string | null;
+
+  @Column({ type: 'varchar', nullable: true, length: 20 })
+  priority!: string | null;
+
+  @Column({ name: 'contract_number', type: 'varchar', nullable: true, length: 80 })
+  contractNumber!: string | null;
+
+  @Column({ name: 'service_type', type: 'varchar', nullable: true, length: 80 })
+  serviceType!: string | null;
+
+  @Column({ type: 'boolean', default: false })
+  armed!: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  requirements!: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  instructions!: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

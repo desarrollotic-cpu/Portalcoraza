@@ -86,6 +86,48 @@ const POST_TYPES: { value: PostType; label: string }[] = [
               Dirección
               <input name="address" [(ngModel)]="editing()!.address" />
             </label>
+            <label>
+              Zona
+              <input name="zone" [(ngModel)]="editing()!.zone" maxlength="80" />
+            </label>
+            <label>
+              Contacto
+              <input name="contactName" [(ngModel)]="editing()!.contactName" maxlength="120" />
+            </label>
+            <label>
+              Teléfono
+              <input name="phone" [(ngModel)]="editing()!.phone" maxlength="40" />
+            </label>
+            <label>
+              Prioridad
+              <select name="priority" [(ngModel)]="editing()!.priority">
+                <option value="">—</option>
+                <option value="baja">Baja</option>
+                <option value="media">Media</option>
+                <option value="alta">Alta</option>
+                <option value="critica">Crítica</option>
+              </select>
+            </label>
+            <label>
+              N.º contrato
+              <input name="contractNumber" [(ngModel)]="editing()!.contractNumber" maxlength="80" />
+            </label>
+            <label>
+              Tipo de servicio
+              <input name="serviceType" [(ngModel)]="editing()!.serviceType" maxlength="80" />
+            </label>
+            <label class="check">
+              <input type="checkbox" name="armed" [(ngModel)]="editing()!.armed" />
+              Con armamento
+            </label>
+            <label class="span-3">
+              Requisitos
+              <textarea name="requirements" [(ngModel)]="editing()!.requirements" rows="2"></textarea>
+            </label>
+            <label class="span-3">
+              Instrucciones
+              <textarea name="instructions" [(ngModel)]="editing()!.instructions" rows="2"></textarea>
+            </label>
             <label class="span-3">
               Notas
               <input name="notes" [(ngModel)]="editing()!.notes" />
@@ -110,6 +152,7 @@ const POST_TYPES: { value: PostType; label: string }[] = [
                 <th>Código</th>
                 <th>Nombre</th>
                 <th>Tipo</th>
+                <th>Zona</th>
                 <th>Cliente</th>
                 <th>Estado</th>
                 <th></th>
@@ -121,6 +164,7 @@ const POST_TYPES: { value: PostType; label: string }[] = [
                   <td><code>{{ p.code }}</code></td>
                   <td><strong>{{ p.name }}</strong></td>
                   <td>{{ typeLabel(p.type) }}</td>
+                  <td>{{ p.zone || '—' }}</td>
                   <td>{{ p.clientName || '—' }}</td>
                   <td>
                     <span class="badge" [class.ok]="p.status === 'ACTIVO'">{{ p.status }}</span>
@@ -142,7 +186,7 @@ const POST_TYPES: { value: PostType; label: string }[] = [
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="6" class="empty">No hay puestos con ese filtro.</td>
+                  <td colspan="7" class="empty">No hay puestos con ese filtro.</td>
                 </tr>
               }
             </tbody>
@@ -166,7 +210,8 @@ const POST_TYPES: { value: PostType; label: string }[] = [
     .controls input[type='search'],
     .controls select,
     .form input,
-    .form select {
+    .form select,
+    .form textarea {
       border: 1px solid var(--border, #d1d5db);
       border-radius: 8px;
       padding: 0.45rem 0.65rem;
@@ -219,7 +264,13 @@ const POST_TYPES: { value: PostType; label: string }[] = [
       font-size: 0.8rem;
       color: var(--text-muted, #6b7280);
     }
-    .span-2 { grid-column: span 2; }
+    .check {
+      flex-direction: row !important;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.4rem;
+    }
+    .check input { width: auto; }
     .span-3 { grid-column: span 3; }
     .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
     .table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
@@ -268,7 +319,7 @@ export class PuestosList implements OnInit {
     return this.posts().filter((p) => {
       if (st && p.status !== st) return false;
       if (!q) return true;
-      return [p.code, p.name, p.clientName ?? '', p.address ?? '']
+      return [p.code, p.name, p.clientName ?? '', p.address ?? '', p.zone ?? '']
         .join(' ')
         .toLowerCase()
         .includes(q);
@@ -307,6 +358,15 @@ export class PuestosList implements OnInit {
       address: '',
       clientName: '',
       notes: '',
+      zone: '',
+      contactName: '',
+      phone: '',
+      priority: '',
+      contractNumber: '',
+      serviceType: '',
+      armed: false,
+      requirements: '',
+      instructions: '',
     });
   }
 
@@ -320,6 +380,15 @@ export class PuestosList implements OnInit {
       address: p.address ?? '',
       clientName: p.clientName ?? '',
       notes: p.notes ?? '',
+      zone: p.zone ?? '',
+      contactName: p.contactName ?? '',
+      phone: p.phone ?? '',
+      priority: p.priority ?? '',
+      contractNumber: p.contractNumber ?? '',
+      serviceType: p.serviceType ?? '',
+      armed: !!p.armed,
+      requirements: p.requirements ?? '',
+      instructions: p.instructions ?? '',
     });
   }
 
@@ -342,6 +411,15 @@ export class PuestosList implements OnInit {
       address: draft.address?.trim() || undefined,
       clientName: draft.clientName?.trim() || undefined,
       notes: draft.notes?.trim() || undefined,
+      zone: draft.zone?.trim() || undefined,
+      contactName: draft.contactName?.trim() || undefined,
+      phone: draft.phone?.trim() || undefined,
+      priority: draft.priority?.trim() || undefined,
+      contractNumber: draft.contractNumber?.trim() || undefined,
+      serviceType: draft.serviceType?.trim() || undefined,
+      armed: !!draft.armed,
+      requirements: draft.requirements?.trim() || undefined,
+      instructions: draft.instructions?.trim() || undefined,
     };
 
     this.saving.set(true);

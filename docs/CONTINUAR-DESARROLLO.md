@@ -41,6 +41,8 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 7 | `docs/HANDOFF-IA.md` | Handoff técnico ampliado |
 | 8 | `docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md` | **Reglas de negocio y procedimientos por módulo** |
 | 9 | `docs/GESTION-HUMANA-NATIVA.md` | **RRHH nativo en portal** (ya no puente a Render) |
+| 10 | `docs/RENDIMIENTO.md` | Auditoría de rendimiento (corte 2026-08-18) |
+| 11 | `docs/INVENTARIO_PERSISTENCIA.md` | Stock por almacén, `TRANSFER`, `stock_current` = suma |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 
@@ -88,7 +90,7 @@ npm run web:dev               # http://localhost:4200
 
 ---
 
-## Estado resumido (corte 2026-06-29)
+## Estado resumido (corte 2026-08-19)
 
 ### Producción
 
@@ -98,31 +100,27 @@ npm run web:dev               # http://localhost:4200
 | Web | https://portalcoraza-web.onrender.com |
 | Login | https://portalcoraza-web.onrender.com/auth/login |
 
-Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA)
+Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA). Tras cambios de permisos o almacén: **volver a iniciar sesión**.
 
-### Completado (código)
+### Hecho en `main` (relevante)
 
-| Bloque | Qué |
-|--------|-----|
-| 0.x–8.x | Backend completo (auth, RRHH, inventario, entregas, programación, documental, residencial, notificaciones) |
-| 9.x–11.x | Frontend dotación, programación, documental |
-| 12.x | Frontend residencial (unidades, visitantes, paquetes, reservas) |
-| 13.x | Admin usuarios/roles, notificaciones Realtime (código), dashboard widgets |
-| 15.x | Login split + video `coraza-logo.mp4` |
-| migrate-dotacion-ux | UX entregas (modal, tallas/género, firma, reversión 5 días) |
+| Tema | Estado |
+|------|--------|
+| Residencial | **Retirado** (migración `028`). No reabrir. |
+| Recepción | Nativo en `/recepcion` (visitantes de sede) |
+| RRHH | Migración GH (~4 590 asociados). Directorio: filtro y columna **nivel educativo** |
+| Dotación | Almacenes Medellín/Rionegro, stock por sede, traslados, Gerencia **solo consulta** |
+| Documental | SGD nativo (sin puente a Apps Script) |
+| Rendimiento | Revisión en [`docs/RENDIMIENTO.md`](RENDIMIENTO.md) — aceptable; techo = pooler Supabase |
+| Puestos | **226** cargados (2026-08-19) desde la app de programación. Usuarios/roles intactos |
 
-### Pendiente (no es código — configuración Supabase + pruebas)
+### Pendiente inmediato
 
-1. Migraciones SQL pendientes en Supabase (incl. recepción `022+` y **`025` Realtime**)
-2. Seed `003_business_permissions.sql` (si falta)
-3. Bucket **`delivery-signatures`** → **Private** (código de firmas privadas ya en `main`)
-4. Confirmar Realtime tras `025` (campana sin refrescar)
-5. **`apps/api/.env`** local con credenciales reales
-6. Redeploy Render API + web
-7. Pruebas E2E manuales (14.x)
-8. PNG logo opcional (15.7)
+1. Optimizaciones de rendimiento **solo si duele en producción** (ver `docs/RENDIMIENTO.md`): serializar overview de Dotación; filtro de antigüedad en SQL.
 
-**Detalle:** [`docs/GUIA-CIERRE-100.md`](GUIA-CIERRE-100.md)
+Turnos/asignaciones de la app de programación: **agosto 2026 en borrador** (8 puestos). Meses siguientes: uno a uno, sin pisar.
+
+No hay migraciones 035 pendientes en el destino ya aplicado. Otros entornos: `npm run db:apply-warehouses -w @coraza/api`.
 
 ---
 
@@ -166,12 +164,13 @@ El agente (o desarrollador) debe:
 apps/web/src/app/features/
 ├── auth/login/          ✅
 ├── dashboard/           ✅ widgets por rol
-├── rrhh/                ✅
-├── dotacion/            ✅ modal entregas + firma + reversión
+├── rrhh/                ✅ directorio + filtro nivel educativo
+├── dotacion/            ✅ almacenes + traslados + firma
 ├── programacion/        ✅
-├── documental/          ✅
-├── residential/         ✅
-└── admin/               ✅ usuarios + roles/permisos
+├── documental/          ✅ SGD nativo
+├── recepcion/           ✅ visitantes sede
+├── operaciones/         ✅ 226 puestos cargados (2026-08-19)
+└── admin/               ✅ usuarios + roles/permisos + almacén del usuario
 ```
 
 Notificaciones: campana en layout + `notification.service.ts` (requiere Realtime activo en Supabase).

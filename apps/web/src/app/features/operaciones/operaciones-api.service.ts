@@ -20,6 +20,15 @@ export interface OperacionesPost {
   address: string | null;
   clientName: string | null;
   notes: string | null;
+  zone: string | null;
+  contactName: string | null;
+  phone: string | null;
+  priority: string | null;
+  contractNumber: string | null;
+  serviceType: string | null;
+  armed: boolean;
+  requirements: string | null;
+  instructions: string | null;
   workCenterId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -33,6 +42,15 @@ export interface CreateOperacionesPostPayload {
   address?: string;
   clientName?: string;
   notes?: string;
+  zone?: string;
+  contactName?: string;
+  phone?: string;
+  priority?: string;
+  contractNumber?: string;
+  serviceType?: string;
+  armed?: boolean;
+  requirements?: string;
+  instructions?: string;
 }
 
 export type UpdateOperacionesPostPayload = Partial<CreateOperacionesPostPayload>;

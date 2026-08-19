@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PostStatus, PostType } from '../entities/post.entity';
 
 export class CreatePostDto {
@@ -30,4 +30,46 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  zone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  contactName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  priority?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  contractNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  serviceType?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  armed?: boolean;
+
+  @IsOptional()
+  @IsString()
+  requirements?: string;
+
+  @IsOptional()
+  @IsString()
+  instructions?: string;
 }

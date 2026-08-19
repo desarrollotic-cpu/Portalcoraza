@@ -4,6 +4,8 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 > **Inicio rápido para compañeros:** [`docs/CONTINUAR-DESARROLLO.md`](CONTINUAR-DESARROLLO.md) — mensaje listo para copiar al agente de Cursor.
 
+**Corte 2026-08-19:** Residencial **retirado**. Dotación con almacenes Medellín/Rionegro. Filtro de nivel educativo en Directorio. Auditoría de rendimiento en [`docs/RENDIMIENTO.md`](RENDIMIENTO.md). **Puestos:** 226 cargados. **No** se migran turnos/asignaciones de la app de programación. No reabrir el bloque 12.x residencial de la sección OpenSpec de abajo; esa lista quedó vieja.
+
 ---
 
 ## ACTUALIZACION OPENSpec (2026-06-23)
