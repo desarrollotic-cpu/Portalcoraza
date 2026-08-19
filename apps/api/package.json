@@ -28,7 +28,8 @@
     "db:apply-documental": "ts-node scripts/apply-documental-sgd.ts",
     "db:apply-sst": "ts-node scripts/apply-sst-ipt.ts",
     "db:drop-residential": "ts-node scripts/apply-drop-residential.ts",
-    "db:keepalive": "ts-node scripts/keepalive-db.ts"
+    "db:keepalive": "ts-node scripts/keepalive-db.ts",
+    "test:demo": "ts-node scripts/demo-smoke.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.0",

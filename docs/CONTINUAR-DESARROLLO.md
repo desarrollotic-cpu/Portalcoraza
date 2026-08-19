@@ -120,6 +120,16 @@ Credenciales seed: `admin@coraza.local` / `Coraza2026!` (rol GERENCIA). Tras cam
 
 Turnos/asignaciones de la app de programación: **agosto 2026 en borrador** (8 puestos). Meses siguientes: uno a uno, sin pisar.
 
+### Antes de presentar (smoke solo lectura)
+
+Con la API arriba (`npm run api:dev`):
+
+```powershell
+npm run test:demo -w @coraza/api
+```
+
+No modifica usuarios, roles, stock ni programaciones.
+
 No hay migraciones 035 pendientes en el destino ya aplicado. Otros entornos: `npm run db:apply-warehouses -w @coraza/api`.
 
 ---
