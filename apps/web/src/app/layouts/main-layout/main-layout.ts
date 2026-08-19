@@ -972,16 +972,10 @@ export class MainLayout implements OnDestroy {
           permission: 'scheduling.view',
         },
         {
-          label: 'Nómina & Colillas',
-          route: '/nomina',
-          icon: LucideBriefcaseBusiness,
-          permission: 'payroll.view',
-        },
-        {
-          label: 'Contabilidad NIIF / PUC',
+          label: 'Contabilidad & Nómina',
           route: '/contabilidad',
-          icon: LucideClipboardList,
-          permission: 'accounting.view',
+          icon: LucideBriefcaseBusiness,
+          permissions: ['accounting.view', 'payroll.view'],
         },
         {
           label: 'Documental',

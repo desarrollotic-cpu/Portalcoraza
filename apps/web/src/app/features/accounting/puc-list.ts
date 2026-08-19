@@ -1,19 +1,23 @@
 import { CurrencyPipe, DatePipe, CommonModule } from '@angular/common';
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { AccountingEntry, PucAccount, AccountingService } from './accounting.service';
+import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
 
 @Component({
   selector: 'app-puc-list',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, CurrencyPipe, DatePipe, PayrollPeriodsComponent],
   template: `
     <div class="page-container">
       <header class="page-header">
         <div>
-          <h1>Contabilidad NIIF & Plan Único de Cuentas (PUC)</h1>
-          <p class="subtitle">Estructura contable oficial colombiana y comprobantes de partida doble</p>
+          <h1>Contabilidad & Nómina</h1>
+          <p class="subtitle">Gestión unificada de nómina, colillas de pago, comprobantes contables y PUC</p>
         </div>
         <div class="tab-buttons">
+          <button class="btn" [class.btn-primary]="activeTab() === 'payroll'" [class.btn-outline]="activeTab() !== 'payroll'" (click)="activeTab.set('payroll')">
+            💼 Nómina & Colillas
+          </button>
           <button class="btn" [class.btn-primary]="activeTab() === 'entries'" [class.btn-outline]="activeTab() !== 'entries'" (click)="activeTab.set('entries')">
             📑 Comprobantes Contables
           </button>
@@ -23,9 +27,13 @@ import { AccountingEntry, PucAccount, AccountingService } from './accounting.ser
         </div>
       </header>
 
+      @if (activeTab() === 'payroll') {
+        <app-payroll-periods />
+      }
+
       @if (activeTab() === 'entries') {
         <section class="card">
-          <h2>Comprobantes Asentados</h2>
+          <h2>Comprobantes Asentados (Partida Doble)</h2>
           <table class="data-table">
             <thead>
               <tr>
@@ -121,7 +129,7 @@ import { AccountingEntry, PucAccount, AccountingService } from './accounting.ser
 export class PucListComponent implements OnInit {
   private accountingService = inject(AccountingService);
 
-  activeTab = signal<'entries' | 'puc'>('entries');
+  activeTab = signal<'payroll' | 'entries' | 'puc'>('payroll');
   entries = signal<AccountingEntry[]>([]);
   pucAccounts = signal<PucAccount[]>([]);
 
