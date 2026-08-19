@@ -37,7 +37,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <select [(ngModel)]="area" name="area" (change)="loadDash()">
               <option value="">Todas</option>
               <option value="GH">Gestión Humana</option>
-              <option value="SST">SST</option>
+
               <option value="COMERCIAL">Comercial</option>
               <option value="OPERACIONES">Operaciones</option>
               <option value="ADMIN">Administrativo</option>
@@ -91,7 +91,7 @@ type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
             <select [(ngModel)]="filtroArea" name="fa" (change)="loadCatalogo()">
               <option value="">Todas</option>
               <option value="GH">GH</option>
-              <option value="SST">SST</option>
+
               <option value="COMERCIAL">Comercial</option>
               <option value="OPERACIONES">Operaciones</option>
               <option value="ADMIN">Admin</option>
