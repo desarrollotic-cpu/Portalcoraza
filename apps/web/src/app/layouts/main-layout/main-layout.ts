@@ -35,7 +35,6 @@ import {
   LucideUserCog,
   LucideUsersRound,
   LucideDoorOpen,
-  LucideEye,
   LucideShieldCheck,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
@@ -994,13 +993,6 @@ export class MainLayout implements OnDestroy {
           route: '/sst',
           icon: LucideShieldCheck,
           permission: 'sst.view',
-        },
-        {
-          label: 'Vigilante',
-          route: '/vigilantes',
-          icon: LucideEye,
-          // posts.view: respaldo si el JWT aún no trae vigia.view tras el grant
-          permissions: ['vigia.view', 'posts.view'],
         },
         {
           label: 'Minuta Virtual',

@@ -575,7 +575,6 @@ export class DashboardCommandCenterService {
       documental: 'Documental',
       users: 'Administración',
       posts: 'Puestos',
-      vigia: 'Vigilante',
       minuta: 'Minuta',
     };
     const act: Record<string, string> = {
