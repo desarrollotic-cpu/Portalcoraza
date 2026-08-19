@@ -30,13 +30,14 @@ type PeriodKey = CommandPeriod;
   imports: [RouterLink, Icon, DatePipe, DecimalPipe],
   template: `
     <section class="dashboard">
+      <!-- HERO PRINCIPAL -->
       <header class="hero">
         <div class="hero-mesh"></div>
         <div class="hero-inner">
           <div class="hero-text">
             <span class="hero-badge">
               <app-icon [icon]="icons.Sparkles" [size]="14" [strokeWidth]="2.2" />
-              Dashboard
+              Portal Coraza · Centro de Comando
             </span>
             <h1>{{ greeting() }}, {{ firstName() }}</h1>
             <p>
@@ -44,48 +45,45 @@ type PeriodKey = CommandPeriod;
               @if (roleName()) {
                 Rol: <strong>{{ roleName() }}</strong> ·
               }
-              Centro de inteligencia operativa
+              Inteligencia Operativa en Tiempo Real
             </p>
 
-            <div class="status-row">
+            <div class="hero-controls">
               <span class="status-pill" [attr.data-code]="data()?.operationStatus?.code ?? 'stable'">
-                {{ data()?.operationStatus?.label ?? 'Cargando…' }}
+                ● {{ data()?.operationStatus?.label ?? 'Cargando estado...' }}
               </span>
-            </div>
 
-            <div class="period-row" role="group" aria-label="Período">
-              @for (p of periods; track p.key) {
-                <button
-                  type="button"
-                  class="period-btn"
-                  [class.active]="period() === p.key"
-                  (click)="setPeriod(p.key)"
-                >
-                  {{ p.label }}
-                </button>
-              }
+              <div class="period-row" role="group" aria-label="Período">
+                @for (p of periods; track p.key) {
+                  <button
+                    type="button"
+                    class="period-btn"
+                    [class.active]="period() === p.key"
+                    (click)="setPeriod(p.key)"
+                  >
+                    {{ p.label }}
+                  </button>
+                }
+              </div>
             </div>
-            <p class="period-hint">
-              El período recarga series y comparaciones reales (recepción, entregas). KPIs puntuales de “hoy” se mantienen.
-            </p>
           </div>
 
           <div class="hero-info">
             <div class="info-card">
-              <div class="info-icon" style="--g: var(--gradient-accent);">
+              <div class="info-icon" style="--g: linear-gradient(135deg, #2563eb, #1d4ed8);">
                 <app-icon [icon]="icons.ShieldCheck" [size]="18" [strokeWidth]="2" />
               </div>
               <div>
-                <span class="info-title">Sesión segura</span>
-                <span class="info-sub">JWT activo</span>
+                <span class="info-title">Sesión Segura</span>
+                <span class="info-sub">Autenticación activa</span>
               </div>
             </div>
             <div class="info-card">
-              <div class="info-icon" style="--g: var(--gradient-success);">
+              <div class="info-icon" style="--g: linear-gradient(135deg, #16a34a, #15803d);">
                 <app-icon [icon]="icons.ClipboardCheck" [size]="18" [strokeWidth]="2" />
               </div>
               <div>
-                <span class="info-title">Módulos</span>
+                <span class="info-title">Módulos Activos</span>
                 <span class="info-sub">{{ modulesCount() }} con acceso</span>
               </div>
             </div>
@@ -105,55 +103,60 @@ type PeriodKey = CommandPeriod;
           {{ error() }}
         </div>
       } @else if (data(); as d) {
-        <section class="panel highlights">
-          <div class="panel-head">
-            <h2>Lo más importante hoy</h2>
-            <span class="muted">Prioridades calculadas con datos reales</span>
-          </div>
-          <div class="highlight-list">
-            @for (h of d.highlights; track h.id) {
-              <a [routerLink]="h.route" class="highlight" [attr.data-tone]="h.tone">
-                <span class="tone-dot"></span>
-                <span>{{ h.text }}</span>
-                <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+        <!-- 1. KPIS PRINCIPALES (AL TOPE DE FORMA GRÁFICA) -->
+        <section class="kpi-section">
+          <div class="kpi-grid">
+            @for (k of d.kpis; track k.id) {
+              <a [routerLink]="k.route" class="kpi-card" [class.warn]="k.warn">
+                <div class="kpi-top">
+                  <span class="kpi-label">{{ k.label }}</span>
+                  @if (k.deltaPct != null) {
+                    <span class="kpi-delta" [attr.data-dir]="k.deltaPct >= 0 ? 'up' : 'down'">
+                      @if (k.deltaPct >= 0) {
+                        <app-icon [icon]="icons.ArrowUpRight" [size]="12" [strokeWidth]="2.4" />
+                      } @else {
+                        <app-icon [icon]="icons.ArrowDownRight" [size]="12" [strokeWidth]="2.4" />
+                      }
+                      {{ k.deltaPct | number: '1.0-1' }}%
+                    </span>
+                  }
+                </div>
+                
+                <strong class="kpi-value">{{ k.value | number }}</strong>
+                
+                @if (k.sparkline?.length) {
+                  <svg class="spark" viewBox="0 0 64 20" aria-hidden="true">
+                    <polyline
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      [attr.points]="linePoints(k.sparkline!, 64, 20)"
+                    />
+                  </svg>
+                }
+                
+                @if (k.hint) {
+                  <span class="kpi-hint">{{ k.hint }}</span>
+                }
               </a>
             }
           </div>
         </section>
 
+        <!-- 2. DOS COLUMNAS: ESTADO OPERATIVO & ALERTAS PRIORITARIAS -->
         <div class="two-col">
-          <section class="panel alerts">
-            <div class="panel-head">
-              <h2>Centro de alertas</h2>
-              <span class="muted">{{ d.alerts.length }} señal(es)</span>
-            </div>
-            @if (d.alerts.length === 0) {
-              <p class="empty-inline">Sin alertas operativas</p>
-            } @else {
-              <ul class="alert-list">
-                @for (a of d.alerts.slice(0, 12); track a.id) {
-                  <li>
-                    <a [routerLink]="a.route" class="alert-item" [attr.data-tone]="a.tone">
-                      <span class="badge">{{ toneLabel(a.tone) }}</span>
-                      <div>
-                        <strong>{{ a.title }}</strong>
-                        <p>{{ a.message }}</p>
-                      </div>
-                      <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
-                    </a>
-                  </li>
-                }
-              </ul>
-            }
-          </section>
-
+          <!-- ESTADO OPERATIVO (BARRAS DE SALUD DEL SISTEMA) -->
           <section class="panel scores">
             <div class="panel-head">
-              <h2>Estado operativo</h2>
-              <span class="muted">Scores derivados de métricas reales</span>
+              <h2>
+                <app-icon [icon]="icons.ShieldCheck" [size]="18" [strokeWidth]="2" />
+                Estado Operativo del Negocio
+              </h2>
+              <span class="muted">Salud operativa en tiempo real</span>
             </div>
+            
             @if (d.scores.length === 0) {
-              <p class="empty-inline">Sin scores para tus permisos</p>
+              <p class="empty-inline">Sin métricas disponibles para tu rol</p>
             } @else {
               <div class="score-list">
                 @for (s of d.scores; track s.key) {
@@ -168,80 +171,73 @@ type PeriodKey = CommandPeriod;
                       <div class="score-bar-wrap">
                         <div class="score-bar" [style.width.%]="s.value" [attr.data-level]="scoreLevel(s.value)"></div>
                       </div>
-                      <strong class="score-pct">{{ s.value }}%</strong>
+                      <strong class="score-pct" [attr.data-level]="scoreLevel(s.value)">{{ s.value }}%</strong>
                     }
                   </div>
                 }
               </div>
             }
           </section>
+
+          <!-- CENTRO DE ALERTAS Y SEÑALES OPERATIVAS -->
+          <section class="panel alerts">
+            <div class="panel-head">
+              <h2>
+                <app-icon [icon]="icons.Sparkles" [size]="18" [strokeWidth]="2" />
+                Señales & Alertas Operativas
+              </h2>
+              <span class="muted">{{ d.alerts.length }} evento(s) pendientes</span>
+            </div>
+
+            @if (d.alerts.length === 0) {
+              <div class="empty-box">
+                <span class="ok-icon">✅</span>
+                <p>Todo en orden: no hay alertas críticas pendientes en este momento.</p>
+              </div>
+            } @else {
+              <ul class="alert-list">
+                @for (a of d.alerts.slice(0, 6); track a.id) {
+                  <li>
+                    <a [routerLink]="a.route" class="alert-item" [attr.data-tone]="a.tone">
+                      <span class="badge">{{ toneLabel(a.tone) }}</span>
+                      <div class="alert-content">
+                        <strong>{{ a.title }}</strong>
+                        <p>{{ a.message }}</p>
+                      </div>
+                      <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+                    </a>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
         </div>
 
-        <section class="panel">
-          <div class="panel-head">
-            <h2>KPIs principales</h2>
-          </div>
-          @if (d.kpis.length === 0) {
-            <p class="empty-inline">No hay KPIs disponibles para tu rol</p>
-          } @else {
-            <div class="kpi-grid">
-              @for (k of d.kpis; track k.id) {
-                <a [routerLink]="k.route" class="kpi-card" [class.warn]="k.warn">
-                  <span class="kpi-label">{{ k.label }}</span>
-                  <strong class="kpi-value">{{ k.value | number }}</strong>
-                  @if (k.sparkline?.length) {
-                    <svg class="spark" viewBox="0 0 64 20" aria-hidden="true">
-                      <polyline
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.5"
-                        [attr.points]="linePoints(k.sparkline!, 64, 20)"
-                      />
-                    </svg>
-                  }
-                  @if (k.deltaPct != null) {
-                    <span class="kpi-delta" [attr.data-dir]="k.deltaPct >= 0 ? 'up' : 'down'">
-                      @if (k.deltaPct >= 0) {
-                        <app-icon [icon]="icons.ArrowUpRight" [size]="12" [strokeWidth]="2.4" />
-                      } @else {
-                        <app-icon [icon]="icons.ArrowDownRight" [size]="12" [strokeWidth]="2.4" />
-                      }
-                      {{ k.deltaPct | number: '1.0-1' }}%
-                      @if (k.deltaLabel) {
-                        <span class="delta-label">{{ k.deltaLabel }}</span>
-                      }
-                    </span>
-                  } @else if (k.hint) {
-                    <span class="kpi-hint">{{ k.hint }}</span>
-                  }
-                </a>
-              }
-            </div>
-          }
-        </section>
-
+        <!-- 3. MÓDULOS DE GESTIÓN GRÁFICA (RRHH, RECEPCIÓN, DOTACIÓN, PROGRAMACIÓN, DOCUMENTAL) -->
         <div class="modules-grid">
           @if (rrhh(); as hr) {
             <section class="panel module">
               <div class="panel-head">
                 <h2>
-                  <app-icon [icon]="icons.UsersRound" [size]="16" [strokeWidth]="2" />
-                  Evolución de asociados
+                  <app-icon [icon]="icons.UsersRound" [size]="18" [strokeWidth]="2" />
+                  Evolución de Asociados
                 </h2>
-                <a routerLink="/rrhh" class="link-quiet">Ir a RRHH</a>
+                <a routerLink="/rrhh" class="link-quiet">Ver RRHH →</a>
               </div>
               @if (hr.rotation?.length) {
-                <svg class="chart" viewBox="0 0 320 120" role="img" aria-label="Rotación mensual">
-                  <polyline
-                    fill="none"
-                    stroke="var(--primary-600)"
-                    stroke-width="2.5"
-                    [attr.points]="linePoints(rotationActiveSeries(hr))"
-                  />
-                </svg>
+                <div class="chart-box">
+                  <svg class="chart" viewBox="0 0 320 120" role="img" aria-label="Rotación mensual">
+                    <polyline
+                      fill="none"
+                      stroke="#2563eb"
+                      stroke-width="3"
+                      [attr.points]="linePoints(rotationActiveSeries(hr))"
+                    />
+                  </svg>
+                </div>
                 <div class="chart-legend">
-                  @for (r of hr.rotation.slice(-6); track r.key) {
-                    <span>{{ r.key }} · {{ r.activeAtEnd }} · retiros {{ r.retirements }}</span>
+                  @for (r of hr.rotation.slice(-4); track r.key) {
+                    <span class="legend-pill">📅 {{ r.key }}: <b>{{ r.activeAtEnd }}</b> activos ({{ r.retirements }} retiros)</span>
                   }
                 </div>
               } @else {
@@ -254,34 +250,37 @@ type PeriodKey = CommandPeriod;
             <section class="panel module">
               <div class="panel-head">
                 <h2>
-                  <app-icon [icon]="icons.Building2" [size]="16" [strokeWidth]="2" />
-                  Recepción
+                  <app-icon [icon]="icons.Building2" [size]="18" [strokeWidth]="2" />
+                  Control de Recepción & Visitas
                 </h2>
-                <a routerLink="/recepcion" class="link-quiet">Ir a Recepción</a>
+                <a routerLink="/recepcion" class="link-quiet">Ver Recepción →</a>
               </div>
               <div class="mini-stats">
-                <div><span>Dentro</span><strong>{{ rec.stats.insideNow }}</strong></div>
-                <div><span>Hoy</span><strong>{{ rec.stats.todayEntries }}</strong></div>
-                <div><span>Salidas hoy</span><strong>{{ rec.insights?.todayExits ?? '—' }}</strong></div>
-                <div>
-                  <span>Pico 7d</span>
-                  <strong>
-                    @if (rec.insights?.peakHour != null) {
-                      {{ formatHour(rec.insights.peakHour) }}
-                    } @else {
-                      Sin datos
-                    }
-                  </strong>
+                <div class="stat-pill highlight-stat">
+                  <span>Dentro Ahora</span>
+                  <strong>{{ rec.stats.insideNow }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Ingresos Hoy</span>
+                  <strong>{{ rec.stats.todayEntries }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Salidas Hoy</span>
+                  <strong>{{ rec.insights?.todayExits ?? '—' }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Hora Pico</span>
+                  <strong>{{ rec.insights?.peakHour != null ? formatHour(rec.insights.peakHour) : '—' }}</strong>
                 </div>
               </div>
-              <svg class="chart bars" viewBox="0 0 320 120" role="img" aria-label="Entradas por día">
-                @for (b of barRects(receptionSeries(rec)); track $index) {
-                  <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="2" fill="var(--primary-500)" opacity="0.85" />
-                }
-              </svg>
-              <p class="muted chart-caption">
-                Serie {{ d.seriesDays }} día(s) · período {{ d.period }}
-              </p>
+              <div class="chart-box">
+                <svg class="chart bars" viewBox="0 0 320 100" role="img" aria-label="Entradas por día">
+                  @for (b of barRects(receptionSeries(rec)); track $index) {
+                    <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="3" fill="#3b82f6" />
+                  }
+                </svg>
+              </div>
+              <p class="muted chart-caption">Historial de accesos últimos {{ d.seriesDays }} días</p>
             </section>
           }
 
@@ -289,59 +288,50 @@ type PeriodKey = CommandPeriod;
             <section class="panel module">
               <div class="panel-head">
                 <h2>
-                  <app-icon [icon]="icons.Boxes" [size]="16" [strokeWidth]="2" />
-                  Dotación
+                  <app-icon [icon]="icons.Boxes" [size]="18" [strokeWidth]="2" />
+                  Dotación & Almacén
                 </h2>
-                <a routerLink="/dotacion" class="link-quiet">Ir a Dotación</a>
+                <a routerLink="/dotacion" class="link-quiet">Ver Dotación →</a>
               </div>
               <div class="mini-stats">
-                <div><span>Sin dotación</span><strong>{{ dot.withoutDotacionCount }}</strong></div>
-                <div><span>Con entrega</span><strong>{{ dot.withDotacionCount ?? '—' }}</strong></div>
-                <div><span>Stock bajo</span><strong>{{ dot.lowStockCount }}</strong></div>
-                <div><span>Agotados</span><strong>{{ dot.zeroStockCount ?? 0 }}</strong></div>
+                <div class="stat-pill">
+                  <span>Sin Dotación</span>
+                  <strong style="color: #ea580c;">{{ dot.withoutDotacionCount }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Con Entrega</span>
+                  <strong style="color: #16a34a;">{{ dot.withDotacionCount ?? '—' }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Stock Bajo</span>
+                  <strong style="color: #dc2626;">{{ dot.lowStockCount }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Agotados</span>
+                  <strong style="color: #991b1b;">{{ dot.zeroStockCount ?? 0 }}</strong>
+                </div>
               </div>
               @if (dot.statusBreakdown) {
-                <div class="stack-bars" aria-label="Estado de dotación">
+                <div class="stack-bars">
                   <div class="stack-row">
-                    <span>Con entrega reciente</span>
+                    <span>Con entrega</span>
                     <div class="stack-track">
                       <div class="stack-fill ok" [style.width.%]="dotShare(dot, 'with')"></div>
                     </div>
                     <strong>{{ dot.statusBreakdown.withRecentDelivery }}</strong>
                   </div>
                   <div class="stack-row">
-                    <span>Sin entrega reciente</span>
+                    <span>Sin entrega</span>
                     <div class="stack-track">
                       <div class="stack-fill warn" [style.width.%]="dotShare(dot, 'without')"></div>
                     </div>
                     <strong>{{ dot.statusBreakdown.withoutRecentDelivery }}</strong>
                   </div>
-                  <div class="stack-row">
-                    <span>Entregas pendientes</span>
-                    <div class="stack-track">
-                      <div class="stack-fill info" [style.width.%]="dotShare(dot, 'pending')"></div>
-                    </div>
-                    <strong>{{ dot.statusBreakdown.pendingDeliveries }}</strong>
-                  </div>
                 </div>
-              }
-              @if (dot.topDeliveredItems?.length) {
-                <h3 class="subh">Mayor consumo</h3>
-                <ul class="rank-list">
-                  @for (item of dot.topDeliveredItems.slice(0, 5); track item.sku) {
-                    <li>
-                      <span>{{ item.itemName }}</span>
-                      <strong>{{ item.totalQuantity }}</strong>
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <p class="empty-inline">Sin consumo registrado</p>
               }
               @if (dot.lowStockItems?.length) {
                 <a routerLink="/dotacion/inventario" class="cta-warn">
-                  {{ dot.lowStockCount }} elemento(s) con stock bajo
-                  <app-icon [icon]="icons.ArrowRight" [size]="14" [strokeWidth]="2" />
+                  ⚠️ {{ dot.lowStockCount }} elemento(s) requieren reabastecimiento →
                 </a>
               }
             </section>
@@ -351,54 +341,37 @@ type PeriodKey = CommandPeriod;
             <section class="panel module">
               <div class="panel-head">
                 <h2>
-                  <app-icon [icon]="icons.CalendarCheck" [size]="16" [strokeWidth]="2" />
-                  Programación
+                  <app-icon [icon]="icons.CalendarCheck" [size]="18" [strokeWidth]="2" />
+                  Programación de Turnos
                 </h2>
-                <a routerLink="/programacion" class="link-quiet">Ir a Programación</a>
+                <a routerLink="/programacion" class="link-quiet">Ver Turnos →</a>
               </div>
               <div class="coverage">
                 <div class="coverage-meta">
-                  <span>Cobertura de puestos (mes)</span>
-                  <strong>
-                    @if (prog.kpis.postsInMonth > 0) {
-                      {{ coveragePct(prog) }}%
-                    } @else {
-                      Sin datos
-                    }
-                  </strong>
+                  <span>Cobertura mensual de puestos</span>
+                  <strong>{{ prog.kpis.postsInMonth > 0 ? coveragePct(prog) + '%' : 'Sin datos' }}</strong>
                 </div>
                 <div class="coverage-track">
                   <div class="coverage-fill" [style.width.%]="coveragePct(prog)"></div>
                 </div>
               </div>
-              @if (prog.today) {
-                <div class="coverage">
-                  <div class="coverage-meta">
-                    <span>Cobertura hoy (día {{ prog.today.day }})</span>
-                    <strong>
-                      @if (prog.today.coveragePct != null) {
-                        {{ prog.today.coveragePct }}%
-                      } @else {
-                        Sin datos
-                      }
-                    </strong>
-                  </div>
-                  <div class="coverage-track">
-                    <div class="coverage-fill" [style.width.%]="prog.today.coveragePct ?? 0"></div>
-                  </div>
-                  @if (prog.today.nextShift) {
-                    <p class="next-shift">
-                      Próximo turno: {{ prog.today.nextShift.postLabel }} a las {{ prog.today.nextShift.inicio }}
-                      (en {{ prog.today.nextShift.minutesUntil }} min)
-                    </p>
-                  }
-                </div>
-              }
               <div class="mini-stats">
-                <div><span>Programados</span><strong>{{ prog.kpis.postsInMonth }}</strong></div>
-                <div><span>Cubiertos</span><strong>{{ prog.kpis.postsCovered }}</strong></div>
-                <div><span>Sin cubrir hoy</span><strong>{{ prog.today?.postsUncoveredToday ?? '—' }}</strong></div>
-                <div><span>Conflictos</span><strong>{{ prog.kpis.conflicts }}</strong></div>
+                <div class="stat-pill">
+                  <span>Programados</span>
+                  <strong>{{ prog.kpis.postsInMonth }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Cubiertos</span>
+                  <strong style="color: #16a34a;">{{ prog.kpis.postsCovered }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Sin cubrir hoy</span>
+                  <strong style="color: #dc2626;">{{ prog.today?.postsUncoveredToday ?? '—' }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Conflictos</span>
+                  <strong>{{ prog.kpis.conflicts }}</strong>
+                </div>
               </div>
             </section>
           }
@@ -407,50 +380,56 @@ type PeriodKey = CommandPeriod;
             <section class="panel module">
               <div class="panel-head">
                 <h2>
-                  <app-icon [icon]="icons.FileText" [size]="16" [strokeWidth]="2" />
-                  Documental
+                  <app-icon [icon]="icons.FileText" [size]="18" [strokeWidth]="2" />
+                  Archivo & Gestión Documental
                 </h2>
-                <a routerLink="/documental" class="link-quiet">Ir a Documental</a>
+                <a routerLink="/documental" class="link-quiet">Ver Archivo →</a>
               </div>
               <div class="mini-stats">
-                <div><span>Correspondencia</span><strong>{{ doc.analytics.correspondencia }}</strong></div>
-                <div><span>Minutas</span><strong>{{ doc.analytics.minutas }}</strong></div>
-                <div><span>Préstamos</span><strong>{{ doc.analytics.prestamosActivos }}</strong></div>
-                <div><span>Alertas</span><strong>{{ doc.notifications.totalAlertas }}</strong></div>
+                <div class="stat-pill">
+                  <span>Correspondencia</span>
+                  <strong>{{ doc.analytics.correspondencia }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Minutas</span>
+                  <strong>{{ doc.analytics.minutas }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Préstamos</span>
+                  <strong>{{ doc.analytics.prestamosActivos }}</strong>
+                </div>
+                <div class="stat-pill">
+                  <span>Alertas</span>
+                  <strong style="color: #dc2626;">{{ doc.notifications.totalAlertas }}</strong>
+                </div>
               </div>
-              <h3 class="subh">Atención prioritaria</h3>
-              @if ((doc.notifications.alertas ?? []).length === 0) {
-                <p class="empty-inline">Sin alertas documentales</p>
-              } @else {
-                <ul class="prio-list">
-                  @for (a of doc.notifications.alertas.slice(0, 5); track a.idRegistro + a.tipo) {
-                    <li [attr.data-nivel]="a.nivel">
-                      <span class="prio-dot"></span>
-                      <div>
-                        <strong>{{ a.titulo }}</strong>
-                        <p>{{ a.mensaje }}</p>
-                      </div>
-                    </li>
-                  }
-                </ul>
+              @if ((doc.notifications.alertas ?? []).length > 0) {
+                <div class="prio-box">
+                  <span class="prio-badge">⚠️ Préstamos Vencidos</span>
+                  <small>{{ doc.notifications.totalAlertas }} documento(s) requieren devolución</small>
+                </div>
               }
             </section>
           }
         </div>
 
+        <!-- 4. TIMELINE DE AUDITORÍA Y ACTIVIDAD RECIENTE -->
         <section class="panel">
           <div class="panel-head">
-            <h2>Actividad reciente</h2>
-            <span class="muted">Últimos eventos del sistema</span>
+            <h2>
+              <app-icon [icon]="icons.ClipboardCheck" [size]="18" [strokeWidth]="2" />
+              Actividad Reciente del Sistema
+            </h2>
+            <span class="muted">Registro de auditoría en vivo</span>
           </div>
           @if (d.activity.length === 0) {
             <p class="empty-inline">Aún no hay eventos de auditoría para mostrar</p>
           } @else {
             <ul class="timeline">
-              @for (ev of d.activity; track ev.id) {
+              @for (ev of d.activity.slice(0, 8); track ev.id) {
                 <li>
                   <span class="time">{{ ev.createdAt | date: 'dd/MM HH:mm' }}</span>
-                  <div>
+                  <div class="timeline-body">
                     <strong>{{ ev.label }}</strong>
                     <span class="muted">{{ moduleName(ev.module) }}</span>
                   </div>
@@ -463,214 +442,216 @@ type PeriodKey = CommandPeriod;
     </section>
   `,
   styles: `
-    .dashboard { display: flex; flex-direction: column; gap: 1.25rem; }
+    .dashboard { display: flex; flex-direction: column; gap: 1.25rem; font-family: inherit; }
+    
     .hero {
-      position: relative; overflow: hidden; border-radius: var(--radius-xl);
-      background: var(--gradient-hero-mesh, linear-gradient(135deg, #1d4ed8 0%, #7c3aed 100%));
-      color: #fff; box-shadow: var(--shadow-lg);
-      min-height: 180px;
+      position: relative; overflow: hidden; border-radius: 1.25rem;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+      color: #fff; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
     }
     .hero-mesh {
       position: absolute; inset: 0; pointer-events: none;
       background:
-        radial-gradient(at 90% 20%, rgba(34, 211, 238, 0.35) 0px, transparent 55%),
-        radial-gradient(at 15% 80%, rgba(236, 72, 153, 0.28) 0px, transparent 55%);
+        radial-gradient(at 90% 20%, rgba(59, 130, 246, 0.3) 0px, transparent 55%),
+        radial-gradient(at 15% 80%, rgba(14, 165, 233, 0.2) 0px, transparent 55%);
     }
     .hero-inner {
       position: relative; z-index: 1; display: flex; justify-content: space-between;
-      gap: 2rem; padding: 1.75rem 2rem; flex-wrap: wrap; align-items: flex-end;
+      gap: 1.5rem; padding: 1.75rem 2rem; flex-wrap: wrap; align-items: flex-end;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem;
-      background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.2);
-      border-radius: 999px; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.05em;
-      text-transform: uppercase; margin-bottom: 0.75rem;
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 999px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 0.6rem;
     }
     .hero-text h1 {
-      margin: 0; font-family: var(--font-display); font-size: clamp(1.7rem, 3vw, 2.2rem);
-      font-weight: 700; color: #fff;
+      margin: 0; font-size: clamp(1.6rem, 3vw, 2.1rem); font-weight: 800; color: #fff;
     }
-    .hero-text p { margin: 0.5rem 0 0.85rem; color: rgba(255,255,255,0.82); }
-    .hero-text strong { color: #fff; }
-    .status-row { margin-bottom: 0.85rem; }
+    .hero-text p { margin: 0.4rem 0 0.85rem; color: rgba(255,255,255,0.85); font-size: 0.9rem; }
+    
+    .hero-controls { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
     .status-pill {
-      display: inline-flex; padding: 0.35rem 0.8rem; border-radius: 999px;
-      font-size: 0.8rem; font-weight: 700; background: rgba(255,255,255,0.16);
-      border: 1px solid rgba(255,255,255,0.28);
+      display: inline-flex; padding: 0.35rem 0.85rem; border-radius: 999px;
+      font-size: 0.8rem; font-weight: 800; background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.3);
     }
-    .status-pill[data-code='stable'] { background: rgba(34,197,94,0.22); }
-    .status-pill[data-code='attention'] { background: rgba(245,158,11,0.28); }
-    .status-pill[data-code='critical'] { background: rgba(239,68,68,0.3); }
-    .period-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .status-pill[data-code='stable'] { background: rgba(34,197,94,0.25); color: #86efac; }
+    .status-pill[data-code='attention'] { background: rgba(245,158,11,0.3); color: #fde68a; }
+    .status-pill[data-code='critical'] { background: rgba(239,68,68,0.35); color: #fca5a5; }
+
+    .period-row { display: flex; gap: 0.35rem; }
     .period-btn {
-      border: 1px solid rgba(255,255,255,0.28); background: rgba(255,255,255,0.1);
-      color: #fff; border-radius: 999px; padding: 0.35rem 0.75rem; font-size: 0.78rem;
-      font-weight: 600; cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.25); background: rgba(255,255,255,0.1);
+      color: #fff; border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.78rem;
+      font-weight: 700; cursor: pointer; transition: all 0.2s;
     }
-    .period-btn.active { background: #fff; color: var(--primary-700); }
-    .period-hint { margin: 0.55rem 0 0; font-size: 0.72rem; color: rgba(255,255,255,0.7); max-width: 520px; }
-    .hero-info { display: flex; flex-direction: column; gap: 0.55rem; min-width: 230px; }
+    .period-btn.active { background: #fff; color: #1e3a8a; font-weight: 800; }
+
+    .hero-info { display: flex; flex-direction: column; gap: 0.6rem; min-width: 220px; }
     .info-card {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.7rem 0.9rem;
-      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18); border-radius: var(--radius);
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem;
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 0.75rem; backdrop-filter: blur(8px);
     }
     .info-icon {
-      width: 34px; height: 34px; border-radius: 10px; background: var(--g);
+      width: 36px; height: 36px; border-radius: 10px; background: var(--g);
       display: inline-flex; align-items: center; justify-content: center; color: #fff;
     }
-    .info-title { display: block; font-size: 0.85rem; font-weight: 600; color: #fff; }
-    .info-sub { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.75); }
+    .info-title { display: block; font-size: 0.85rem; font-weight: 700; color: #fff; }
+    .info-sub { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.8); }
 
-    .panel {
-      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
-      padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
-    }
-    .panel-head {
-      display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem;
-      margin-bottom: 0.85rem; flex-wrap: wrap;
-    }
-    .panel-head h2 {
-      margin: 0; font-family: var(--font-display); font-size: 1.05rem; color: var(--text-primary);
-      display: inline-flex; align-items: center; gap: 0.45rem;
-    }
-    .muted { color: var(--text-muted); font-size: 0.82rem; }
-    .link-quiet { font-size: 0.82rem; font-weight: 600; color: var(--primary-700); text-decoration: none; }
-    .empty-inline { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
-
-    .highlight-list { display: flex; flex-direction: column; gap: 0.45rem; }
-    .highlight {
-      display: flex; align-items: center; gap: 0.65rem; padding: 0.7rem 0.85rem;
-      border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2);
-      text-decoration: none; color: var(--text-primary); font-size: 0.9rem;
-    }
-    .highlight:hover { border-color: var(--primary-200); }
-    .tone-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--primary-500); flex-shrink: 0; }
-    .highlight[data-tone='critical'] .tone-dot { background: #ef4444; }
-    .highlight[data-tone='warning'] .tone-dot { background: #f59e0b; }
-    .highlight[data-tone='info'] .tone-dot { background: #3b82f6; }
-
-    .two-col {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;
-    }
-    .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
-    .alert-item {
-      display: grid; grid-template-columns: auto 1fr auto; gap: 0.65rem; align-items: start;
-      padding: 0.65rem 0.75rem; border-radius: 10px; border: 1px solid var(--border);
-      text-decoration: none; color: inherit; background: var(--surface);
-    }
-    .alert-item:hover { border-color: var(--primary-200); }
-    .alert-item strong { display: block; font-size: 0.88rem; }
-    .alert-item p { margin: 0.15rem 0 0; font-size: 0.8rem; color: var(--text-secondary); }
-    .badge {
-      font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-      padding: 0.2rem 0.4rem; border-radius: 6px; background: #e2e8f0; color: #334155;
-    }
-    .alert-item[data-tone='critical'] .badge { background: rgba(239,68,68,0.15); color: #b91c1c; }
-    .alert-item[data-tone='warning'] .badge { background: rgba(245,158,11,0.18); color: #b45309; }
-    .alert-item[data-tone='info'] .badge { background: rgba(59,130,246,0.15); color: #1d4ed8; }
-
-    .score-list { display: flex; flex-direction: column; gap: 0.75rem; }
-    .score-row { display: grid; grid-template-columns: 1fr minmax(90px, 1.2fr) auto; gap: 0.6rem; align-items: center; }
-    .score-meta strong { display: block; font-size: 0.88rem; }
-    .score-meta span { font-size: 0.72rem; color: var(--text-muted); }
-    .score-bar-wrap { height: 8px; background: var(--surface-2); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
-    .score-bar { height: 100%; border-radius: 999px; background: #22c55e; }
-    .score-bar[data-level='mid'] { background: #f59e0b; }
-    .score-bar[data-level='low'] { background: #ef4444; }
-    .score-pct { font-family: var(--font-display); font-size: 0.95rem; }
-    .score-na { font-size: 0.78rem; color: var(--text-muted); }
-
+    /* KPIS AL TOPE */
+    .kpi-section { margin-top: 0.25rem; }
     .kpi-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem;
     }
     .kpi-card {
-      display: flex; flex-direction: column; gap: 0.25rem; padding: 0.9rem 1rem;
-      border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2);
-      text-decoration: none; color: inherit; transition: transform 0.15s ease, border-color 0.15s ease;
+      display: flex; flex-direction: column; gap: 0.35rem; padding: 1rem 1.15rem;
+      border-radius: 1rem; border: 1px solid #e2e8f0; background: #ffffff;
+      text-decoration: none; color: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: all 0.2s ease;
     }
-    .kpi-card:hover { transform: translateY(-1px); border-color: var(--primary-200); }
-    .kpi-card.warn { border-color: rgba(245,158,11,0.45); }
-    .spark { width: 100%; height: 22px; color: var(--primary-600); margin-top: 0.15rem; }
-    .kpi-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; }
-    .kpi-value { font-family: var(--font-display); font-size: 1.7rem; line-height: 1.1; color: var(--text-primary); }
-    .kpi-hint { font-size: 0.75rem; color: var(--text-muted); }
-    .kpi-delta { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.78rem; font-weight: 600; }
-    .kpi-delta[data-dir='up'] { color: #15803d; }
-    .kpi-delta[data-dir='down'] { color: #b91c1c; }
-    .delta-label { font-weight: 500; color: var(--text-muted); margin-left: 0.15rem; }
+    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px -2px rgba(0,0,0,0.06); border-color: #93c5fd; }
+    .kpi-top { display: flex; justify-content: space-between; align-items: center; }
+    .kpi-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; }
+    .kpi-value { font-size: 1.8rem; font-weight: 900; line-height: 1.1; color: #0f172a; }
+    .spark { width: 100%; height: 24px; color: #2563eb; margin: 0.25rem 0; }
+    .kpi-delta {
+      display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.75rem;
+      font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px;
+    }
+    .kpi-delta[data-dir='up'] { background: #dcfce7; color: #166534; }
+    .kpi-delta[data-dir='down'] { background: #fee2e2; color: #991b1b; }
+    .kpi-hint { font-size: 0.75rem; color: #94a3b8; }
 
+    /* PANELES DE DOS COLUMNAS */
+    .two-col {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.1rem;
+    }
+    .panel {
+      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem;
+      padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .panel-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
+    }
+    .panel-head h2 {
+      margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a;
+      display: inline-flex; align-items: center; gap: 0.5rem;
+    }
+    .muted { color: #64748b; font-size: 0.82rem; }
+    .link-quiet { font-size: 0.82rem; font-weight: 700; color: #2563eb; text-decoration: none; }
+    .link-quiet:hover { text-decoration: underline; }
+
+    /* ESTADO OPERATIVO */
+    .score-list { display: flex; flex-direction: column; gap: 0.85rem; }
+    .score-row {
+      display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.75rem; align-items: center;
+      padding: 0.5rem 0; border-bottom: 1px solid #f8fafc;
+    }
+    .score-meta strong { display: block; font-size: 0.9rem; color: #1e293b; }
+    .score-meta span { font-size: 0.75rem; color: #64748b; }
+    .score-bar-wrap { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+    .score-bar { height: 100%; border-radius: 999px; background: #22c55e; transition: width 0.4s; }
+    .score-bar[data-level='mid'] { background: #f59e0b; }
+    .score-bar[data-level='low'] { background: #ef4444; }
+    .score-pct { font-size: 0.95rem; font-weight: 900; color: #166534; min-width: 42px; text-align: right; }
+    .score-pct[data-level='mid'] { color: #b45309; }
+    .score-pct[data-level='low'] { color: #dc2626; }
+    .score-na { font-size: 0.78rem; color: #94a3b8; }
+
+    /* CENTRO DE ALERTAS */
+    .empty-box {
+      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.75rem;
+      padding: 1.25rem; text-align: center; color: #166534; font-size: 0.88rem;
+    }
+    .ok-icon { font-size: 1.5rem; display: block; margin-bottom: 0.25rem; }
+    .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+    .alert-item {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.9rem;
+      border-radius: 0.75rem; border: 1px solid #e2e8f0; background: #f8fafc;
+      text-decoration: none; color: inherit; transition: all 0.2s;
+    }
+    .alert-item:hover { background: #eff6ff; border-color: #bfdbfe; transform: translateX(2px); }
+    .alert-content { flex: 1; }
+    .alert-content strong { display: block; font-size: 0.88rem; color: #0f172a; }
+    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #64748b; }
+    .badge {
+      font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.55rem;
+      border-radius: 6px; background: #e2e8f0; color: #334155;
+    }
+    .alert-item[data-tone='critical'] .badge { background: #fee2e2; color: #991b1b; }
+    .alert-item[data-tone='warning'] .badge { background: #fef3c7; color: #92400e; }
+    .alert-item[data-tone='info'] .badge { background: #dbeafe; color: #1e40af; }
+
+    /* MÓDULOS DE GESTIÓN */
     .modules-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.1rem;
     }
     .mini-stats {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.75rem;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 0.85rem;
     }
-    .mini-stats div {
-      padding: 0.55rem 0.65rem; border-radius: 10px; background: var(--surface-2); border: 1px solid var(--border);
+    .stat-pill {
+      padding: 0.65rem 0.85rem; border-radius: 0.65rem; background: #f8fafc;
+      border: 1px solid #f1f5f9; display: flex; flex-direction: column;
     }
-    .mini-stats span { display: block; font-size: 0.68rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
-    .mini-stats strong { font-family: var(--font-display); font-size: 1.15rem; }
-    .chart { width: 100%; height: 120px; background: var(--surface-2); border-radius: 10px; border: 1px solid var(--border); }
-    .chart-legend, .chart-caption { display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem; font-size: 0.72rem; color: var(--text-muted); }
-    .subh { margin: 0.35rem 0 0.45rem; font-size: 0.85rem; color: var(--text-secondary); }
-    .rank-list, .prio-list, .timeline { list-style: none; margin: 0; padding: 0; }
-    .rank-list li, .timeline li {
-      display: flex; justify-content: space-between; gap: 0.75rem; padding: 0.4rem 0;
-      border-bottom: 1px solid var(--border); font-size: 0.85rem;
+    .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
+    .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: #0f172a; }
+    .highlight-stat { background: #eff6ff; border-color: #dbeafe; }
+    .highlight-stat strong { color: #1d4ed8; }
+
+    .chart-box { background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; padding: 0.5rem; }
+    .chart { width: 100%; height: 110px; }
+    .chart-legend { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+    .legend-pill {
+      font-size: 0.72rem; background: #f1f5f9; color: #475569; padding: 0.2rem 0.5rem;
+      border-radius: 0.35rem; font-weight: 600;
     }
-    .prio-list li {
-      display: flex; gap: 0.55rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border);
-    }
-    .prio-list strong { display: block; font-size: 0.82rem; }
-    .prio-list p { margin: 0.1rem 0 0; font-size: 0.75rem; color: var(--text-secondary); }
-    .prio-dot { width: 8px; height: 8px; border-radius: 999px; margin-top: 0.35rem; background: #22c55e; flex-shrink: 0; }
-    .prio-list li[data-nivel='critico'] .prio-dot { background: #ef4444; }
-    .prio-list li[data-nivel='advertencia'] .prio-dot { background: #f59e0b; }
-    .cta-warn {
-      display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 0.65rem;
-      font-size: 0.85rem; font-weight: 600; color: #b45309; text-decoration: none;
-    }
-    .coverage { margin-bottom: 0.75rem; }
-    .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; }
-    .coverage-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
-    .coverage-fill { height: 100%; background: linear-gradient(90deg, var(--primary-500), #22c55e); }
-    .next-shift { margin: 0.45rem 0 0; font-size: 0.8rem; color: var(--text-secondary); }
-    .stack-bars { display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.75rem; }
-    .stack-row {
-      display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.5rem; align-items: center;
-      font-size: 0.78rem;
-    }
-    .stack-track { height: 8px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+    .chart-caption { font-size: 0.75rem; color: #94a3b8; margin: 0.4rem 0 0; text-align: center; }
+
+    .stack-bars { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.5rem; }
+    .stack-row { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.5rem; align-items: center; font-size: 0.78rem; }
+    .stack-track { height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
     .stack-fill { height: 100%; border-radius: 999px; }
     .stack-fill.ok { background: #22c55e; }
     .stack-fill.warn { background: #f59e0b; }
-    .stack-fill.info { background: #3b82f6; }
-    .timeline .time {
-      min-width: 78px; font-size: 0.75rem; color: var(--text-muted); font-variant-numeric: tabular-nums;
+    .cta-warn {
+      display: block; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+      padding: 0.6rem 0.85rem; border-radius: 0.55rem; font-size: 0.8rem; font-weight: 700;
+      text-decoration: none; margin-top: 0.65rem; text-align: center;
     }
-    .timeline div { display: flex; flex-direction: column; gap: 0.1rem; flex: 1; }
+
+    .coverage { margin-bottom: 0.85rem; }
+    .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
+    .coverage-track { height: 10px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .coverage-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #22c55e); border-radius: 999px; }
+
+    .prio-box {
+      background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.65rem;
+      padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.2rem;
+    }
+    .prio-badge { font-weight: 800; font-size: 0.82rem; color: #92400e; }
+    .prio-box small { color: #b45309; font-size: 0.75rem; }
+
+    /* TIMELINE */
+    .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+    .timeline li {
+      display: flex; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid #f1f5f9; align-items: center;
+    }
+    .timeline .time {
+      min-width: 90px; font-size: 0.78rem; font-weight: 700; color: #64748b; font-family: monospace;
+    }
+    .timeline-body { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
+    .timeline-body strong { font-size: 0.88rem; color: #0f172a; }
 
     .skeleton-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
     .skeleton {
-      height: 120px; border-radius: var(--radius-lg);
-      background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
-      background-size: 200% 100%; animation: shimmer 1.2s infinite;
+      height: 130px; border-radius: 1rem; background: #e2e8f0;
+      animation: pulse 1.5s infinite;
     }
-    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .alert-error {
-      display: flex; align-items: center; gap: 0.65rem; padding: 0.9rem 1.1rem;
-      background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25);
-      border-radius: var(--radius); color: var(--error-dark); font-size: 0.9rem;
-    }
-    .alert-dot {
-      width: 8px; height: 8px; border-radius: 999px; background: var(--error);
-      box-shadow: 0 0 0 4px rgba(239,68,68,0.18);
-    }
-
-    @media (max-width: 720px) {
-      .score-row { grid-template-columns: 1fr; }
-      .hero-inner { padding: 1.35rem 1.2rem; }
-    }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
   `,
 })
 export class Dashboard implements OnInit {
@@ -770,7 +751,7 @@ export class Dashboard implements OnInit {
 
   toneLabel(tone: CommandAlert['tone']): string {
     if (tone === 'critical') return 'Crítica';
-    if (tone === 'warning') return 'Advertencia';
+    if (tone === 'warning') return 'Alerta';
     return 'Info';
   }
 
@@ -857,7 +838,7 @@ export class Dashboard implements OnInit {
     if (!values.length) return [];
     const max = Math.max(...values, 1);
     const w = 320;
-    const h = 120;
+    const h = 100;
     const pad = 6;
     const gap = 2;
     const barW = (w - pad * 2 - gap * (values.length - 1)) / values.length;
