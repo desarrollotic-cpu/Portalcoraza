@@ -11,7 +11,7 @@ type Mode = 'login' | 'setup' | 'reset';
   template: `
     <div class="wrap">
       <div class="brand">
-        <img src="/brand/logo-coraza-cta.png" width="56" height="56" alt="Coraza" />
+        <img src="/brand/logo-coraza-cta.png" width="64" height="64" alt="Portal Coraza" />
         <h1>Portal Vigilante</h1>
         <p>
           @switch (mode()) {
@@ -37,6 +37,7 @@ type Mode = 'login' | 'setup' | 'reset';
               name="cedula"
               inputmode="numeric"
               autocomplete="username"
+              placeholder="Ingresa tu número de cédula"
               required
             />
           </label>
@@ -50,6 +51,7 @@ type Mode = 'login' | 'setup' | 'reset';
               maxlength="4"
               pattern="[0-9]{4}"
               autocomplete="current-password"
+              placeholder="••••"
               required
             />
           </label>
@@ -57,7 +59,7 @@ type Mode = 'login' | 'setup' | 'reset';
             <p class="err">{{ error() }}</p>
           }
           <button type="submit" [disabled]="busy()">
-            {{ busy() ? 'Ingresando…' : 'Ingresar' }}
+            {{ busy() ? 'Ingresando…' : 'Ingresar al Portal' }}
           </button>
           <button type="button" class="linkish" (click)="go('setup')">
             ¿Primera vez? Crear mi PIN
@@ -75,12 +77,13 @@ type Mode = 'login' | 'setup' | 'reset';
               name="cedula"
               inputmode="numeric"
               autocomplete="username"
+              placeholder="Tu número de cédula"
               required
             />
           </label>
           <label>
             Primer nombre
-            <input [(ngModel)]="nombre" name="nombre" autocomplete="given-name" required />
+            <input [(ngModel)]="nombre" name="nombre" autocomplete="given-name" placeholder="Ej. Juan" required />
           </label>
           <label>
             {{ mode() === 'reset' ? 'Nuevo PIN (4 dígitos)' : 'Elige tu PIN (4 dígitos)' }}
@@ -92,6 +95,7 @@ type Mode = 'login' | 'setup' | 'reset';
               maxlength="4"
               pattern="[0-9]{4}"
               autocomplete="new-password"
+              placeholder="••••"
               required
             />
           </label>
@@ -105,6 +109,7 @@ type Mode = 'login' | 'setup' | 'reset';
               maxlength="4"
               pattern="[0-9]{4}"
               autocomplete="new-password"
+              placeholder="••••"
               required
             />
           </label>
@@ -126,23 +131,147 @@ type Mode = 'login' | 'setup' | 'reset';
         </form>
       }
 
-      <a class="back" href="/auth/login">← Portal administrativo</a>
+      <a class="back" href="/#/auth/login">← Volver al Portal administrativo</a>
     </div>
   `,
   styles: `
-    :host { display:block; min-height:100dvh; background:#0A0E17; color:#F1F5F9; font-family: system-ui,sans-serif; }
-    .wrap { max-width:420px; margin:0 auto; padding:2rem 1.25rem; display:flex; flex-direction:column; gap:1.25rem; }
-    .brand { text-align:center; }
-    .brand h1 { margin:0.6rem 0 0.2rem; color:#FFB700; font-size:1.6rem; }
-    .brand p { margin:0; color:#94A3B8; font-size:0.9rem; }
-    .card { background:#121824; border-radius:1rem; padding:1.25rem; display:flex; flex-direction:column; gap:0.85rem; }
-    label { display:flex; flex-direction:column; gap:0.35rem; font-size:0.85rem; font-weight:600; color:#94A3B8; }
-    input { font:inherit; font-weight:400; color:#F1F5F9; background:#0A0E17; border:1px solid #1e293b; border-radius:0.55rem; padding:0.7rem 0.8rem; letter-spacing:0.08em; }
-    button { border:0; border-radius:0.65rem; padding:0.85rem; background:#FFB700; color:#0A0E17; font-weight:800; cursor:pointer; }
-    button:disabled { opacity:0.6; }
-    .linkish { background:transparent; color:#FFB700; font-weight:600; padding:0.35rem; }
-    .err { color:#EF4444; margin:0; font-size:0.85rem; }
-    .back { color:#94A3B8; text-align:center; text-decoration:none; font-size:0.85rem; }
+    :host {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #2563eb 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      padding: 1.5rem 1rem;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .brand {
+      text-align: center;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+      border-radius: 1.25rem 1.25rem 0 0;
+      padding: 1.75rem 1.5rem 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-bottom: 0;
+    }
+    .brand img {
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+    }
+    .brand h1 {
+      margin: 0.75rem 0 0.25rem;
+      color: #0f172a;
+      font-size: 1.65rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .brand p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.88rem;
+      line-height: 1.4;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 0 0 1.25rem 1.25rem;
+      padding: 1.5rem 1.75rem 1.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.25);
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    input {
+      font: inherit;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.6rem;
+      padding: 0.75rem 0.9rem;
+      transition: all 0.15s ease;
+    }
+    input:focus {
+      outline: none;
+      background: #ffffff;
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+    button[type="submit"] {
+      border: 0;
+      border-radius: 0.65rem;
+      padding: 0.9rem;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      transition: transform 0.1s ease, box-shadow 0.15s ease;
+      margin-top: 0.35rem;
+    }
+    button[type="submit"]:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.45);
+    }
+    button[type="submit"]:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+    .linkish {
+      background: transparent;
+      border: 0;
+      color: #2563eb;
+      font-size: 0.85rem;
+      font-weight: 600;
+      padding: 0.4rem;
+      cursor: pointer;
+      text-align: center;
+      transition: color 0.15s ease;
+    }
+    .linkish:hover {
+      color: #1d4ed8;
+      text-decoration: underline;
+    }
+    .err {
+      color: #dc2626;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 0.5rem;
+      padding: 0.65rem 0.85rem;
+      margin: 0;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .back {
+      color: rgba(255, 255, 255, 0.9);
+      text-align: center;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 1.25rem;
+      transition: color 0.15s ease;
+    }
+    .back:hover {
+      color: #ffffff;
+      text-decoration: underline;
+    }
   `,
 })
 export class VigiaLogin {
