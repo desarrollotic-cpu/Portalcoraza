@@ -39,6 +39,20 @@ async function main() {
     throw new Error('Ejecuta primero supabase/seed/001_roles_permissions.sql');
   }
 
+  // Siempre re-sincroniza: permisos nuevos (inventario, etc.) no quedan fuera de Gerencia.
+  const sync = await ds.query(
+    `
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT r.id, p.id
+    FROM roles r
+    CROSS JOIN permissions p
+    WHERE r.code = 'GERENCIA'
+    ON CONFLICT DO NOTHING
+    RETURNING permission_id
+    `,
+  );
+  console.log(`GERENCIA: +${sync.length} permisos sincronizados (todos los del catálogo)`);
+
   const existing = await users.findOne({ where: { email } });
   if (existing) {
     console.log(`Usuario ya existe: ${email}`);
