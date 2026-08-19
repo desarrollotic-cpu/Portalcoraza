@@ -62,7 +62,7 @@ interface ItemRow {
                         <span class="size-chip">
                           {{ sizeLabel(v) }} · M {{ stockOf(v, 'MEDELLIN') }} · R {{ stockOf(v, 'RIONEGRO') }}
                           @if (auth.hasPermission('inventory.move')) {
-                            <button type="button" class="chip-btn" (click)="openAddStock(v, row.item)">+ stock</button>
+                            <button type="button" class="chip-btn" (click)="openAddStock(v, row.item, row.variants)">+ stock</button>
                             <button type="button" class="chip-btn" (click)="openTransfer(v, row.item)">traslado</button>
                           }
                         </span>
@@ -87,7 +87,7 @@ interface ItemRow {
                     <button
                       type="button"
                       class="btn-stock"
-                      (click)="openAddStock(row.primaryVariant, row.item)"
+                      (click)="openAddStock(row.primaryVariant, row.item, row.variants)"
                     >
                       Agregar Stock
                     </button>
@@ -122,6 +122,7 @@ interface ItemRow {
     <app-add-stock-dialog
       [open]="stockDialogOpen()"
       [variant]="stockVariant()"
+      [variants]="stockVariants()"
       (completed)="onStockAdded()"
       (dismissed)="closeAddStock()"
     />
@@ -358,6 +359,7 @@ export class InventoryList implements OnInit {
   readonly error = signal<string | null>(null);
   readonly stockDialogOpen = signal(false);
   readonly stockVariant = signal<InventoryVariant | null>(null);
+  readonly stockVariants = signal<InventoryVariant[]>([]);
 
   readonly transferOpen = signal(false);
   readonly transferVariant = signal<InventoryVariant | null>(null);
@@ -389,8 +391,9 @@ export class InventoryList implements OnInit {
     return v.stocks?.find((s) => s.warehouseCode === code)?.quantity ?? 0;
   }
 
-  openAddStock(variant: InventoryVariant, item: InventoryItem): void {
+  openAddStock(variant: InventoryVariant, item: InventoryItem, variants?: InventoryVariant[]): void {
     this.stockVariant.set({ ...variant, item });
+    this.stockVariants.set(variants?.length ? variants : [variant]);
     this.stockDialogOpen.set(true);
   }
 
@@ -433,6 +436,7 @@ export class InventoryList implements OnInit {
   closeAddStock(): void {
     this.stockDialogOpen.set(false);
     this.stockVariant.set(null);
+    this.stockVariants.set([]);
   }
 
   onStockAdded(): void {
