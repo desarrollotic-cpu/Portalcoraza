@@ -23,8 +23,15 @@ describe('MotorTurnosService relevante gap-fill', () => {
         .map((c) => c.codigo);
       const rel = cells.find((c) => c.role === 'relevante');
       expect(rel).toBeDefined();
-      if (rel!.codigo === 'D' || rel!.codigo === 'N') {
+      if (rel!.codigo === 'D' || rel!.codigo === 'N' || rel!.codigo === 'D8' || rel!.codigo === 'N8') {
         expect(titularCodes).not.toContain(rel!.codigo);
+        // Tampoco chocar franja: D8 vs D, N8 vs N
+        if (motor.isDayCode(rel!.codigo)) {
+          expect(titularCodes.some((c) => motor.isDayCode(c))).toBe(false);
+        }
+        if (motor.isNightCode(rel!.codigo)) {
+          expect(titularCodes.some((c) => motor.isNightCode(c))).toBe(false);
+        }
       }
     }
   });

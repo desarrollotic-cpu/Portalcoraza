@@ -36,8 +36,10 @@ interface CellState {
 }
 
 const CODES: CodeConfig[] = [
-  { codigo: 'D', label: 'D — Diurno', jornada: 'normal', turno: 'AM', inicio: '06:00', fin: '18:00', cssClass: 'c-d' },
-  { codigo: 'N', label: 'N — Nocturno', jornada: 'normal', turno: 'PM', inicio: '18:00', fin: '06:00', cssClass: 'c-n' },
+  { codigo: 'D', label: 'D — Diurno 12h (06–18)', jornada: 'normal', turno: 'AM', inicio: '06:00', fin: '18:00', cssClass: 'c-d' },
+  { codigo: 'N', label: 'N — Nocturno 12h (18–06)', jornada: 'normal', turno: 'PM', inicio: '18:00', fin: '06:00', cssClass: 'c-n' },
+  { codigo: 'D8', label: 'D8 — Diurno 8h (06–14)', jornada: 'normal', turno: 'AM', inicio: '06:00', fin: '14:00', cssClass: 'c-d8' },
+  { codigo: 'N8', label: 'N8 — Nocturno 8h (22–06)', jornada: 'normal', turno: 'PM', inicio: '22:00', fin: '06:00', cssClass: 'c-n8' },
   { codigo: 'DR', label: 'DR — Descanso remunerado', jornada: 'descanso_remunerado', turno: null, inicio: null, fin: null, cssClass: 'c-dr' },
   { codigo: 'NR', label: 'NR — Descanso no remunerado', jornada: 'descanso_no_remunerado', turno: null, inicio: null, fin: null, cssClass: 'c-nr' },
   { codigo: 'VAC', label: 'VAC — Vacaciones', jornada: 'vacacion', turno: null, inicio: null, fin: null, cssClass: 'c-vac' },
@@ -295,6 +297,8 @@ const CODES: CodeConfig[] = [
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
     .c-d { background: #d1e7dd; color: #0f5132; }
     .c-n { background: #cfe2ff; color: #084298; }
+    .c-d8 { background: #b7e4c7; color: #1b4332; }
+    .c-n8 { background: #9ec5fe; color: #052c65; }
     .c-dr { background: #e9ecef; color: #495057; }
     .c-nr { background: #ced4da; color: #212529; }
     .c-vac { background: #fff3cd; color: #664d03; }
@@ -641,7 +645,9 @@ export class ScheduleBoard implements OnInit {
     if (!state) return 'Sin asignar — clic para editar';
     const associate = state.associateId ? this.associateMap().get(state.associateId) : null;
     const name = associate ? this.associateName(associate) : 'Sin asociado';
-    return `${state.codigo ?? 'Sin asignar'} — ${name}`;
+    const hours =
+      state.inicio && state.fin ? ` (${state.inicio}–${state.fin})` : '';
+    return `${state.codigo ?? 'Sin asignar'}${hours} — ${name}`;
   }
 
   associateName(a: Associate): string {

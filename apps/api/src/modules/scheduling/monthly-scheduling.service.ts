@@ -130,7 +130,7 @@ export class MonthlySchedulingService {
       })
       .andWhere('a.associate_id IS NOT NULL')
       .andWhere(`a.jornada NOT IN ('sin_asignar')`)
-      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N')`)
+      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N', 'D8', 'N8')`)
       .select([
         'a.associate_id AS "associateId"',
         'a.day AS day',

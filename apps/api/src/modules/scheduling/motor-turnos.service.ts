@@ -194,6 +194,20 @@ export class MotorTurnosService {
     return /^relevante(_\d+)?$/i.test(rol.trim());
   }
 
+  /** Códigos que cubren franja diurna (12h o 8h). */
+  isDayCode(codigo: string | null | undefined): boolean {
+    return codigo === 'D' || codigo === 'D8';
+  }
+
+  /** Códigos que cubren franja nocturna (12h o 8h). */
+  isNightCode(codigo: string | null | undefined): boolean {
+    return codigo === 'N' || codigo === 'N8';
+  }
+
+  isWorkCode(codigo: string | null | undefined): boolean {
+    return this.isDayCode(codigo) || this.isNightCode(codigo);
+  }
+
   /**
    * Relevante solo trabaja cuando falta D o N entre titulares.
    * Si no hay hueco, queda NR (disponible para otro puesto / descanso).
@@ -208,8 +222,8 @@ export class MotorTurnosService {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const cells = titularAssignments.filter((a) => a.day === day);
-      const hasD = cells.some((c) => c.codigo === 'D');
-      const hasN = cells.some((c) => c.codigo === 'N');
+      const hasD = cells.some((c) => this.isDayCode(c.codigo));
+      const hasN = cells.some((c) => this.isNightCode(c.codigo));
       const gaps: Array<'D' | 'N'> = [];
       if (!hasD) gaps.push('D');
       if (!hasN) gaps.push('N');
@@ -309,8 +323,8 @@ export class MotorTurnosService {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const cells = assignments.filter((a) => a.day === day);
-      const hasD = cells.some((c) => c.codigo === 'D');
-      const hasN = cells.some((c) => c.codigo === 'N');
+      const hasD = cells.some((c) => this.isDayCode(c.codigo));
+      const hasN = cells.some((c) => this.isNightCode(c.codigo));
       const allRest = cells.every(
         (c) => c.codigo === 'R' || c.codigo === 'NR' || c.codigo === 'DR',
       );
@@ -352,9 +366,9 @@ export class MotorTurnosService {
       let streak = 0;
       let lastCode: string | null = null;
       for (const c of sorted) {
-        if ((c.codigo === 'D' || c.codigo === 'N') && c.codigo === lastCode) {
+        if (this.isWorkCode(c.codigo) && c.codigo === lastCode) {
           streak += 1;
-        } else if (c.codigo === 'D' || c.codigo === 'N') {
+        } else if (this.isWorkCode(c.codigo)) {
           streak = 1;
           lastCode = c.codigo;
         } else {

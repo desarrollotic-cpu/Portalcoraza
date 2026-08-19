@@ -139,6 +139,8 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
         <div class="legend">
           <span class="badge c-d">D</span>
           <span class="badge c-n">N</span>
+          <span class="badge c-d8">D8</span>
+          <span class="badge c-n8">N8</span>
           <span class="badge c-dr">DR</span>
           <span class="badge c-nr">NR</span>
           <span class="badge c-mix">MIX</span>
@@ -213,6 +215,8 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
     .cell { font-weight: 700; }
     .c-d { background: #d1e7dd; color: #0f5132; }
     .c-n { background: #cfe2ff; color: #084298; }
+    .c-d8 { background: #b7e4c7; color: #1b4332; }
+    .c-n8 { background: #9ec5fe; color: #052c65; }
     .c-dr { background: #e9ecef; color: #495057; }
     .c-nr { background: #ced4da; color: #212529; }
     .c-mix { background: #f3e8ff; color: #6b21a8; }
@@ -377,7 +381,9 @@ export class MasterGrid implements OnInit {
     const codes = [...new Set(this.cellCodes(row, day))];
     if (!codes.length) return '·';
     if (codes.length === 1) return codes[0];
-    if (codes.includes('D') && codes.includes('N')) return 'D/N';
+    const hasDay = codes.some((c) => c === 'D' || c === 'D8');
+    const hasNight = codes.some((c) => c === 'N' || c === 'N8');
+    if (hasDay && hasNight) return 'D/N';
     return 'MIX';
   }
 
@@ -386,6 +392,8 @@ export class MasterGrid implements OnInit {
     if (label === '·') return 'c-empty';
     if (label === 'D') return 'c-d';
     if (label === 'N') return 'c-n';
+    if (label === 'D8') return 'c-d8';
+    if (label === 'N8') return 'c-n8';
     if (label === 'DR' || label === 'R') return 'c-dr';
     if (label === 'NR') return 'c-nr';
     if (label === 'D/N' || label === 'MIX') return 'c-mix';
