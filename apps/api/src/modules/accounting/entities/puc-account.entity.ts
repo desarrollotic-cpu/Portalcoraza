@@ -8,7 +8,7 @@ export class PucAccount {
   @Column({ length: 150 })
   name!: string;
 
-  @Column({ length: 20 })
+  @Column({ type: 'varchar', length: 20 })
   type!: 'ACTIVO' | 'PASIVO' | 'PATRIMONIO' | 'INGRESO' | 'GASTO' | 'COSTO';
 
   @Column({ type: 'int' })
@@ -17,7 +17,8 @@ export class PucAccount {
   @Column({ name: 'allows_movement', default: true })
   allowsMovement!: boolean;
 
-  @Column({ name: 'parent_code', nullable: true, length: 10 })
+  // type explícito: string|null se refleja como Object y TypeORM falla en Postgres
+  @Column({ name: 'parent_code', type: 'varchar', length: 10, nullable: true })
   parentCode!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

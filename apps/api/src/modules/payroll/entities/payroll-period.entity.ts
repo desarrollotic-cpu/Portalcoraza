@@ -21,7 +21,7 @@ export class PayrollPeriod {
   @Column({ name: 'end_date', type: 'date' })
   endDate!: string;
 
-  @Column({ length: 20, default: 'BORRADOR' })
+  @Column({ type: 'varchar', length: 20, default: 'BORRADOR' })
   status!: 'BORRADOR' | 'LIQUIDADO' | 'APROBADO' | 'CERRADO';
 
   @OneToMany(() => PayrollSlip, (s) => s.period, { cascade: true })

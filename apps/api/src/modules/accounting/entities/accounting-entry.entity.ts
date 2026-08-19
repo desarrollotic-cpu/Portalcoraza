@@ -21,13 +21,13 @@ export class AccountingEntry {
   @Column({ type: 'text' })
   concept!: string;
 
-  @Column({ name: 'source_module', length: 50 })
+  @Column({ name: 'source_module', type: 'varchar', length: 50 })
   sourceModule!: 'NOMINA' | 'DOTACION' | 'FACTURACION' | 'RECAUDO' | 'MANUAL';
 
   @Column({ name: 'source_id', type: 'uuid', nullable: true })
   sourceId!: string | null;
 
-  @Column({ length: 20, default: 'ASENTADO' })
+  @Column({ type: 'varchar', length: 20, default: 'ASENTADO' })
   status!: 'BORRADOR' | 'ASENTADO' | 'ANULADO';
 
   @Column({ name: 'created_by', type: 'uuid', nullable: true })

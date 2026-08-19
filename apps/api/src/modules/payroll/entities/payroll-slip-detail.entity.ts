@@ -26,7 +26,7 @@ export class PayrollSlipDetail {
   @Column({ name: 'concept_name', length: 150 })
   conceptName!: string;
 
-  @Column({ length: 20 })
+  @Column({ type: 'varchar', length: 20 })
   type!: 'DEVENGADO' | 'DEDUCCION';
 
   @Column({ type: 'numeric', precision: 6, scale: 2, default: 0 })

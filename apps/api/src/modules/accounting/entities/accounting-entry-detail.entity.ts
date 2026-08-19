@@ -34,7 +34,7 @@ export class AccountingEntryDetail {
   @Column({ name: 'credit_amount', type: 'numeric', precision: 14, scale: 2, default: 0 })
   creditAmount!: number;
 
-  @Column({ name: 'cost_center', nullable: true, length: 100 })
+  @Column({ name: 'cost_center', type: 'varchar', length: 100, nullable: true })
   costCenter!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
