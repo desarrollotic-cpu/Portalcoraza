@@ -55,10 +55,27 @@ export interface CreateOperacionesPostPayload {
 
 export type UpdateOperacionesPostPayload = Partial<CreateOperacionesPostPayload>;
 
+export interface OperacionesMinutaRow {
+  tipo: string;
+  id: string;
+  fecha: string;
+  estado: string;
+  resumen: string;
+}
+
+export interface OperacionesMinutaHistorial {
+  success: boolean;
+  post: { id: string; code: string; name: string };
+  month: string;
+  total: number;
+  historial: OperacionesMinutaRow[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class OperacionesApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/posts`;
+  private readonly minutaUrl = `${environment.apiUrl}/minuta`;
 
   listPosts(): Observable<OperacionesPost[]> {
     return this.http.get<OperacionesPost[]>(this.baseUrl);
@@ -74,5 +91,27 @@ export class OperacionesApiService {
 
   updatePost(id: string, payload: UpdateOperacionesPostPayload): Observable<OperacionesPost> {
     return this.http.patch<OperacionesPost>(`${this.baseUrl}/${id}`, payload);
+  }
+
+  minutaHistorial(postId: string, month: string): Observable<OperacionesMinutaHistorial> {
+    return this.http.get<OperacionesMinutaHistorial>(`${this.minutaUrl}/operaciones/historial`, {
+      params: { postId, month },
+    });
+  }
+
+  downloadMinutaPdf(postId: string, month: string): Observable<Blob> {
+    return this.http.get(`${this.minutaUrl}/operaciones/pdf`, {
+      params: { postId, month },
+      responseType: 'blob',
+    });
+  }
+
+  triggerDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }

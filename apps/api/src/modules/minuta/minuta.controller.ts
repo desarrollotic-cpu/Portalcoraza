@@ -2,10 +2,12 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   Patch,
   Post,
   Query,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -57,6 +59,33 @@ export class MinutaController {
       tipo,
       scope === 'TODOS',
     );
+  }
+
+  /** Consulta Operaciones: todas las novedades de un puesto en un mes. */
+  @Get('operaciones/historial')
+  @RequirePermissions('posts.view')
+  operacionesHistorial(
+    @CurrentUser() user: JwtPayload,
+    @Query('postId') postId?: string,
+    @Query('month') month?: string,
+  ) {
+    return this.minuta.operacionesHistorial(user, postId, month);
+  }
+
+  @Get('operaciones/pdf')
+  @RequirePermissions('posts.view')
+  @Header('Content-Type', 'application/pdf')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="minuta-operaciones.pdf"',
+  )
+  async operacionesPdf(
+    @CurrentUser() user: JwtPayload,
+    @Query('postId') postId?: string,
+    @Query('month') month?: string,
+  ) {
+    const buffer = await this.minuta.buildOperacionesPdf(user, postId, month);
+    return new StreamableFile(buffer);
   }
 
   @Post('visitantes')

@@ -455,6 +455,15 @@ export const routes: Routes = [
                 (m) => m.PuestosList,
               ),
           },
+          {
+            path: 'minutas',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import('./features/operaciones/minutas-list/minutas-list').then(
+                (m) => m.MinutasList,
+              ),
+          },
         ],
       },
       {

@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import PDFDocument = require('pdfkit');
 import { Between, FindOptionsWhere, In, Repository } from 'typeorm';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { Post } from '../posts/entities/post.entity';
 import { UserPost } from '../users/entities/user-post.entity';
 import {
   MinutaContratistaDto,
@@ -31,6 +33,14 @@ export type MinutaPostScope =
   | { restricted: false }
   | { restricted: true; postIds: string[] };
 
+export type OperacionesMinutaRow = {
+  tipo: string;
+  id: string;
+  fecha: string;
+  estado: string;
+  resumen: string;
+};
+
 @Injectable()
 export class MinutaService {
   constructor(
@@ -50,6 +60,8 @@ export class MinutaService {
     private readonly entregas: Repository<MinutaEntregaPuesto>,
     @InjectRepository(UserPost)
     private readonly userPosts: Repository<UserPost>,
+    @InjectRepository(Post)
+    private readonly posts: Repository<Post>,
   ) {}
 
   /** PUESTO solo ve/crea en posts de user_posts; resto sin restricción. */
@@ -327,6 +339,204 @@ export class MinutaService {
 
     chunks.sort((a, b) => b.fecha.getTime() - a.fecha.getTime());
     return { success: true, historial: chunks.slice(0, lim) };
+  }
+
+  /** Rango [start, end) America/Bogota para YYYY-MM. */
+  parseMonthBounds(month: string): { start: Date; end: Date; label: string } {
+    if (!/^\d{4}-\d{2}$/.test(month || '')) {
+      throw new BadRequestException('Mes inválido (use YYYY-MM)');
+    }
+    const [y, m] = month.split('-').map(Number);
+    if (m < 1 || m > 12) {
+      throw new BadRequestException('Mes inválido (use YYYY-MM)');
+    }
+    const start = new Date(`${month}-01T00:00:00-05:00`);
+    const next =
+      m === 12
+        ? `${y + 1}-01`
+        : `${y}-${String(m + 1).padStart(2, '0')}`;
+    const end = new Date(`${next}-01T00:00:00-05:00`);
+    return { start, end, label: month };
+  }
+
+  private async resolveOperacionesPost(
+    user: JwtPayload,
+    postId?: string,
+  ): Promise<Post> {
+    if (!postId?.trim()) {
+      throw new BadRequestException('Debe indicar el puesto (postId)');
+    }
+    await this.assertPostAccess(user, postId);
+    const post = await this.posts.findOne({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Puesto no encontrado');
+    return post;
+  }
+
+  private resumenMinuta(
+    tipo: string,
+    row: Record<string, unknown>,
+  ): string {
+    switch (tipo) {
+      case 'VISITANTE':
+        return `${row['nombreCompleto'] || '—'} · Apto ${row['aptoNo'] || '—'}`;
+      case 'CORRESPONDENCIA':
+        return `${row['clase'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['destinatario'] || '—'}`;
+      case 'CONTRATISTA':
+        return `${row['nombreCompleto'] || '—'} · ${row['empresa'] || '—'}`;
+      case 'DOMICILIARIO':
+        return `${row['empresa'] || '—'} · Apto ${row['aptoNo'] || '—'} · ${row['tipoPedido'] || '—'}`;
+      case 'INCIDENTE':
+        return `${row['tipo'] || '—'} · ${row['gravedad'] || '—'} · ${row['ubicacion'] || '—'}`;
+      case 'SERVICIO':
+        return String(row['anotaciones'] || row['novedades'] || '—').slice(0, 120);
+      case 'ENTREGA':
+        return `${row['turnoSaliente'] || '—'} → ${row['turnoEntrante'] || '—'} · ${row['vigilanteSaliente'] || '—'} / ${row['vigilanteEntrante'] || '—'}`;
+      default:
+        return '—';
+    }
+  }
+
+  async operacionesHistorial(
+    user: JwtPayload,
+    postId: string | undefined,
+    month: string | undefined,
+  ): Promise<{
+    success: true;
+    post: { id: string; code: string; name: string };
+    month: string;
+    total: number;
+    historial: OperacionesMinutaRow[];
+  }> {
+    if (!month?.trim()) {
+      throw new BadRequestException('Debe indicar el mes (YYYY-MM)');
+    }
+    const post = await this.resolveOperacionesPost(user, postId);
+    const { start, end, label } = this.parseMonthBounds(month.trim());
+    const period = {
+      postId: post.id,
+      fechaRegistro: Between(start, new Date(end.getTime() - 1)),
+    };
+
+    const [
+      visitantes,
+      correspondencia,
+      contratistas,
+      domiciliarios,
+      incidentes,
+      servicio,
+      entregas,
+    ] = await Promise.all([
+      this.visitantes.find({ where: period, order: { fechaRegistro: 'DESC' } }),
+      this.correspondencia.find({
+        where: period,
+        order: { fechaRegistro: 'DESC' },
+      }),
+      this.contratistas.find({
+        where: period,
+        order: { fechaRegistro: 'DESC' },
+      }),
+      this.domiciliarios.find({
+        where: period,
+        order: { fechaRegistro: 'DESC' },
+      }),
+      this.incidentes.find({ where: period, order: { fechaRegistro: 'DESC' } }),
+      this.servicio.find({ where: period, order: { fechaRegistro: 'DESC' } }),
+      this.entregas.find({ where: period, order: { fechaRegistro: 'DESC' } }),
+    ]);
+
+    const historial: OperacionesMinutaRow[] = [];
+    const push = (
+      tipo: string,
+      rows: Array<{ id: string; fechaRegistro: Date; estado?: string } & object>,
+    ) => {
+      for (const r of rows) {
+        historial.push({
+          tipo,
+          id: r.id,
+          fecha: r.fechaRegistro.toISOString(),
+          estado: (r as { estado?: string }).estado || '—',
+          resumen: this.resumenMinuta(
+            tipo,
+            r as unknown as Record<string, unknown>,
+          ),
+        });
+      }
+    };
+
+    push('VISITANTE', visitantes);
+    push('CORRESPONDENCIA', correspondencia);
+    push('CONTRATISTA', contratistas);
+    push('DOMICILIARIO', domiciliarios);
+    push('INCIDENTE', incidentes);
+    push('SERVICIO', servicio);
+    push('ENTREGA', entregas);
+    historial.sort(
+      (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
+    );
+
+    return {
+      success: true,
+      post: { id: post.id, code: post.code, name: post.name },
+      month: label,
+      total: historial.length,
+      historial,
+    };
+  }
+
+  async buildOperacionesPdf(
+    user: JwtPayload,
+    postId: string | undefined,
+    month: string | undefined,
+  ): Promise<Buffer> {
+    const data = await this.operacionesHistorial(user, postId, month);
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const finished = new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    doc.fontSize(16).text('Portal Coraza — Operaciones', { align: 'center' });
+    doc.moveDown(0.3);
+    doc.fontSize(13).text('Minuta Virtual', { align: 'center' });
+    doc
+      .fontSize(10)
+      .text(`Puesto: ${data.post.code} — ${data.post.name}`, { align: 'center' });
+    doc.fontSize(10).text(`Mes: ${data.month}`, { align: 'center' });
+    doc
+      .fontSize(9)
+      .text(
+        `Generado: ${this.fmtDate(this.nowBogota())} ${this.fmtHm(this.nowBogota())} · Total: ${data.total}`,
+        { align: 'center' },
+      );
+    doc.moveDown();
+
+    if (!data.historial.length) {
+      doc.fontSize(11).text('No hay registros de minuta para el puesto y mes seleccionados.');
+      doc.end();
+      return finished;
+    }
+
+    for (const row of data.historial) {
+      const when = new Date(row.fecha);
+      doc
+        .fontSize(11)
+        .fillColor('#0f172a')
+        .text(`${row.tipo} · ${row.id}`, { continued: false });
+      doc
+        .fontSize(9)
+        .fillColor('#334155')
+        .text(
+          `${this.fmtDate(when)} ${this.fmtHm(when)} · Estado: ${row.estado} · ${row.resumen}`,
+          { width: 515 },
+        );
+      doc.moveDown(0.5);
+      if (doc.y > 760) doc.addPage();
+    }
+
+    doc.end();
+    return finished;
   }
 
   async crearVisitante(user: JwtPayload, dto: MinutaVisitanteDto) {
