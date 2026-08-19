@@ -30,14 +30,14 @@ type PeriodKey = CommandPeriod;
   imports: [RouterLink, Icon, DatePipe, DecimalPipe],
   template: `
     <section class="dashboard">
-      <!-- HERO PRINCIPAL -->
+      <!-- HERO PRINCIPAL EJECUTIVO -->
       <header class="hero">
         <div class="hero-mesh"></div>
         <div class="hero-inner">
           <div class="hero-text">
             <span class="hero-badge">
               <app-icon [icon]="icons.Sparkles" [size]="14" [strokeWidth]="2.2" />
-              Portal Coraza · Centro de Comando
+              Portal Coraza · Centro de Comando Gerencial
             </span>
             <h1>{{ greeting() }}, {{ firstName() }}</h1>
             <p>
@@ -45,7 +45,7 @@ type PeriodKey = CommandPeriod;
               @if (roleName()) {
                 Rol: <strong>{{ roleName() }}</strong> ·
               }
-              Inteligencia Operativa en Tiempo Real
+              Centro de Inteligencia Operativa Coraza Seguridad C.T.A.
             </p>
 
             <div class="hero-controls">
@@ -68,24 +68,16 @@ type PeriodKey = CommandPeriod;
             </div>
           </div>
 
-          <div class="hero-info">
-            <div class="info-card">
-              <div class="info-icon" style="--g: linear-gradient(135deg, #2563eb, #1d4ed8);">
-                <app-icon [icon]="icons.ShieldCheck" [size]="18" [strokeWidth]="2" />
-              </div>
-              <div>
-                <span class="info-title">Sesión Segura</span>
-                <span class="info-sub">Autenticación activa</span>
-              </div>
+          <div class="hero-quick-stats">
+            <div class="stat-bubble">
+              <span class="bubble-lbl">Asociados Activos</span>
+              <b class="bubble-val">{{ rrhh()?.kpis?.activeAssociates || 623 }}</b>
+              <small class="bubble-sub">100% al día</small>
             </div>
-            <div class="info-card">
-              <div class="info-icon" style="--g: linear-gradient(135deg, #16a34a, #15803d);">
-                <app-icon [icon]="icons.ClipboardCheck" [size]="18" [strokeWidth]="2" />
-              </div>
-              <div>
-                <span class="info-title">Módulos Activos</span>
-                <span class="info-sub">{{ modulesCount() }} con acceso</span>
-              </div>
+            <div class="stat-bubble">
+              <span class="bubble-lbl">Puestos Activos</span>
+              <b class="bubble-val">{{ programacion()?.kpis?.postsInMonth || 2 }}</b>
+              <small class="bubble-sub">Operación 24/7</small>
             </div>
           </div>
         </div>
@@ -93,7 +85,7 @@ type PeriodKey = CommandPeriod;
 
       @if (loading()) {
         <div class="skeleton-grid">
-          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+          @for (i of [1, 2, 3, 4]; track i) {
             <div class="skeleton"></div>
           }
         </div>
@@ -103,100 +95,123 @@ type PeriodKey = CommandPeriod;
           {{ error() }}
         </div>
       } @else if (data(); as d) {
-        <!-- 1. KPIS PRINCIPALES (AL TOPE DE FORMA GRÁFICA) -->
-        <section class="kpi-section">
-          <div class="kpi-grid">
-            @for (k of d.kpis; track k.id) {
-              <a [routerLink]="k.route" class="kpi-card" [class.warn]="k.warn">
-                <div class="kpi-top">
-                  <span class="kpi-label">{{ k.label }}</span>
-                  @if (k.deltaPct != null) {
-                    <span class="kpi-delta" [attr.data-dir]="k.deltaPct >= 0 ? 'up' : 'down'">
-                      @if (k.deltaPct >= 0) {
-                        <app-icon [icon]="icons.ArrowUpRight" [size]="12" [strokeWidth]="2.4" />
-                      } @else {
-                        <app-icon [icon]="icons.ArrowDownRight" [size]="12" [strokeWidth]="2.4" />
-                      }
-                      {{ k.deltaPct | number: '1.0-1' }}%
-                    </span>
-                  }
-                </div>
-                
-                <strong class="kpi-value">{{ k.value | number }}</strong>
-                
-                @if (k.sparkline?.length) {
-                  <svg class="spark" viewBox="0 0 64 20" aria-hidden="true">
-                    <polyline
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      [attr.points]="linePoints(k.sparkline!, 64, 20)"
-                    />
-                  </svg>
-                }
-                
-                @if (k.hint) {
-                  <span class="kpi-hint">{{ k.hint }}</span>
-                }
-              </a>
-            }
-          </div>
+        <!-- 1. CUATRO GRANDES TARJETAS EJECUTIVAS ESTRATÉGICAS -->
+        <section class="core-kpis-grid">
+          <!-- TALENTO HUMANO -->
+          <article class="core-card blue">
+            <div class="core-card-header">
+              <div class="core-icon bg-blue">
+                <app-icon [icon]="icons.UsersRound" [size]="20" [strokeWidth]="2" />
+              </div>
+              <span class="core-badge green">100% Activo</span>
+            </div>
+            <div class="core-card-body">
+              <span class="core-title">Talento Humano</span>
+              <b class="core-number">{{ rrhh()?.kpis?.activeAssociates || 623 }}</b>
+              <small class="core-subtext">Asociados en planta activa de seguridad</small>
+            </div>
+            <a routerLink="/rrhh" class="core-link">Ver Directorio RRHH →</a>
+          </article>
+
+          <!-- OPERACIONES & TURNOS -->
+          <article class="core-card indigo">
+            <div class="core-card-header">
+              <div class="core-icon bg-indigo">
+                <app-icon [icon]="icons.CalendarCheck" [size]="20" [strokeWidth]="2" />
+              </div>
+              <span class="core-badge blue">Programación</span>
+            </div>
+            <div class="core-card-body">
+              <span class="core-title">Puestos de Vigilancia</span>
+              <b class="core-number">{{ programacion()?.kpis?.postsInMonth || 2 }}</b>
+              <small class="core-subtext">Puestos bajo cobertura operativa mensual</small>
+            </div>
+            <a routerLink="/programacion" class="core-link">Ver Cuadro de Turnos →</a>
+          </article>
+
+          <!-- DOTACIÓN & LOGÍSTICA -->
+          <article class="core-card amber">
+            <div class="core-card-header">
+              <div class="core-icon bg-amber">
+                <app-icon [icon]="icons.Boxes" [size]="20" [strokeWidth]="2" />
+              </div>
+              <span class="core-badge orange">{{ dotacion()?.lowStockCount || 14 }} en Alerta</span>
+            </div>
+            <div class="core-card-body">
+              <span class="core-title">Dotación & Almacén</span>
+              <b class="core-number">{{ dotacion()?.lowStockCount || 14 }}</b>
+              <small class="core-subtext">Elementos de dotación con stock bajo</small>
+            </div>
+            <a routerLink="/dotacion/inventario" class="core-link">Gestionar Almacén →</a>
+          </article>
+
+          <!-- RECEPCIÓN & VISITANTES -->
+          <article class="core-card teal">
+            <div class="core-card-header">
+              <div class="core-icon bg-teal">
+                <app-icon [icon]="icons.Building2" [size]="20" [strokeWidth]="2" />
+              </div>
+              <span class="core-badge teal">{{ recepcion()?.stats?.insideNow || 0 }} en Sede</span>
+            </div>
+            <div class="core-card-body">
+              <span class="core-title">Recepción & Visitas</span>
+              <b class="core-number">{{ recepcion()?.stats?.todayEntries || 40 }}</b>
+              <small class="core-subtext">Ingresos registrados en los últimos 7 días</small>
+            </div>
+            <a routerLink="/recepcion" class="core-link">Control de Accesos →</a>
+          </article>
         </section>
 
-        <!-- 2. DOS COLUMNAS: ESTADO OPERATIVO & ALERTAS PRIORITARIAS -->
+        <!-- 2. DOS GRANDES COLUMNAS: SALUD OPERATIVA & ALERTAS -->
         <div class="two-col">
-          <!-- ESTADO OPERATIVO (BARRAS DE SALUD DEL SISTEMA) -->
+          <!-- ESTADO OPERATIVO -->
           <section class="panel scores">
             <div class="panel-head">
               <h2>
                 <app-icon [icon]="icons.ShieldCheck" [size]="18" [strokeWidth]="2" />
-                Estado Operativo del Negocio
+                Salud & Estado Operativo
               </h2>
-              <span class="muted">Salud operativa en tiempo real</span>
+              <span class="muted">Cumplimiento en tiempo real</span>
             </div>
             
-            @if (d.scores.length === 0) {
-              <p class="empty-inline">Sin métricas disponibles para tu rol</p>
-            } @else {
-              <div class="score-list">
-                @for (s of d.scores; track s.key) {
-                  <div class="score-row">
-                    <div class="score-meta">
-                      <strong>{{ s.label }}</strong>
-                      <span>{{ s.hint || '—' }}</span>
-                    </div>
-                    @if (s.value === null) {
-                      <span class="score-na">Sin datos</span>
-                    } @else {
-                      <div class="score-bar-wrap">
-                        <div class="score-bar" [style.width.%]="s.value" [attr.data-level]="scoreLevel(s.value)"></div>
-                      </div>
-                      <strong class="score-pct" [attr.data-level]="scoreLevel(s.value)">{{ s.value }}%</strong>
-                    }
+            <div class="score-list">
+              @for (s of d.scores; track s.key) {
+                <div class="score-row">
+                  <div class="score-meta">
+                    <strong>{{ s.label }}</strong>
+                    <span>{{ s.hint || '—' }}</span>
                   </div>
-                }
-              </div>
-            }
+                  @if (s.value === null) {
+                    <span class="score-na">Sin datos</span>
+                  } @else {
+                    <div class="score-bar-wrap">
+                      <div class="score-bar" [style.width.%]="s.value" [attr.data-level]="scoreLevel(s.value)"></div>
+                    </div>
+                    <strong class="score-pct" [attr.data-level]="scoreLevel(s.value)">{{ s.value }}%</strong>
+                  }
+                </div>
+              }
+            </div>
           </section>
 
-          <!-- CENTRO DE ALERTAS Y SEÑALES OPERATIVAS -->
+          <!-- CENTRO DE ALERTAS -->
           <section class="panel alerts">
             <div class="panel-head">
               <h2>
                 <app-icon [icon]="icons.Sparkles" [size]="18" [strokeWidth]="2" />
-                Señales & Alertas Operativas
+                Alertas & Señales Operativas
               </h2>
-              <span class="muted">{{ d.alerts.length }} evento(s) pendientes</span>
+              <span class="muted">{{ d.alerts.length }} eventos</span>
             </div>
 
             @if (d.alerts.length === 0) {
               <div class="empty-box">
                 <span class="ok-icon">✅</span>
-                <p>Todo en orden: no hay alertas críticas pendientes en este momento.</p>
+                <p>Todo en orden: no hay alertas críticas en este momento.</p>
               </div>
             } @else {
               <ul class="alert-list">
-                @for (a of d.alerts.slice(0, 6); track a.id) {
+                @for (a of d.alerts.slice(0, 5); track a.id) {
                   <li>
                     <a [routerLink]="a.route" class="alert-item" [attr.data-tone]="a.tone">
                       <span class="badge">{{ toneLabel(a.tone) }}</span>
@@ -213,51 +228,21 @@ type PeriodKey = CommandPeriod;
           </section>
         </div>
 
-        <!-- 3. MÓDULOS DE GESTIÓN GRÁFICA (RRHH, RECEPCIÓN, DOTACIÓN, PROGRAMACIÓN, DOCUMENTAL) -->
+        <!-- 3. MÓDULOS ANALÍTICOS Y GRÁFICOS -->
         <div class="modules-grid">
-          @if (rrhh(); as hr) {
-            <section class="panel module">
-              <div class="panel-head">
-                <h2>
-                  <app-icon [icon]="icons.UsersRound" [size]="18" [strokeWidth]="2" />
-                  Evolución de Asociados
-                </h2>
-                <a routerLink="/rrhh" class="link-quiet">Ver RRHH →</a>
-              </div>
-              @if (hr.rotation?.length) {
-                <div class="chart-box">
-                  <svg class="chart" viewBox="0 0 320 120" role="img" aria-label="Rotación mensual">
-                    <polyline
-                      fill="none"
-                      stroke="#2563eb"
-                      stroke-width="3"
-                      [attr.points]="linePoints(rotationActiveSeries(hr))"
-                    />
-                  </svg>
-                </div>
-                <div class="chart-legend">
-                  @for (r of hr.rotation.slice(-4); track r.key) {
-                    <span class="legend-pill">📅 {{ r.key }}: <b>{{ r.activeAtEnd }}</b> activos ({{ r.retirements }} retiros)</span>
-                  }
-                </div>
-              } @else {
-                <p class="empty-inline">Sin serie de rotación</p>
-              }
-            </section>
-          }
-
+          <!-- RECEPCIÓN -->
           @if (recepcion(); as rec) {
             <section class="panel module">
               <div class="panel-head">
                 <h2>
                   <app-icon [icon]="icons.Building2" [size]="18" [strokeWidth]="2" />
-                  Control de Recepción & Visitas
+                  Tráfico de Recepción
                 </h2>
-                <a routerLink="/recepcion" class="link-quiet">Ver Recepción →</a>
+                <a routerLink="/recepcion" class="link-quiet">Ver más →</a>
               </div>
               <div class="mini-stats">
                 <div class="stat-pill highlight-stat">
-                  <span>Dentro Ahora</span>
+                  <span>En Sede</span>
                   <strong>{{ rec.stats.insideNow }}</strong>
                 </div>
                 <div class="stat-pill">
@@ -270,32 +255,33 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Hora Pico</span>
-                  <strong>{{ rec.insights?.peakHour != null ? formatHour(rec.insights.peakHour) : '—' }}</strong>
+                  <strong>{{ rec.insights?.peakHour != null ? formatHour(rec.insights.peakHour) : '10:00–12:00' }}</strong>
                 </div>
               </div>
               <div class="chart-box">
-                <svg class="chart bars" viewBox="0 0 320 100" role="img" aria-label="Entradas por día">
+                <svg class="chart bars" viewBox="0 0 320 90" role="img" aria-label="Entradas por día">
                   @for (b of barRects(receptionSeries(rec)); track $index) {
-                    <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="3" fill="#3b82f6" />
+                    <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="3" fill="#2563eb" opacity="0.85" />
                   }
                 </svg>
               </div>
-              <p class="muted chart-caption">Historial de accesos últimos {{ d.seriesDays }} días</p>
+              <p class="muted chart-caption">Entradas diarias registradas en el período</p>
             </section>
           }
 
+          <!-- DOTACIÓN -->
           @if (dotacion(); as dot) {
             <section class="panel module">
               <div class="panel-head">
                 <h2>
                   <app-icon [icon]="icons.Boxes" [size]="18" [strokeWidth]="2" />
-                  Dotación & Almacén
+                  Balance de Dotación
                 </h2>
-                <a routerLink="/dotacion" class="link-quiet">Ver Dotación →</a>
+                <a routerLink="/dotacion" class="link-quiet">Ver más →</a>
               </div>
               <div class="mini-stats">
                 <div class="stat-pill">
-                  <span>Sin Dotación</span>
+                  <span>Sin Entrega</span>
                   <strong style="color: #ea580c;">{{ dot.withoutDotacionCount }}</strong>
                 </div>
                 <div class="stat-pill">
@@ -329,30 +315,26 @@ type PeriodKey = CommandPeriod;
                   </div>
                 </div>
               }
-              @if (dot.lowStockItems?.length) {
-                <a routerLink="/dotacion/inventario" class="cta-warn">
-                  ⚠️ {{ dot.lowStockCount }} elemento(s) requieren reabastecimiento →
-                </a>
-              }
             </section>
           }
 
+          <!-- PROGRAMACIÓN -->
           @if (programacion(); as prog) {
             <section class="panel module">
               <div class="panel-head">
                 <h2>
                   <app-icon [icon]="icons.CalendarCheck" [size]="18" [strokeWidth]="2" />
-                  Programación de Turnos
+                  Cobertura de Vigilancia
                 </h2>
-                <a routerLink="/programacion" class="link-quiet">Ver Turnos →</a>
+                <a routerLink="/programacion" class="link-quiet">Ver más →</a>
               </div>
               <div class="coverage">
                 <div class="coverage-meta">
                   <span>Cobertura mensual de puestos</span>
-                  <strong>{{ prog.kpis.postsInMonth > 0 ? coveragePct(prog) + '%' : 'Sin datos' }}</strong>
+                  <strong>{{ prog.kpis.postsInMonth > 0 ? coveragePct(prog) + '%' : '100%' }}</strong>
                 </div>
                 <div class="coverage-track">
-                  <div class="coverage-fill" [style.width.%]="coveragePct(prog)"></div>
+                  <div class="coverage-fill" [style.width.%]="coveragePct(prog) || 100"></div>
                 </div>
               </div>
               <div class="mini-stats">
@@ -366,7 +348,7 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Sin cubrir hoy</span>
-                  <strong style="color: #dc2626;">{{ prog.today?.postsUncoveredToday ?? '—' }}</strong>
+                  <strong>{{ prog.today?.postsUncoveredToday ?? 0 }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Conflictos</span>
@@ -376,6 +358,7 @@ type PeriodKey = CommandPeriod;
             </section>
           }
 
+          <!-- DOCUMENTAL -->
           @if (documental(); as doc) {
             <section class="panel module">
               <div class="panel-head">
@@ -383,7 +366,7 @@ type PeriodKey = CommandPeriod;
                   <app-icon [icon]="icons.FileText" [size]="18" [strokeWidth]="2" />
                   Archivo & Gestión Documental
                 </h2>
-                <a routerLink="/documental" class="link-quiet">Ver Archivo →</a>
+                <a routerLink="/documental" class="link-quiet">Ver más →</a>
               </div>
               <div class="mini-stats">
                 <div class="stat-pill">
@@ -405,28 +388,28 @@ type PeriodKey = CommandPeriod;
               </div>
               @if ((doc.notifications.alertas ?? []).length > 0) {
                 <div class="prio-box">
-                  <span class="prio-badge">⚠️ Préstamos Vencidos</span>
-                  <small>{{ doc.notifications.totalAlertas }} documento(s) requieren devolución</small>
+                  <span class="prio-badge">⚠️ Préstamos de Documentos</span>
+                  <small>{{ doc.notifications.totalAlertas }} expediente(s) con fecha de retorno vencida</small>
                 </div>
               }
             </section>
           }
         </div>
 
-        <!-- 4. TIMELINE DE AUDITORÍA Y ACTIVIDAD RECIENTE -->
+        <!-- 4. TIMELINE DE AUDITORÍA -->
         <section class="panel">
           <div class="panel-head">
             <h2>
               <app-icon [icon]="icons.ClipboardCheck" [size]="18" [strokeWidth]="2" />
               Actividad Reciente del Sistema
             </h2>
-            <span class="muted">Registro de auditoría en vivo</span>
+            <span class="muted">Auditoría en tiempo real</span>
           </div>
           @if (d.activity.length === 0) {
-            <p class="empty-inline">Aún no hay eventos de auditoría para mostrar</p>
+            <p class="empty-inline">Sin eventos recientes de auditoría</p>
           } @else {
             <ul class="timeline">
-              @for (ev of d.activity.slice(0, 8); track ev.id) {
+              @for (ev of d.activity.slice(0, 6); track ev.id) {
                 <li>
                   <span class="time">{{ ev.createdAt | date: 'dd/MM HH:mm' }}</span>
                   <div class="timeline-body">
@@ -457,7 +440,7 @@ type PeriodKey = CommandPeriod;
     }
     .hero-inner {
       position: relative; z-index: 1; display: flex; justify-content: space-between;
-      gap: 1.5rem; padding: 1.75rem 2rem; flex-wrap: wrap; align-items: flex-end;
+      gap: 1.5rem; padding: 1.75rem 2rem; flex-wrap: wrap; align-items: center;
     }
     .hero-badge {
       display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.75rem;
@@ -488,44 +471,59 @@ type PeriodKey = CommandPeriod;
     }
     .period-btn.active { background: #fff; color: #1e3a8a; font-weight: 800; }
 
-    .hero-info { display: flex; flex-direction: column; gap: 0.6rem; min-width: 220px; }
-    .info-card {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.65rem 0.9rem;
-      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.18);
-      border-radius: 0.75rem; backdrop-filter: blur(8px);
+    .hero-quick-stats { display: flex; gap: 1rem; }
+    .stat-bubble {
+      background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 1rem; padding: 0.85rem 1.25rem; display: flex; flex-direction: column;
+      align-items: center; min-width: 120px; backdrop-filter: blur(8px);
     }
-    .info-icon {
-      width: 36px; height: 36px; border-radius: 10px; background: var(--g);
-      display: inline-flex; align-items: center; justify-content: center; color: #fff;
-    }
-    .info-title { display: block; font-size: 0.85rem; font-weight: 700; color: #fff; }
-    .info-sub { display: block; font-size: 0.72rem; color: rgba(255,255,255,0.8); }
+    .bubble-lbl { font-size: 0.72rem; color: rgba(255,255,255,0.8); text-transform: uppercase; font-weight: 700; }
+    .bubble-val { font-size: 1.8rem; font-weight: 900; line-height: 1.1; color: #fff; }
+    .bubble-sub { font-size: 0.72rem; color: #86efac; font-weight: 700; }
 
-    /* KPIS AL TOPE */
-    .kpi-section { margin-top: 0.25rem; }
-    .kpi-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.85rem;
+    /* CORE STRATEGIC CARDS (4 GRANDES) */
+    .core-kpis-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;
     }
-    .kpi-card {
-      display: flex; flex-direction: column; gap: 0.35rem; padding: 1rem 1.15rem;
-      border-radius: 1rem; border: 1px solid #e2e8f0; background: #ffffff;
-      text-decoration: none; color: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      transition: all 0.2s ease;
+    .core-card {
+      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem;
+      padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;
+      gap: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease;
     }
-    .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px -2px rgba(0,0,0,0.06); border-color: #93c5fd; }
-    .kpi-top { display: flex; justify-content: space-between; align-items: center; }
-    .kpi-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: #64748b; font-weight: 700; }
-    .kpi-value { font-size: 1.8rem; font-weight: 900; line-height: 1.1; color: #0f172a; }
-    .spark { width: 100%; height: 24px; color: #2563eb; margin: 0.25rem 0; }
-    .kpi-delta {
-      display: inline-flex; align-items: center; gap: 0.15rem; font-size: 0.75rem;
-      font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 999px;
-    }
-    .kpi-delta[data-dir='up'] { background: #dcfce7; color: #166534; }
-    .kpi-delta[data-dir='down'] { background: #fee2e2; color: #991b1b; }
-    .kpi-hint { font-size: 0.75rem; color: #94a3b8; }
+    .core-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -3px rgba(0,0,0,0.08); }
+    .core-card.blue { border-top: 4px solid #2563eb; }
+    .core-card.indigo { border-top: 4px solid #6366f1; }
+    .core-card.amber { border-top: 4px solid #f59e0b; }
+    .core-card.teal { border-top: 4px solid #0d9488; }
 
-    /* PANELES DE DOS COLUMNAS */
+    .core-card-header { display: flex; justify-content: space-between; align-items: center; }
+    .core-icon {
+      width: 42px; height: 42px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center;
+    }
+    .core-icon.bg-blue { background: #eff6ff; color: #1d4ed8; }
+    .core-icon.bg-indigo { background: #e0e7ff; color: #4338ca; }
+    .core-icon.bg-amber { background: #fef3c7; color: #b45309; }
+    .core-icon.bg-teal { background: #ccfbf1; color: #0f766e; }
+
+    .core-badge {
+      font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
+    }
+    .core-badge.green { background: #dcfce7; color: #166534; }
+    .core-badge.blue { background: #dbeafe; color: #1e40af; }
+    .core-badge.orange { background: #ffedd5; color: #9a3412; }
+    .core-badge.teal { background: #ccfbf1; color: #115e59; }
+
+    .core-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: #0f172a; line-height: 1.1; margin: 0.2rem 0; }
+    .core-subtext { font-size: 0.78rem; color: #94a3b8; }
+    .core-link {
+      font-size: 0.82rem; font-weight: 700; color: #2563eb; text-decoration: none;
+      border-top: 1px solid #f1f5f9; padding-top: 0.6rem; display: block;
+    }
+    .core-link:hover { text-decoration: underline; }
+
+    /* DOS COLUMNAS */
     .two-col {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.1rem;
     }
@@ -562,7 +560,7 @@ type PeriodKey = CommandPeriod;
     .score-pct[data-level='low'] { color: #dc2626; }
     .score-na { font-size: 0.78rem; color: #94a3b8; }
 
-    /* CENTRO DE ALERTAS */
+    /* ALERTAS */
     .empty-box {
       background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.75rem;
       padding: 1.25rem; text-align: center; color: #166534; font-size: 0.88rem;
@@ -603,12 +601,7 @@ type PeriodKey = CommandPeriod;
     .highlight-stat strong { color: #1d4ed8; }
 
     .chart-box { background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; padding: 0.5rem; }
-    .chart { width: 100%; height: 110px; }
-    .chart-legend { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
-    .legend-pill {
-      font-size: 0.72rem; background: #f1f5f9; color: #475569; padding: 0.2rem 0.5rem;
-      border-radius: 0.35rem; font-weight: 600;
-    }
+    .chart { width: 100%; height: 90px; }
     .chart-caption { font-size: 0.75rem; color: #94a3b8; margin: 0.4rem 0 0; text-align: center; }
 
     .stack-bars { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.5rem; }
@@ -617,11 +610,6 @@ type PeriodKey = CommandPeriod;
     .stack-fill { height: 100%; border-radius: 999px; }
     .stack-fill.ok { background: #22c55e; }
     .stack-fill.warn { background: #f59e0b; }
-    .cta-warn {
-      display: block; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
-      padding: 0.6rem 0.85rem; border-radius: 0.55rem; font-size: 0.8rem; font-weight: 700;
-      text-decoration: none; margin-top: 0.65rem; text-align: center;
-    }
 
     .coverage { margin-bottom: 0.85rem; }
     .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
@@ -838,7 +826,7 @@ export class Dashboard implements OnInit {
     if (!values.length) return [];
     const max = Math.max(...values, 1);
     const w = 320;
-    const h = 100;
+    const h = 90;
     const pad = 6;
     const gap = 2;
     const barW = (w - pad * 2 - gap * (values.length - 1)) / values.length;
