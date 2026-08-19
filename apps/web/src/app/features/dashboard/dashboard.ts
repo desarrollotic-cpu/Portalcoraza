@@ -2,33 +2,24 @@ import { Component, OnInit, Type, computed, inject, signal } from '@angular/core
 import { RouterLink } from '@angular/router';
 import {
   LucideArrowUpRight,
-  LucideBell,
   LucideBoxes,
   LucideBuilding2,
   LucideCalendarCheck,
   LucideClipboardCheck,
   LucideEye,
   LucideFileText,
-  LucidePackageOpen,
   LucideShieldCheck,
   LucideSparkles,
-  LucideTruck,
   LucideUsersRound,
 } from '@lucide/angular';
 import { AuthService } from '../../core/services/auth.service';
 import { Icon } from '../../shared/components/icon/icon';
-import { DashboardApiService, DashboardStats } from './dashboard-api.service';
-
-interface KpiCard {
-  label: string;
-  value: number;
-  icon: Type<unknown>;
-  route?: string;
-  externalUrl?: string;
-  cta?: string;
-  hint?: string;
-  gradient: string;
-}
+import {
+  DashboardAlertChip,
+  DashboardApiService,
+  DashboardHome,
+  DashboardSection,
+} from './dashboard-api.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -70,10 +61,22 @@ interface KpiCard {
                   Ir a Documental
                 </a>
               }
-              @if (auth.hasPermission('inventory.view')) {
+              @if (auth.hasPermission('inventory.view') || auth.hasPermission('deliveries.view')) {
                 <a routerLink="/dotacion" class="hero-btn ghost">
                   <app-icon [icon]="icons.Boxes" [size]="16" [strokeWidth]="2" />
                   Módulo Dotación
+                </a>
+              }
+              @if (auth.hasPermission('reception.view')) {
+                <a routerLink="/recepcion" class="hero-btn ghost">
+                  <app-icon [icon]="icons.Building2" [size]="16" [strokeWidth]="2" />
+                  Recepción
+                </a>
+              }
+              @if (auth.hasPermission('users.view')) {
+                <a routerLink="/admin" class="hero-btn ghost">
+                  <app-icon [icon]="icons.ShieldCheck" [size]="16" [strokeWidth]="2" />
+                  Administración
                 </a>
               }
               @if (auth.hasPermission('vigia.view') || auth.hasPermission('posts.view')) {
@@ -120,54 +123,78 @@ interface KpiCard {
           {{ error() }}
         </div>
       } @else {
-        @if (kpis().length > 0) {
-          <div class="kpi-grid">
-            @for (k of kpis(); track k.label) {
-              <article class="kpi-card">
-                <div class="kpi-top">
-                  <div class="kpi-icon" [style.background]="k.gradient">
-                    <app-icon [icon]="k.icon" [size]="20" [strokeWidth]="2" />
-                  </div>
-                  @if (k.externalUrl) {
-                    <a [href]="k.externalUrl" class="kpi-link" [attr.aria-label]="k.cta ?? k.label" target="_blank" rel="noopener noreferrer">
-                      <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
-                    </a>
-                  } @else if (k.route) {
-                    <a [routerLink]="k.route" class="kpi-link" [attr.aria-label]="k.cta ?? k.label">
-                      <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
-                    </a>
-                  }
-                </div>
-                <div class="kpi-body">
-                  <span class="kpi-label">{{ k.label }}</span>
-                  <strong class="kpi-value">{{ k.value }}</strong>
-                  @if (k.hint) {
-                    <span class="kpi-hint">{{ k.hint }}</span>
-                  }
-                </div>
-                @if (k.externalUrl && k.cta) {
-                  <a [href]="k.externalUrl" class="kpi-cta" target="_blank" rel="noopener noreferrer">
-                    {{ k.cta }}
-                    <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
-                  </a>
-                } @else if (k.route && k.cta) {
-                  <a [routerLink]="k.route" class="kpi-cta">
-                    {{ k.cta }}
-                    <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
-                  </a>
-                }
-              </article>
-            }
+        <section class="alerts-strip">
+          <div class="alerts-head">
+            <h2>Hoy / Alertas</h2>
+            <span class="muted">Lo más urgente según tus permisos</span>
           </div>
-        }
+          @if (alerts().length === 0) {
+            <p class="alerts-empty">Sin alertas operativas</p>
+          } @else {
+            <div class="chips">
+              @for (a of alerts(); track a.id) {
+                <a [routerLink]="a.route" class="chip" [attr.data-tone]="a.tone">
+                  <span class="chip-label">{{ a.label }}</span>
+                  <strong class="chip-value">{{ a.value }}</strong>
+                  <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+                </a>
+              }
+            </div>
+          }
+        </section>
 
-        @if (!isKnownRole()) {
+        @if (sections().length === 0) {
           <div class="empty-state">
             <div class="empty-icon">
               <app-icon [icon]="icons.Sparkles" [size]="26" [strokeWidth]="1.8" />
             </div>
             <h3>Bienvenido a Portal Coraza</h3>
             <p>Usa el menú lateral para acceder a los módulos disponibles según tus permisos.</p>
+          </div>
+        } @else {
+          <div class="sections-grid">
+            @for (s of sections(); track s.key) {
+              <article class="module-card">
+                <header class="module-head">
+                  <div>
+                    <h3>{{ s.title }}</h3>
+                    @if (s.status === 'error') {
+                      <p class="module-error">{{ s.errorMessage }}</p>
+                    }
+                  </div>
+                  <a [routerLink]="s.route" class="kpi-link" [attr.aria-label]="'Ir a ' + s.title">
+                    <app-icon [icon]="icons.ArrowUpRight" [size]="16" [strokeWidth]="2" />
+                  </a>
+                </header>
+                @if (s.status === 'ok' && s.kpis.length) {
+                  <div class="module-kpis">
+                    @for (k of s.kpis; track k.label) {
+                      @if (k.route) {
+                        <a [routerLink]="k.route" class="mini-kpi">
+                          <span class="mini-label">{{ k.label }}</span>
+                          <strong>{{ k.value }}</strong>
+                          @if (k.hint) {
+                            <span class="mini-hint">{{ k.hint }}</span>
+                          }
+                        </a>
+                      } @else {
+                        <div class="mini-kpi">
+                          <span class="mini-label">{{ k.label }}</span>
+                          <strong>{{ k.value }}</strong>
+                          @if (k.hint) {
+                            <span class="mini-hint">{{ k.hint }}</span>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+                <a [routerLink]="s.route" class="kpi-cta">
+                  Ir a {{ s.title }}
+                  <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+                </a>
+              </article>
+            }
           </div>
         }
       }
@@ -206,9 +233,7 @@ interface KpiCard {
       padding: 2rem 2.25rem;
       flex-wrap: wrap;
     }
-    .hero-text {
-      max-width: 620px;
-    }
+    .hero-text { max-width: 620px; }
     .hero-badge {
       display: inline-flex;
       align-items: center;
@@ -239,10 +264,7 @@ interface KpiCard {
       font-size: 1rem;
       line-height: 1.5;
     }
-    .hero-text p strong {
-      color: #fff;
-      font-weight: 600;
-    }
+    .hero-text p strong { color: #fff; font-weight: 600; }
     .hero-actions {
       display: flex;
       flex-wrap: wrap;
@@ -257,10 +279,7 @@ interface KpiCard {
       font-size: 0.9rem;
       font-weight: 600;
       text-decoration: none;
-      transition:
-        background 0.15s ease,
-        transform 0.15s ease,
-        box-shadow 0.15s ease;
+      transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     }
     .hero-btn.primary {
       background: #fff;
@@ -276,9 +295,7 @@ interface KpiCard {
       color: #fff;
       border: 1px solid rgba(255, 255, 255, 0.28);
     }
-    .hero-btn.ghost:hover {
-      background: rgba(255, 255, 255, 0.24);
-    }
+    .hero-btn.ghost:hover { background: rgba(255, 255, 255, 0.24); }
 
     .hero-info {
       display: flex;
@@ -318,45 +335,144 @@ interface KpiCard {
       color: rgba(255, 255, 255, 0.75);
     }
 
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
-    }
-    .kpi-card {
+    .alerts-strip {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 1.15rem 1.25rem 1.25rem;
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+    .alerts-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 0.85rem;
+      flex-wrap: wrap;
+    }
+    .alerts-head h2 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      color: var(--text-primary);
+    }
+    .muted { color: var(--text-muted); font-size: 0.85rem; }
+    .alerts-empty {
+      margin: 0;
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+    }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.55rem 0.85rem;
+      border-radius: 999px;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text-primary);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .chip:hover {
+      transform: translateY(-1px);
+      border-color: var(--primary-200);
+    }
+    .chip-label { font-size: 0.8rem; color: var(--text-secondary); }
+    .chip-value {
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+    }
+    .chip[data-tone='danger'] {
+      background: rgba(239, 68, 68, 0.08);
+      border-color: rgba(239, 68, 68, 0.25);
+    }
+    .chip[data-tone='warn'] {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.28);
+    }
+    .chip[data-tone='info'] {
+      background: rgba(37, 99, 235, 0.08);
+      border-color: rgba(37, 99, 235, 0.22);
+    }
+
+    .sections-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+    .module-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.15rem 1.25rem 1.1rem;
       box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
-      gap: 1rem;
-      transition:
-        transform 0.18s ease,
-        box-shadow 0.18s ease,
-        border-color 0.18s ease;
+      gap: 0.9rem;
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
     }
-    .kpi-card:hover {
+    .module-card:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-md);
       border-color: var(--primary-200);
     }
-    .kpi-top {
+    .module-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
+      gap: 0.75rem;
     }
-    .kpi-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      box-shadow: var(--shadow-primary);
+    .module-head h3 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      color: var(--text-primary);
     }
+    .module-error {
+      margin: 0.35rem 0 0;
+      color: var(--error-dark, #b91c1c);
+      font-size: 0.8rem;
+    }
+    .module-kpis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.55rem;
+    }
+    .mini-kpi {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+      padding: 0.65rem 0.7rem;
+      border-radius: 10px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      text-decoration: none;
+      color: inherit;
+    }
+    .mini-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .mini-kpi strong {
+      font-family: var(--font-display);
+      font-size: 1.35rem;
+      color: var(--text-primary);
+      line-height: 1.1;
+    }
+    .mini-hint {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
     .kpi-link {
       width: 32px;
       height: 32px;
@@ -367,50 +483,23 @@ interface KpiCard {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition:
-        background 0.15s ease,
-        color 0.15s ease;
+      flex-shrink: 0;
     }
     .kpi-link:hover {
       background: var(--primary-50);
       color: var(--primary-700);
     }
-    .kpi-body {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-    .kpi-label {
-      font-size: 0.78rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 600;
-    }
-    .kpi-value {
-      font-family: var(--font-display);
-      font-size: 2.2rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.03em;
-      line-height: 1;
-    }
-    .kpi-hint {
-      font-size: 0.8rem;
-      color: var(--text-secondary);
-    }
     .kpi-cta {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      color: var(--primary-600);
+      margin-top: auto;
       font-size: 0.85rem;
       font-weight: 600;
+      color: var(--primary-700);
       text-decoration: none;
     }
-    .kpi-cta:hover {
-      color: var(--primary-700);
-    }
+    .kpi-cta:hover { color: var(--primary-800); }
 
     .skeleton-grid {
       display: grid;
@@ -418,34 +507,23 @@ interface KpiCard {
       gap: 1rem;
     }
     .skeleton {
-      height: 152px;
+      height: 140px;
       border-radius: var(--radius-lg);
-      background: linear-gradient(
-        90deg,
-        var(--surface) 0%,
-        var(--surface-2) 40%,
-        var(--surface) 80%
-      );
+      background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
       background-size: 200% 100%;
-      animation: shimmer 1.4s infinite;
-      border: 1px solid var(--border);
+      animation: shimmer 1.2s infinite;
     }
     @keyframes shimmer {
-      0% {
-        background-position: 100% 0;
-      }
-      100% {
-        background-position: -100% 0;
-      }
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
-
     .alert-error {
       display: flex;
       align-items: center;
-      gap: 0.55rem;
-      padding: 0.85rem 1rem;
-      background: var(--error-bg);
-      border: 1px solid rgba(239, 68, 68, 0.2);
+      gap: 0.65rem;
+      padding: 0.9rem 1.1rem;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
       border-radius: var(--radius);
       color: var(--error-dark);
       font-size: 0.9rem;
@@ -493,22 +571,18 @@ export class Dashboard implements OnInit {
 
   readonly icons = {
     ArrowUpRight: LucideArrowUpRight,
-    Bell: LucideBell,
     Boxes: LucideBoxes,
     Building2: LucideBuilding2,
     CalendarCheck: LucideCalendarCheck,
     ClipboardCheck: LucideClipboardCheck,
     Eye: LucideEye,
     FileText: LucideFileText,
-    PackageOpen: LucidePackageOpen,
     ShieldCheck: LucideShieldCheck,
     Sparkles: LucideSparkles,
-    Truck: LucideTruck,
     UsersRound: LucideUsersRound,
   };
 
-  readonly stats = signal<Partial<DashboardStats>>({});
-  readonly roleCode = signal('');
+  readonly home = signal<DashboardHome | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
 
@@ -530,55 +604,13 @@ export class Dashboard implements OnInit {
     return modules.size;
   });
 
-  readonly kpis = computed<KpiCard[]>(() => {
-    const s = this.stats();
-    const role = this.roleCode();
-    const items: KpiCard[] = [];
-
-    if (role === 'GERENCIA') {
-      items.push(
-        {
-          label: 'Asociados activos',
-          value: s.activeAssociates ?? 0,
-          icon: LucideUsersRound,
-          route: '/rrhh',
-          cta: 'Ir a Gestión Humana',
-          gradient: 'var(--gradient-primary)',
-        },
-        {
-          label: 'Dotaciones pendientes',
-          value: s.pendingDeliveries ?? 0,
-          icon: LucideTruck,
-          route: '/dotacion/entregas',
-          cta: 'Ver entregas',
-          gradient: 'var(--gradient-accent)',
-        },
-        {
-          label: 'Documentos a revisar',
-          value: s.documentsToReview ?? 0,
-          icon: LucideFileText,
-          route: '/documental',
-          cta: 'Ir a Documental',
-          gradient: 'var(--gradient-success)',
-        },
-      );
-    }
-
-    return items;
-  });
+  readonly alerts = computed<DashboardAlertChip[]>(() => this.home()?.alerts ?? []);
+  readonly sections = computed<DashboardSection[]>(() => this.home()?.sections ?? []);
 
   ngOnInit(): void {
-    const code = this.auth.currentUser()?.role?.code ?? '';
-    this.roleCode.set(code);
-
-    if (code !== 'GERENCIA') {
-      this.loading.set(false);
-      return;
-    }
-
-    this.api.loadForRole(code).subscribe({
+    this.api.loadHome().subscribe({
       next: (data) => {
-        this.stats.set(data);
+        this.home.set(data);
         this.loading.set(false);
       },
       error: () => {
@@ -586,9 +618,5 @@ export class Dashboard implements OnInit {
         this.error.set('No se pudieron cargar los indicadores del dashboard');
       },
     });
-  }
-
-  isKnownRole(): boolean {
-    return this.roleCode() === 'GERENCIA';
   }
 }

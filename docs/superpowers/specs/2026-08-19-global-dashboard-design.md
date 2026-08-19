@@ -1,7 +1,7 @@
 # Global Dashboard — design
 
 **Date:** 2026-08-19  
-**Status:** approved (conversation) — pending user review of this file  
+**Status:** approved — implemented (2026-08-19)  
 **Scope:** Redesign `/dashboard` as a permission-filtered operational home that surfaces data from all core modules.
 
 ## Goals
@@ -93,7 +93,7 @@ Cada bloque: título, 2–4 KPIs, CTA “Ir a …”, estado loading/error propi
 
 | Bloque | KPIs |
 |--------|------|
-| RRHH | Activos (`counts.ACTIVE`), total derivados de `counts` si útil |
+| RRHH | Activos (`counts.ACTIVO`), total derivados de `counts` si útil |
 | Dotación | Pendientes, stock bajo, entregadas hoy, sin dotación |
 | Recepción | Dentro ahora, entradas hoy, entradas mes |
 | Programación | Puestos en mes, celdas asignadas, conflictos, plantillas |
