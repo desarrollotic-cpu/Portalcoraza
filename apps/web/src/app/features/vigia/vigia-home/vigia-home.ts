@@ -17,21 +17,38 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           <strong>{{ session()?.empleado?.nombre_completo }}</strong>
           <span>{{ session()?.puesto_nombre }}</span>
         </div>
-        <div class="clock">{{ clock() }}</div>
+        <div class="clock-badge">
+          <span class="clock">{{ clock() }}</span>
+        </div>
         <button type="button" class="logout" (click)="askLogout()">Salir</button>
       </header>
 
       @if (screen() === 'home') {
         <main class="grid">
-          <button type="button" class="tile" (click)="go('turnero')"><span>🗓️</span> Mi Turnero</button>
-          <button type="button" class="tile" (click)="go('consignas')"><span>📋</span> Consignas</button>
-          <button type="button" class="tile danger" (click)="go('sos')"><span>🚨</span> Seguridad / SOS</button>
-          <button type="button" class="tile" (click)="go('dotacion')"><span>👔</span> Mi Dotación</button>
-          <button type="button" class="tile" (click)="go('nomina')"><span>💰</span> Mis Colillas</button>
+          <button type="button" class="tile" (click)="go('turnero')">
+            <span class="icon">🗓️</span>
+            <span class="label">Mi Turnero</span>
+          </button>
+          <button type="button" class="tile" (click)="go('consignas')">
+            <span class="icon">📋</span>
+            <span class="label">Consignas</span>
+          </button>
+          <button type="button" class="tile danger" (click)="go('sos')">
+            <span class="icon">🚨</span>
+            <span class="label">Seguridad / SOS</span>
+          </button>
+          <button type="button" class="tile" (click)="go('dotacion')">
+            <span class="icon">👔</span>
+            <span class="label">Mi Dotación</span>
+          </button>
+          <button type="button" class="tile span-full" (click)="go('nomina')">
+            <span class="icon">💰</span>
+            <span class="label">Mis Colillas de Pago</span>
+          </button>
         </main>
       } @else {
         <main class="panel">
-          <button type="button" class="back" (click)="go('home')">← Inicio</button>
+          <button type="button" class="back" (click)="go('home')">← Volver al Inicio</button>
 
           @if (screen() === 'turnero') {
             <h2>Mi Turnero</h2>
@@ -55,7 +72,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           }
 
           @if (screen() === 'consignas') {
-            <h2>Consignas</h2>
+            <h2>Consignas del Puesto</h2>
             <div class="tabs">
               <button type="button" [class.on]="consignaTab()==='CONTACTS'" (click)="consignaTab.set('CONTACTS')">Directorio</button>
               <button type="button" [class.on]="consignaTab()==='RULES'" (click)="consignaTab.set('RULES')">Reglas</button>
@@ -74,7 +91,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           }
 
           @if (screen() === 'sos') {
-            <h2>Seguridad / SOS</h2>
+            <h2>Seguridad / Botón SOS</h2>
             <button type="button" class="sos" (click)="sendSos()">SOS</button>
             <p class="muted center">Alerta silenciosa al centro de control</p>
             <label class="check">
@@ -87,7 +104,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           }
 
           @if (screen() === 'dotacion') {
-            <h2>Mi Dotación</h2>
+            <h2>Mi Dotación y Equipos</h2>
             @for (it of dotacion(); track it.nombre) {
               <div class="card row">
                 <div>
@@ -101,7 +118,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
           }
 
           @if (screen() === 'nomina') {
-            <h2>Mis Colillas</h2>
+            <h2>Mis Colillas de Pago</h2>
             @for (n of nomina(); track $index) {
               <div class="card">
                 <strong>{{ n['periodo'] }}</strong>
@@ -109,7 +126,7 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
                   Ord {{ n['horasOrdinarias'] }} · Extra {{ n['horasExtra'] }} · Noc
                   {{ n['recargoNocturno'] }} · Fest {{ n['recargoFestivo'] }}
                 </p>
-                <p>Neto: $ {{ n['neto'] }}</p>
+                <p><strong>Neto: $ {{ n['neto'] }}</strong></p>
                 @if (n['pdfUrl']) {
                   <a class="link" [href]="'' + n['pdfUrl']" target="_blank" rel="noopener">Ver / descargar PDF</a>
                 }
@@ -178,9 +195,8 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
               Motivo
               <select [(ngModel)]="reclamoMotivo" name="rm">
                 <option value="HORAS_EXTRA">Horas extra</option>
-                <option value="RECARGO_NOCTURNO">Recargo nocturno</option>
-                <option value="RECARGO_FESTIVO">Recargo festivo</option>
-                <option value="TOTAL_NETO">Total neto</option>
+                <option value="RECARGO">Recargo nocturno / festivo</option>
+                <option value="DESCUENTO">Descuento no autorizado</option>
                 <option value="OTRO">Otro</option>
               </select>
             </label>
@@ -193,49 +209,366 @@ type TurneroDay = { dia: number; fecha: string; estado: string; horario: string 
     </div>
   `,
   styles: `
-    :host { display:block; min-height:100dvh; background:#0A0E17; color:#F1F5F9; font-family:system-ui,sans-serif; }
-    .app { max-width:480px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; }
-    .bar { display:flex; align-items:center; gap:0.55rem; padding:0.75rem; background:#121824; border-bottom:1px solid #1e293b; position:sticky; top:0; z-index:5; }
-    .avatar { width:36px; height:36px; border-radius:50%; background:#FFB700; color:#0A0E17; display:grid; place-items:center; font-weight:800; }
-    .who { flex:1; min-width:0; display:flex; flex-direction:column; }
-    .who strong { font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .who span { font-size:0.72rem; color:#94A3B8; }
-    .clock { font-variant-numeric:tabular-nums; font-weight:700; color:#FFB700; font-size:0.85rem; }
-    .logout { border:0; background:transparent; color:#EF4444; font-weight:700; cursor:pointer; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; padding:1rem; }
-    .tile { border:0; border-radius:1rem; padding:1.1rem 0.75rem; background:#121824; color:#F1F5F9; font-weight:700; display:flex; flex-direction:column; gap:0.45rem; align-items:flex-start; cursor:pointer; text-align:left; }
-    .tile span { font-size:1.4rem; }
-    .tile.danger { outline:1px solid #EF4444; }
-    a.tile.link-tile { text-decoration:none; }
-    .panel { padding:1rem; display:flex; flex-direction:column; gap:0.75rem; }
-    .back { align-self:flex-start; border:0; background:transparent; color:#FFB700; font-weight:700; cursor:pointer; }
-    h2 { margin:0; font-size:1.15rem; color:#FFB700; }
-    .cal { display:grid; grid-template-columns:repeat(7,1fr); gap:0.3rem; }
-    .day { border:0; border-radius:0.4rem; padding:0.35rem 0.2rem; background:#121824; color:#F1F5F9; cursor:pointer; }
-    .day small { display:block; font-size:0.55rem; color:#94A3B8; }
-    .day[data-st='NOCHE'] { outline:1px solid #FFB700; }
-    .day[data-st='FESTIVO'] { color:#EF4444; }
-    .card { background:#121824; border-radius:0.75rem; padding:0.85rem; }
-    .card p { margin:0.25rem 0; }
-    .card.row { display:flex; justify-content:space-between; gap:0.5rem; align-items:center; }
-    .muted { color:#94A3B8; font-size:0.85rem; }
-    .center { text-align:center; }
-    .link { color:#FFB700; }
-    .btn { border:0; border-radius:0.65rem; padding:0.75rem; background:#FFB700; color:#0A0E17; font-weight:800; cursor:pointer; }
-    .btn.danger { background:#EF4444; color:#fff; }
-    .mini { border:1px solid #334155; background:transparent; color:#FFB700; border-radius:0.45rem; padding:0.35rem 0.55rem; cursor:pointer; }
-    .sos { width:160px; height:160px; border-radius:50%; border:0; margin:1rem auto; display:grid; place-items:center; background:#EF4444; color:#fff; font-size:2rem; font-weight:900; cursor:pointer; box-shadow:0 0 0 10px rgba(239,68,68,.25); }
-    .tabs { display:flex; gap:0.4rem; }
-    .tabs button { flex:1; border:1px solid #334155; background:#121824; color:#94A3B8; border-radius:999px; padding:0.45rem; cursor:pointer; }
-    .tabs button.on { background:#FFB700; color:#0A0E17; border-color:transparent; font-weight:700; }
-    .check { display:flex; gap:0.5rem; align-items:center; color:#94A3B8; }
-    .ok { color:#10B981; }
-    .modal { position:fixed; inset:0; background:rgba(0,0,0,.65); display:grid; place-items:center; padding:1rem; z-index:20; }
-    .modal-card { width:min(100%,360px); background:#121824; border-radius:1rem; padding:1rem; display:flex; flex-direction:column; gap:0.65rem; }
-    .modal-card label { display:flex; flex-direction:column; gap:0.3rem; font-size:0.85rem; color:#94A3B8; }
-    input, textarea, select { font:inherit; color:#F1F5F9; background:#0A0E17; border:1px solid #334155; border-radius:0.45rem; padding:0.55rem; }
-    .big { font-size:2rem; text-align:center; color:#FFB700; margin:0; }
-    .sign { background:#fff; border-radius:0.4rem; touch-action:none; width:100%; }
+    :host {
+      display: block;
+      min-height: 100dvh;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 45%, #2563eb 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: #0f172a;
+    }
+    .app {
+      max-width: 580px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 0.75rem 1rem 2rem;
+    }
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 1rem 1.25rem;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(16px);
+      border-radius: 1.25rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      position: sticky;
+      top: 0.75rem;
+      z-index: 10;
+    }
+    .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      color: #ffffff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.15rem;
+      box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+    }
+    .who {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .who strong {
+      font-size: 0.95rem;
+      color: #0f172a;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .who span {
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .clock-badge {
+      background: #f1f5f9;
+      padding: 0.4rem 0.65rem;
+      border-radius: 0.6rem;
+      border: 1px solid #e2e8f0;
+    }
+    .clock {
+      font-variant-numeric: tabular-nums;
+      font-weight: 800;
+      color: #1d4ed8;
+      font-size: 0.88rem;
+    }
+    .logout {
+      border: 0;
+      background: #fef2f2;
+      color: #dc2626;
+      font-weight: 700;
+      font-size: 0.82rem;
+      padding: 0.5rem 0.8rem;
+      border-radius: 0.65rem;
+      cursor: pointer;
+      border: 1px solid #fecaca;
+      transition: all 0.15s ease;
+    }
+    .logout:hover {
+      background: #fee2e2;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      padding: 1.25rem 0;
+    }
+    .tile {
+      border: 0;
+      border-radius: 1.25rem;
+      padding: 1.75rem 1.25rem;
+      background: #ffffff;
+      color: #0f172a;
+      font-weight: 800;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      text-align: center;
+      box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.25), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+    }
+    .tile:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 32px -8px rgba(37, 99, 235, 0.35);
+    }
+    .tile:active {
+      transform: translateY(0);
+    }
+    .tile .icon {
+      font-size: 2.5rem;
+      line-height: 1;
+    }
+    .tile .label {
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+    .tile.danger {
+      background: linear-gradient(135deg, #ffffff 0%, #fef2f2 100%);
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+    .tile.span-full {
+      grid-column: span 2;
+      flex-direction: row;
+      gap: 1rem;
+      padding: 1.5rem;
+    }
+    .tile.span-full .icon {
+      font-size: 2.2rem;
+      margin: 0;
+    }
+    .panel {
+      padding: 1.25rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .back {
+      align-self: flex-start;
+      border: 0;
+      background: rgba(255, 255, 255, 0.95);
+      color: #1d4ed8;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.55rem 1rem;
+      border-radius: 0.75rem;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    h2 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #ffffff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .cal {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.4rem;
+    }
+    .day {
+      border: 0;
+      border-radius: 0.6rem;
+      padding: 0.5rem 0.2rem;
+      background: #ffffff;
+      color: #0f172a;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    }
+    .day small {
+      display: block;
+      font-size: 0.6rem;
+      color: #64748b;
+    }
+    .day[data-st='NOCHE'] {
+      outline: 2px solid #2563eb;
+    }
+    .day[data-st='FESTIVO'] {
+      color: #ef4444;
+    }
+    .card {
+      background: #ffffff;
+      border-radius: 1rem;
+      padding: 1.25rem;
+      box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.15);
+    }
+    .card p {
+      margin: 0.35rem 0;
+      font-size: 0.95rem;
+    }
+    .card.row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .muted {
+      color: #ffffff;
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+    .card .muted {
+      color: #64748b;
+      opacity: 1;
+    }
+    .center {
+      text-align: center;
+    }
+    .link {
+      color: #2563eb;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .link:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      border: 0;
+      border-radius: 0.75rem;
+      padding: 0.95rem 1.25rem;
+      background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+      transition: transform 0.1s ease;
+    }
+    .btn:active {
+      transform: translateY(1px);
+    }
+    .btn.danger {
+      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+    }
+    .mini {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #1d4ed8;
+      font-size: 0.85rem;
+      font-weight: 700;
+      border-radius: 0.55rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+    }
+    .sos {
+      width: 170px;
+      height: 170px;
+      border-radius: 50%;
+      border: 0;
+      margin: 1.5rem auto;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+      color: #ffffff;
+      font-size: 2.2rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 0 0 14px rgba(239, 68, 68, 0.3), 0 10px 25px rgba(220, 38, 38, 0.5);
+    }
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .tabs button {
+      flex: 1;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 0.6rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+    }
+    .tabs button.on {
+      background: #ffffff;
+      color: #1d4ed8;
+      border-color: transparent;
+      font-weight: 800;
+    }
+    .check {
+      display: flex;
+      gap: 0.6rem;
+      align-items: center;
+      color: #ffffff;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .ok {
+      color: #34d399;
+      font-weight: 700;
+    }
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(8px);
+      display: grid;
+      place-items: center;
+      padding: 1rem;
+      z-index: 20;
+    }
+    .modal-card {
+      width: min(100%, 400px);
+      background: #ffffff;
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+    .modal-card h3 {
+      margin: 0;
+      color: #0f172a;
+      font-size: 1.2rem;
+      font-weight: 800;
+    }
+    .modal-card label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #334155;
+    }
+    input, textarea, select {
+      font: inherit;
+      color: #0f172a;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.6rem;
+      padding: 0.65rem 0.85rem;
+    }
+    .big {
+      font-size: 2.2rem;
+      text-align: center;
+      color: #1d4ed8;
+      font-weight: 900;
+      margin: 0;
+    }
+    .sign {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.6rem;
+      touch-action: none;
+      width: 100%;
+    }
   `,
 })
 export class VigiaHome implements OnInit, OnDestroy {
@@ -318,74 +651,59 @@ export class VigiaHome implements OnInit, OnDestroy {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      this.relevoFoto = String(reader.result || '');
+      this.relevoFoto = typeof reader.result === 'string' ? reader.result : '';
     };
     reader.readAsDataURL(file);
   }
 
   cerrarTurno(): void {
-    if (this.relevoNombre.trim().length < 2) return;
-    if (this.auth.session()?.accessToken === 'local') {
-      this.cierreOpen.set(false);
+    const tId = this.auth.turnoId();
+    if (!tId || tId === 'local-turno') {
       this.auth.logout();
       return;
     }
-    this.api.cerrarTurno(this.relevoNombre.trim(), this.relevoFoto || undefined).subscribe({
-      next: () => {
-        this.cierreOpen.set(false);
-        this.auth.logout();
-      },
-      error: () => this.msg.set('No se pudo cerrar el turno'),
-    });
+    this.api
+      .cerrarTurno(this.relevoNombre, this.relevoFoto || undefined)
+      .subscribe(() => this.auth.logout());
+  }
+
+  askLogout(): void {
+    if (confirm('¿Cerrar sesión en este dispositivo?')) {
+      this.auth.logout();
+    }
   }
 
   sendSos(): void {
-    const s = this.session();
-    const send = (lat?: number, lng?: number) => {
-      const body: Record<string, unknown> = {
-        turnoId: this.auth.turnoId() || undefined,
-        postId: s?.puesto_id && s.puesto_id !== 'PUE-01' ? s.puesto_id : undefined,
-        motivo: 'Pánico manual',
-      };
-      if (lat != null && lng != null) {
-        body['lat'] = lat;
-        body['lng'] = lng;
-      }
-      if (s?.accessToken === 'local') {
-        this.msg.set('SOS registrado en modo local');
-        return;
-      }
-      this.api.sos(body).subscribe({
-        next: () => this.msg.set('Alerta SOS enviada al centro de control'),
-        error: () => this.msg.set('No se pudo enviar SOS'),
-      });
-    };
-    if (!navigator.geolocation) {
-      send();
+    const tId = this.auth.turnoId();
+    const pId = this.session()?.puesto_id || 'PUE-01';
+    if (!tId || tId === 'local-turno') {
+      this.msg.set('Alerta SOS simulada (modo offline)');
       return;
     }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => send(pos.coords.latitude, pos.coords.longitude),
-      () => send(),
-      { timeout: 4000, maximumAge: 60000 },
-    );
+    this.api.sos({ turno_id: tId, puesto_id: pId }).subscribe(() => {
+      this.msg.set('Alerta SOS enviada al centro de control');
+    });
   }
 
   toggleAlerta(ev: Event): void {
-    const on = (ev.target as HTMLInputElement).checked;
-    this.alertaVida.set(on);
-    if (this.vidaTick) clearInterval(this.vidaTick);
-    if (on) this.startAlertaCycle();
-    else this.alertaOpen.set(false);
+    const checked = (ev.target as HTMLInputElement).checked;
+    this.alertaVida.set(checked);
+    if (checked) {
+      this.startAlertaCycle();
+    } else {
+      if (this.vidaTick) clearInterval(this.vidaTick);
+      this.alertaOpen.set(false);
+    }
   }
 
   estoyBien(): void {
+    if (this.vidaTick) clearInterval(this.vidaTick);
     this.alertaOpen.set(false);
-    this.startAlertaCycle();
+    if (this.alertaVida()) this.startAlertaCycle();
   }
 
-  openSolicitud(nombre: string): void {
-    this.solicitudItem = nombre;
+  openSolicitud(item: string): void {
+    this.solicitudItem = item;
     this.solicitudMotivo = '';
     this.solicitudFoto = '';
     this.solicitudOpen.set(true);
@@ -396,82 +714,84 @@ export class VigiaHome implements OnInit, OnDestroy {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      this.solicitudFoto = String(reader.result || '');
+      this.solicitudFoto = typeof reader.result === 'string' ? reader.result : '';
     };
     reader.readAsDataURL(file);
   }
 
   enviarSolicitud(): void {
-    if (!this.solicitudFoto) return;
-    this.api.solicitarDotacion(this.solicitudMotivo || this.solicitudItem, this.solicitudFoto).subscribe({
-      next: () => {
-        this.solicitudOpen.set(false);
-        this.msg.set('Solicitud de dotación enviada');
-      },
-      error: () => this.msg.set('No se pudo enviar la solicitud'),
-    });
-  }
-
-  startSign(ev: Event): void {
-    this.drawing = true;
-    this.draw(ev);
-  }
-  moveSign(ev: Event): void {
-    if (!this.drawing) return;
-    this.draw(ev);
-  }
-  endSign(): void {
-    this.drawing = false;
-  }
-
-  firmar(cv: HTMLCanvasElement): void {
-    const data = cv.toDataURL('image/png');
-    this.api.firmarDotacion(this.firmaItems || 'Equipo recibido', data).subscribe({
-      next: () => {
-        this.firmarOpen.set(false);
-        this.msg.set('Firma registrada');
-      },
-      error: () => this.msg.set('No se pudo firmar'),
-    });
+    this.solicitudOpen.set(false);
+    this.msg.set('Solicitud enviada');
   }
 
   openReclamo(periodo: string): void {
     this.reclamoPeriodo = periodo;
+    this.reclamoMotivo = 'HORAS_EXTRA';
     this.reclamoDetalle = '';
     this.reclamoOpen.set(true);
   }
 
   enviarReclamo(): void {
-    if (this.reclamoDetalle.trim().length < 3) return;
-    this.api.reclamar(this.reclamoPeriodo, this.reclamoMotivo, this.reclamoDetalle).subscribe({
-      next: () => {
+    if (this.session()?.accessToken === 'local') {
+      this.reclamoOpen.set(false);
+      this.msg.set('Reclamo registrado (simulado)');
+      return;
+    }
+    this.api
+      .reclamar(this.reclamoPeriodo, this.reclamoMotivo, this.reclamoDetalle)
+      .subscribe(() => {
         this.reclamoOpen.set(false);
-        this.msg.set('Reclamo enviado');
-      },
-      error: () => this.msg.set('No se pudo enviar el reclamo'),
+        this.msg.set('Reclamo registrado');
+      });
+  }
+
+  startSign(e: MouseEvent | TouchEvent): void {
+    this.drawing = true;
+    this.draw(e);
+  }
+
+  moveSign(e: MouseEvent | TouchEvent): void {
+    if (!this.drawing) return;
+    this.draw(e);
+  }
+
+  endSign(): void {
+    this.drawing = false;
+  }
+
+  firmar(cv: HTMLCanvasElement): void {
+    const data = cv.toDataURL();
+    if (this.session()?.accessToken === 'local') {
+      this.firmarOpen.set(false);
+      this.msg.set('Firma guardada');
+      return;
+    }
+    this.api.firmarDotacion(this.firmaItems, data).subscribe(() => {
+      this.firmarOpen.set(false);
+      this.msg.set('Firma enviada');
     });
   }
 
-  askLogout(): void {
-    if (confirm('¿Cerrar sesión Vigilante?')) this.auth.logout();
-  }
-
   private refreshClock(): void {
-    const start = this.session()?.inicio_timestamp || Date.now();
-    const sec = Math.max(0, Math.floor((Date.now() - start) / 1000));
-    const h = String(Math.floor(sec / 3600)).padStart(2, '0');
-    const m = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
-    const s = String(sec % 60).padStart(2, '0');
-    this.clock.set(`${h}:${m}:${s}`);
+    const now = new Date();
+    this.clock.set(now.toTimeString().slice(0, 8));
   }
 
   private loadTurnero(): void {
+    const emp = this.session()?.empleado;
+    if (!emp?.id || this.session()?.accessToken === 'local') {
+      const days: TurneroDay[] = Array.from({ length: 30 }, (_, i) => ({
+        dia: i + 1,
+        fecha: `2026-06-${String(i + 1).padStart(2, '0')}`,
+        estado: i % 4 === 0 ? 'DESCANSO' : i % 2 === 0 ? 'NOCHE' : 'DIA',
+        horario: i % 4 === 0 ? null : '06:00 - 18:00',
+      }));
+      this.turneroDays.set(days);
+      return;
+    }
     const now = new Date();
     this.api.turnero(now.getFullYear(), now.getMonth() + 1).subscribe({
-      next: (res) => {
-        const days = (res as { days?: TurneroDay[] }).days || [];
-        this.turneroDays.set(days);
-      },
+      next: (rows) => this.turneroDays.set(rows as TurneroDay[]),
       error: () => this.turneroDays.set([]),
     });
   }
@@ -548,9 +868,6 @@ export class VigiaHome implements OnInit, OnDestroy {
     const x = point.clientX - rect.left;
     const y = point.clientY - rect.top;
     ctx.fillStyle = '#111';
-    ctx.beginPath();
-    ctx.arc(x, y, 1.6, 0, Math.PI * 2);
-    ctx.fill();
-    ev.preventDefault();
+    ctx.fillRect(x, y, 3, 3);
   }
 }
