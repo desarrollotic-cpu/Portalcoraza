@@ -236,7 +236,7 @@ type PeriodKey = CommandPeriod;
                     fill="none"
                     stroke="var(--primary-600)"
                     stroke-width="2.5"
-                    [attr.points]="linePoints(hr.rotation.map((r: { activeAtEnd: number }) => r.activeAtEnd))"
+                    [attr.points]="linePoints(rotationActiveSeries(hr))"
                   />
                 </svg>
                 <div class="chart-legend">
@@ -813,6 +813,10 @@ export class Dashboard implements OnInit {
     const series = rec.insights?.dailySeries;
     if (series?.length) return series.map((d) => d.entries);
     return (rec.last14Days ?? []).map((d) => d.entries);
+  }
+
+  rotationActiveSeries(hr: { rotation?: { activeAtEnd: number }[] }): number[] {
+    return (hr.rotation ?? []).map((r) => Number(r.activeAtEnd) || 0);
   }
 
   dotShare(
