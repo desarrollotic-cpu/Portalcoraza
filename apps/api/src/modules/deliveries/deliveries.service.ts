@@ -204,43 +204,34 @@ export class DeliveriesService {
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
 
-    const [
-      lowStockCount,
-      lowStockVariants,
-      pendingDeliveries,
-      deliveredToday,
-      deliveredThisWeek,
-      totalActiveAssociates,
-      withoutDotacionCount,
-      recentRows,
-      inventoryItemCount,
-      inventoryVariantCount,
-      topDeliveredItems,
-    ] = await Promise.all([
-      this.inventoryService.countLowStockVariants(),
-      this.inventoryService.listLowStockVariants(8),
-      this.deliveriesRepo.count({ where: { status: DeliveryStatus.PENDING } }),
-      this.deliveriesRepo
-        .createQueryBuilder('d')
-        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
-        .andWhere('d.delivered_at >= :todayStart', { todayStart })
-        .getCount(),
-      this.deliveriesRepo
-        .createQueryBuilder('d')
-        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
-        .andWhere('d.delivered_at >= :weekStart', { weekStart })
-        .getCount(),
-      this.associatesRepo.count({ where: { status: In(DELIVERABLE_STATUSES) } }),
-      this.countWithoutDotacion(7),
-      this.deliveriesRepo.find({
-        relations: { associate: true, details: true },
-        order: { createdAt: 'DESC' },
-        take: 6,
-      }),
-      this.inventoryService.countItems(),
-      this.inventoryService.countVariants(),
-      this.getTopDeliveredItems(8),
-    ]);
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const lowStockCount = await this.inventoryService.countLowStockVariants();
+    const lowStockVariants = await this.inventoryService.listLowStockVariants(8);
+    const pendingDeliveries = await this.deliveriesRepo.count({
+      where: { status: DeliveryStatus.PENDING },
+    });
+    const deliveredToday = await this.deliveriesRepo
+      .createQueryBuilder('d')
+      .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+      .andWhere('d.delivered_at >= :todayStart', { todayStart })
+      .getCount();
+    const deliveredThisWeek = await this.deliveriesRepo
+      .createQueryBuilder('d')
+      .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+      .andWhere('d.delivered_at >= :weekStart', { weekStart })
+      .getCount();
+    const totalActiveAssociates = await this.associatesRepo.count({
+      where: { status: In(DELIVERABLE_STATUSES) },
+    });
+    const withoutDotacionCount = await this.countWithoutDotacion(7);
+    const recentRows = await this.deliveriesRepo.find({
+      relations: { associate: true, details: true },
+      order: { createdAt: 'DESC' },
+      take: 6,
+    });
+    const inventoryItemCount = await this.inventoryService.countItems();
+    const inventoryVariantCount = await this.inventoryService.countVariants();
+    const topDeliveredItems = await this.getTopDeliveredItems(8);
 
     return {
       lowStockCount,

@@ -1,33 +1,39 @@
 import { MonthlySchedulingService } from './monthly-scheduling.service';
 
 describe('MonthlySchedulingService.overview', () => {
-  it('aggregates posts, assignments, conflicts and templates', async () => {
+  it('aggregates posts, assignments, conflicts and templates without listByMonth', async () => {
     const service = Object.create(
       MonthlySchedulingService.prototype,
     ) as MonthlySchedulingService;
 
-    jest.spyOn(service, 'listByMonth').mockResolvedValue([
+    const listSpy = jest.spyOn(service, 'listByMonth').mockResolvedValue([]);
+
+    (service as unknown as { schedulesRepo: { count: jest.Mock } }).schedulesRepo = {
+      count: jest.fn().mockResolvedValue(2),
+    };
+
+    const qb = {
+      innerJoin: jest.fn().mockReturnThis(),
+      leftJoin: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      addSelect: jest.fn().mockReturnThis(),
+      groupBy: jest.fn().mockReturnThis(),
+      addGroupBy: jest.fn().mockReturnThis(),
+      orderBy: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      getCount: jest.fn().mockResolvedValue(3),
+      getRawMany: jest.fn().mockResolvedValue([
+        { postId: 'post-a', label: 'P-A', value: '2' },
+        { postId: 'post-b', label: 'P-B', value: '1' },
+      ]),
+    };
+
+    (service as unknown as { assignmentsRepo: { createQueryBuilder: jest.Mock } }).assignmentsRepo =
       {
-        id: 's1',
-        postId: 'post-a',
-        year: 2026,
-        month: 8,
-        assignments: [
-          { associateId: 'a1', jornada: 'normal' },
-          { associateId: 'a2', jornada: 'normal' },
-          { associateId: null, jornada: 'sin_asignar' },
-        ],
-        post: { code: 'P-A', name: 'Puesto A' },
-      },
-      {
-        id: 's2',
-        postId: 'post-b',
-        year: 2026,
-        month: 8,
-        assignments: [{ associateId: 'a1', jornada: 'normal' }],
-        post: { code: 'P-B', name: 'Puesto B' },
-      },
-    ] as never);
+        createQueryBuilder: jest.fn().mockReturnValue(qb),
+      };
 
     jest.spyOn(service, 'findConflicts').mockResolvedValue([
       {
@@ -37,11 +43,11 @@ describe('MonthlySchedulingService.overview', () => {
         postIds: ['post-a', 'post-b'],
       },
     ]);
-
     jest.spyOn(service, 'listTemplates').mockResolvedValue([{}, {}] as never);
 
     const result = await service.overview(2026, 8);
 
+    expect(listSpy).not.toHaveBeenCalled();
     expect(result.kpis.postsInMonth).toBe(2);
     expect(result.kpis.assignedCells).toBe(3);
     expect(result.kpis.conflicts).toBe(1);

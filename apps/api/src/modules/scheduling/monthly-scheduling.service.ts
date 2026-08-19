@@ -57,9 +57,37 @@ export class MonthlySchedulingService {
   async listByMonth(query: ListMonthlyScheduleDto) {
     const schedules = await this.schedulesRepo.find({
       where: { year: query.year, month: query.month },
-      relations: { assignments: true },
       order: { createdAt: 'ASC' },
     });
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments =
+      scheduleIds.length === 0
+        ? []
+        : await this.assignmentsRepo
+            .createQueryBuilder('a')
+            .select([
+              'a.id',
+              'a.scheduleId',
+              'a.day',
+              'a.role',
+              'a.associateId',
+              'a.turno',
+              'a.jornada',
+              'a.codigo',
+              'a.inicio',
+              'a.fin',
+            ])
+            .where('a.schedule_id IN (:...scheduleIds)', { scheduleIds })
+            .andWhere('a.jornada != :sin', { sin: 'sin_asignar' })
+            .getMany();
+
+    const bySchedule = new Map<string, ScheduleAssignment[]>();
+    for (const a of assignments) {
+      const list = bySchedule.get(a.scheduleId) ?? [];
+      list.push(a);
+      bySchedule.set(a.scheduleId, list);
+    }
 
     const postIds = [...new Set(schedules.map((s) => s.postId))];
     const postRows =
@@ -74,6 +102,7 @@ export class MonthlySchedulingService {
       const post = postMap.get(s.postId);
       return {
         ...s,
+        assignments: bySchedule.get(s.id) ?? [],
         post: post
           ? {
               id: post.id,
@@ -382,31 +411,46 @@ export class MonthlySchedulingService {
 
   /**
    * Bundle de KPIs del mes para el panel de Programación.
-   * Secuencial a propósito (pooler Supabase session).
+   * Agregaciones SQL (no baja la matriz completa). Secuencial (pooler session).
    */
   async overview(year: number, month: number) {
-    const schedules = await this.listByMonth({ year, month });
+    const postsInMonth = await this.schedulesRepo.count({ where: { year, month } });
+
+    const assignedCells = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .getCount();
+
+    const assignedRows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('s.post_id', 'postId')
+      .addSelect(
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        'label',
+      )
+      .addSelect('COUNT(*)::int', 'value')
+      .groupBy('s.post_id')
+      .addGroupBy('p.code')
+      .addGroupBy('p.name')
+      .getRawMany<{ postId: string; label: string; value: string | number }>();
+
+    const assignedByPost = new Map(
+      assignedRows.map((r) => [
+        r.postId,
+        { label: r.label || r.postId.slice(0, 8), value: Number(r.value) },
+      ]),
+    );
+
     const conflicts = await this.findConflicts({ year, month });
     const templates = await this.listTemplates();
-
-    let assignedCells = 0;
-    const assignedByPost = new Map<string, { label: string; value: number }>();
-
-    for (const s of schedules) {
-      const postLabel =
-        (s as { post?: { code?: string; name?: string } | null }).post?.code ||
-        (s as { post?: { name?: string } | null }).post?.name ||
-        s.postId.slice(0, 8);
-      const asg = s.assignments ?? [];
-      let postAssigned = 0;
-      for (const a of asg) {
-        if (a.associateId && a.jornada !== 'sin_asignar') {
-          assignedCells += 1;
-          postAssigned += 1;
-        }
-      }
-      assignedByPost.set(s.postId, { label: postLabel, value: postAssigned });
-    }
 
     const conflictByPost = new Map<string, number>();
     for (const c of conflicts) {
@@ -437,7 +481,7 @@ export class MonthlySchedulingService {
       year,
       month,
       kpis: {
-        postsInMonth: schedules.length,
+        postsInMonth,
         assignedCells,
         conflicts: conflicts.length,
         templates: templates.length,

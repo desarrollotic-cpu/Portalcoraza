@@ -17,12 +17,16 @@ Volúmenes de referencia: ~4 590 asociados (migración GH), catálogo de dotac
 | Dotación | `inventory_stock` UNIQUE (variante, almacén) (035) | Stock Medellín/Rionegro |
 | Dashboard | Fallo de un módulo → ceros | Un overview lento no tumba la home |
 
-## Hallazgos (no bloquean el cierre de hoy)
+## Mitigado (2026-08-19)
 
-1. **Dotación / Documental / Recepción overviews** abren varias queries en `Promise.all`. Con pool 5, dos paneles a la vez pueden esperar o fallar. Programación y Admin se diseñaron en serie a propósito; el mismo patrón conviene si el panel de Dotación se pone pesado.
-2. **Filtro de antigüedad** en Directorio: si hay `tenureMinYears` / `tenureMaxYears`, se cargan todos los coincidentes y se recorta en memoria. Sin ese filtro, usa `skip/take` en SQL.
-3. **Programación** pide asociados con `limit: 2000`. Hoy cabe; si los activos superan eso, el cuadro queda corto.
-4. **Historial de Dotación** junta hasta 200 movimientos y el listado de entregas sin paginar. Suficiente con catálogo chico.
+- **`by-month`**: assignments con columnas mínimas; omite `sin_asignar`. Overview de Programación usa agregaciones SQL (no baja la matriz).
+- **Dotación / Recepción / Documental analytics**: queries en serie (mismo patrón que Programación/Admin) para no saturar el pool 5.
+
+## Hallazgos restantes
+
+1. **Filtro de antigüedad** en Directorio: si hay `tenureMinYears` / `tenureMaxYears`, se cargan todos los coincidentes y se recorta en memoria. Sin ese filtro, usa `skip/take` en SQL.
+2. **Programación** pide asociados con `limit: 2000`. Hoy cabe; si los activos superan eso, el cuadro queda corto.
+3. **Historial de Dotación** junta hasta 200 movimientos y el listado de entregas sin paginar. Suficiente con catálogo chico.
 
 ## Qué no hace falta optimizar ahora
 

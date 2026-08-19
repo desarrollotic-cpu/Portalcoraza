@@ -138,28 +138,16 @@ async function main() {
     return `schedules=${rows.length}`;
   });
 
-  await check('Programación mayo (≥200) vía BD lectura', async () => {
-    const url = process.env.DATABASE_URL;
-    if (!url) throw new Error('Falta DATABASE_URL');
-    const client = new Client({
-      connectionString: url,
-      ssl:
-        url.includes('supabase') || url.includes('pooler')
-          ? { rejectUnauthorized: false }
-          : undefined,
+  await check('Programación mayo (≥200) vía API', async () => {
+    const t0 = Date.now();
+    const { json } = await api('GET', '/scheduling/monthly/by-month?year=2026&month=5', {
+      token,
     });
-    await client.connect();
-    try {
-      await client.query('SET default_transaction_read_only = on');
-      const r = await client.query(
-        `SELECT COUNT(*)::int n FROM monthly_schedules WHERE year=2026 AND month=5`,
-      );
-      const n = r.rows[0].n;
-      if (n < 200) throw new Error(`may schedules=${n}`);
-      return `schedules=${n} (API by-month mayo es pesado; se valida en BD)`;
-    } finally {
-      await client.end();
-    }
+    const rows = Array.isArray(json) ? json : [];
+    if (rows.length < 200) throw new Error(`may schedules=${rows.length}`);
+    const ms = Date.now() - t0;
+    if (ms > 15000) throw new Error(`mayo demasiado lento: ${ms} ms`);
+    return `schedules=${rows.length} en ${ms} ms`;
   });
 
   await check('Recepción visitantes dentro', async () => {

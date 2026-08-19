@@ -46,9 +46,9 @@ export class ReceptionService {
     const bounds = this.bogotaBounds();
     const tz = 'America/Bogota';
 
-    const [statsRow, byDay, inside, todayList] = await Promise.all([
-      this.visitorsRepo.query(
-        `
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const statsRow = (await this.visitorsRepo.query(
+      `
         SELECT
           (SELECT COUNT(*)::int FROM reception_visitors WHERE exit_at IS NULL) AS inside_now,
           (SELECT COUNT(*)::int FROM reception_visitors
@@ -60,25 +60,24 @@ export class ReceptionService {
           (SELECT COUNT(*)::int FROM reception_visitors
             WHERE entry_at >= $5 AND entry_at < $6) AS year_entries
         `,
-        [
-          bounds.dayStart,
-          bounds.dayEnd,
-          bounds.monthStart,
-          bounds.monthEnd,
-          bounds.yearStart,
-          bounds.yearEnd,
-        ],
-      ) as Promise<
-        {
-          inside_now: number;
-          today_entries: number;
-          today_still_inside: number;
-          month_entries: number;
-          year_entries: number;
-        }[]
-      >,
-      this.visitorsRepo.query(
-        `
+      [
+        bounds.dayStart,
+        bounds.dayEnd,
+        bounds.monthStart,
+        bounds.monthEnd,
+        bounds.yearStart,
+        bounds.yearEnd,
+      ],
+    )) as {
+      inside_now: number;
+      today_entries: number;
+      today_still_inside: number;
+      month_entries: number;
+      year_entries: number;
+    }[];
+
+    const byDay = (await this.visitorsRepo.query(
+      `
         SELECT
           (entry_at AT TIME ZONE $1)::date::text AS day,
           COUNT(*)::int AS entries
@@ -87,40 +86,41 @@ export class ReceptionService {
         GROUP BY 1
         ORDER BY 1 ASC
         `,
-        [tz, bounds.days14Start, bounds.dayEnd],
-      ) as Promise<{ day: string; entries: number }[]>,
-      this.visitorsRepo.find({
-        select: LIST_COLUMNS,
-        where: { exitAt: IsNull() },
-        order: { entryAt: 'DESC' },
-        take: 50,
-      }),
-      this.visitorsRepo
-        .createQueryBuilder('v')
-        .select([
-          'v.id',
-          'v.documentNumber',
-          'v.firstSurname',
-          'v.secondSurname',
-          'v.firstName',
-          'v.secondName',
-          'v.originPlace',
-          'v.visitReason',
-          'v.entryAt',
-          'v.authorizedBy',
-          'v.transportMeans',
-          'v.travelTimeMinutes',
-          'v.exitAt',
-          'v.isAssociate',
-        ])
-        .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
-          dayStart: bounds.dayStart,
-          dayEnd: bounds.dayEnd,
-        })
-        .orderBy('v.entry_at', 'DESC')
-        .take(100)
-        .getMany(),
-    ]);
+      [tz, bounds.days14Start, bounds.dayEnd],
+    )) as { day: string; entries: number }[];
+
+    const inside = await this.visitorsRepo.find({
+      select: LIST_COLUMNS,
+      where: { exitAt: IsNull() },
+      order: { entryAt: 'DESC' },
+      take: 50,
+    });
+
+    const todayList = await this.visitorsRepo
+      .createQueryBuilder('v')
+      .select([
+        'v.id',
+        'v.documentNumber',
+        'v.firstSurname',
+        'v.secondSurname',
+        'v.firstName',
+        'v.secondName',
+        'v.originPlace',
+        'v.visitReason',
+        'v.entryAt',
+        'v.authorizedBy',
+        'v.transportMeans',
+        'v.travelTimeMinutes',
+        'v.exitAt',
+        'v.isAssociate',
+      ])
+      .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
+        dayStart: bounds.dayStart,
+        dayEnd: bounds.dayEnd,
+      })
+      .orderBy('v.entry_at', 'DESC')
+      .take(100)
+      .getMany();
 
     const row = statsRow[0] ?? {};
 

@@ -196,12 +196,11 @@ export class OverviewService {
       if (s.items.length < 50) s.items.push(item);
     };
 
-    const [minutes, retired, contracts, correspondence] = await Promise.all([
-      this.minutesRepo.find(),
-      this.retiredRepo.find(),
-      this.contractsRepo.find(),
-      this.correspondenceRepo.find(),
-    ]);
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const minutes = await this.minutesRepo.find();
+    const retired = await this.retiredRepo.find();
+    const contracts = await this.contractsRepo.find();
+    const correspondence = await this.correspondenceRepo.find();
 
     minutes.forEach((r) =>
       push(this.normalizeVoxel(r.voxelsera, 'A', r.id), {
@@ -228,21 +227,21 @@ export class OverviewService {
   }
 
   async analytics() {
-    const [correspondencia, minutas, contratos, prestamosActivos, prestamosDevueltos, asociados, minBreakdown] =
-      await Promise.all([
-        this.correspondenceRepo.count(),
-        this.minutesRepo.count(),
-        this.contractsRepo.count(),
-        this.loansRepo.count({ where: [{ status: 'ACTIVO' }, { status: 'VENCIDO' }] }),
-        this.loansRepo.count({ where: { status: 'DEVUELTO' } }),
-        this.retiredRepo.count(),
-        this.minutesRepo
-          .createQueryBuilder('m')
-          .select('m.minute_type', 'tipo')
-          .addSelect('COUNT(*)', 'total')
-          .groupBy('m.minute_type')
-          .getRawMany<{ tipo: string; total: string }>(),
-      ]);
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const correspondencia = await this.correspondenceRepo.count();
+    const minutas = await this.minutesRepo.count();
+    const contratos = await this.contractsRepo.count();
+    const prestamosActivos = await this.loansRepo.count({
+      where: [{ status: 'ACTIVO' }, { status: 'VENCIDO' }],
+    });
+    const prestamosDevueltos = await this.loansRepo.count({ where: { status: 'DEVUELTO' } });
+    const asociados = await this.retiredRepo.count();
+    const minBreakdown = await this.minutesRepo
+      .createQueryBuilder('m')
+      .select('m.minute_type', 'tipo')
+      .addSelect('COUNT(*)', 'total')
+      .groupBy('m.minute_type')
+      .getRawMany<{ tipo: string; total: string }>();
 
     const minutasBreakdown: Record<string, number> = { SERVICIO: 0, VISITANTES: 0, CORRESPONDENCIA: 0 };
     minBreakdown.forEach((r) => {
