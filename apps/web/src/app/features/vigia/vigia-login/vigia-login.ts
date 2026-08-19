@@ -16,7 +16,7 @@ type Mode = 'login' | 'setup' | 'reset';
         <p>
           @switch (mode()) {
             @case ('login') {
-              Acceso con cédula y PIN de 4 dígitos
+              Primera vez: tu PIN son los últimos 4 dígitos de tu cédula
             }
             @case ('setup') {
               Primera vez: crea tu PIN con cédula y primer nombre
