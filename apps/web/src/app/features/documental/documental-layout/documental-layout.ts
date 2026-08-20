@@ -572,6 +572,10 @@ export class DocumentalLayout implements OnInit {
 
   ngOnInit(): void {
     this.refreshQueue();
+    // Si la cola está vacía, precargar automáticamente los registros recientes para que siempre haya datos listos
+    if (this.queueCount() === 0) {
+      this.loadRecentMinutes();
+    }
     window.addEventListener('storage', () => this.refreshQueue());
   }
 

@@ -337,6 +337,13 @@ const PRINT_CSS = `
 `;
 
 export function printRotulo(item: RotuloItem): void {
+  const itemWithId = {
+    ...item,
+    id: item.id || `${item.modulo}_${item.codigo}_${Date.now()}`,
+  };
+  addToPrintQueue(itemWithId);
+  saveBatchToHistory([itemWithId]);
+
   const html = `
     <div class="print-banner">
       <span>CORAZA SEGURIDAD C.T.A. — RÓTULO OFICIAL DE ARCHIVO</span>
