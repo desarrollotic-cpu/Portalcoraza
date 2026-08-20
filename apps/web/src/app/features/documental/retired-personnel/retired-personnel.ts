@@ -23,9 +23,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
-        <label>Nombre completo<input [(ngModel)]="model.fullName" name="fullName" required /></label>
-        <label>Cédula<input [(ngModel)]="model.idNumber" name="idNumber" required /></label>
-        <label>Fecha de baja<input type="date" [(ngModel)]="model.retirementDate" name="retirementDate" /></label>
+        <label>Nombre Completo *<input [(ngModel)]="model.fullName" name="fullName" required placeholder="Nombres y apellidos completos" /></label>
+        <label>Cédula / Documento *<input [(ngModel)]="model.idNumber" name="idNumber" required placeholder="Número de cédula de ciudadanía" /></label>
+        <label>Fecha de Baja / Retiro *<input type="date" [(ngModel)]="model.retirementDate" name="retirementDate" required /></label>
         <label>
           Tipo de Persona *
           <select [(ngModel)]="model.personType" name="personType" required>
@@ -37,6 +37,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label>
           Motivo de Retiro / Baja *
           <select [(ngModel)]="model.retirementReason" name="retirementReason" required>
+            <option value="">-- Seleccionar Motivo de Retiro * --</option>
             <option value="Retiro Voluntario">🚪 Retiro Voluntario</option>
             <option value="Terminación de Convenio / Contrato">📄 Terminación de Convenio / Contrato</option>
             <option value="Pensión / Jubilación">👴 Pensión / Jubilación</option>
@@ -47,8 +48,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           </select>
         </label>
         <label>
-          Ubicación en Archivo (Voxelsera)
-          <select [(ngModel)]="model.voxelsera" name="voxelsera">
+          Ubicación en Archivo (Voxelsera) *
+          <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
+            <option value="">-- Selecciona una casilla obligatoria * --</option>
             <option value="VOXEL_B1">🤝 Estante B — Casilla B1 (Asociados Retirados)</option>
             <option value="VOXEL_B2">🤝 Estante B — Casilla B2 (Asociados Retirados)</option>
             <option value="VOXEL_B3">🤝 Estante B — Casilla B3 (Asociados Retirados)</option>
@@ -60,9 +62,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             <option value="VOXEL_B9">🤝 Estante B — Casilla B9 (Asociados Retirados)</option>
           </select>
         </label>
-        <label class="full">Observaciones<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Observaciones de paz y salvo, liquidación..."></textarea></label>
+        <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Observaciones de paz y salvo, liquidación..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Asociado Retirado</button>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
       </form>
@@ -154,6 +156,18 @@ export class RetiredPersonnelScreen implements OnInit {
   }
 
   save(): void {
+    if (
+      !this.model.fullName?.trim() ||
+      !this.model.idNumber?.trim() ||
+      !this.model.retirementDate ||
+      !this.model.personType ||
+      !this.model.retirementReason ||
+      !this.model.voxelsera
+    ) {
+      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Nombre, Cédula, Fecha de Retiro, Tipo, Motivo y Ubicación en Estante.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));

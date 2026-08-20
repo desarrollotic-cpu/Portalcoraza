@@ -263,8 +263,9 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
             <!-- 9. UBICACIÓN FÍSICA EN ARCHIVO (VOXELSERA) -->
             <label class="form-group">
-              <span class="label-title">Ubicación Física en Archivo (Voxelsera)</span>
-              <select [(ngModel)]="model.voxelsera" name="voxelsera" class="inp-select">
+              <span class="label-title">Ubicación Física en Archivo (Voxelsera) *</span>
+              <select [(ngModel)]="model.voxelsera" name="voxelsera" required class="inp-select">
+                <option value="">-- Seleccionar Casilla en Estante D * --</option>
                 <option value="VOXEL_D1">📁 Estante D — Casilla D1 (Correspondencia)</option>
                 <option value="VOXEL_D2">📁 Estante D — Casilla D2 (Correspondencia)</option>
                 <option value="VOXEL_D3">📁 Estante D — Casilla D3 (Correspondencia)</option>
@@ -646,8 +647,14 @@ export class CorrespondenceScreen implements OnInit {
   }
 
   save(): void {
-    if (!this.model.originDept || !this.model.destinationDept || !this.model.subject) {
-      this.error.set('Por favor completa los campos requeridos (*).');
+    if (
+      !this.model.originDept ||
+      !this.model.destinationDept ||
+      !this.model.documentType ||
+      !this.model.subject?.trim() ||
+      !this.model.voxelsera
+    ) {
+      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Dependencia Origen, Destinatario, Tipo Documento, Asunto y Ubicación en Estante.');
       return;
     }
     this.saving.set(true);

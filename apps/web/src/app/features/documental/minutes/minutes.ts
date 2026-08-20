@@ -33,12 +33,13 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             <option value="CORRESPONDENCIA">📧 CORRESPONDENCIA — Paquetería y Sobres</option>
           </select>
         </label>
-        <label>Nombre del Puesto de Vigilancia *<input [(ngModel)]="model.postName" name="postName" required placeholder="Ej: Puesto Central, Torre Norte, Principal..." /></label>
+        <label>Nombre del Puesto de Vigilancia *<input [(ngModel)]="model.postName" name="postName" required placeholder="Ej: Puesto Central, Torre Norte, Shangrila..." /></label>
         <label>Fecha Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
-        <label>Fecha Cierre<input type="date" [(ngModel)]="model.closeDate" name="closeDate" /></label>
+        <label>Fecha Cierre *<input type="date" [(ngModel)]="model.closeDate" name="closeDate" required /></label>
         <label>
-          Ubicación en Archivo (Voxelsera)
-          <select [(ngModel)]="model.voxelsera" name="voxelsera">
+          Ubicación en Archivo (Voxelsera) *
+          <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
+            <option value="">-- Selecciona una casilla obligatoria * --</option>
             <option value="VOXEL_A1">📋 Estante A — Casilla A1 (Minutas)</option>
             <option value="VOXEL_A2">📋 Estante A — Casilla A2 (Minutas)</option>
             <option value="VOXEL_A3">📋 Estante A — Casilla A3 (Minutas)</option>
@@ -50,9 +51,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             <option value="VOXEL_A9">📋 Estante A — Casilla A9 (Minutas)</option>
           </select>
         </label>
-        <label class="full">Observaciones<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
+        <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Minuta</button>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
       </form>
@@ -152,6 +153,17 @@ export class MinutesScreen implements OnInit {
   }
 
   save(): void {
+    if (
+      !this.model.minuteType ||
+      !this.model.postName?.trim() ||
+      !this.model.startDate ||
+      !this.model.closeDate ||
+      !this.model.voxelsera
+    ) {
+      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Tipo, Puesto, Fecha Inicio, Fecha Cierre y Ubicación en Estante.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));
