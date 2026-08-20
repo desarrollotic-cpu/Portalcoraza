@@ -1,4 +1,4 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
   LucideBoxes,
@@ -17,9 +17,11 @@ import {
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 import { Icon } from '../../../shared/components/icon/icon';
+import { DocumentalApiService } from '../documental-api.service';
 import {
   LoteHistorial,
   RotuloItem,
+  addToPrintQueue,
   clearPrintQueue,
   getBatchesHistory,
   getPrintQueue,
@@ -101,13 +103,19 @@ import {
                 <div class="empty-queue">
                   <div class="empty-icon">📄</div>
                   <strong>La cola de impresión está vacía</strong>
-                  <p>Cada vez que registres una Minuta, Contrato o Asociado, se guardará aquí automáticamente para imprimir todo junto en lote.</p>
-                  @if (batchesHistory().length > 0) {
-                    <button type="button" class="btn-goto-history" (click)="activeTab.set('history')">
-                      <app-icon [icon]="icons.History" [size]="14" [strokeWidth]="2" />
-                      Ver lotes anteriores para reimprimir
+                  <p>Cada vez que registres una Minuta, Contrato o Asociado (o pulses el botón "🏷️ Rótulo" en cualquier tabla), se guardará aquí automáticamente para imprimir en lote.</p>
+                  <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
+                    <button type="button" class="btn-goto-history" (click)="loadRecentMinutes()" [disabled]="loadingRecent()">
+                      <app-icon [icon]="icons.Refresh" [size]="14" [strokeWidth]="2" />
+                      {{ loadingRecent() ? 'Cargando...' : '📥 Cargar Minutas Registradas a la Cola' }}
                     </button>
-                  }
+                    @if (batchesHistory().length > 0) {
+                      <button type="button" class="btn-goto-history" (click)="activeTab.set('history')">
+                        <app-icon [icon]="icons.History" [size]="14" [strokeWidth]="2" />
+                        Ver lotes anteriores para reimprimir
+                      </button>
+                    }
+                  </div>
                 </div>
               } @else {
                 <div class="queue-status-bar">
@@ -558,6 +566,9 @@ export class DocumentalLayout implements OnInit {
   readonly queueItems = signal<Array<RotuloItem & { id: string }>>([]);
   readonly queueCount = signal(0);
   readonly batchesHistory = signal<LoteHistorial[]>([]);
+  readonly loadingRecent = signal(false);
+
+  private readonly api = inject(DocumentalApiService);
 
   ngOnInit(): void {
     this.refreshQueue();
@@ -569,6 +580,27 @@ export class DocumentalLayout implements OnInit {
     this.queueItems.set(items);
     this.queueCount.set(items.length);
     this.batchesHistory.set(getBatchesHistory());
+  }
+
+  loadRecentMinutes(): void {
+    this.loadingRecent.set(true);
+    this.api.listMinutes().subscribe({
+      next: (minutas) => {
+        minutas.slice(0, 8).forEach((m) => {
+          addToPrintQueue({
+            id: m.id,
+            modulo: 'MINUTAS',
+            codigo: m.uniqueCode || String(m.numericCode ?? m.id),
+            titulo: m.postName || 'MINUTA',
+            fechas: `${m.startDate || ''} -- ${m.closeDate || ''}`,
+            slotFisico: m.voxelsera || 'Estante A',
+          });
+        });
+        this.loadingRecent.set(false);
+        this.refreshQueue();
+      },
+      error: () => this.loadingRecent.set(false),
+    });
   }
 
   openModal(): void {
