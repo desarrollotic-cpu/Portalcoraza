@@ -1,11 +1,8 @@
 /** 
- * Rótulo físico de carpeta y lomo de libro — Portado y optimizado del SGD Coraza.
- * Genera tiras de corte exacto para:
- * 1. Lomo de Minutas: Con el número consecutivo apilado verticalmente dígito por dígito
- *    (- / 0 / 5 / 2 / 9) tal como en la foto, y todo el resto de datos exactamente en su
- *    formato horizontal original (CORAZA C.T.A., nombre de puesto, fechas, estante).
- * 2. Rótulo horizontal para carpetas legajadoras azules (Contratos y Asociados Retirados).
- * 3. Rótulo de radicación TRD para Correspondencia.
+ * Rótulo físico de carpeta y lomo de libro — Medidas y diseño 100% original del SGD Coraza.
+ * - Minutas: Medida exacta original de 130px x 390px (3.5cm x 10.5cm), con único ajuste:
+ *   el consecutivo numérico asignado apilado verticalmente (- / 0 / 0 / 9 / 8) dentro de la cabecera.
+ * - Carpetas legajadoras: Medida exacta original de 380px x 160px (9.5cm x 4.2cm).
  */
 
 export interface RotuloItem {
@@ -64,55 +61,46 @@ function stripHtml(item: RotuloItem): string {
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
 
   if (esMinuta) {
-    // Extraer los dígitos del consecutivo asignado (ej. de MIN-SER-0529 extrae 0529)
+    // Extraer únicamente los dígitos numéricos del consecutivo (ej. 0098 o 0529)
     const matchDigits = codClean.match(/\d+$/);
-    const digits = matchDigits ? matchDigits[0] : codClean;
+    const digits = (matchDigits ? matchDigits[0] : codClean).padStart(4, '0');
     const digitsList = digits.split('');
 
+    // FORMATO 1: Medidas exactas originales (130px x 390px / 3.5cm x 10.5cm)
     return `
-      <div class="tira-lomo-minuta">
-        <div class="lomo-head">
-          <div class="org-name">CORAZA C.T.A.</div>
+      <div class="strip-minuta-orig">
+        <div class="strip-minuta-head">
+          <div class="strip-org">CORAZA C.T.A.</div>
+          <div class="strip-digits-col">
+            <div class="strip-dash">-</div>
+            ${digitsList.map((d) => `<div class="strip-num">${escapeHtml(d)}</div>`).join('')}
+          </div>
         </div>
-
-        <div class="lomo-consecutivo-box">
-          <div class="digit-dash">-</div>
-          ${digitsList.map((d) => `<div class="digit-num">${escapeHtml(d)}</div>`).join('')}
-        </div>
-
-        <div class="lomo-info-horizontal">
-          <div class="minuta-puesto-text">${escapeHtml(tit)}</div>
-          ${fechas ? `<div class="minuta-fechas-text">${escapeHtml(fechas)}</div>` : ''}
-          <div class="minuta-slot-text">MINUTAS · ${escapeHtml(slot)}</div>
-        </div>
-
-        <div class="lomo-foot">
-          <div class="sys-tag">SGD CORAZA 2027</div>
-        </div>
+        <div class="strip-tit">${escapeHtml(tit)}</div>
+        ${fechas ? `<div class="strip-fec">${escapeHtml(fechas)}</div>` : ''}
+        <div class="strip-slot">MINUTAS · ${escapeHtml(slot)}</div>
+        <div class="strip-ver">SGD CORAZA 2027</div>
       </div>`;
   }
 
-  // FORMATO 2: Rótulo Horizontal para Carpetas Legajadoras (Contratos / Retirados / Correspondencia)
+  // FORMATO 2: Medidas exactas originales de Carpeta Legajadora (380px x 160px / 9.5cm x 4.2cm)
   const cod = `#${codClean}`;
   const modLabel = item.modulo.toUpperCase();
   return `
-    <div class="rotulo-carpeta">
-      <div class="carpeta-info">
-        <div class="carpeta-mod-slot">
-          <span>${escapeHtml(modLabel)}</span> · <strong>${escapeHtml(slot)}</strong>
+    <div class="rotulo-carpeta-orig">
+      <div class="carpeta-orig-left">
+        <div class="carpeta-orig-mod">${escapeHtml(modLabel)} · ${escapeHtml(slot)}</div>
+        <div class="carpeta-orig-tit">${escapeHtml(tit)}</div>
+        <div class="carpeta-orig-meta">
+          ${item.nit ? `<span>NIT/CC: ${escapeHtml(item.nit)}</span>` : ''}
+          ${item.numContrato ? `<span> | Contrato N° ${escapeHtml(item.numContrato)}</span>` : ''}
         </div>
-        <div class="carpeta-titulo">${escapeHtml(tit)}</div>
-        <div class="carpeta-meta">
-          ${item.nit ? `<span><strong>NIT/CC:</strong> ${escapeHtml(item.nit)}</span>` : ''}
-          ${item.numContrato ? `<span><strong>CTO N°:</strong> ${escapeHtml(item.numContrato)}</span>` : ''}
-          ${fechas ? `<span><strong>FECHAS:</strong> ${escapeHtml(fechas)}</span>` : ''}
-        </div>
-        <div class="carpeta-subfoot">CORAZA SEGURIDAD C.T.A. · ARCHIVO CENTRAL</div>
+        ${fechas ? `<div class="carpeta-orig-meta">${escapeHtml(fechas)}</div>` : ''}
       </div>
-      <div class="carpeta-code-box">
-        <span class="code-lbl">CÓDIGO</span>
-        <strong class="code-val">${escapeHtml(cod)}</strong>
-        <span class="code-sub">SGD CORAZA</span>
+      <div class="carpeta-orig-right">
+        <div class="carpeta-orig-lbl">CÓDIGO</div>
+        <div class="carpeta-orig-cod">${escapeHtml(cod)}</div>
+        <div class="carpeta-orig-sub">CORAZA CTA</div>
       </div>
     </div>`;
 }
@@ -128,9 +116,9 @@ const PRINT_CSS = `
     margin: 8mm;
   }
   body { 
-    font-family: 'Segoe UI', Arial, sans-serif; 
+    font-family: Arial, Helvetica, sans-serif; 
     margin: 0; 
-    padding: 12px; 
+    padding: 8px; 
     background: #fff; 
     color: #000; 
   }
@@ -140,199 +128,166 @@ const PRINT_CSS = `
     color: #475569;
     border-bottom: 2px dashed #94a3b8;
     padding-bottom: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: flex;
     justify-content: space-between;
   }
   .print-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
     align-items: flex-start;
   }
 
   /* ========================================================= */
-  /* FORMATO 1: LOMO MINUTAS — DÍGITOS APILADOS VERTICALMENTE  */
-  /* Ancho 28mm x Alto 175mm (Ajuste perfecto al lomo físico)  */
+  /* MINUTAS — MEDIDAS ORIGINALES: 130px x 390px (3.5cm x 10.5cm)*/
   /* ========================================================= */
-  .tira-lomo-minuta {
-    width: 28mm;
-    height: 175mm;
+  .strip-minuta-orig {
     border: 2px dashed #000000;
-    border-radius: 4px;
-    padding: 6px 3px;
+    width: 130px;
+    height: 390px;
+    padding: 8px;
+    margin: 4px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     align-items: center;
     text-align: center;
-    background: #ffffff;
     page-break-inside: avoid;
-    overflow: hidden;
+    border-radius: 4px;
+    background: #ffffff;
   }
-  .lomo-head {
+  .strip-minuta-head {
     width: 100%;
     border-bottom: 2px solid #000000;
     padding-bottom: 4px;
   }
-  .org-name {
-    font-size: 8.5px;
+  .strip-org {
+    font-size: 0.65rem;
     font-weight: 900;
     letter-spacing: 0.04em;
     color: #000000;
-    line-height: 1.1;
   }
-
-  /* CONSECUTIVO EN DÍGITOS APILADOS HACIA ABAJO */
-  .lomo-consecutivo-box {
+  .strip-digits-col {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin: 4px 0;
+    margin-top: 2px;
     line-height: 1;
   }
-  .digit-dash {
-    font-size: 22px;
+  .strip-dash {
+    font-size: 1.2rem;
     font-weight: 900;
     color: #000000;
-    line-height: 0.75;
+    line-height: 0.8;
     margin-bottom: 2px;
   }
-  .digit-num {
-    font-size: 24px;
+  .strip-num {
+    font-size: 1.7rem;
     font-weight: 900;
     color: #0284c7;
     line-height: 1.05;
-    font-family: Arial, sans-serif;
   }
-
-  .lomo-info-horizontal {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 5px 0;
-    border-top: 1.5px solid #000000;
-  }
-  .minuta-puesto-text {
-    font-size: 9px;
+  .strip-tit {
+    font-size: 0.72rem;
     font-weight: 900;
     text-transform: uppercase;
     line-height: 1.2;
     word-break: break-word;
     color: #000000;
   }
-  .minuta-fechas-text {
-    font-size: 7.5px;
+  .strip-fec {
+    font-size: 0.62rem;
     font-weight: 700;
     color: #334155;
-    line-height: 1.1;
   }
-  .minuta-slot-text {
-    font-size: 7.5px;
-    font-weight: 900;
+  .strip-slot {
+    font-size: 0.6rem;
+    font-weight: 800;
     color: #0284c7;
     text-transform: uppercase;
-    line-height: 1.1;
   }
-
-  .lomo-foot {
+  .strip-ver {
+    border-top: 1px solid #000000;
     width: 100%;
-    border-top: 1.5px solid #000000;
-    padding-top: 3px;
-  }
-  .sys-tag {
-    font-size: 6.5px;
+    padding-top: 4px;
+    font-size: 0.55rem;
     font-weight: 700;
-    color: #64748b;
-    line-height: 1;
+    color: #475569;
   }
 
   /* ========================================================= */
-  /* FORMATO 2: RÓTULO HORIZONTAL PARA CARPETAS LEGAJADORAS    */
+  /* CARPETAS — MEDIDAS ORIGINALES: 380px x 160px (9.5cm x 4.2cm)*/
   /* ========================================================= */
-  .rotulo-carpeta {
-    width: 370px;
-    height: 155px;
-    border: 2px dashed #000;
-    border-radius: 6px;
+  .rotulo-carpeta-orig {
+    border: 2px dashed #000000;
+    width: 380px;
+    height: 160px;
     padding: 8px;
+    margin: 4px;
     display: flex;
     justify-content: space-between;
-    background: #ffffff;
     page-break-inside: avoid;
-  }
-  .carpeta-info {
-    flex: 1;
-    border: 1.5px solid #000;
     border-radius: 4px;
-    padding: 8px;
+    background: #ffffff;
+  }
+  .carpeta-orig-left {
+    flex: 1;
+    border: 1.5px solid #000000;
+    padding: 6px 8px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    border-radius: 4px;
     min-width: 0;
   }
-  .carpeta-mod-slot {
-    font-size: 9.5px;
+  .carpeta-orig-mod {
+    font-size: 0.65rem;
     font-weight: 900;
     color: #0284c7;
-    letter-spacing: 0.02em;
-  }
-  .carpeta-titulo {
-    font-size: 13px;
-    font-weight: 900;
-    line-height: 1.2;
     text-transform: uppercase;
+  }
+  .carpeta-orig-tit {
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.2;
     word-break: break-word;
     color: #000000;
-    margin: 2px 0;
   }
-  .carpeta-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5px;
-    font-size: 9px;
+  .carpeta-orig-meta {
+    font-size: 0.65rem;
+    font-weight: 700;
     color: #1e293b;
   }
-  .carpeta-subfoot {
-    font-size: 7px;
-    color: #64748b;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    border-top: 0.5px solid #cbd5e1;
-    padding-top: 3px;
-    margin-top: 3px;
-  }
-  .carpeta-code-box {
-    width: 85px;
+  .carpeta-orig-right {
+    width: 80px;
     border: 2px solid #0284c7;
-    background: #f0f9ff;
-    border-radius: 4px;
-    margin-left: 6px;
+    background: #eff6ff;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin-left: 6px;
+    border-radius: 4px;
     text-align: center;
     padding: 4px;
   }
-  .code-lbl {
-    font-size: 7.5px;
+  .carpeta-orig-lbl {
+    font-size: 0.52rem;
     font-weight: 900;
     color: #0369a1;
-    letter-spacing: 0.05em;
   }
-  .code-val {
-    font-size: 22px;
+  .carpeta-orig-cod {
+    font-size: 1.8rem;
     font-weight: 900;
     color: #0284c7;
     line-height: 1.1;
     margin: 3px 0;
-    word-break: break-all;
   }
-  .code-sub {
-    font-size: 7px;
+  .carpeta-orig-sub {
+    font-size: 0.52rem;
     font-weight: 800;
     color: #64748b;
   }
