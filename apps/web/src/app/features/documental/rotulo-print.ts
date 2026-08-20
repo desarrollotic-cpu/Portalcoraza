@@ -27,6 +27,14 @@ export function clearPrintQueue(): void {
   localStorage.setItem(COLA_KEY, '[]');
 }
 
+export function removeFromPrintQueue(idx: number): void {
+  const cola: Array<RotuloItem & { id: string }> = JSON.parse(localStorage.getItem(COLA_KEY) || '[]');
+  if (cola[idx]) {
+    cola.splice(idx, 1);
+    localStorage.setItem(COLA_KEY, JSON.stringify(cola));
+  }
+}
+
 function stripHtml(item: RotuloItem): string {
   const cod = String(item.codigo || 'S/N').replace(/^#/, '');
   const titulo = (item.titulo || 'CARPETA ARCHIVO').toUpperCase();
