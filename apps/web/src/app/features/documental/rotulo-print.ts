@@ -1,12 +1,11 @@
 /** 
  * Rótulo físico de carpeta y lomo de libro — Portado y optimizado del SGD Coraza.
  * Genera tiras de corte exacto para:
- * 1. Lomo vertical de Minutas: Ajustado a 22mm de ancho real para libros físicos,
- *    con consecutivo gigante arriba y texto/puesto legible orientado hacia abajo (top-to-bottom)
- *    para que cuando el libro esté en el estante A se identifique de inmediato.
+ * 1. Lomo de Minutas: Con el CONSECUTIVO orientado verticalmente (bajando de arriba hacia abajo)
+ *    para que nunca se corte en lomos estrechos de libros físicos, manteniendo el resto
+ *    de datos (CORAZA C.T.A., nombre de puesto, fechas, estante) en su formato horizontal.
  * 2. Rótulo horizontal para carpetas legajadoras azules (Contratos y Asociados Retirados).
  * 3. Rótulo de radicación TRD para Correspondencia.
- * Incluye sistema de "Cola de Tiras" para imprimir en lote en hojas tamaño Carta.
  */
 
 export interface RotuloItem {
@@ -58,6 +57,7 @@ function escapeHtml(s: string): string {
 
 function stripHtml(item: RotuloItem): string {
   const codClean = String(item.codigo || 'S/N').replace(/^#/, '');
+  const cod = `#${codClean}`;
   const tit = (item.titulo || 'CARPETA DE ARCHIVO').toUpperCase();
   const slotRaw = (item.slotFisico || 'ESTANTE A').replace(/^VOXEL_/, '');
   const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
@@ -65,40 +65,31 @@ function stripHtml(item: RotuloItem): string {
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
 
   if (esMinuta) {
-    // Extraer número consecutivo (ej. de MIN-SER-0529 -> 0529 o #529)
-    const matchNum = codClean.match(/\d+$/);
-    const numGrande = matchNum ? `#${matchNum[0]}` : `#${codClean}`;
-
-    let tipoLabel = 'MINUTA';
-    if (codClean.includes('SER') || tit.includes('SERVICIO')) tipoLabel = 'SERVICIO';
-    else if (codClean.includes('VIS') || tit.includes('VISITANTE')) tipoLabel = 'VISITANTES';
-    else if (codClean.includes('COR') || tit.includes('CORRESPONDENCIA')) tipoLabel = 'RECEPCIÓN';
-
-    // FORMATO 1: Lomo Vertical para Libro Minuta (22mm de ancho x 160mm de alto)
-    // Texto del puesto y vigencia corren verticalmente hacia abajo para lectura natural en el estante
+    // FORMATO 1: Lomo de Minutas
+    // El consecutivo va BAJANDO verticalmente (top-to-bottom); el resto horizontal.
     return `
       <div class="tira-lomo-minuta">
-        <div class="lomo-top">
-          <div class="lomo-org">CORAZA C.T.A.</div>
-          <div class="lomo-tipo">${escapeHtml(tipoLabel)}</div>
-          <div class="lomo-numero-grande">${escapeHtml(numGrande)}</div>
+        <div class="lomo-head">
+          <div class="org-name">CORAZA C.T.A.</div>
         </div>
 
-        <div class="lomo-cuerpo-vertical">
-          <div class="lomo-texto-vertical">${escapeHtml(tit)}</div>
-          ${fechas ? `<div class="lomo-fechas-vertical">${escapeHtml(fechas)}</div>` : ''}
-          <div class="lomo-codigo-vertical">${escapeHtml(codClean)}</div>
+        <div class="lomo-consecutivo-box">
+          <div class="consecutivo-bajando">${escapeHtml(cod)}</div>
         </div>
 
-        <div class="lomo-footer">
-          <div class="lomo-slot">${escapeHtml(slot)}</div>
-          <div class="lomo-version">SGD CORAZA</div>
+        <div class="lomo-info-horizontal">
+          <div class="minuta-puesto-text">${escapeHtml(tit)}</div>
+          ${fechas ? `<div class="minuta-fechas-text">${escapeHtml(fechas)}</div>` : ''}
+          <div class="minuta-slot-text">MINUTAS · ${escapeHtml(slot)}</div>
+        </div>
+
+        <div class="lomo-foot">
+          <div class="sys-tag">SGD CORAZA 2027</div>
         </div>
       </div>`;
   }
 
   // FORMATO 2: Rótulo Horizontal para Carpetas Legajadoras (Contratos / Retirados / Correspondencia)
-  const cod = `#${codClean}`;
   const modLabel = item.modulo.toUpperCase();
   return `
     <div class="rotulo-carpeta">
@@ -152,20 +143,20 @@ const PRINT_CSS = `
   .print-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 12px;
     align-items: flex-start;
   }
 
   /* ========================================================= */
-  /* FORMATO 1: LOMO VERTICAL NAVEGABLE PARA LIBROS DE MINUTAS  */
-  /* Ancho 24mm x Alto 170mm (Ajuste exacto al lomo físico)    */
+  /* FORMATO 1: LOMO MINUTAS — CONSECUTIVO BAJANDO VERTICAL    */
+  /* Ancho 26mm x Alto 175mm (Ajuste óptimo al lomo del libro) */
   /* ========================================================= */
   .tira-lomo-minuta {
-    width: 24mm;
-    height: 170mm;
+    width: 26mm;
+    height: 175mm;
     border: 1.5px dashed #000000;
     border-radius: 4px;
-    padding: 5px 2px;
+    padding: 6px 3px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -175,108 +166,78 @@ const PRINT_CSS = `
     page-break-inside: avoid;
     overflow: hidden;
   }
-  .lomo-top {
+  .lomo-head {
     width: 100%;
     border-bottom: 1.5px solid #000000;
-    padding-bottom: 3px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    padding-bottom: 4px;
   }
-  .lomo-org {
-    font-size: 7px;
+  .org-name {
+    font-size: 8px;
     font-weight: 900;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.05em;
     color: #000000;
     line-height: 1;
   }
-  .lomo-tipo {
-    font-size: 7.5px;
-    font-weight: 900;
-    background: #0284c7;
-    color: #ffffff;
-    padding: 1px 3px;
-    border-radius: 2px;
-    margin-top: 2px;
-    text-transform: uppercase;
-    line-height: 1;
-  }
-  .lomo-numero-grande {
-    font-size: 20px;
-    font-weight: 900;
-    color: #0284c7;
-    line-height: 1.05;
-    margin-top: 2px;
-    letter-spacing: -0.03em;
-  }
 
-  .lomo-cuerpo-vertical {
+  /* CONSECUTIVO BAJANDO (VERTICAL TOP-TO-BOTTOM) */
+  .lomo-consecutivo-box {
     flex: 1;
     display: flex;
-    flex-direction: row;
     justify-content: center;
     align-items: center;
-    gap: 2px;
-    padding: 4px 0;
-    overflow: hidden;
+    padding: 6px 0;
   }
-  /* TEXTO ORIENTADO HACIA ABAJO (TOP-TO-BOTTOM) A LO LARGO DEL LOMO */
-  .lomo-texto-vertical {
+  .consecutivo-bajando {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
-    font-size: 11px;
+    font-size: 22px;
     font-weight: 900;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #000000;
-    white-space: nowrap;
-    max-height: 95mm;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1;
-  }
-  .lomo-fechas-vertical {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-size: 8px;
-    font-weight: 700;
-    color: #475569;
-    white-space: nowrap;
-    max-height: 90mm;
-    line-height: 1;
-  }
-  .lomo-codigo-vertical {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-size: 7px;
-    font-weight: 800;
     color: #0284c7;
-    white-space: nowrap;
-    max-height: 85mm;
+    letter-spacing: 0.08em;
     line-height: 1;
+    white-space: nowrap;
   }
 
-  .lomo-footer {
+  .lomo-info-horizontal {
     width: 100%;
-    border-top: 1.5px solid #000000;
-    padding-top: 3px;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    border-top: 1px solid #cbd5e1;
   }
-  .lomo-slot {
+  .minuta-puesto-text {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.2;
+    word-break: break-word;
+    color: #000000;
+  }
+  .minuta-fechas-text {
+    font-size: 7.5px;
+    font-weight: 700;
+    color: #334155;
+    line-height: 1.1;
+  }
+  .minuta-slot-text {
     font-size: 7.5px;
     font-weight: 900;
     color: #0284c7;
     text-transform: uppercase;
     line-height: 1.1;
   }
-  .lomo-version {
-    font-size: 6px;
-    color: #64748b;
+
+  .lomo-foot {
+    width: 100%;
+    border-top: 1.5px solid #000000;
+    padding-top: 3px;
+  }
+  .sys-tag {
+    font-size: 6.5px;
     font-weight: 700;
+    color: #64748b;
     line-height: 1;
-    margin-top: 1px;
   }
 
   /* ========================================================= */
