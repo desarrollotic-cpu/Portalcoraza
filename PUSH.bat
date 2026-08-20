@@ -11,4 +11,4 @@ echo =========================================================
 echo   PUBLICADO CON EXITO A GITHUB Y RENDER!
 echo   Render desplegara los cambios en 1 o 2 minutos.
 echo =========================================================
-timeout /t 5
+pause

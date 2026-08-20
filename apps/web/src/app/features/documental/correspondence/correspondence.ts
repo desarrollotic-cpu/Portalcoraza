@@ -168,10 +168,9 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 [(ngModel)]="model.originDept"
                 name="originDept"
                 required
-                (change)="onOriginDeptChange()"
+                (ngModelChange)="onOriginDeptChange($event)"
                 class="inp-select"
               >
-                <option value="">-- Seleccione Origen --</option>
                 @for (d of departamentos; track d.code) {
                   <option [value]="d.code">{{ d.name }}</option>
                 }
@@ -182,7 +181,6 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
             <label class="form-group">
               <span class="label-title">Dependencia Destino *</span>
               <select [(ngModel)]="model.destinationDept" name="destinationDept" required class="inp-select">
-                <option value="">-- Seleccione Destino --</option>
                 @for (d of departamentos; track d.code) {
                   <option [value]="d.code">{{ d.name }}</option>
                 }
@@ -196,7 +194,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 [(ngModel)]="selectedSerieVal"
                 name="selectedSerieVal"
                 required
-                (change)="onSerieChange()"
+                (ngModelChange)="onSerieChange($event)"
                 class="inp-select highlight"
               >
                 @for (s of seriesDisponibles(); track s.val) {
@@ -557,6 +555,7 @@ export class CorrespondenceScreen implements OnInit {
   readonly error = signal<string | null>(null);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
 
+  readonly seriesDisponibles = signal<TrdOption[]>([]);
   readonly previewCode = signal('Calculando radicado...');
 
   selectedSerieVal = '100-10.01';
@@ -576,18 +575,9 @@ export class CorrespondenceScreen implements OnInit {
     voxelsera: 'VOXEL_D1',
   };
 
-  readonly seriesDisponibles = computed<TrdOption[]>(() => {
-    const key = this.model.originDept || 'GE';
-    return (
-      MAPA_TRD_COMPLETO[key] || [
-        { val: '100-10.01', label: '100-10.01 — GERENCIA / Cartas y Comunicaciones' },
-      ]
-    );
-  });
-
   ngOnInit(): void {
     this.load();
-    this.onOriginDeptChange();
+    this.onOriginDeptChange(this.model.originDept);
   }
 
   toggle(): void {
@@ -597,15 +587,20 @@ export class CorrespondenceScreen implements OnInit {
     }
   }
 
-  onOriginDeptChange(): void {
-    const series = this.seriesDisponibles();
+  onOriginDeptChange(newDept: string): void {
+    this.model.originDept = newDept || 'GE';
+    const series = MAPA_TRD_COMPLETO[this.model.originDept] || [
+      { val: '100-10.01', label: '100-10.01 — GERENCIA / Cartas y Comunicaciones' },
+    ];
+    this.seriesDisponibles.set(series);
     if (series.length > 0) {
       this.selectedSerieVal = series[0].val;
-      this.onSerieChange();
+      this.onSerieChange(this.selectedSerieVal);
     }
   }
 
-  onSerieChange(): void {
+  onSerieChange(newSerieVal: string): void {
+    this.selectedSerieVal = newSerieVal;
     const parts = this.selectedSerieVal.split('-');
     this.model.depCode = parts[0] || '100';
     const subParts = (parts[1] || '').split('.');
@@ -617,9 +612,26 @@ export class CorrespondenceScreen implements OnInit {
   private refreshPreviewCode(): void {
     const year = new Date().getFullYear();
     const sub = this.model.subserieCode ? `.${this.model.subserieCode}` : '';
-    // Formato TRD: {depCode}-{serieCode}.{subserie}-{año}-####
-    const fallback = `${this.model.depCode}-${this.model.serieCode}${sub}-${year}-0001`;
+    // Preview local inmediato
+    const fallback = `${this.model.originDept || this.model.depCode}-${this.model.serieCode}${sub}-${year}-0001`;
     this.previewCode.set(fallback);
+
+    // Consulta exacta al backend
+    this.api
+      .previewCorrespondenceCode({
+        depSigla: this.model.originDept,
+        depCode: this.model.depCode,
+        serieCode: this.model.serieCode,
+        subserieCode: this.model.subserieCode,
+      })
+      .subscribe({
+        next: (res) => {
+          if (res && res.code) {
+            this.previewCode.set(res.code);
+          }
+        },
+        error: () => {},
+      });
   }
 
   private load(): void {

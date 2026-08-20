@@ -240,6 +240,9 @@ export class DocumentalApiService {
   listCorrespondence(): Observable<Correspondence[]> {
     return this.http.get<Correspondence[]>(`${this.baseUrl}/correspondence`);
   }
+  previewCorrespondenceCode(payload: { depSigla?: string; depCode: string; serieCode: string; subserieCode?: string }): Observable<{ code: string; numeric: number }> {
+    return this.http.post<{ code: string; numeric: number }>(`${this.baseUrl}/correspondence/code`, payload);
+  }
   createCorrespondence(payload: Record<string, unknown>): Observable<Correspondence> {
     return this.http.post<Correspondence>(`${this.baseUrl}/correspondence`, payload);
   }
