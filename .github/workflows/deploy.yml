@@ -1,15 +1,32 @@
-﻿name: Deploy to Render
+name: Keep Alive & Deploy
 
 on:
   push:
     branches:
       - main
+  schedule:
+    # Cada 10 minutos — evita que Render duerma la API
+    - cron: '*/10 * * * *'
 
 jobs:
-  deploy:
+  keepalive:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Render Deploy
+      - name: Ping API to keep it alive
         run: |
-          curl -s ${{ secrets.RENDER_DEPLOY_HOOK }} -X POST -d ''
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://portalcoraza.onrender.com/health || echo "000")
+          echo "API status: $STATUS"
+
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Trigger Render Deploy (if hook configured)
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            curl -s "${{ secrets.RENDER_DEPLOY_HOOK }}" -X POST -d ''
+            echo "Deploy triggered"
+          else
+            echo "No deploy hook configured — skipping"
+          fi
           echo Deploy triggered OK
