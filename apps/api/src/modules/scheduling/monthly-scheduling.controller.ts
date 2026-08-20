@@ -15,12 +15,14 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
+  BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
   GenerateMotorDto,
   GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
+  MonthlyAlertsQueryDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
 } from './dto/monthly-scheduling.dto';
@@ -47,6 +49,18 @@ export class MonthlySchedulingController {
   @RequirePermissions('scheduling.view')
   listByMonth(@Query() query: ListMonthlyScheduleDto) {
     return this.service.listByMonth(query);
+  }
+
+  @Get('alerts')
+  @RequirePermissions('scheduling.view')
+  getAlerts(@Query() query: MonthlyAlertsQueryDto) {
+    return this.service.getAlerts(query);
+  }
+
+  @Get('alerts/board')
+  @RequirePermissions('scheduling.view')
+  getBoardAlerts(@Query() query: BoardAlertsQueryDto) {
+    return this.service.getBoardAlerts(query);
   }
 
   @Get('conflicts')

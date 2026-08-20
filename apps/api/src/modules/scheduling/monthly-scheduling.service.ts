@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import {
+  Associate,
+  AssociateStatus,
+} from '../associates/entities/associate.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Post, PostStatus } from '../posts/entities/post.entity';
 import {
@@ -15,15 +19,26 @@ import {
   TemplatePatternItem,
 } from './entities/schedule-template.entity';
 import {
+  BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
   GenerateMotorDto,
   GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
+  MonthlyAlertsQueryDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
 } from './dto/monthly-scheduling.dto';
+import {
+  AlertCellInput,
+  AssociateStatusCode,
+  AlertType,
+  AlertSeverity,
+  ScheduleAlertItem,
+  computeMonthlyAlerts,
+  monthsForAlertsScope,
+} from './monthly-alerts.compute';
 import { MotorTurnosService } from './motor-turnos.service';
 
 const DEFAULT_ROLES: PersonalRole[] = [
@@ -150,6 +165,247 @@ export class MonthlySchedulingService {
     }));
   }
 
+  async getAlerts(query: MonthlyAlertsQueryDto) {
+    const scope = query.scope ?? 'auto';
+    const today = this.bogotaYmd();
+    const months = monthsForAlertsScope({
+      scope,
+      year: query.year,
+      month: query.month,
+      todayYear: today.year,
+      todayMonth: today.month,
+      todayDay: today.day,
+    });
+
+    const alerts: ScheduleAlertItem[] = [];
+    const monthLabels: string[] = [];
+
+    for (const m of months) {
+      const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
+      monthLabels.push(label);
+      const cells = await this.loadAlertCells(m.year, m.month);
+      const daysInMonth = new Date(m.year, m.month, 0).getDate();
+      alerts.push(
+        ...computeMonthlyAlerts({ month: label, daysInMonth, cells }),
+      );
+    }
+
+    const totals = {
+      huecos: alerts.filter((a) => a.type === 'hueco_cobertura').length,
+      inactivos: alerts.filter((a) => a.type === 'asociado_inactivo').length,
+      conflictos: alerts.filter((a) => a.type === 'conflicto_mismo_turno').length,
+      carga: alerts.filter((a) => a.type === 'carga_sobre_24').length,
+    };
+
+    return {
+      generatedAt: new Date().toISOString(),
+      months: monthLabels,
+      totals,
+      alerts,
+    };
+  }
+
+  async getBoardAlerts(query: BoardAlertsQueryDto) {
+    const month = `${query.year}-${String(query.month).padStart(2, '0')}`;
+    const cells = await this.loadAlertCells(query.year, query.month);
+    const daysInMonth = new Date(query.year, query.month, 0).getDate();
+    const all = computeMonthlyAlerts({ month, daysInMonth, cells });
+
+    const associateIdsOnPost = new Set(
+      cells
+        .filter((c) => c.postId === query.postId && c.associateId)
+        .map((c) => c.associateId as string),
+    );
+
+    const relevant = all.filter((a) => {
+      if (a.postId === query.postId) return true;
+      if (a.type === 'carga_sobre_24' && a.associateId && associateIdsOnPost.has(a.associateId)) {
+        return true;
+      }
+      if (
+        a.type === 'conflicto_mismo_turno' &&
+        (a.postId === query.postId || a.otherPostId === query.postId)
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    const byDay = new Map<
+      number,
+      { day: number; types: AlertType[]; severity: AlertSeverity; messages: string[] }
+    >();
+
+    for (const a of relevant) {
+      if (a.type === 'carga_sobre_24') continue;
+      const day = a.day ?? 0;
+      if (!day) continue;
+      if (a.postId !== query.postId && a.otherPostId !== query.postId) continue;
+      // Solo pintar celdas del post pedido
+      if (a.postId !== query.postId && a.type !== 'conflicto_mismo_turno') continue;
+      const cur = byDay.get(day) ?? {
+        day,
+        types: [],
+        severity: 'warning' as AlertSeverity,
+        messages: [],
+      };
+      if (!cur.types.includes(a.type)) cur.types.push(a.type);
+      if (a.severity === 'error') cur.severity = 'error';
+      if (!cur.messages.includes(a.message)) cur.messages.push(a.message);
+      byDay.set(day, cur);
+    }
+
+    return {
+      month,
+      postId: query.postId,
+      cells: [...byDay.values()].sort((a, b) => a.day - b.day),
+      associateLoad: relevant.filter((a) => a.type === 'carga_sobre_24'),
+    };
+  }
+
+  private bogotaYmd(): { year: number; month: number; day: number } {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const num = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((p) => p.type === type)?.value ?? '0');
+    return { year: num('year'), month: num('month'), day: num('day') };
+  }
+
+  private associateDisplayName(a: {
+    firstName?: string;
+    secondName?: string | null;
+    firstLastName?: string;
+    secondLastName?: string | null;
+  }): string {
+    return [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+  }
+
+  private async loadAlertCells(year: number, month: number): Promise<AlertCellInput[]> {
+    const rows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .select([
+        's.post_id AS "postId"',
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        'a.day AS day',
+        'a.role AS role',
+        'a.associate_id AS "associateId"',
+        'a.codigo AS codigo',
+        'assoc.status AS "associateStatus"',
+        'assoc.first_name AS "firstName"',
+        'assoc.second_name AS "secondName"',
+        'assoc.first_last_name AS "firstLastName"',
+        'assoc.second_last_name AS "secondLastName"',
+      ])
+      .getRawMany<{
+        postId: string;
+        postName: string;
+        day: string | number;
+        role: string;
+        associateId: string | null;
+        codigo: string | null;
+        associateStatus: AssociateStatus | null;
+        firstName: string | null;
+        secondName: string | null;
+        firstLastName: string | null;
+        secondLastName: string | null;
+      }>();
+
+    return rows.map((r) => ({
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+      day: Number(r.day),
+      role: r.role,
+      associateId: r.associateId,
+      associateName: r.associateId
+        ? this.associateDisplayName({
+            firstName: r.firstName ?? undefined,
+            secondName: r.secondName,
+            firstLastName: r.firstLastName ?? undefined,
+            secondLastName: r.secondLastName,
+          }) || null
+        : null,
+      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
+      codigo: r.codigo,
+    }));
+  }
+
+  private async collectSaveWarnings(
+    schedule: MonthlySchedule,
+    dto: SaveMonthlyScheduleDto,
+  ): Promise<ScheduleAlertItem[]> {
+    const year = schedule.year;
+    const month = schedule.month;
+    const monthLabel = `${year}-${String(month).padStart(2, '0')}`;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const otherCells = (await this.loadAlertCells(year, month)).filter(
+      (c) => c.postId !== schedule.postId,
+    );
+
+    const associateIds = [
+      ...new Set(
+        dto.assignments
+          .map((a) => a.associateId)
+          .filter((id): id is string => !!id),
+      ),
+    ];
+    const statusMap = new Map<string, { status: AssociateStatus; name: string }>();
+    if (associateIds.length) {
+      const associates = await this.dataSource.getRepository(Associate).find({
+        where: { id: In(associateIds) },
+      });
+      for (const a of associates) {
+        statusMap.set(a.id, {
+          status: a.status,
+          name: this.associateDisplayName(a),
+        });
+      }
+    }
+
+    const post =
+      (await this.dataSource.getRepository(Post).findOne({ where: { id: schedule.postId } })) ??
+      null;
+    const postName =
+      post?.code || post?.name || schedule.postId.slice(0, 8);
+
+    const dtoCells: AlertCellInput[] = dto.assignments.map((a) => {
+      const info = a.associateId ? statusMap.get(a.associateId) : undefined;
+      return {
+        postId: schedule.postId,
+        postName,
+        day: a.day,
+        role: a.role,
+        associateId: a.associateId ?? null,
+        associateName: info?.name ?? null,
+        associateStatus: (info?.status as AssociateStatusCode | undefined) ?? null,
+        codigo: a.codigo ?? null,
+      };
+    });
+
+    const alerts = computeMonthlyAlerts({
+      month: monthLabel,
+      daysInMonth,
+      cells: [...otherCells, ...dtoCells],
+    });
+
+    return alerts.filter(
+      (a) =>
+        (a.type === 'asociado_inactivo' || a.type === 'conflicto_mismo_turno') &&
+        a.postId === schedule.postId,
+    );
+  }
+
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {
     const existing = await this.schedulesRepo.findOne({
       where: { postId: dto.postId, year: dto.year, month: dto.month },
@@ -187,6 +443,17 @@ export class MonthlySchedulingService {
 
   async save(id: string, dto: SaveMonthlyScheduleDto, userId: string) {
     const schedule = await this.getById(id);
+
+    if (!dto.confirmWarnings) {
+      const warnings = await this.collectSaveWarnings(schedule, dto);
+      if (warnings.length) {
+        throw new ConflictException({
+          code: 'SCHEDULING_WARNINGS',
+          message: 'Hay advertencias de programación; confirme para continuar',
+          warnings,
+        });
+      }
+    }
 
     await this.dataSource.transaction(async (manager) => {
       await manager.update(MonthlySchedule, id, {

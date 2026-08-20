@@ -3,6 +3,7 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -123,6 +124,46 @@ export class SaveMonthlyScheduleDto {
   @ValidateNested({ each: true })
   @Type(() => AssignmentDto)
   assignments!: AssignmentDto[];
+
+  /** Si true, persiste aunque haya inactivos / conflictos de mismo turno. */
+  @IsOptional()
+  @IsBoolean()
+  confirmWarnings?: boolean;
+}
+
+export class MonthlyAlertsQueryDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
+  year!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month!: number;
+
+  @IsOptional()
+  @IsIn(['current', 'next', 'auto'])
+  scope?: 'current' | 'next' | 'auto';
+}
+
+export class BoardAlertsQueryDto {
+  @IsUUID()
+  postId!: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(2000)
+  @Max(2100)
+  year!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(12)
+  month!: number;
 }
 
 export class UpdateScheduleStatusDto {
