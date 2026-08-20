@@ -1,10 +1,12 @@
 /** 
- * Rótulo físico de carpeta — Portado y mejorado del SGD Coraza.
+ * Rótulo físico de carpeta y lomo de libro — Portado y optimizado del SGD Coraza.
  * Genera tiras de corte exacto para:
- * 1. Lomo vertical de Minutas (libros físicos de vigilancia).
+ * 1. Lomo vertical de Minutas: Ajustado a 22mm de ancho real para libros físicos,
+ *    con consecutivo gigante arriba y texto/puesto legible orientado hacia abajo (top-to-bottom)
+ *    para que cuando el libro esté en el estante A se identifique de inmediato.
  * 2. Rótulo horizontal para carpetas legajadoras azules (Contratos y Asociados Retirados).
  * 3. Rótulo de radicación TRD para Correspondencia.
- * Incluye sistema de "Cola de Tiras" para imprimir hasta 8 rótulos por hoja tamaño Carta.
+ * Incluye sistema de "Cola de Tiras" para imprimir en lote en hojas tamaño Carta.
  */
 
 export interface RotuloItem {
@@ -56,7 +58,6 @@ function escapeHtml(s: string): string {
 
 function stripHtml(item: RotuloItem): string {
   const codClean = String(item.codigo || 'S/N').replace(/^#/, '');
-  const cod = `#${codClean}`;
   const tit = (item.titulo || 'CARPETA DE ARCHIVO').toUpperCase();
   const slotRaw = (item.slotFisico || 'ESTANTE A').replace(/^VOXEL_/, '');
   const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
@@ -64,25 +65,40 @@ function stripHtml(item: RotuloItem): string {
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
 
   if (esMinuta) {
-    // FORMATO 1: Lomo Vertical para Libro Minuta (3.5cm x 10.5cm)
+    // Extraer número consecutivo (ej. de MIN-SER-0529 -> 0529 o #529)
+    const matchNum = codClean.match(/\d+$/);
+    const numGrande = matchNum ? `#${matchNum[0]}` : `#${codClean}`;
+
+    let tipoLabel = 'MINUTA';
+    if (codClean.includes('SER') || tit.includes('SERVICIO')) tipoLabel = 'SERVICIO';
+    else if (codClean.includes('VIS') || tit.includes('VISITANTE')) tipoLabel = 'VISITANTES';
+    else if (codClean.includes('COR') || tit.includes('CORRESPONDENCIA')) tipoLabel = 'RECEPCIÓN';
+
+    // FORMATO 1: Lomo Vertical para Libro Minuta (22mm de ancho x 160mm de alto)
+    // Texto del puesto y vigencia corren verticalmente hacia abajo para lectura natural en el estante
     return `
-      <div class="tira-minuta">
-        <div class="minuta-header">
-          <div class="org-name">CORAZA C.T.A.</div>
-          <div class="doc-code">${escapeHtml(cod)}</div>
+      <div class="tira-lomo-minuta">
+        <div class="lomo-top">
+          <div class="lomo-org">CORAZA C.T.A.</div>
+          <div class="lomo-tipo">${escapeHtml(tipoLabel)}</div>
+          <div class="lomo-numero-grande">${escapeHtml(numGrande)}</div>
         </div>
-        <div class="minuta-body">
-          <div class="minuta-puesto">${escapeHtml(tit)}</div>
-          ${fechas ? `<div class="minuta-fechas">${escapeHtml(fechas)}</div>` : ''}
+
+        <div class="lomo-cuerpo-vertical">
+          <div class="lomo-texto-vertical">${escapeHtml(tit)}</div>
+          ${fechas ? `<div class="lomo-fechas-vertical">${escapeHtml(fechas)}</div>` : ''}
+          <div class="lomo-codigo-vertical">${escapeHtml(codClean)}</div>
         </div>
-        <div class="minuta-footer">
-          <div class="minuta-slot">MINUTAS · ${escapeHtml(slot)}</div>
-          <div class="sys-version">SGD CORAZA 2027</div>
+
+        <div class="lomo-footer">
+          <div class="lomo-slot">${escapeHtml(slot)}</div>
+          <div class="lomo-version">SGD CORAZA</div>
         </div>
       </div>`;
   }
 
   // FORMATO 2: Rótulo Horizontal para Carpetas Legajadoras (Contratos / Retirados / Correspondencia)
+  const cod = `#${codClean}`;
   const modLabel = item.modulo.toUpperCase();
   return `
     <div class="rotulo-carpeta">
@@ -136,17 +152,20 @@ const PRINT_CSS = `
   .print-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 10px;
     align-items: flex-start;
   }
 
-  /* FORMATO 1: LOMO VERTICAL MINUTAS */
-  .tira-minuta {
-    width: 140px;
-    height: 380px;
-    border: 2px dashed #000;
-    border-radius: 6px;
-    padding: 10px 8px;
+  /* ========================================================= */
+  /* FORMATO 1: LOMO VERTICAL NAVEGABLE PARA LIBROS DE MINUTAS  */
+  /* Ancho 24mm x Alto 170mm (Ajuste exacto al lomo físico)    */
+  /* ========================================================= */
+  .tira-lomo-minuta {
+    width: 24mm;
+    height: 170mm;
+    border: 1.5px dashed #000000;
+    border-radius: 4px;
+    padding: 5px 2px;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -154,62 +173,115 @@ const PRINT_CSS = `
     text-align: center;
     background: #ffffff;
     page-break-inside: avoid;
+    overflow: hidden;
   }
-  .minuta-header {
+  .lomo-top {
     width: 100%;
-    border-bottom: 2px solid #000;
-    padding-bottom: 6px;
-  }
-  .minuta-header .org-name {
-    font-size: 10px;
-    font-weight: 900;
-    letter-spacing: 0.05em;
-  }
-  .minuta-header .doc-code {
-    font-size: 26px;
-    font-weight: 900;
-    color: #0284c7;
-    line-height: 1.1;
-    margin-top: 2px;
-  }
-  .minuta-body {
-    flex: 1;
+    border-bottom: 1.5px solid #000000;
+    padding-bottom: 3px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    padding: 8px 0;
-    gap: 6px;
+    align-items: center;
   }
-  .minuta-puesto {
-    font-size: 12px;
+  .lomo-org {
+    font-size: 7px;
     font-weight: 900;
-    line-height: 1.25;
+    letter-spacing: 0.04em;
+    color: #000000;
+    line-height: 1;
+  }
+  .lomo-tipo {
+    font-size: 7.5px;
+    font-weight: 900;
+    background: #0284c7;
+    color: #ffffff;
+    padding: 1px 3px;
+    border-radius: 2px;
+    margin-top: 2px;
     text-transform: uppercase;
-    word-break: break-word;
+    line-height: 1;
   }
-  .minuta-fechas {
-    font-size: 9px;
+  .lomo-numero-grande {
+    font-size: 20px;
+    font-weight: 900;
+    color: #0284c7;
+    line-height: 1.05;
+    margin-top: 2px;
+    letter-spacing: -0.03em;
+  }
+
+  .lomo-cuerpo-vertical {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 2px;
+    padding: 4px 0;
+    overflow: hidden;
+  }
+  /* TEXTO ORIENTADO HACIA ABAJO (TOP-TO-BOTTOM) A LO LARGO DEL LOMO */
+  .lomo-texto-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 11px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #000000;
+    white-space: nowrap;
+    max-height: 95mm;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1;
+  }
+  .lomo-fechas-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 8px;
     font-weight: 700;
-    color: #334155;
+    color: #475569;
+    white-space: nowrap;
+    max-height: 90mm;
+    line-height: 1;
   }
-  .minuta-footer {
+  .lomo-codigo-vertical {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-size: 7px;
+    font-weight: 800;
+    color: #0284c7;
+    white-space: nowrap;
+    max-height: 85mm;
+    line-height: 1;
+  }
+
+  .lomo-footer {
     width: 100%;
-    border-top: 1px solid #000;
-    padding-top: 6px;
+    border-top: 1.5px solid #000000;
+    padding-top: 3px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
-  .minuta-slot {
-    font-size: 9.5px;
+  .lomo-slot {
+    font-size: 7.5px;
     font-weight: 900;
     color: #0284c7;
     text-transform: uppercase;
+    line-height: 1.1;
   }
-  .sys-version {
-    font-size: 7.5px;
+  .lomo-version {
+    font-size: 6px;
     color: #64748b;
-    margin-top: 2px;
+    font-weight: 700;
+    line-height: 1;
+    margin-top: 1px;
   }
 
-  /* FORMATO 2: RÓTULO HORIZONTAL CARPETAS */
+  /* ========================================================= */
+  /* FORMATO 2: RÓTULO HORIZONTAL PARA CARPETAS LEGAJADORAS    */
+  /* ========================================================= */
   .rotulo-carpeta {
     width: 370px;
     height: 155px;
