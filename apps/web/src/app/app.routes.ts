@@ -424,13 +424,11 @@ export const routes: Routes = [
           },
           {
             path: 'workflows',
-            loadComponent: () =>
-              import('./features/documental/workflows/workflows').then((m) => m.WorkflowsScreen),
+            redirectTo: 'correspondencia',
           },
           {
             path: 'trd',
-            loadComponent: () =>
-              import('./features/documental/retention/retention').then((m) => m.RetentionScreen),
+            redirectTo: 'correspondencia',
           },
         ],
       },
