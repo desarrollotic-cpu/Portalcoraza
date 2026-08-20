@@ -286,6 +286,9 @@ export class DocumentalApiService {
   returnLoan(id: string): Observable<Loan> {
     return this.http.put<Loan>(`${this.baseUrl}/loans/${id}/return`, {});
   }
+  publicLoanRequest(payload: Record<string, unknown>): Observable<{ id: string }> {
+    return this.http.post<{ id: string }>(`${environment.apiUrl}/public/documental/loan-request`, payload);
+  }
 
   // Biblioteca
   libraryTree(): Observable<{ folders: LibraryFolder[]; files: LibraryFile[] }> {

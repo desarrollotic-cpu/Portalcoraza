@@ -7,6 +7,13 @@ import { MainLayout } from './layouts/main-layout/main-layout';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
+    path: 'solicitud-prestamo',
+    loadComponent: () =>
+      import('./features/documental/public-loan-request/public-loan-request').then(
+        (m) => m.PublicLoanRequestComponent,
+      ),
+  },
+  {
     path: 'auth',
     component: AuthLayout,
     children: [

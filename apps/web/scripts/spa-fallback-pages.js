@@ -64,6 +64,7 @@ const routes = [
   'sig',
   'vigia',
   'vigia/login',
+  'solicitud-prestamo',
 ];
 
 for (const route of routes) {
