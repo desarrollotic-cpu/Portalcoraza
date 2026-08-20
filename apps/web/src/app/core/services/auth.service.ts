@@ -125,6 +125,24 @@ export class AuthService {
     return user.permissions.includes(code);
   }
 
+  getDefaultRoute(): string {
+    const user = this.currentUser();
+    if (!user) return '/auth/login';
+    if (this.hasPermission('users.view') || user.role?.code === 'GERENCIA') {
+      return '/dashboard';
+    }
+    if (this.hasPermission('reception.view')) return '/recepcion';
+    if (this.hasPermission('documental.view')) return '/documental';
+    if (this.hasPermission('inventory.view')) return '/dotacion';
+    if (this.hasPermission('associates.view') || this.hasPermission('hr_dashboard.view')) return '/rrhh';
+    if (this.hasPermission('scheduling.view')) return '/programacion';
+    if (this.hasPermission('minuta.view')) return '/minutas';
+    if (this.hasPermission('sst.view')) return '/sst';
+    if (this.hasPermission('posts.view')) return '/operaciones';
+    if (this.hasPermission('accounting.view') || this.hasPermission('payroll.view')) return '/contabilidad';
+    return '/dashboard';
+  }
+
   private clearSession(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);

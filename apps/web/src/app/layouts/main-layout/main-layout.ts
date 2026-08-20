@@ -940,7 +940,13 @@ export class MainLayout implements OnDestroy {
     {
       label: 'General',
       items: [
-        { label: 'Dashboard', route: '/dashboard', icon: LucideHome, match: 'exact' },
+        {
+          label: 'Dashboard',
+          route: '/dashboard',
+          icon: LucideHome,
+          match: 'exact',
+          permission: 'users.view',
+        },
       ],
     },
     {
