@@ -287,6 +287,19 @@ export class OverviewService {
       }),
     );
 
+    const pendientes = await this.loansRepo
+      .createQueryBuilder('l')
+      .where("l.status = 'PENDIENTE_APROBACION'")
+      .orderBy('l.loan_date', 'DESC')
+      .getMany();
+    pendientes.forEach((p) =>
+      alertas.push({
+        tipo: 'SOLICITUD_PRESTAMO_PENDIENTE', nivel: 'advertencia', modulo: 'prestamos', idRegistro: p.id,
+        titulo: `🔔 Solicitud de Préstamo Pendiente (${p.id})`,
+        mensaje: `"${p.document || 'Expediente'}" solicitado por ${p.requester} (${p.department || 'Área'}) pendiente de aprobación.`,
+      }),
+    );
+
     const contratos = await this.contractsRepo
       .createQueryBuilder('c')
       .where("c.status = 'VIGENTE' AND c.end_date >= CURRENT_DATE AND c.end_date <= CURRENT_DATE + INTERVAL '30 days'")
