@@ -352,8 +352,6 @@ export class DocumentalLayout implements OnInit {
     { label: 'Préstamos', route: '/documental/prestamos', permission: 'documental.view', icon: LucideCalendarClock },
     { label: 'Biblioteca', route: '/documental/biblioteca', permission: 'documental.view', icon: LucideBoxes },
     { label: 'VOXELSERA', route: '/documental/voxelsera', permission: 'documental.view', icon: LucideBoxes },
-    { label: 'Workflows', route: '/documental/workflows', permission: 'documental.view', icon: LucideBell },
-    { label: 'TRD', route: '/documental/trd', permission: 'documental.view', icon: LucideFileText },
     { label: 'Buscador Universal', route: '/documental/buscador', permission: 'documental.view', icon: LucideSearch },
     { label: 'Informes', route: '/documental/informes', permission: 'documental.view', icon: LucideClipboardList },
   ];
