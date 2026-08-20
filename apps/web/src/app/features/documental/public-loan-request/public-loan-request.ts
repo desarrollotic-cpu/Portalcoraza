@@ -103,7 +103,21 @@ import { DocumentalApiService } from '../documental-api.service';
                 ></textarea>
               </label>
 
-              <label class="form-group">
+              <label class="form-group span-2">
+                <span class="label-text">Correo Electrónico para Notificaciones y Alertas de Devolución *</span>
+                <input
+                  type="email"
+                  [(ngModel)]="model.email"
+                  name="email"
+                  required
+                  placeholder="Ej: funcionario@corazaseguridadcta.com o correo personal"
+                />
+                <span style="font-size:0.72rem;color:#64748b;margin-top:2px">
+                  ✉️ Te llegará un recordatorio oficial desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha de devolución.
+                </span>
+              </label>
+
+              <label class="form-group span-2">
                 <span class="label-text">Fecha Estimada de Devolución *</span>
                 <input
                   type="date"
@@ -296,6 +310,7 @@ export class PublicLoanRequestComponent {
     departamento: '',
     documento: '',
     motivo: '',
+    email: '',
     fechaDevolucion: '',
   };
 
@@ -304,8 +319,8 @@ export class PublicLoanRequestComponent {
   readonly successId = signal<string | null>(null);
 
   submit(): void {
-    if (!this.model.nombre || !this.model.cedula || !this.model.documento) {
-      this.error.set('Por favor completa todos los campos requeridos (*).');
+    if (!this.model.nombre || !this.model.cedula || !this.model.documento || !this.model.email) {
+      this.error.set('Por favor completa todos los campos requeridos (*), incluyendo tu correo electrónico.');
       return;
     }
     this.submitting.set(true);
@@ -331,6 +346,7 @@ export class PublicLoanRequestComponent {
       departamento: '',
       documento: '',
       motivo: '',
+      email: '',
       fechaDevolucion: '',
     };
   }

@@ -45,4 +45,10 @@ export class LoansController {
   returnLoan(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.service.returnLoan(id, user.sub);
   }
+
+  @Post(':id/send-reminder')
+  @RequirePermissions('documental.manage')
+  sendReminder(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.service.sendOverdueEmailManual(id, user.sub);
+  }
 }

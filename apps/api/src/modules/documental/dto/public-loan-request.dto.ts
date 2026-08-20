@@ -26,6 +26,11 @@ export class PublicLoanRequestDto {
   motivo?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  email?: string;
+
+  @IsOptional()
   @IsDateString()
   fechaDevolucion?: string;
 }

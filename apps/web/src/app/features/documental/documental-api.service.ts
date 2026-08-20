@@ -121,9 +121,10 @@ export interface Loan {
   documentCode: string | null;
   loanDate: string | null;
   returnDate: string | null;
-  realReturnDate: string | null;
   status: string;
   observations: string | null;
+  email: string | null;
+  overdueNotifiedAt: string | null;
 }
 
 export interface Workflow {
@@ -288,6 +289,9 @@ export class DocumentalApiService {
   }
   publicLoanRequest(payload: Record<string, unknown>): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${environment.apiUrl}/public/documental/loan-request`, payload);
+  }
+  sendLoanReminder(id: string): Observable<{ success: boolean; message: string }> {
+    return this.http.post<{ success: boolean; message: string }>(`${this.baseUrl}/loans/${id}/send-reminder`, {});
   }
 
   // Biblioteca

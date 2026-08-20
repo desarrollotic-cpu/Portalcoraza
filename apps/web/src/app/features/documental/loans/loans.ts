@@ -6,6 +6,7 @@ import {
   LucideCopy,
   LucideExternalLink,
   LucideFileText,
+  LucideMail,
   LucidePlus,
   LucideQrCode,
   LucideX,
@@ -24,7 +25,7 @@ import { DOC_STYLES } from '../documental.styles';
       <div class="toolbar">
         <div>
           <h3>Préstamos de Documentos y Custodia</h3>
-          <p class="muted">Control de salida física de expedientes, solicitudes públicas y devoluciones.</p>
+          <p class="muted">Control de salida física de expedientes, solicitudes públicas, notificaciones de vencimiento y devoluciones.</p>
         </div>
         <div class="header-btns">
           <button type="button" class="btn-qr-share" (click)="openQrModal()">
@@ -48,7 +49,7 @@ import { DOC_STYLES } from '../documental.styles';
           </div>
           <div>
             <strong>Enlace Público de Solicitud de Préstamos (Sin Login)</strong>
-            <p>Comparte este enlace o imprime el código QR para que cualquier funcionario de Coraza radique solicitudes de documentos.</p>
+            <p>El solicitante ingresa su correo y el sistema le notificará automáticamente desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha.</p>
           </div>
         </div>
         <div class="banner-actions">
@@ -74,6 +75,12 @@ import { DOC_STYLES } from '../documental.styles';
         </div>
       }
 
+      @if (emailStatusMsg()) {
+        <div class="email-toast">
+          {{ emailStatusMsg() }}
+        </div>
+      }
+
       <!-- FORMULARIO DE REGISTRO MANUAL DE PRÉSTAMO -->
       @if (showForm()) {
         <form class="card form-loan" (ngSubmit)="save()">
@@ -85,6 +92,10 @@ import { DOC_STYLES } from '../documental.styles';
             <label>
               <span>Solicitante *</span>
               <input [(ngModel)]="model.requester" name="requester" required placeholder="Nombre completo del solicitante" />
+            </label>
+            <label>
+              <span>Correo Electrónico (Para Alertas de Vencimiento)</span>
+              <input type="email" [(ngModel)]="model.email" name="email" placeholder="Ej: funcionario@corazaseguridadcta.com" />
             </label>
             <label>
               <span>Departamento / Área</span>
@@ -125,7 +136,7 @@ import { DOC_STYLES } from '../documental.styles';
           <table>
             <thead>
               <tr>
-                <th>Solicitante</th>
+                <th>Solicitante & Correo</th>
                 <th>Área / Dpto</th>
                 <th>Documento</th>
                 <th>Fecha Préstamo</th>
@@ -136,9 +147,15 @@ import { DOC_STYLES } from '../documental.styles';
             </thead>
             <tbody>
               @for (l of items(); track l.id) {
-                <tr [class.row-pending]="l.status === 'PENDIENTE_APROBACION'">
+                <tr [class.row-pending]="l.status === 'PENDIENTE_APROBACION'" [class.row-vencido]="l.status === 'VENCIDO'">
                   <td>
                     <strong>{{ l.requester }}</strong>
+                    @if (l.email) {
+                      <div class="email-tag">
+                        <app-icon [icon]="icons.Mail" [size]="11" [strokeWidth]="2" />
+                        <span>{{ l.email }}</span>
+                      </div>
+                    }
                     @if (l.observations) {
                       <div class="obs-text">{{ l.observations }}</div>
                     }
@@ -151,7 +168,14 @@ import { DOC_STYLES } from '../documental.styles';
                     }
                   </td>
                   <td>{{ l.loanDate ?? '—' }}</td>
-                  <td>{{ l.returnDate ?? '—' }}</td>
+                  <td>
+                    <span>{{ l.returnDate ?? '—' }}</span>
+                    @if (l.overdueNotifiedAt) {
+                      <div class="notif-badge" title="Notificación de vencimiento enviada">
+                        ✉️ Notificado
+                      </div>
+                    }
+                  </td>
                   <td>
                     <span
                       class="badge"
@@ -176,9 +200,22 @@ import { DOC_STYLES } from '../documental.styles';
                           </button>
                         </div>
                       } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
-                        <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
-                          📥 Registrar Devolución
-                        </button>
+                        <div class="btn-group-right">
+                          @if (l.email) {
+                            <button
+                              type="button"
+                              class="btn-notify-email"
+                              (click)="sendEmailReminder(l)"
+                              title="Enviar recordatorio de devolución desde Documental@corazaseguridadcta.com"
+                            >
+                              <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
+                              <span>Notificar</span>
+                            </button>
+                          }
+                          <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
+                            📥 Devolver
+                          </button>
+                        </div>
                       } @else {
                         <span class="muted">—</span>
                       }
@@ -218,7 +255,6 @@ import { DOC_STYLES } from '../documental.styles';
                 <span>Sistema de Gestión Documental</span>
               </div>
               <div class="qr-image-wrap">
-                <!-- Código QR dinámico generado mediante API segura de QR -->
                 <img
                   [src]="qrImageUrl()"
                   alt="QR Solicitud de Préstamos"
@@ -227,7 +263,7 @@ import { DOC_STYLES } from '../documental.styles';
               </div>
               <div class="qr-instructions">
                 <strong>ESCANEA PARA SOLICITAR PRÉSTAMO</strong>
-                <p>Abre la cámara de tu celular para radicar la solicitud de expedientes o carpetas físicas sin iniciar sesión.</p>
+                <p>Abre la cámara de tu celular para radicar la solicitud de expedientes físicos sin iniciar sesión. Las alertas de vencimiento se enviarán desde Documental&#64;corazaseguridadcta.com.</p>
               </div>
             </div>
 
@@ -337,6 +373,17 @@ import { DOC_STYLES } from '../documental.styles';
     .alert-content strong { display: block; font-size: 0.88rem; color: #92400e; }
     .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #b45309; }
 
+    .email-toast {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 0.75rem 1rem;
+      border-radius: 0.6rem;
+      font-size: 0.84rem;
+      font-weight: 700;
+      animation: fadeIn 0.2s ease;
+    }
+
     /* FORM */
     .form-loan {
       background: var(--surface);
@@ -352,9 +399,13 @@ import { DOC_STYLES } from '../documental.styles';
     /* TABLE */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
     .row-pending { background: #fffdf5; }
+    .row-vencido { background: #fff5f5; }
+    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #2563eb; font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
     .doc-code-tag { font-size: 0.72rem; color: #2563eb; font-weight: 700; }
-    .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; }
+    .notif-badge { font-size: 0.68rem; color: #b45309; background: #fef3c7; padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
+    
+    .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
     .btn-act-approve {
       background: #ecfdf5;
       color: #047857;
@@ -383,6 +434,22 @@ import { DOC_STYLES } from '../documental.styles';
       gap: 0.25rem;
     }
     .btn-act-reject:hover { background: #fee2e2; }
+    
+    .btn-notify-email {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .btn-notify-email:hover { background: #dbeafe; }
+
     .btn-return { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.35rem; font-weight: 700; }
 
     /* MODAL QR */
@@ -477,6 +544,7 @@ export class LoansScreen implements OnInit {
     Copy: LucideCopy,
     ExternalLink: LucideExternalLink,
     FileText: LucideFileText,
+    Mail: LucideMail,
     Plus: LucidePlus,
     QrCode: LucideQrCode,
     X: LucideX,
@@ -489,6 +557,7 @@ export class LoansScreen implements OnInit {
   readonly error = signal<string | null>(null);
   readonly qrModalOpen = signal(false);
   readonly copied = signal(false);
+  readonly emailStatusMsg = signal<string | null>(null);
 
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
@@ -512,6 +581,7 @@ export class LoansScreen implements OnInit {
     department: '',
     document: '',
     documentCode: '',
+    email: '',
     loanDate: new Date().toISOString().slice(0, 10),
     returnDate: '',
   };
@@ -610,6 +680,7 @@ export class LoansScreen implements OnInit {
           department: '',
           document: '',
           documentCode: '',
+          email: '',
           loanDate: new Date().toISOString().slice(0, 10),
           returnDate: '',
         };
@@ -633,5 +704,20 @@ export class LoansScreen implements OnInit {
 
   ret(l: Loan): void {
     this.api.returnLoan(l.id).subscribe({ next: () => this.load() });
+  }
+
+  sendEmailReminder(l: Loan): void {
+    if (!l.email) return;
+    this.api.sendLoanReminder(l.id).subscribe({
+      next: (res) => {
+        this.emailStatusMsg.set(`📧 Correo de recordatorio enviado a ${l.email} desde Documental@corazaseguridadcta.com`);
+        this.load();
+        setTimeout(() => this.emailStatusMsg.set(null), 5000);
+      },
+      error: () => {
+        this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
+        setTimeout(() => this.emailStatusMsg.set(null), 4000);
+      },
+    });
   }
 }
