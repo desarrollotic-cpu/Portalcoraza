@@ -1,8 +1,10 @@
 /** 
  * Rótulo físico de carpeta y lomo de libro — Medidas y diseño 100% original del SGD Coraza.
- * - Minutas: Medida exacta original de 130px x 390px (3.5cm x 10.5cm), con único ajuste:
- *   el consecutivo numérico asignado apilado verticalmente (- / 0 / 0 / 9 / 8) dentro de la cabecera.
+ * - Minutas: Medida exacta original de 130px x 390px (3.5cm x 10.5cm), con consecutivo
+ *   numérico apilado verticalmente (- / 0 / 0 / 9 / 8) dentro de la cabecera.
  * - Carpetas legajadoras: Medida exacta original de 380px x 160px (9.5cm x 4.2cm).
+ * - Sistema de Cola y Memoria: Guarda automáticamente un HISTORIAL de lotes impresos
+ *   para poder reimprimir cualquier lote anterior en caso de fallos de impresora o reimpresiones.
  */
 
 export interface RotuloItem {
@@ -16,7 +18,15 @@ export interface RotuloItem {
   modulo: 'MINUTAS' | 'CONTRATOS' | 'PERSONAL' | 'CORRESPONDENCIA' | string;
 }
 
+export interface LoteHistorial {
+  id: string;
+  fecha: string;
+  cantidad: number;
+  items: Array<RotuloItem & { id: string }>;
+}
+
 const COLA_KEY = 'colaTirasCoraza';
+const HISTORIAL_KEY = 'historialLotesCoraza';
 
 export function addToPrintQueue(item: RotuloItem & { id: string }): void {
   const cola: Array<RotuloItem & { id: string }> = JSON.parse(localStorage.getItem(COLA_KEY) || '[]');
@@ -40,6 +50,34 @@ export function removeFromPrintQueue(idx: number): void {
   if (cola[idx]) {
     cola.splice(idx, 1);
     localStorage.setItem(COLA_KEY, JSON.stringify(cola));
+    window.dispatchEvent(new Event('storage'));
+  }
+}
+
+/** Guarda un lote en el historial persistente de reimpresión (guarda los últimos 15 lotes). */
+export function saveBatchToHistory(items: Array<RotuloItem & { id: string }>): void {
+  if (!items || items.length === 0) return;
+  const historial: LoteHistorial[] = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+  const nuevoLote: LoteHistorial = {
+    id: 'lote_' + Date.now(),
+    fecha: new Date().toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }),
+    cantidad: items.length,
+    items: [...items],
+  };
+  historial.unshift(nuevoLote);
+  if (historial.length > 15) historial.pop(); // Mantener últimos 15 lotes
+  localStorage.setItem(HISTORIAL_KEY, JSON.stringify(historial));
+}
+
+export function getBatchesHistory(): LoteHistorial[] {
+  return JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+}
+
+export function restoreBatchToQueue(batchId: string): void {
+  const historial = getBatchesHistory();
+  const found = historial.find((h) => h.id === batchId);
+  if (found && found.items.length) {
+    localStorage.setItem(COLA_KEY, JSON.stringify(found.items));
     window.dispatchEvent(new Event('storage'));
   }
 }
@@ -311,9 +349,18 @@ export function printRotulo(item: RotuloItem): void {
   printHtml(html, `Rótulo #${item.codigo} - ${item.titulo}`);
 }
 
-export function printQueue(): void {
+/** 
+ * Imprime las tiras acumuladas.
+ * Guarda una copia en el historial de lotes para poder reimprimir cuando se desee.
+ * NO borra la cola automáticamente a menos que el usuario lo solicite.
+ */
+export function printQueue(clearAfter = false): void {
   const items = getPrintQueue();
   if (!items.length) return;
+  
+  // Guardar en historial antes de imprimir
+  saveBatchToHistory(items);
+
   const html = `
     <div class="print-banner">
       <span>CORAZA SEGURIDAD C.T.A. — LOTE DE TIRAS (${items.length} Rótulos)</span>
@@ -324,7 +371,25 @@ export function printQueue(): void {
     </div>
   `;
   printHtml(html, `Lote de ${items.length} rótulos - Coraza`);
-  clearPrintQueue();
+
+  if (clearAfter) {
+    clearPrintQueue();
+  }
+}
+
+/** Imprime directamente un lote específico del historial. */
+export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): void {
+  if (!items || !items.length) return;
+  const html = `
+    <div class="print-banner">
+      <span>CORAZA SEGURIDAD C.T.A. — REIMPRESIÓN DE LOTE (${items.length} Rótulos)</span>
+      <span>✂️ Recorte por las líneas punteadas</span>
+    </div>
+    <div class="print-grid">
+      ${items.map(stripHtml).join('')}
+    </div>
+  `;
+  printHtml(html, `Reimpresión de Lote (${items.length} rótulos) - Coraza`);
 }
 
 function printHtml(content: string, title: string): void {

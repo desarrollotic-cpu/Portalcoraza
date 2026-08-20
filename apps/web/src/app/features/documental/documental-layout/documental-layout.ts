@@ -1,13 +1,14 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
-  LucideBell,
   LucideBoxes,
   LucideCalendarClock,
   LucideClipboardList,
   LucideFileText,
+  LucideHistory,
   LucideLayoutGrid,
   LucidePrinter,
+  LucideRefreshCw,
   LucideSearch,
   LucideShieldCheck,
   LucideTrash2,
@@ -17,11 +18,15 @@ import {
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 import { Icon } from '../../../shared/components/icon/icon';
 import {
+  LoteHistorial,
   RotuloItem,
   clearPrintQueue,
+  getBatchesHistory,
   getPrintQueue,
   printQueue,
+  printSpecificBatch,
   removeFromPrintQueue,
+  restoreBatchToQueue,
 } from '../rotulo-print';
 
 @Component({
@@ -39,7 +44,7 @@ import {
         type="button"
         class="queue-topbar-btn"
         (click)="openModal()"
-        title="Cola de impresión de tiras y rótulos (Ahorro de Papel)"
+        title="Cola de impresión y reimpresión de lotes"
       >
         <app-icon [icon]="icons.Printer" [size]="16" [strokeWidth]="2" />
         <span class="queue-text">Cola de Tiras</span>
@@ -49,7 +54,7 @@ import {
       <router-outlet />
     </app-module-shell>
 
-    <!-- MODAL DE COLA DE IMPRESIÓN (AHORRO DE PAPEL) -->
+    <!-- MODAL DE COLA Y REIMPRESIÓN DE LOTES (AHORRO DE PAPEL) -->
     @if (modalOpen()) {
       <div class="modal-backdrop" (click)="closeModal()">
         <div class="modal-card" (click)="$event.stopPropagation()">
@@ -59,8 +64,8 @@ import {
                 <app-icon [icon]="icons.Printer" [size]="20" [strokeWidth]="2" />
               </div>
               <div>
-                <h3>Cola de Impresión de Tiras (Ahorro de Papel)</h3>
-                <p>Acumula los rótulos registrados para imprimirlos todos juntos en 1 sola hoja de papel.</p>
+                <h3>Centro de Impresión y Reimpresión de Rótulos</h3>
+                <p>Imprime lotes en 1 sola hoja de papel o reimprime lotes anteriores guardados.</p>
               </div>
             </div>
             <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar">
@@ -68,53 +73,135 @@ import {
             </button>
           </div>
 
-          <div class="modal-body">
-            @if (queueItems().length === 0) {
-              <div class="empty-queue">
-                <div class="empty-icon">📄</div>
-                <strong>La cola de impresión está vacía</strong>
-                <p>Cada vez que registres una Minuta, Contrato o Asociado, se guardará aquí automáticamente para imprimir todo junto en lote.</p>
-              </div>
-            } @else {
-              <div class="queue-status-bar">
-                <span><strong>{{ queueItems().length }}</strong> tira(s) lista(s) para imprimir en lote:</span>
-                <button type="button" class="btn-clear" (click)="clearAll()">
-                  <app-icon [icon]="icons.Trash" [size]="13" [strokeWidth]="2" />
-                  Vaciar Cola
-                </button>
-              </div>
+          <!-- TABS DEL MODAL -->
+          <div class="modal-tabs">
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeTab() === 'current'"
+              (click)="activeTab.set('current')"
+            >
+              <app-icon [icon]="icons.Printer" [size]="14" [strokeWidth]="2" />
+              <span>Cola Actual ({{ queueItems().length }})</span>
+            </button>
+            <button
+              type="button"
+              class="tab-btn"
+              [class.active]="activeTab() === 'history'"
+              (click)="activeTab.set('history')"
+            >
+              <app-icon [icon]="icons.History" [size]="14" [strokeWidth]="2" />
+              <span>Historial de Lotes ({{ batchesHistory().length }})</span>
+            </button>
+          </div>
 
-              <div class="queue-list">
-                @for (it of queueItems(); track it.id; let idx = $index) {
-                  <div class="queue-item">
-                    <div class="item-info">
-                      <span class="item-badge" [attr.data-mod]="it.modulo">{{ it.modulo }}</span>
-                      <strong class="item-code">#{{ it.codigo }}</strong>
-                      <span class="item-title">{{ it.titulo }}</span>
-                      @if (it.slotFisico) {
-                        <span class="item-slot">📍 {{ it.slotFisico }}</span>
-                      }
-                    </div>
-                    <button type="button" class="btn-remove" (click)="removeItem(idx)" title="Quitar de la cola">
-                      <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
+          <div class="modal-body">
+            @if (activeTab() === 'current') {
+              @if (queueItems().length === 0) {
+                <div class="empty-queue">
+                  <div class="empty-icon">📄</div>
+                  <strong>La cola de impresión está vacía</strong>
+                  <p>Cada vez que registres una Minuta, Contrato o Asociado, se guardará aquí automáticamente para imprimir todo junto en lote.</p>
+                  @if (batchesHistory().length > 0) {
+                    <button type="button" class="btn-goto-history" (click)="activeTab.set('history')">
+                      <app-icon [icon]="icons.History" [size]="14" [strokeWidth]="2" />
+                      Ver lotes anteriores para reimprimir
                     </button>
-                  </div>
-                }
-              </div>
+                  }
+                </div>
+              } @else {
+                <div class="queue-status-bar">
+                  <span><strong>{{ queueItems().length }}</strong> tira(s) lista(s) para imprimir en lote:</span>
+                  <button type="button" class="btn-clear" (click)="clearAll()">
+                    <app-icon [icon]="icons.Trash" [size]="13" [strokeWidth]="2" />
+                    Vaciar Cola
+                  </button>
+                </div>
+
+                <div class="queue-list">
+                  @for (it of queueItems(); track it.id; let idx = $index) {
+                    <div class="queue-item">
+                      <div class="item-info">
+                        <span class="item-badge" [attr.data-mod]="it.modulo">{{ it.modulo }}</span>
+                        <strong class="item-code">#{{ it.codigo }}</strong>
+                        <span class="item-title">{{ it.titulo }}</span>
+                        @if (it.slotFisico) {
+                          <span class="item-slot">📍 {{ it.slotFisico }}</span>
+                        }
+                      </div>
+                      <button type="button" class="btn-remove" (click)="removeItem(idx)" title="Quitar de la cola">
+                        <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
+            } @else {
+              <!-- HISTORIAL DE LOTES IMPRESOS PARA REIMPRIMIR -->
+              @if (batchesHistory().length === 0) {
+                <div class="empty-queue">
+                  <div class="empty-icon">🕒</div>
+                  <strong>No hay lotes previos en el historial</strong>
+                  <p>Cuando imprimas tu primer lote de rótulos, quedará guardado aquí automáticamente para que puedas reimprimirlo cuando quieras.</p>
+                </div>
+              } @else {
+                <div class="history-list">
+                  @for (batch of batchesHistory(); track batch.id) {
+                    <div class="history-card">
+                      <div class="history-card-head">
+                        <div class="history-card-title">
+                          <span class="history-badge">Lote #{{ batch.id.replace('lote_', '') }}</span>
+                          <span class="history-date">📅 {{ batch.fecha }}</span>
+                          <span class="history-count">📄 {{ batch.cantidad }} rótulos</span>
+                        </div>
+                        <div class="history-actions">
+                          <button
+                            type="button"
+                            class="btn-reprint"
+                            (click)="reprintBatch(batch)"
+                            title="Reimprimir este lote ahora mismo"
+                          >
+                            <app-icon [icon]="icons.Printer" [size]="14" [strokeWidth]="2" />
+                            Reimprimir Lote
+                          </button>
+                          <button
+                            type="button"
+                            class="btn-restore"
+                            (click)="restoreBatch(batch.id)"
+                            title="Cargar estos documentos de nuevo a la cola actual"
+                          >
+                            <app-icon [icon]="icons.Refresh" [size]="13" [strokeWidth]="2" />
+                            Restaurar a Cola
+                          </button>
+                        </div>
+                      </div>
+                      <div class="history-items-chips">
+                        @for (item of batch.items; track item.id) {
+                          <span class="history-chip">
+                            <strong>#{{ item.codigo }}</strong> {{ item.titulo }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
             }
           </div>
 
           <div class="modal-footer">
             <button type="button" class="btn-cancel" (click)="closeModal()">Cerrar</button>
-            <button
-              type="button"
-              class="btn-print-all"
-              [disabled]="queueItems().length === 0"
-              (click)="printAll()"
-            >
-              <app-icon [icon]="icons.Printer" [size]="16" [strokeWidth]="2" />
-              Imprimir Hoja Completa ({{ queueItems().length }} Tiras)
-            </button>
+            @if (activeTab() === 'current') {
+              <button
+                type="button"
+                class="btn-print-all"
+                [disabled]="queueItems().length === 0"
+                (click)="printAll()"
+              >
+                <app-icon [icon]="icons.Printer" [size]="16" [strokeWidth]="2" />
+                Imprimir Hoja Completa ({{ queueItems().length }} Tiras)
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -141,11 +228,12 @@ import {
       border-color: #93c5fd;
       transform: translateY(-1px);
     }
+    .queue-text { font-weight: 700; }
     .queue-badge {
       background: #94a3b8;
       color: #fff;
       font-size: 0.72rem;
-      font-weight: 900;
+      font-weight: 800;
       padding: 0.1rem 0.45rem;
       border-radius: 999px;
       min-width: 20px;
@@ -175,12 +263,12 @@ import {
       background: #ffffff;
       border-radius: 1.25rem;
       width: 100%;
-      max-width: 620px;
+      max-width: 680px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
       border: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
-      max-height: 85vh;
+      max-height: 88vh;
       overflow: hidden;
     }
 
@@ -216,6 +304,35 @@ import {
     }
     .btn-close:hover { background: #f1f5f9; color: #0f172a; }
 
+    /* TABS */
+    .modal-tabs {
+      display: flex;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      padding: 0 1.5rem;
+      gap: 0.5rem;
+    }
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: transparent;
+      border: none;
+      border-bottom: 2px solid transparent;
+      padding: 0.75rem 0.95rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { color: #0f172a; }
+    .tab-btn.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+      background: #ffffff;
+    }
+
     .modal-body {
       padding: 1.25rem 1.5rem;
       overflow-y: auto;
@@ -235,6 +352,21 @@ import {
     .empty-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
     .empty-queue strong { display: block; font-size: 0.95rem; color: #334155; margin-bottom: 0.3rem; }
     .empty-queue p { margin: 0; font-size: 0.82rem; color: #64748b; max-width: 420px; margin: 0 auto; line-height: 1.4; }
+    .btn-goto-history {
+      margin-top: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #ffffff;
+      border: 1px solid #bfdbfe;
+      color: #2563eb;
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-goto-history:hover { background: #eff6ff; }
 
     .queue-status-bar {
       display: flex;
@@ -298,6 +430,69 @@ import {
     }
     .btn-remove:hover { background: #fee2e2; color: #ef4444; }
 
+    /* HISTORIAL CARDS */
+    .history-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .history-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    .history-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .history-card-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
+    .history-badge { font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #334155; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
+    .history-date { font-size: 0.78rem; color: #64748b; font-weight: 600; }
+    .history-count { font-size: 0.78rem; font-weight: 700; color: #2563eb; }
+    .history-actions { display: flex; align-items: center; gap: 0.4rem; }
+    .btn-reprint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #1e40af;
+      color: #ffffff;
+      border: none;
+      border-radius: 0.45rem;
+      padding: 0.35rem 0.7rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-reprint:hover { background: #1e3a8a; }
+    .btn-restore {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      color: #475569;
+      border-radius: 0.45rem;
+      padding: 0.35rem 0.6rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-restore:hover { background: #f1f5f9; }
+    .history-items-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .history-chip {
+      font-size: 0.72rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.35rem;
+      color: #334155;
+    }
+    .history-chip strong { color: #2563eb; }
+
     .modal-footer {
       display: flex;
       justify-content: flex-end;
@@ -341,6 +536,8 @@ export class DocumentalLayout implements OnInit {
     Printer: LucidePrinter,
     Trash: LucideTrash2,
     X: LucideX,
+    History: LucideHistory,
+    Refresh: LucideRefreshCw,
   };
 
   readonly nav: ModuleNavItem[] = [
@@ -357,12 +554,13 @@ export class DocumentalLayout implements OnInit {
   ];
 
   readonly modalOpen = signal(false);
+  readonly activeTab = signal<'current' | 'history'>('current');
   readonly queueItems = signal<Array<RotuloItem & { id: string }>>([]);
   readonly queueCount = signal(0);
+  readonly batchesHistory = signal<LoteHistorial[]>([]);
 
   ngOnInit(): void {
     this.refreshQueue();
-    // Escuchar cambios periódicos en la cola
     window.addEventListener('storage', () => this.refreshQueue());
   }
 
@@ -370,10 +568,12 @@ export class DocumentalLayout implements OnInit {
     const items = getPrintQueue();
     this.queueItems.set(items);
     this.queueCount.set(items.length);
+    this.batchesHistory.set(getBatchesHistory());
   }
 
   openModal(): void {
     this.refreshQueue();
+    this.activeTab.set('current');
     this.modalOpen.set(true);
   }
 
@@ -392,8 +592,17 @@ export class DocumentalLayout implements OnInit {
   }
 
   printAll(): void {
-    printQueue();
+    printQueue(false); // NO borra la cola automáticamente
     this.refreshQueue();
-    this.closeModal();
+  }
+
+  reprintBatch(batch: LoteHistorial): void {
+    printSpecificBatch(batch.items);
+  }
+
+  restoreBatch(batchId: string): void {
+    restoreBatchToQueue(batchId);
+    this.refreshQueue();
+    this.activeTab.set('current');
   }
 }
