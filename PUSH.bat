@@ -1,7 +1,7 @@
 @echo off
-title Publicando cambios de Portal Coraza
+title Publicando Portal Coraza a GitHub y Render
 echo =========================================================
-echo   PUBLICANDO COLA DE IMPRESION Y DASHBOARD A GITHUB...
+echo   ENVIANDO CAMBIOS A GITHUB Y RENDER (PRODUCCION)...
 echo =========================================================
 echo.
 cd /d "C:\Users\gdocumental\Documents\APP CORAZA 2027"
