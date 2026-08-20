@@ -1,9 +1,9 @@
 /** 
  * Rótulo físico de carpeta y lomo de libro — Portado y optimizado del SGD Coraza.
  * Genera tiras de corte exacto para:
- * 1. Lomo de Minutas: Con el CONSECUTIVO orientado verticalmente (bajando de arriba hacia abajo)
- *    para que nunca se corte en lomos estrechos de libros físicos, manteniendo el resto
- *    de datos (CORAZA C.T.A., nombre de puesto, fechas, estante) en su formato horizontal.
+ * 1. Lomo de Minutas: Con el número consecutivo apilado verticalmente dígito por dígito
+ *    (- / 0 / 5 / 2 / 9) tal como en la foto, y todo el resto de datos exactamente en su
+ *    formato horizontal original (CORAZA C.T.A., nombre de puesto, fechas, estante).
  * 2. Rótulo horizontal para carpetas legajadoras azules (Contratos y Asociados Retirados).
  * 3. Rótulo de radicación TRD para Correspondencia.
  */
@@ -57,7 +57,6 @@ function escapeHtml(s: string): string {
 
 function stripHtml(item: RotuloItem): string {
   const codClean = String(item.codigo || 'S/N').replace(/^#/, '');
-  const cod = `#${codClean}`;
   const tit = (item.titulo || 'CARPETA DE ARCHIVO').toUpperCase();
   const slotRaw = (item.slotFisico || 'ESTANTE A').replace(/^VOXEL_/, '');
   const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
@@ -65,8 +64,11 @@ function stripHtml(item: RotuloItem): string {
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
 
   if (esMinuta) {
-    // FORMATO 1: Lomo de Minutas
-    // El consecutivo va BAJANDO verticalmente (top-to-bottom); el resto horizontal.
+    // Extraer los dígitos del consecutivo asignado (ej. de MIN-SER-0529 extrae 0529)
+    const matchDigits = codClean.match(/\d+$/);
+    const digits = matchDigits ? matchDigits[0] : codClean;
+    const digitsList = digits.split('');
+
     return `
       <div class="tira-lomo-minuta">
         <div class="lomo-head">
@@ -74,7 +76,8 @@ function stripHtml(item: RotuloItem): string {
         </div>
 
         <div class="lomo-consecutivo-box">
-          <div class="consecutivo-bajando">${escapeHtml(cod)}</div>
+          <div class="digit-dash">-</div>
+          ${digitsList.map((d) => `<div class="digit-num">${escapeHtml(d)}</div>`).join('')}
         </div>
 
         <div class="lomo-info-horizontal">
@@ -90,6 +93,7 @@ function stripHtml(item: RotuloItem): string {
   }
 
   // FORMATO 2: Rótulo Horizontal para Carpetas Legajadoras (Contratos / Retirados / Correspondencia)
+  const cod = `#${codClean}`;
   const modLabel = item.modulo.toUpperCase();
   return `
     <div class="rotulo-carpeta">
@@ -148,13 +152,13 @@ const PRINT_CSS = `
   }
 
   /* ========================================================= */
-  /* FORMATO 1: LOMO MINUTAS — CONSECUTIVO BAJANDO VERTICAL    */
-  /* Ancho 26mm x Alto 175mm (Ajuste óptimo al lomo del libro) */
+  /* FORMATO 1: LOMO MINUTAS — DÍGITOS APILADOS VERTICALMENTE  */
+  /* Ancho 28mm x Alto 175mm (Ajuste perfecto al lomo físico)  */
   /* ========================================================= */
   .tira-lomo-minuta {
-    width: 26mm;
+    width: 28mm;
     height: 175mm;
-    border: 1.5px dashed #000000;
+    border: 2px dashed #000000;
     border-radius: 4px;
     padding: 6px 3px;
     display: flex;
@@ -168,43 +172,48 @@ const PRINT_CSS = `
   }
   .lomo-head {
     width: 100%;
-    border-bottom: 1.5px solid #000000;
+    border-bottom: 2px solid #000000;
     padding-bottom: 4px;
   }
   .org-name {
-    font-size: 8px;
+    font-size: 8.5px;
     font-weight: 900;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     color: #000000;
-    line-height: 1;
+    line-height: 1.1;
   }
 
-  /* CONSECUTIVO BAJANDO (VERTICAL TOP-TO-BOTTOM) */
+  /* CONSECUTIVO EN DÍGITOS APILADOS HACIA ABAJO */
   .lomo-consecutivo-box {
-    flex: 1;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    padding: 6px 0;
+    justify-content: center;
+    margin: 4px 0;
+    line-height: 1;
   }
-  .consecutivo-bajando {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
+  .digit-dash {
     font-size: 22px;
     font-weight: 900;
+    color: #000000;
+    line-height: 0.75;
+    margin-bottom: 2px;
+  }
+  .digit-num {
+    font-size: 24px;
+    font-weight: 900;
     color: #0284c7;
-    letter-spacing: 0.08em;
-    line-height: 1;
-    white-space: nowrap;
+    line-height: 1.05;
+    font-family: Arial, sans-serif;
   }
 
   .lomo-info-horizontal {
     width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    padding: 4px 0;
-    border-top: 1px solid #cbd5e1;
+    gap: 3px;
+    padding: 5px 0;
+    border-top: 1.5px solid #000000;
   }
   .minuta-puesto-text {
     font-size: 9px;
