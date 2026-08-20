@@ -26,16 +26,41 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label>Nombre completo<input [(ngModel)]="model.fullName" name="fullName" required /></label>
         <label>Cédula<input [(ngModel)]="model.idNumber" name="idNumber" required /></label>
         <label>Fecha de baja<input type="date" [(ngModel)]="model.retirementDate" name="retirementDate" /></label>
-        <label>Tipo de persona
-          <select [(ngModel)]="model.personType" name="personType">
-            <option value="EMPLEADO">Empleado</option>
-            <option value="ASOCIADO">Asociado</option>
-            <option value="CONTRATISTA">Contratista</option>
+        <label>
+          Tipo de Persona *
+          <select [(ngModel)]="model.personType" name="personType" required>
+            <option value="ASOCIADO">👥 Asociado CTA</option>
+            <option value="EMPLEADO">👔 Empleado / Administrativo</option>
+            <option value="CONTRATISTA">🛠️ Contratista / Externo</option>
           </select>
         </label>
-        <label>VOXELSERA<input [(ngModel)]="model.voxelsera" name="voxelsera" placeholder="VOXEL_B1" /></label>
-        <label class="full">Motivo de baja<input [(ngModel)]="model.retirementReason" name="retirementReason" /></label>
-        <label class="full">Observaciones<textarea [(ngModel)]="model.observations" name="observations" rows="2"></textarea></label>
+        <label>
+          Motivo de Retiro / Baja *
+          <select [(ngModel)]="model.retirementReason" name="retirementReason" required>
+            <option value="Retiro Voluntario">🚪 Retiro Voluntario</option>
+            <option value="Terminación de Convenio / Contrato">📄 Terminación de Convenio / Contrato</option>
+            <option value="Pensión / Jubilación">👴 Pensión / Jubilación</option>
+            <option value="Mutuo Acuerdo">🤝 Mutuo Acuerdo</option>
+            <option value="Fallecimiento">🕊️ Fallecimiento</option>
+            <option value="Justa Causa / Sancionatorio">⚖️ Justa Causa / Sancionatorio</option>
+            <option value="Otro">📁 Otro Motivo</option>
+          </select>
+        </label>
+        <label>
+          Ubicación en Archivo (Voxelsera)
+          <select [(ngModel)]="model.voxelsera" name="voxelsera">
+            <option value="VOXEL_B1">🤝 Estante B — Casilla B1 (Asociados Retirados)</option>
+            <option value="VOXEL_B2">🤝 Estante B — Casilla B2 (Asociados Retirados)</option>
+            <option value="VOXEL_B3">🤝 Estante B — Casilla B3 (Asociados Retirados)</option>
+            <option value="VOXEL_B4">🤝 Estante B — Casilla B4 (Asociados Retirados)</option>
+            <option value="VOXEL_B5">🤝 Estante B — Casilla B5 (Asociados Retirados)</option>
+            <option value="VOXEL_B6">🤝 Estante B — Casilla B6 (Asociados Retirados)</option>
+            <option value="VOXEL_B7">🤝 Estante B — Casilla B7 (Asociados Retirados)</option>
+            <option value="VOXEL_B8">🤝 Estante B — Casilla B8 (Asociados Retirados)</option>
+            <option value="VOXEL_B9">🤝 Estante B — Casilla B9 (Asociados Retirados)</option>
+          </select>
+        </label>
+        <label class="full">Observaciones<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Observaciones de paz y salvo, liquidación..."></textarea></label>
         <div class="actions">
           <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
           @if (error()) { <span class="error">{{ error() }}</span> }
