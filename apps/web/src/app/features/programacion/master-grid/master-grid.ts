@@ -74,6 +74,7 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
         <div class="banner warn">
           <strong>{{ conflicts().length }} conflicto(s)</strong>
           — mismo asociado en D/N en más de un puesto el mismo día.
+          <a routerLink="/programacion/alertas">Ver alertas</a>
         </div>
       }
 

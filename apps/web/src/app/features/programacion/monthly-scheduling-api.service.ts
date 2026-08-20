@@ -96,6 +96,61 @@ export interface SavePayload {
     inicio?: string | null;
     fin?: string | null;
   }>;
+  confirmWarnings?: boolean;
+}
+
+export type ScheduleAlertType =
+  | 'hueco_cobertura'
+  | 'asociado_inactivo'
+  | 'conflicto_mismo_turno'
+  | 'carga_sobre_24';
+
+export interface ScheduleAlertItem {
+  id: string;
+  type: ScheduleAlertType;
+  severity: 'error' | 'warning';
+  month: string;
+  day?: number;
+  postId: string;
+  postName: string;
+  associateId?: string;
+  associateName?: string;
+  shift?: 'D' | 'N';
+  otherPostId?: string;
+  otherPostName?: string;
+  message: string;
+}
+
+export interface MonthlyAlertsResponse {
+  generatedAt: string;
+  months: string[];
+  totals: {
+    huecos: number;
+    inactivos: number;
+    conflictos: number;
+    carga: number;
+  };
+  alerts: ScheduleAlertItem[];
+}
+
+export interface BoardAlertsResponse {
+  month: string;
+  postId: string;
+  cells: Array<{
+    day: number;
+    types: ScheduleAlertType[];
+    severity: 'error' | 'warning';
+    messages: string[];
+  }>;
+  associateLoad: ScheduleAlertItem[];
+  placements?: Array<{
+    associateId: string;
+    associateName: string | null;
+    day: number;
+    shift: 'D' | 'N';
+    postId: string;
+    postName: string;
+  }>;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -130,6 +185,30 @@ export class MonthlySchedulingApiService {
       .set('year', String(year))
       .set('month', String(month));
     return this.http.get<ScheduleConflict[]>(`${this.baseUrl}/conflicts`, { params });
+  }
+
+  getAlerts(
+    year: number,
+    month: number,
+    scope: 'auto' | 'current' | 'next' = 'auto',
+  ): Observable<MonthlyAlertsResponse> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month))
+      .set('scope', scope);
+    return this.http.get<MonthlyAlertsResponse>(`${this.baseUrl}/alerts`, { params });
+  }
+
+  getBoardAlerts(
+    postId: string,
+    year: number,
+    month: number,
+  ): Observable<BoardAlertsResponse> {
+    const params = new HttpParams()
+      .set('postId', postId)
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<BoardAlertsResponse>(`${this.baseUrl}/alerts/board`, { params });
   }
 
   createOrGet(postId: string, year: number, month: number): Observable<MonthlySchedule> {

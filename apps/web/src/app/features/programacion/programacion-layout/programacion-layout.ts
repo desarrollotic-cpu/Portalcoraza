@@ -1,6 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideCalendarClock, LucideLayoutDashboard, LucideLayoutGrid } from '@lucide/angular';
+import {
+  LucideCalendarClock,
+  LucideLayoutDashboard,
+  LucideLayoutGrid,
+  LucideAlertTriangle,
+} from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -36,6 +41,12 @@ export class ProgramacionLayout {
       route: '/programacion/cuadro',
       permission: 'scheduling.view',
       icon: LucideCalendarClock,
+    },
+    {
+      label: 'Alertas',
+      route: '/programacion/alertas',
+      permission: 'scheduling.view',
+      icon: LucideAlertTriangle,
     },
   ];
 }

@@ -1,7 +1,7 @@
 # Diseño — Programación: panel de alertas + colores en tablero
 
 **Fecha:** 2026-08-20  
-**Estado:** Aprobado (JHON) · Plan listo  
+**Estado:** Aprobado (JHON) · Implementado  
 **Enfoque:** Motor de alertas en API (cálculo al vuelo) + panel con pestañas + colores en tablero + popups al asignar
 
 ## Decisiones

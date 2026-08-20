@@ -1,15 +1,20 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
 import { Associate, AssociatesApiService } from '../../rrhh/associates-api.service';
 import { SchedulingApiService } from '../scheduling-api.service';
 import {
+  BoardAlertsResponse,
   Jornada,
   MonthlySchedule,
   MonthlySchedulingApiService,
   PersonalRole,
+  SavePayload,
+  ScheduleAlertItem,
   ScheduleAssignment,
   ScheduleTemplate,
   Turno,
@@ -51,7 +56,7 @@ const CODES: CodeConfig[] = [
 
 @Component({
   selector: 'app-schedule-board',
-  imports: [FormsModule, DeliveryHistory],
+  imports: [FormsModule, DeliveryHistory, ConfirmDialog],
   template: `
     <section>
       <header class="toolbar">
@@ -256,6 +261,18 @@ const CODES: CodeConfig[] = [
           </div>
         </div>
       }
+
+      <app-confirm-dialog
+        [open]="confirmOpen()"
+        [title]="confirmTitle()"
+        [message]="confirmMessage()"
+        [detail]="confirmDetail()"
+        confirmLabel="Programar igual"
+        cancelLabel="Cancelar"
+        [busy]="saving()"
+        (confirmed)="onConfirmOk()"
+        (cancelled)="onConfirmCancel()"
+      />
     </section>
   `,
   styles: `
@@ -295,6 +312,8 @@ const CODES: CodeConfig[] = [
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
     .cell { cursor: pointer; user-select: none; font-weight: 600; }
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
+    .cell.alert-error { box-shadow: inset 0 0 0 2px #b91c1c; }
+    .cell.alert-warn { box-shadow: inset 0 0 0 2px #b45309; }
     .c-d { background: #d1e7dd; color: #0f5132; }
     .c-n { background: #cfe2ff; color: #084298; }
     .c-d8 { background: #b7e4c7; color: #1b4332; }
@@ -348,6 +367,15 @@ export class ScheduleBoard implements OnInit {
   editAssociateId: string | null = null;
   editCodigo = '';
 
+  readonly boardAlerts = signal<BoardAlertsResponse | null>(null);
+  readonly monthConflictAlerts = signal<ScheduleAlertItem[]>([]);
+  readonly confirmOpen = signal(false);
+  readonly confirmTitle = signal('Confirmar');
+  readonly confirmMessage = signal('');
+  readonly confirmDetail = signal<string | null>(null);
+  private confirmAction: (() => void) | null = null;
+  private pendingSavePayload: SavePayload | null = null;
+
   readonly holidays = computed(() => {
     const [year] = this.month.split('-').map(Number);
     return getColombiaHolidays(year || new Date().getFullYear());
@@ -369,8 +397,13 @@ export class ScheduleBoard implements OnInit {
     const qp = this.route.snapshot.queryParamMap;
     const qPost = qp.get('postId');
     const qMonth = qp.get('month');
+    const qYear = qp.get('year');
     if (qPost) this.postId = qPost;
-    if (qMonth) this.month = qMonth;
+    if (qMonth && /^\d{4}-\d{2}$/.test(qMonth)) {
+      this.month = qMonth;
+    } else if (qYear && qMonth && /^\d+$/.test(qMonth)) {
+      this.month = `${qYear}-${String(Number(qMonth)).padStart(2, '0')}`;
+    }
 
     this.schedulingApi.listPosts().subscribe({
       next: (posts) => this.posts.set(posts),
@@ -401,6 +434,7 @@ export class ScheduleBoard implements OnInit {
   private loadSchedule(): void {
     if (!this.postId || !this.month) {
       this.schedule.set(null);
+      this.boardAlerts.set(null);
       return;
     }
     const [year, mon] = this.month.split('-').map(Number);
@@ -410,11 +444,29 @@ export class ScheduleBoard implements OnInit {
       next: (sched) => {
         this.applySchedule(sched);
         this.loading.set(false);
+        this.reloadBoardAlerts(year, mon);
       },
       error: () => {
         this.loading.set(false);
         this.error.set('No se pudo cargar la programación');
       },
+    });
+  }
+
+  private reloadBoardAlerts(year: number, mon: number): void {
+    if (!this.postId) return;
+    this.api.getBoardAlerts(this.postId, year, mon).subscribe({
+      next: (res) => this.boardAlerts.set(res),
+      error: () => this.boardAlerts.set(null),
+    });
+    this.api.getAlerts(year, mon, 'current').subscribe({
+      next: (res) =>
+        this.monthConflictAlerts.set(
+          res.alerts.filter(
+            (a) => a.type === 'conflicto_mismo_turno' || a.type === 'asociado_inactivo',
+          ),
+        ),
+      error: () => this.monthConflictAlerts.set([]),
     });
   }
 
@@ -495,7 +547,6 @@ export class ScheduleBoard implements OnInit {
   save(): void {
     const sched = this.schedule();
     if (!sched) return;
-    this.saving.set(true);
     const assignments = Array.from(this.cells().entries())
       .map(([key, state]) => {
         const day = Number(key.split(':')[1]);
@@ -513,16 +564,57 @@ export class ScheduleBoard implements OnInit {
       })
       .filter((a) => a.jornada !== 'sin_asignar' || a.associateId);
 
-    this.api.save(sched.id, { personal: this.personal(), assignments }).subscribe({
-      next: (updated) => {
-        this.applySchedule(updated);
-        this.saving.set(false);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.error.set('No se pudo guardar la programación');
-      },
-    });
+    const payload: SavePayload = {
+      personal: this.personal(),
+      assignments,
+    };
+    this.persistSave(sched.id, payload, false);
+  }
+
+  private persistSave(id: string, savePayload: SavePayload, confirmWarnings: boolean): void {
+    this.saving.set(true);
+    this.api
+      .save(id, { ...savePayload, confirmWarnings: confirmWarnings || undefined })
+      .subscribe({
+        next: (updated) => {
+          this.applySchedule(updated);
+          this.saving.set(false);
+          this.confirmOpen.set(false);
+          this.pendingSavePayload = null;
+          const [year, mon] = this.month.split('-').map(Number);
+          this.reloadBoardAlerts(year, mon);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          const body = err.error as {
+            code?: string;
+            message?: string | { code?: string; message?: string; warnings?: ScheduleAlertItem[] };
+            warnings?: ScheduleAlertItem[];
+          } | null;
+          const warnBody =
+            body && typeof body.message === 'object' && body.message ? body.message : body;
+          if (err.status === 409 && warnBody?.code === 'SCHEDULING_WARNINGS') {
+            const warnings = warnBody.warnings ?? body?.warnings ?? [];
+            const msgs = warnings.map((w) => w.message).join('\n');
+            this.pendingSavePayload = savePayload;
+            this.confirmAction = () => {
+              if (this.pendingSavePayload) {
+                this.persistSave(id, this.pendingSavePayload, true);
+              }
+            };
+            this.confirmTitle.set('Advertencias de programación');
+            this.confirmMessage.set(
+              (typeof warnBody.message === 'string'
+                ? warnBody.message
+                : null) ?? 'Hay advertencias; puede guardar de todos modos.',
+            );
+            this.confirmDetail.set(msgs || null);
+            this.confirmOpen.set(true);
+            return;
+          }
+          this.error.set('No se pudo guardar la programación');
+        },
+      });
   }
 
   setStatus(status: 'borrador' | 'publicado'): void {
@@ -591,6 +683,72 @@ export class ScheduleBoard implements OnInit {
   applyCell(): void {
     const ctx = this.editing();
     if (!ctx) return;
+
+    const warnings = this.previewCellWarnings(ctx.day, this.editAssociateId, this.editCodigo);
+    if (warnings.length) {
+      this.confirmTitle.set('Confirmar asignación');
+      this.confirmMessage.set(warnings[0]);
+      this.confirmDetail.set(warnings.slice(1).join('\n') || null);
+      this.confirmAction = () => this.commitCell();
+      this.confirmOpen.set(true);
+      return;
+    }
+    this.commitCell();
+  }
+
+  private previewCellWarnings(
+    day: number,
+    associateId: string | null,
+    codigo: string,
+  ): string[] {
+    if (!associateId || !codigo) return [];
+    const fringe =
+      codigo === 'D' || codigo === 'D8' ? 'D' : codigo === 'N' || codigo === 'N8' ? 'N' : null;
+    if (!fringe) return [];
+
+    const msgs: string[] = [];
+    const assoc = this.associateMap().get(associateId);
+    if (assoc && assoc.status && assoc.status !== 'ACTIVO') {
+      msgs.push(
+        `Este asociado está ${assoc.status}. Puede programarlo, pero quedará alerta de inactivo y hueco a cubrir.`,
+      );
+    }
+
+    for (const a of this.monthConflictAlerts()) {
+      if (a.type !== 'conflicto_mismo_turno') continue;
+      if (a.associateId !== associateId || a.day !== day) continue;
+      if (a.shift && a.shift !== fringe) continue;
+      if (a.postId === this.postId) continue;
+      msgs.push(
+        `Este asociado está programado en el mismo turno y día en el puesto ${a.postName}.`,
+      );
+    }
+    for (const a of this.monthConflictAlerts()) {
+      if (a.type !== 'conflicto_mismo_turno') continue;
+      if (a.associateId !== associateId || a.day !== day) continue;
+      if (a.shift && a.shift !== fringe) continue;
+      if (a.otherPostId === this.postId && a.postId !== this.postId) {
+        msgs.push(
+          `Este asociado está programado en el mismo turno y día en el puesto ${a.postName}.`,
+        );
+      }
+    }
+
+    const placements = this.boardAlerts()?.placements ?? [];
+    for (const p of placements) {
+      if (p.associateId !== associateId || p.day !== day || p.shift !== fringe) continue;
+      if (p.postId === this.postId) continue;
+      msgs.push(
+        `Este asociado está programado en el mismo turno y día en el puesto ${p.postName}.`,
+      );
+    }
+
+    return [...new Set(msgs)];
+  }
+
+  private commitCell(): void {
+    const ctx = this.editing();
+    if (!ctx) return;
     const config = this.codes.find((c) => c.codigo === this.editCodigo);
     const state: CellState = config
       ? {
@@ -616,6 +774,19 @@ export class ScheduleBoard implements OnInit {
     });
     this.dirty.set(true);
     this.editing.set(null);
+    this.confirmOpen.set(false);
+  }
+
+  onConfirmOk(): void {
+    const action = this.confirmAction;
+    this.confirmAction = null;
+    action?.();
+  }
+
+  onConfirmCancel(): void {
+    this.confirmOpen.set(false);
+    this.confirmAction = null;
+    this.pendingSavePayload = null;
   }
 
   clearCell(): void {
@@ -637,17 +808,24 @@ export class ScheduleBoard implements OnInit {
   cellClass(role: string, day: number): string {
     const codigo = this.cells().get(`${role}:${day}`)?.codigo;
     const config = this.codes.find((c) => c.codigo === codigo);
-    return config ? `cell ${config.cssClass}` : 'cell';
+    const base = config ? `cell ${config.cssClass}` : 'cell';
+    const alert = this.boardAlerts()
+      ?.cells.find((c) => c.day === day);
+    if (!alert) return base;
+    if (alert.severity === 'error') return `${base} alert-error`;
+    return `${base} alert-warn`;
   }
 
   cellTitle(role: string, day: number): string {
     const state = this.cells().get(`${role}:${day}`);
-    if (!state) return 'Sin asignar — clic para editar';
+    const alert = this.boardAlerts()?.cells.find((c) => c.day === day);
+    const alertMsg = alert?.messages?.length ? ` | ${alert.messages.join(' · ')}` : '';
+    if (!state) return `Sin asignar — clic para editar${alertMsg}`;
     const associate = state.associateId ? this.associateMap().get(state.associateId) : null;
     const name = associate ? this.associateName(associate) : 'Sin asociado';
     const hours =
       state.inicio && state.fin ? ` (${state.inicio}–${state.fin})` : '';
-    return `${state.codigo ?? 'Sin asignar'}${hours} — ${name}`;
+    return `${state.codigo ?? 'Sin asignar'}${hours} — ${name}${alertMsg}`;
   }
 
   associateName(a: Associate): string {

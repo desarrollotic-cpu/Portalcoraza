@@ -355,6 +355,15 @@ export const routes: Routes = [
                 (m) => m.ScheduleBoard,
               ),
           },
+          {
+            path: 'alertas',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-alertas/programacion-alertas').then(
+                (m) => m.ProgramacionAlertas,
+              ),
+          },
         ],
       },
       {

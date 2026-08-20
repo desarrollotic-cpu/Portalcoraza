@@ -260,6 +260,16 @@ export class MonthlySchedulingService {
       postId: query.postId,
       cells: [...byDay.values()].sort((a, b) => a.day - b.day),
       associateLoad: relevant.filter((a) => a.type === 'carga_sobre_24'),
+      placements: cells
+        .filter((c) => c.associateId && (c.codigo === 'D' || c.codigo === 'N' || c.codigo === 'D8' || c.codigo === 'N8'))
+        .map((c) => ({
+          associateId: c.associateId as string,
+          associateName: c.associateName,
+          day: c.day,
+          shift: (c.codigo === 'D' || c.codigo === 'D8' ? 'D' : 'N') as 'D' | 'N',
+          postId: c.postId,
+          postName: c.postName,
+        })),
     };
   }
 
