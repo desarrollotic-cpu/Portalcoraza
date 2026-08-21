@@ -9,7 +9,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Minuta Virtual"
-      subtitle="Bitácora del puesto. Cada novedad lleva el nombre del vigilante que registra y la hora del sistema."
+      subtitle="Bitácora del puesto. Indica quién registra; la hora la pone el sistema."
       [nav]="nav"
     >
       <router-outlet />

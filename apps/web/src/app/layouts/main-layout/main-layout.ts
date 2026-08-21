@@ -8,6 +8,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
@@ -36,6 +37,8 @@ import {
   LucideUsersRound,
   LucideDoorOpen,
   LucideShieldCheck,
+  LucideMenu,
+  LucideX,
 } from '@lucide/angular';
 import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
@@ -64,8 +67,16 @@ interface NavGroup {
   selector: 'app-main-layout',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
   template: `
-    <div class="layout">
-      <aside class="sidebar">
+    <div class="layout" [class.nav-open]="mobileNavOpen()">
+      @if (mobileNavOpen()) {
+        <button
+          type="button"
+          class="nav-backdrop"
+          aria-label="Cerrar menú"
+          (click)="closeMobileNav()"
+        ></button>
+      }
+      <aside class="sidebar" [class.open]="mobileNavOpen()">
         <div class="sidebar-inner">
           <div class="brand">
             <img
@@ -93,6 +104,7 @@ interface NavGroup {
                       target="_blank"
                       rel="noopener noreferrer"
                       [attr.title]="'Abrir ' + item.label + ' (módulo oficial en pestaña nueva)'"
+                      (click)="closeMobileNav()"
                     >
                       <span class="nav-icon">
                         <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
@@ -110,6 +122,7 @@ interface NavGroup {
                           : { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }
                       "
                       class="nav-item"
+                      (click)="closeMobileNav()"
                     >
                       <span class="nav-icon">
                         <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
@@ -140,15 +153,27 @@ interface NavGroup {
       <div class="main-column">
         <header class="topbar">
           <div class="topbar-left">
-            <p class="crumb">
-              <app-icon [icon]="icons.Home" [size]="14" [strokeWidth]="1.8" />
-              <span>{{ crumbRoot() }}</span>
-              @if (crumbSection()) {
-                <span class="crumb-sep">/</span>
-                <span class="crumb-active">{{ crumbSection() }}</span>
-              }
-            </p>
-            <h2 class="topbar-title">{{ topbarTitle() }}</h2>
+            <button
+              type="button"
+              class="icon-btn menu-btn"
+              (click)="toggleMobileNav($event)"
+              [attr.aria-expanded]="mobileNavOpen()"
+              aria-label="Abrir menú"
+              title="Menú"
+            >
+              <app-icon [icon]="icons.Menu" [size]="20" [strokeWidth]="1.9" />
+            </button>
+            <div class="topbar-titles">
+              <p class="crumb">
+                <app-icon [icon]="icons.Home" [size]="14" [strokeWidth]="1.8" />
+                <span>{{ crumbRoot() }}</span>
+                @if (crumbSection()) {
+                  <span class="crumb-sep">/</span>
+                  <span class="crumb-active">{{ crumbSection() }}</span>
+                }
+              </p>
+              <h2 class="topbar-title">{{ topbarTitle() }}</h2>
+            </div>
           </div>
 
           <div class="topbar-right">
@@ -517,9 +542,24 @@ interface NavGroup {
     }
     .topbar-left {
       display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 0.65rem;
+      min-width: 0;
+      flex: 1;
+    }
+    .topbar-titles {
+      display: flex;
       flex-direction: column;
       gap: 0.15rem;
       min-width: 0;
+    }
+    .menu-btn {
+      display: none;
+      flex-shrink: 0;
+    }
+    .nav-backdrop {
+      display: none;
     }
     .crumb {
       display: inline-flex;
@@ -801,19 +841,79 @@ interface NavGroup {
     }
     @media (max-width: 900px) {
       .layout {
-        grid-template-columns: 72px 1fr;
+        grid-template-columns: 1fr;
+      }
+      .menu-btn {
+        display: inline-flex;
+      }
+      .nav-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 55;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background: color-mix(in srgb, var(--neutral-900, #0f172a) 45%, transparent);
+        cursor: pointer;
+      }
+      .sidebar {
+        position: fixed;
+        inset: 0 auto 0 0;
+        width: min(280px, 88vw);
+        z-index: 60;
+        transform: translateX(-105%);
+        transition: transform 0.2s ease;
+        max-height: 100dvh;
+        box-shadow: var(--shadow-xl, 0 20px 40px rgba(15, 23, 42, 0.25));
+      }
+      .sidebar.open {
+        transform: translateX(0);
       }
       .brand-text,
       .nav-label,
       .nav-group-label,
       .pro-copy {
-        display: none;
+        display: initial;
+      }
+      .nav-group-label {
+        display: block;
+      }
+      .pro-copy {
+        display: flex;
       }
       .nav-item {
-        justify-content: center;
+        justify-content: flex-start;
       }
       .user-info {
         display: none;
+      }
+      .topbar {
+        padding: 0.75rem 0.9rem;
+        gap: 0.5rem;
+      }
+      .topbar-title {
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .crumb {
+        display: none;
+      }
+      .content {
+        padding: 0.85rem 0.85rem 1.5rem;
+      }
+      .layout.nav-open {
+        overflow: hidden;
+      }
+    }
+    @media (max-width: 480px) {
+      .topbar-right {
+        gap: 0.25rem;
+      }
+      .user-chip {
+        padding: 0.25rem;
       }
     }
 
@@ -907,6 +1007,12 @@ export class MainLayout implements OnDestroy {
   constructor() {
     // Relee permisos (p. ej. sst.view tras migración) sin forzar logout.
     this.auth.refreshSession().subscribe({ error: () => undefined });
+    this.router.events
+      .pipe(
+        filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe(() => this.closeMobileNav());
   }
 
   readonly icons = {
@@ -920,6 +1026,7 @@ export class MainLayout implements OnDestroy {
     Home: LucideHome,
     KeyRound: LucideKeyRound,
     LogOut: LucideLogOut,
+    Menu: LucideMenu,
     Moon: LucideMoon,
     Search: LucideSearch,
     DoorOpen: LucideDoorOpen,
@@ -927,9 +1034,11 @@ export class MainLayout implements OnDestroy {
     Sun: LucideSun,
     UserCog: LucideUserCog,
     UsersRound: LucideUsersRound,
+    X: LucideX,
   };
 
   readonly userMenuOpen = signal(false);
+  readonly mobileNavOpen = signal(false);
   readonly changePasswordOpen = signal(false);
   readonly pwSaving = signal(false);
   readonly pwError = signal<string | null>(null);
@@ -1100,6 +1209,15 @@ export class MainLayout implements OnDestroy {
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.userMenuOpen.update((v) => !v);
+  }
+
+  toggleMobileNav(event: MouseEvent): void {
+    event.stopPropagation();
+    this.mobileNavOpen.update((v) => !v);
+  }
+
+  closeMobileNav(): void {
+    if (this.mobileNavOpen()) this.mobileNavOpen.set(false);
   }
 
   openChangePassword(): void {

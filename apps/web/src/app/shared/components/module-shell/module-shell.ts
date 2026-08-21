@@ -369,6 +369,36 @@ export interface ModuleNavItem {
       min-height: 320px;
       box-shadow: var(--shadow);
     }
+
+    @media (max-width: 900px) {
+      .module-top {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding-bottom: 0.85rem;
+      }
+      .module-brand h1 {
+        font-size: 1.2rem;
+      }
+      .module-brand p {
+        font-size: 0.8rem;
+        line-height: 1.35;
+      }
+      .module-body {
+        padding: 1rem;
+        min-height: 0;
+        border-radius: 12px;
+      }
+      .launcher-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .launcher-panel {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        width: auto;
+        top: 4.5rem;
+      }
+    }
   `,
   host: {
     '(document:click)': 'closeLauncher()',

@@ -196,5 +196,24 @@ export const MINUTA_PAGE_STYLES = `
   h3 { margin: 0.25rem 0; color: #1e3a8a; }
   @media (max-width: 800px) {
     .stats { grid-template-columns: 1fr 1fr; }
+    .quick, .grid { grid-template-columns: 1fr; }
+    .card.row { flex-direction: column; align-items: stretch; }
+    .filt { max-width: none; width: 100%; }
+    .modal {
+      place-items: end center;
+      padding: 0;
+    }
+    .modal-card {
+      width: 100%;
+      max-height: 92dvh;
+      border-radius: 16px 16px 0 0;
+      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+    }
+    .btn { width: 100%; }
+    .tile, .quick button { min-height: 3rem; font-size: 0.95rem; }
+    input, select, textarea { font-size: 16px; } /* evita zoom iOS */
+  }
+  @media (max-width: 420px) {
+    .stats { grid-template-columns: 1fr; }
   }
 `;
