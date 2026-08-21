@@ -17,6 +17,8 @@ const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
   carga: 'carga_sobre_24',
 };
 
+const PAGE_SIZE = 25;
+
 @Component({
   selector: 'app-programacion-alertas',
   imports: [FormsModule, RouterLink],
@@ -50,7 +52,7 @@ const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
             type="button"
             role="tab"
             [class.active]="tab() === t.key"
-            (click)="tab.set(t.key)"
+            (click)="selectTab(t.key)"
           >
             {{ t.label }} ({{ count(t.key) }})
           </button>
@@ -62,8 +64,13 @@ const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
       } @else if (filtered().length === 0) {
         <p class="alerts__muted">Sin alertas en esta pestaña.</p>
       } @else {
+        <div class="alerts__pager">
+          <button type="button" [disabled]="page() <= 1" (click)="goPage(page() - 1)">Anterior</button>
+          <span>{{ rangeLabel() }} · Página {{ page() }} de {{ totalPages() }}</span>
+          <button type="button" [disabled]="page() >= totalPages()" (click)="goPage(page() + 1)">Siguiente</button>
+        </div>
         <ul class="alerts__list">
-          @for (a of filtered(); track a.id) {
+          @for (a of pageItems(); track a.id) {
             <li [class.sev-error]="a.severity === 'error'" [class.sev-warn]="a.severity === 'warning'">
               <button type="button" class="alerts__item" (click)="openBoard(a)">
                 <span class="msg">{{ a.message }}</span>
@@ -72,6 +79,13 @@ const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
             </li>
           }
         </ul>
+        @if (totalPages() > 1) {
+          <div class="alerts__pager">
+            <button type="button" [disabled]="page() <= 1" (click)="goPage(page() - 1)">Anterior</button>
+            <span>Página {{ page() }} de {{ totalPages() }}</span>
+            <button type="button" [disabled]="page() >= totalPages()" (click)="goPage(page() + 1)">Siguiente</button>
+          </div>
+        }
       }
 
       <p class="alerts__foot">
@@ -109,6 +123,15 @@ const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
       font-weight: 600;
     }
     .alerts__muted { margin: 0; color: var(--text-muted); }
+    .alerts__pager {
+      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;
+      font-size: 0.85rem; color: var(--text-muted, var(--text-secondary));
+    }
+    .alerts__pager button {
+      border: 1px solid var(--coraza-border); background: var(--coraza-surface);
+      border-radius: 8px; padding: 0.35rem 0.75rem; cursor: pointer; font: inherit;
+    }
+    .alerts__pager button:disabled { opacity: 0.45; cursor: not-allowed; }
     .alerts__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
     .alerts__item {
       width: 100%; text-align: left; cursor: pointer;
@@ -139,6 +162,7 @@ export class ProgramacionAlertas implements OnInit {
   readonly error = signal<string | null>(null);
   readonly data = signal<MonthlyAlertsResponse | null>(null);
   readonly tab = signal<TabKey>('huecos');
+  readonly page = signal(1);
   readonly monthInput = signal('');
 
   private year = new Date().getFullYear();
@@ -147,6 +171,23 @@ export class ProgramacionAlertas implements OnInit {
   readonly filtered = computed(() => {
     const type = TAB_TYPE[this.tab()];
     return (this.data()?.alerts ?? []).filter((a) => a.type === type);
+  });
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)),
+  );
+
+  readonly pageItems = computed(() => {
+    const start = (this.page() - 1) * PAGE_SIZE;
+    return this.filtered().slice(start, start + PAGE_SIZE);
+  });
+
+  readonly rangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (!total) return '0';
+    const from = (this.page() - 1) * PAGE_SIZE + 1;
+    const to = Math.min(this.page() * PAGE_SIZE, total);
+    return `${from}–${to} de ${total}`;
   });
 
   ngOnInit(): void {
@@ -163,12 +204,23 @@ export class ProgramacionAlertas implements OnInit {
     return t.carga;
   }
 
+  selectTab(key: TabKey): void {
+    this.tab.set(key);
+    this.page.set(1);
+  }
+
+  goPage(next: number): void {
+    if (next < 1 || next > this.totalPages()) return;
+    this.page.set(next);
+  }
+
   onMonth(value: string): void {
     if (!value || !/^\d{4}-\d{2}$/.test(value)) return;
     const [y, m] = value.split('-').map(Number);
     this.year = y;
     this.month = m;
     this.monthInput.set(value);
+    this.page.set(1);
     this.reload();
   }
 
@@ -184,6 +236,7 @@ export class ProgramacionAlertas implements OnInit {
     this.api.getAlerts(this.year, this.month, 'auto').subscribe({
       next: (res) => {
         this.data.set(res);
+        this.page.set(1);
         this.loading.set(false);
       },
       error: () => {
