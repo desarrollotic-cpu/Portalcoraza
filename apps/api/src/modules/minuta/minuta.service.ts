@@ -535,17 +535,23 @@ export class MinutaService {
     month: string | undefined,
   ): Promise<Buffer> {
     const data = await this.operacionesHistorial(user, postId, month);
-    // Acta: más antigua primero, numerada 1…N
+    // Orden cronológico: desde el primer registro hasta el último del periodo
     const rows = [...data.historial].sort(
       (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
     );
 
-    // bottom amplio: el pie vive ahí; sin esto pdfkit crea páginas al dibujar el footer
     const doc = new PDFDocument({
       size: 'A4',
-      margins: { top: 48, left: 48, right: 48, bottom: 100 },
+      margins: { top: 36, left: 36, right: 36, bottom: 65 },
       bufferPages: true,
+      info: {
+        Title: `Minuta Oficial - ${data.post.name} - ${data.month}`,
+        Author: 'CORAZA SEGURIDAD C.T.A.',
+        Subject: 'Minuta Virtual de Operaciones',
+        Keywords: 'Seguridad, Minuta, Operaciones, Coraza',
+      },
     });
+
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const finished = new Promise<Buffer>((resolve, reject) => {
@@ -553,80 +559,193 @@ export class MinutaService {
       doc.on('error', reject);
     });
 
-    const contentWidth =
-      doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const bottomLimit = () => doc.page.height - doc.page.margins.bottom - 4;
+    const left = 36;
+    const pageWidth = doc.page.width; // 595.28
+    const pageHeight = doc.page.height; // 841.89
+    const contentWidth = pageWidth - left * 2; // 523.28
 
-    const ensureSpace = (needed: number) => {
-      if (doc.y + needed > bottomLimit()) doc.addPage();
+    const drawHeader = (isFirstPage: boolean) => {
+      if (isFirstPage) {
+        // TOP CORPORATE BANNER
+        doc
+          .rect(left, 36, contentWidth, 54)
+          .fillColor('#0f172a')
+          .fill();
+
+        // Gold line accent
+        doc
+          .rect(left, 88, contentWidth, 2.5)
+          .fillColor('#d97706')
+          .fill();
+
+        // Left Branding
+        doc
+          .fontSize(12)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text('CORAZA SEGURIDAD C.T.A.', left + 14, 46);
+        doc
+          .fontSize(7.5)
+          .font('Helvetica')
+          .fillColor('#94a3b8')
+          .text(
+            'Cooperativa de Trabajo Asociado · NIT: 811.021.524-8 · Licencia SuperVigilancia Resol. No. 0002848',
+            left + 14,
+            61,
+          );
+        doc
+          .fontSize(7)
+          .font('Helvetica')
+          .fillColor('#cbd5e1')
+          .text(
+            'Medellín, Colombia · PBX: (604) 448 2027 · contacto@corazaseguridad.com',
+            left + 14,
+            73,
+          );
+
+        // Right Badge Box
+        const badgeW = 165;
+        const badgeH = 38;
+        const badgeX = left + contentWidth - badgeW - 10;
+        const badgeY = 44;
+
+        doc
+          .roundedRect(badgeX, badgeY, badgeW, badgeH, 4)
+          .fillColor('#1e293b')
+          .fill();
+        doc
+          .roundedRect(badgeX, badgeY, badgeW, badgeH, 4)
+          .lineWidth(0.8)
+          .strokeColor('#0284c7')
+          .stroke();
+
+        doc
+          .fontSize(8.5)
+          .font('Helvetica-Bold')
+          .fillColor('#38bdf8')
+          .text('INFORME DE MINUTA VIRTUAL', badgeX, badgeY + 8, {
+            width: badgeW,
+            align: 'center',
+          });
+        doc
+          .fontSize(7)
+          .font('Helvetica')
+          .fillColor('#e2e8f0')
+          .text('REGISTRO OFICIAL DE OPERACIONES', badgeX, badgeY + 22, {
+            width: badgeW,
+            align: 'center',
+          });
+
+        // METADATA CARD
+        const cardY = 98;
+        const cardH = 68;
+        doc
+          .roundedRect(left, cardY, contentWidth, cardH, 5)
+          .fillColor('#f8fafc')
+          .fill();
+        doc
+          .roundedRect(left, cardY, contentWidth, cardH, 5)
+          .lineWidth(0.8)
+          .strokeColor('#cbd5e1')
+          .stroke();
+
+        // Left Column in Card
+        const col1X = left + 14;
+        const col2X = left + 270;
+
+        doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#64748b').text('PUESTO DE SERVICIO:', col1X, cardY + 10);
+        doc.fontSize(9.5).font('Helvetica-Bold').fillColor('#0f172a').text(`${data.post.code} — ${data.post.name}`, col1X, cardY + 21, { width: 240 });
+
+        doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#64748b').text('PERIODO DE OPERACIÓN:', col1X, cardY + 39);
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#0369a1').text(`Mes: ${data.month}`, col1X, cardY + 50);
+
+        // Right Column in Card
+        doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#64748b').text('FECHA Y HORA DE EMISIÓN:', col2X, cardY + 10);
+        doc.fontSize(8.5).font('Helvetica').fillColor('#0f172a').text(`${this.fmtDate(this.nowBogota())} ${this.fmtHm(this.nowBogota())} (Hora Legal Col)`, col2X, cardY + 21);
+
+        doc.fontSize(7.5).font('Helvetica-Bold').fillColor('#64748b').text('TOTAL ANOTACIONES REGISTRADAS:', col2X, cardY + 39);
+        doc.fontSize(9).font('Helvetica-Bold').fillColor('#15803d').text(`${rows.length} Registro(s) en Bitácora`, col2X, cardY + 50);
+
+        doc.y = cardY + cardH + 14;
+      } else {
+        // MINI HEADER FOR SUBSEQUENT PAGES
+        doc
+          .rect(left, 36, contentWidth, 24)
+          .fillColor('#0f172a')
+          .fill();
+        doc
+          .fontSize(8)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text(`CORAZA SEGURIDAD C.T.A. · MINUTA VIRTUAL — ${data.post.code} (${data.month})`, left + 10, 43);
+        doc
+          .fontSize(7.5)
+          .font('Helvetica')
+          .fillColor('#38bdf8')
+          .text(`Generado: ${this.fmtDate(this.nowBogota())}`, left + contentWidth - 140, 43, { width: 130, align: 'right' });
+        doc.y = 68;
+      }
     };
 
-    // Encabezado
+    drawHeader(true);
+
+    // SECTION TITLE
     doc
+      .fontSize(9.5)
       .font('Helvetica-Bold')
-      .fontSize(14)
       .fillColor('#0f172a')
-      .text('MINUTA DE PUESTO', { align: 'center', width: contentWidth });
-    doc.moveDown(0.35);
+      .text('BITÁCORA OPERATIVA Y NOVEDADES REGISTRADAS', left, doc.y);
     doc
-      .font('Helvetica-Bold')
-      .fontSize(12)
-      .text(data.post.name, { align: 'center', width: contentWidth });
-    doc
+      .fontSize(7.5)
       .font('Helvetica')
-      .fontSize(9)
-      .fillColor('#334155')
-      .text(`Código: ${data.post.code} · Período: ${data.month}`, {
-        align: 'center',
-        width: contentWidth,
-      });
+      .fillColor('#64748b')
+      .text('Trazabilidad cronológica de servicio, control de acceso, paquetería y relevos.', left, doc.y + 11);
+    doc.y += 18;
+
+    // DIVIDER
     doc
-      .fontSize(8)
-      .text(
-        `Generado: ${this.fmtDate(this.nowBogota())} ${this.fmtHm(this.nowBogota())} · Total anotaciones: ${rows.length}`,
-        { align: 'center', width: contentWidth },
-      );
-    doc.moveDown(0.4);
-    doc
-      .strokeColor('#94a3b8')
-      .moveTo(doc.page.margins.left, doc.y)
-      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .moveTo(left, doc.y)
+      .lineTo(left + contentWidth, doc.y)
+      .lineWidth(0.8)
+      .strokeColor('#e2e8f0')
       .stroke();
-    doc.moveDown(0.6);
+    doc.y += 8;
 
     if (!rows.length) {
       doc
+        .roundedRect(left, doc.y, contentWidth, 40, 4)
+        .fillColor('#f8fafc')
+        .fill();
+      doc
+        .fontSize(9)
         .font('Helvetica')
-        .fontSize(11)
-        .fillColor('#0f172a')
-        .text(
-          'No hay registros de minuta para el puesto y mes seleccionados.',
-          { width: contentWidth },
-        );
+        .fillColor('#64748b')
+        .text('No se encontraron registros u operaciones en la minuta virtual para este puesto y periodo.', left + 14, doc.y + 14, { align: 'center', width: contentWidth - 28 });
     } else {
-      let n = 0;
-      for (const row of rows) {
-        n += 1;
-        ensureSpace(90);
-        const when = new Date(row.fecha);
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(11)
-          .fillColor('#0f172a')
-          .text(
-            `${n}. ${row.tipo} · ${row.id}`,
-            { width: contentWidth },
-          );
-        doc
-          .font('Helvetica')
-          .fontSize(9)
-          .fillColor('#334155')
-          .text(
-            `Fecha: ${this.fmtDate(when)} ${this.fmtHm(when)} · Estado: ${row.estado} · Registra: ${row.registradoPor}`,
-            { width: contentWidth },
-          );
-        doc.moveDown(0.25);
+      const typeStyles: Record<string, { label: string; bg: string; border: string; accent: string; badgeBg: string }> = {
+        SERVICIO: { label: 'SERVICIO / TURNO', bg: '#f0fdf4', border: '#bbf7d0', accent: '#16a34a', badgeBg: '#15803d' },
+        VISITANTE: { label: 'CONTROL VISITANTE', bg: '#eff6ff', border: '#bfdbfe', accent: '#2563eb', badgeBg: '#1d4ed8' },
+        CORRESPONDENCIA: { label: 'CORRESPONDENCIA', bg: '#faf5ff', border: '#e9d5ff', accent: '#9333ea', badgeBg: '#7e22ce' },
+        CONTRATISTA: { label: 'CONTRATISTA', bg: '#ecfeff', border: '#a5f3fc', accent: '#0891b2', badgeBg: '#0e7490' },
+        DOMICILIARIO: { label: 'DOMICILIARIO', bg: '#fffbeb', border: '#fde68a', accent: '#d97706', badgeBg: '#b45309' },
+        INCIDENTE: { label: 'INCIDENTE / ALERTA', bg: '#fef2f2', border: '#fecaca', accent: '#dc2626', badgeBg: '#b91c1c' },
+        ENTREGA: { label: 'RELEVO DE PUESTO', bg: '#f8fafc', border: '#cbd5e1', accent: '#475569', badgeBg: '#334155' },
+      };
 
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const when = new Date(row.fecha);
+        const style = typeStyles[row.tipo] || {
+          label: row.tipo,
+          bg: '#f8fafc',
+          border: '#e2e8f0',
+          accent: '#64748b',
+          badgeBg: '#475569',
+        };
+
+        const dateStr = `${this.fmtDate(when)} · ${this.fmtHm(when)} (Col)`;
+        
+        // Prepare detail lines
         const details = { ...(row.detalles || {}) };
         delete details['id'];
         delete details['estado'];
@@ -636,32 +755,96 @@ export class MinutaService {
         delete details['hora'];
 
         const lines = this.pdfDetailLines(details);
-        for (const line of lines) {
-          ensureSpace(16);
-          doc
-            .font('Helvetica')
-            .fontSize(9)
-            .fillColor('#0f172a')
-            .text(line, {
-              width: contentWidth,
-              indent: 12,
-            });
+        const detailText = lines.length ? lines.join('  |  ') : (row.resumen || 'Sin novedades.');
+        
+        doc.fontSize(8).font('Helvetica');
+        const textHeight = doc.heightOfString(detailText, { width: contentWidth - 28 });
+        const cardHeight = Math.max(48, textHeight + 36);
+
+        if (doc.y + cardHeight > 750) {
+          doc.addPage();
+          drawHeader(false);
         }
-        doc.moveDown(0.55);
+
+        const startY = doc.y;
+
+        // Card background & border
         doc
-          .strokeColor('#e2e8f0')
-          .moveTo(doc.page.margins.left, doc.y)
-          .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+          .roundedRect(left, startY, contentWidth, cardHeight, 4)
+          .fillColor(style.bg)
+          .fill();
+        doc
+          .roundedRect(left, startY, contentWidth, cardHeight, 4)
+          .lineWidth(0.6)
+          .strokeColor(style.border)
           .stroke();
-        doc.moveDown(0.55);
+
+        // Left color accent bar
+        doc
+          .roundedRect(left, startY, 4, cardHeight, 2)
+          .fillColor(style.accent)
+          .fill();
+
+        // Item Header Row
+        const badgeText = `${i + 1}. ${style.label}`;
+        doc.fontSize(7.5).font('Helvetica-Bold');
+        const bWidth = doc.widthOfString(badgeText) + 12;
+
+        doc
+          .roundedRect(left + 12, startY + 6, bWidth, 14, 3)
+          .fillColor(style.badgeBg)
+          .fill();
+        doc
+          .fontSize(7.5)
+          .font('Helvetica-Bold')
+          .fillColor('#ffffff')
+          .text(badgeText, left + 18, startY + 9);
+
+        doc
+          .fontSize(8.5)
+          .font('Helvetica-Bold')
+          .fillColor('#0f172a')
+          .text(`ID: ${row.id}`, left + 18 + bWidth + 6, startY + 8);
+
+        doc
+          .fontSize(7.5)
+          .font('Helvetica')
+          .fillColor('#475569')
+          .text(`📅 ${dateStr}  ·  👤 ${row.registradoPor || 'JHON'}`, left + 18 + bWidth + 120, startY + 9);
+
+        const statusStr = row.estado && row.estado !== '—' ? `[ ${row.estado} ]` : '';
+        if (statusStr) {
+          doc
+            .fontSize(7.5)
+            .font('Helvetica-Bold')
+            .fillColor(style.accent)
+            .text(statusStr, left + contentWidth - 85, startY + 9, { width: 75, align: 'right' });
+        }
+
+        // Divider inside card
+        doc
+          .moveTo(left + 12, startY + 23)
+          .lineTo(left + contentWidth - 12, startY + 23)
+          .lineWidth(0.4)
+          .strokeColor(style.border)
+          .stroke();
+
+        // Body Content
+        doc
+          .fontSize(8)
+          .font('Helvetica')
+          .fillColor('#1e293b')
+          .text(detailText, left + 14, startY + 27, { width: contentWidth - 28 });
+
+        doc.y = startY + cardHeight + 6;
       }
     }
 
-    // Pie en todas las páginas
+    // MULTI-PAGE FOOTER PASS
     const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(range.start + i);
-      this.drawMinutaPdfFooter(doc, i + 1, range.count);
+    for (let p = 0; p < range.count; p++) {
+      doc.switchToPage(p);
+      this.drawMinutaPdfFooter(doc, p + 1, range.count);
     }
 
     doc.end();
