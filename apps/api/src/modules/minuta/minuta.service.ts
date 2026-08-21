@@ -535,7 +535,18 @@ export class MinutaService {
     month: string | undefined,
   ): Promise<Buffer> {
     const data = await this.operacionesHistorial(user, postId, month);
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    // Acta: más antigua primero, numerada 1…N
+    const rows = [...data.historial].sort(
+      (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
+    );
+
+    const margin = 48;
+    const footerReserve = 72;
+    const doc = new PDFDocument({
+      size: 'A4',
+      margin,
+      bufferPages: true,
+    });
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const finished = new Promise<Buffer>((resolve, reject) => {
@@ -543,46 +554,224 @@ export class MinutaService {
       doc.on('error', reject);
     });
 
-    doc.fontSize(16).text('Portal Coraza — Operaciones', { align: 'center' });
-    doc.moveDown(0.3);
-    doc.fontSize(13).text('Minuta Virtual', { align: 'center' });
+    const contentWidth =
+      doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const bottomLimit = () =>
+      doc.page.height - doc.page.margins.bottom - footerReserve;
+
+    const ensureSpace = (needed: number) => {
+      if (doc.y + needed > bottomLimit()) {
+        doc.addPage();
+      }
+    };
+
+    // Encabezado
     doc
-      .fontSize(10)
-      .text(`Puesto: ${data.post.code} — ${data.post.name}`, { align: 'center' });
-    doc.fontSize(10).text(`Mes: ${data.month}`, { align: 'center' });
+      .font('Helvetica-Bold')
+      .fontSize(14)
+      .fillColor('#0f172a')
+      .text('MINUTA DE PUESTO', { align: 'center', width: contentWidth });
+    doc.moveDown(0.35);
     doc
+      .font('Helvetica-Bold')
+      .fontSize(12)
+      .text(data.post.name, { align: 'center', width: contentWidth });
+    doc
+      .font('Helvetica')
       .fontSize(9)
+      .fillColor('#334155')
+      .text(`Código: ${data.post.code} · Período: ${data.month}`, {
+        align: 'center',
+        width: contentWidth,
+      });
+    doc
+      .fontSize(8)
       .text(
-        `Generado: ${this.fmtDate(this.nowBogota())} ${this.fmtHm(this.nowBogota())} · Total: ${data.total}`,
-        { align: 'center' },
+        `Generado: ${this.fmtDate(this.nowBogota())} ${this.fmtHm(this.nowBogota())} · Total anotaciones: ${rows.length}`,
+        { align: 'center', width: contentWidth },
       );
-    doc.moveDown();
+    doc.moveDown(0.4);
+    doc
+      .strokeColor('#94a3b8')
+      .moveTo(doc.page.margins.left, doc.y)
+      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+      .stroke();
+    doc.moveDown(0.6);
 
-    if (!data.historial.length) {
-      doc.fontSize(11).text('No hay registros de minuta para el puesto y mes seleccionados.');
-      doc.end();
-      return finished;
-    }
-
-    for (const row of data.historial) {
-      const when = new Date(row.fecha);
+    if (!rows.length) {
       doc
+        .font('Helvetica')
         .fontSize(11)
         .fillColor('#0f172a')
-        .text(`${row.tipo} · ${row.id}`, { continued: false });
-      doc
-        .fontSize(9)
-        .fillColor('#334155')
         .text(
-          `${this.fmtDate(when)} ${this.fmtHm(when)} · Estado: ${row.estado} · ${row.resumen}`,
-          { width: 515 },
+          'No hay registros de minuta para el puesto y mes seleccionados.',
+          { width: contentWidth },
         );
-      doc.moveDown(0.5);
-      if (doc.y > 760) doc.addPage();
+    } else {
+      let n = 0;
+      for (const row of rows) {
+        n += 1;
+        ensureSpace(90);
+        const when = new Date(row.fecha);
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(11)
+          .fillColor('#0f172a')
+          .text(
+            `${n}. ${row.tipo} · ${row.id}`,
+            { width: contentWidth },
+          );
+        doc
+          .font('Helvetica')
+          .fontSize(9)
+          .fillColor('#334155')
+          .text(
+            `Fecha: ${this.fmtDate(when)} ${this.fmtHm(when)} · Estado: ${row.estado} · Registra: ${row.registradoPor}`,
+            { width: contentWidth },
+          );
+        doc.moveDown(0.25);
+
+        const details = {
+          ...(row.detalles || {}),
+        };
+        delete details['id'];
+        delete details['estado'];
+        delete details['registradoPor'];
+        delete details['fechaRegistro'];
+
+        const lines = this.pdfDetailLines(details);
+        for (const line of lines) {
+          ensureSpace(16);
+          doc
+            .font('Helvetica')
+            .fontSize(9)
+            .fillColor('#0f172a')
+            .text(line, {
+              width: contentWidth,
+              indent: 12,
+            });
+        }
+        doc.moveDown(0.55);
+        doc
+          .strokeColor('#e2e8f0')
+          .moveTo(doc.page.margins.left, doc.y)
+          .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+          .stroke();
+        doc.moveDown(0.55);
+      }
+    }
+
+    // Pie en todas las páginas
+    const range = doc.bufferedPageRange();
+    for (let i = 0; i < range.count; i++) {
+      doc.switchToPage(range.start + i);
+      this.drawMinutaPdfFooter(doc, i + 1, range.count);
     }
 
     doc.end();
     return finished;
+  }
+
+  private pdfDetailLines(details: Record<string, unknown>): string[] {
+    const labels: Record<string, string> = {
+      nombreCompleto: 'Nombre',
+      cedula: 'Cédula',
+      aptoNo: 'Apto / unidad',
+      acompana: 'Acompaña',
+      vehiculoPlaca: 'Placa',
+      horaEntrada: 'Hora entrada',
+      horaSalida: 'Hora salida',
+      observaciones: 'Observaciones',
+      clase: 'Clase',
+      destinatario: 'Destinatario',
+      remitente: 'Remitente',
+      recibidoPor: 'Recibido por',
+      horaEntrega: 'Hora entrega',
+      empresa: 'Empresa',
+      areaTrabajo: 'Área de trabajo',
+      autorizadoPor: 'Autorizado por',
+      tipoPedido: 'Tipo de pedido',
+      nombreDomiciliario: 'Domiciliario',
+      placaMoto: 'Placa moto',
+      tipo: 'Tipo',
+      gravedad: 'Gravedad',
+      ubicacion: 'Ubicación',
+      descripcion: 'Descripción',
+      anotaciones: 'Anotaciones',
+      novedades: 'Novedades',
+      turnoSaliente: 'Turno saliente',
+      turnoEntrante: 'Turno entrante',
+      vigilanteSaliente: 'Vigilante saliente',
+      vigilanteEntrante: 'Vigilante entrante',
+      nombreDelPuesto: 'Nombre del puesto',
+    };
+    const preferred = Object.keys(labels);
+    const keys = [
+      ...preferred.filter((k) => details[k] !== undefined && details[k] !== null && details[k] !== ''),
+      ...Object.keys(details).filter((k) => !preferred.includes(k)),
+    ];
+    const lines: string[] = [];
+    for (const k of keys) {
+      const v = details[k];
+      if (v === null || v === undefined || v === '') continue;
+      if (typeof v === 'object') continue;
+      const label = labels[k] || k;
+      lines.push(`${label}: ${String(v)}`);
+    }
+    return lines;
+  }
+
+  private drawMinutaPdfFooter(
+    doc: InstanceType<typeof PDFDocument>,
+    page: number,
+    total: number,
+  ): void {
+    const left = doc.page.margins.left;
+    const right = doc.page.width - doc.page.margins.right;
+    const width = right - left;
+    const y = doc.page.height - 68;
+
+    doc
+      .strokeColor('#94a3b8')
+      .moveTo(left, y - 6)
+      .lineTo(right, y - 6)
+      .stroke();
+
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor('#334155')
+      .text(
+        'Carrera 81 No. 49-24 · PBX 444 79 29 · Tel. 234 79 29 · Medellín - Antioquia',
+        left,
+        y,
+        { width, align: 'center', lineBreak: false },
+      );
+    doc.text(
+      'contacto@corazaseguridadcta.com · corazaseguridad@une.net.co · www.corazaseguridad.com',
+      left,
+      y + 10,
+      { width, align: 'center', lineBreak: false },
+    );
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(7)
+      .fillColor('#0f172a')
+      .text(
+        'VIGILADO SuperVigilancia Resolución 6889 del 29 de septiembre de 2011',
+        left,
+        y + 22,
+        { width, align: 'center', lineBreak: false },
+      );
+    doc
+      .font('Helvetica')
+      .fontSize(7)
+      .fillColor('#64748b')
+      .text(`Página ${page} de ${total}`, left, y + 34, {
+        width,
+        align: 'center',
+        lineBreak: false,
+      });
   }
 
   async crearVisitante(user: JwtPayload, dto: MinutaVisitanteDto) {
