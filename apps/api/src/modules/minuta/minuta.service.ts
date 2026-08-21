@@ -927,7 +927,7 @@ export class MinutaService {
       .fontSize(7)
       .fillColor('#334155')
       .text(
-        'Carrera 81 No. 49-24 · PBX 444 79 29 · Tel. 234 79 29 · Medellín - Antioquia',
+        'NIT 9004347273 · Carrera 81 No. 49-24 · PBX 444 79 29 · Tel. 234 79 29 · Medellín - Antioquia',
         left,
         y,
         { width, align: 'center', lineBreak: false, height: 9 },
