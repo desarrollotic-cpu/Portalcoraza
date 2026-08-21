@@ -540,11 +540,10 @@ export class MinutaService {
       (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),
     );
 
-    const margin = 48;
-    const footerReserve = 72;
+    // bottom amplio: el pie vive ahí; sin esto pdfkit crea páginas al dibujar el footer
     const doc = new PDFDocument({
       size: 'A4',
-      margin,
+      margins: { top: 48, left: 48, right: 48, bottom: 100 },
       bufferPages: true,
     });
     const chunks: Buffer[] = [];
@@ -556,13 +555,10 @@ export class MinutaService {
 
     const contentWidth =
       doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const bottomLimit = () =>
-      doc.page.height - doc.page.margins.bottom - footerReserve;
+    const bottomLimit = () => doc.page.height - doc.page.margins.bottom - 4;
 
     const ensureSpace = (needed: number) => {
-      if (doc.y + needed > bottomLimit()) {
-        doc.addPage();
-      }
+      if (doc.y + needed > bottomLimit()) doc.addPage();
     };
 
     // Encabezado
@@ -631,13 +627,13 @@ export class MinutaService {
           );
         doc.moveDown(0.25);
 
-        const details = {
-          ...(row.detalles || {}),
-        };
+        const details = { ...(row.detalles || {}) };
         delete details['id'];
         delete details['estado'];
         delete details['registradoPor'];
         delete details['fechaRegistro'];
+        delete details['fecha'];
+        delete details['hora'];
 
         const lines = this.pdfDetailLines(details);
         for (const line of lines) {
@@ -729,13 +725,19 @@ export class MinutaService {
     const left = doc.page.margins.left;
     const right = doc.page.width - doc.page.margins.right;
     const width = right - left;
-    const y = doc.page.height - 68;
+    const savedBottom = doc.page.margins.bottom;
+    // Critical: pie debajo del margen de contenido; sin esto text() abre página nueva
+    doc.page.margins.bottom = 0;
+
+    const y = doc.page.height - 72;
 
     doc
+      .save()
       .strokeColor('#94a3b8')
-      .moveTo(left, y - 6)
-      .lineTo(right, y - 6)
-      .stroke();
+      .moveTo(left, y - 8)
+      .lineTo(right, y - 8)
+      .stroke()
+      .restore();
 
     doc
       .font('Helvetica')
@@ -745,33 +747,36 @@ export class MinutaService {
         'Carrera 81 No. 49-24 · PBX 444 79 29 · Tel. 234 79 29 · Medellín - Antioquia',
         left,
         y,
-        { width, align: 'center', lineBreak: false },
+        { width, align: 'center', lineBreak: false, height: 9 },
       );
     doc.text(
       'contacto@corazaseguridadcta.com · corazaseguridad@une.net.co · www.corazaseguridad.com',
       left,
       y + 10,
-      { width, align: 'center', lineBreak: false },
+      { width, align: 'center', lineBreak: false, height: 9 },
     );
     doc
       .font('Helvetica-Bold')
-      .fontSize(7)
       .fillColor('#0f172a')
       .text(
         'VIGILADO SuperVigilancia Resolución 6889 del 29 de septiembre de 2011',
         left,
-        y + 22,
-        { width, align: 'center', lineBreak: false },
+        y + 20,
+        { width, align: 'center', lineBreak: false, height: 9 },
       );
     doc
       .font('Helvetica')
-      .fontSize(7)
       .fillColor('#64748b')
-      .text(`Página ${page} de ${total}`, left, y + 34, {
+      .text(`Página ${page} de ${total}`, left, y + 30, {
         width,
         align: 'center',
         lineBreak: false,
+        height: 9,
       });
+
+    doc.page.margins.bottom = savedBottom;
+    doc.x = left;
+    doc.y = Math.min(doc.y, doc.page.height - savedBottom - 4);
   }
 
   async crearVisitante(user: JwtPayload, dto: MinutaVisitanteDto) {
