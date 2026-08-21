@@ -62,6 +62,7 @@ export interface OperacionesMinutaRow {
   estado: string;
   resumen: string;
   registradoPor: string;
+  detalles?: Record<string, unknown>;
 }
 
 export interface OperacionesMinutaHistorial {

@@ -40,6 +40,8 @@ export type OperacionesMinutaRow = {
   estado: string;
   resumen: string;
   registradoPor: string;
+  /** Campos del registro para vista detalle (UI ojo). */
+  detalles: Record<string, unknown>;
 };
 
 @Injectable()
@@ -417,6 +419,24 @@ export class MinutaService {
     return reg ? `${reg} · ${base}` : base;
   }
 
+  /** Campos legibles para el modal de detalle (sin metadatos internos). */
+  private detallesPublicos(row: Record<string, unknown>): Record<string, unknown> {
+    const omit = new Set([
+      'usuario',
+      'associateId',
+      'postId',
+      'createdAt',
+      'updatedAt',
+    ]);
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(row)) {
+      if (omit.has(k) || v === null || v === undefined || v === '') continue;
+      if (typeof v === 'object' && !(v instanceof Date)) continue;
+      out[k] = v instanceof Date ? v.toISOString() : v;
+    }
+    return out;
+  }
+
   async operacionesHistorial(
     user: JwtPayload,
     postId: string | undefined,
@@ -482,6 +502,9 @@ export class MinutaService {
           ),
           registradoPor:
             (r as { registradoPor?: string | null }).registradoPor || '—',
+          detalles: this.detallesPublicos(
+            r as unknown as Record<string, unknown>,
+          ),
         });
       }
     };
