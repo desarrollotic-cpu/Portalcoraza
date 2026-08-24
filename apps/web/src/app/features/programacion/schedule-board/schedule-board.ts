@@ -437,8 +437,8 @@ const CODES: CodeConfig[] = [
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
     .cell { cursor: pointer; user-select: none; font-weight: 600; }
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
-    .cell.alert-error { box-shadow: inset 0 0 0 2px #b91c1c; }
-    .cell.alert-warn { box-shadow: inset 0 0 0 2px #b45309; }
+    .cell.alert-error { outline: 1.5px dashed #dc2626; outline-offset: -2px; }
+    .cell.alert-warn { outline: 1.5px dashed #d97706; outline-offset: -2px; }
     .c-d { background: #d1e7dd; color: #0f5132; }
     .c-n { background: #cfe2ff; color: #084298; }
     .c-d8 { background: #b7e4c7; color: #1b4332; }
@@ -1182,14 +1182,22 @@ export class ScheduleBoard implements OnInit {
   }
 
   cellClass(role: string, day: number): string {
-    const codigo = this.cells().get(`${role}:${day}`)?.codigo;
+    const state = this.cells().get(`${role}:${day}`);
+    const codigo = state?.codigo;
     const config = this.codes.find((c) => c.codigo === codigo);
     const base = config ? `cell ${config.cssClass}` : 'cell';
-    const alert = this.boardAlerts()
-      ?.cells.find((c) => c.day === day);
-    if (!alert) return base;
-    if (alert.severity === 'error') return `${base} alert-error`;
-    return `${base} alert-warn`;
+
+    if (!state?.associateId) return base;
+
+    // Solo marcar alerta si este guardia específico tiene un cruce de turno en otro puesto
+    const placements = this.boardAlerts()?.placements ?? [];
+    const fringe = codigo === 'D' || codigo === 'D8' ? 'D' : codigo === 'N' || codigo === 'N8' ? 'N' : null;
+    const hasConflict = placements.some(
+      (p) => p.associateId === state.associateId && p.day === day && p.postId !== this.postId && (!fringe || p.shift === fringe)
+    );
+
+    if (hasConflict) return `${base} alert-error`;
+    return base;
   }
 
   cellTitle(role: string, day: number): string {
