@@ -31,6 +31,12 @@ export class ProgramacionLayout {
       icon: LucideCalendarClock,
     },
     {
+      label: '⚠️ Control de Alertas',
+      route: '/programacion/alertas',
+      permission: 'scheduling.view',
+      icon: LucideAlertTriangle,
+    },
+    {
       label: '💰 Liquidación y Recargos (Excel)',
       route: '/programacion/recargos',
       permission: 'scheduling.view',
