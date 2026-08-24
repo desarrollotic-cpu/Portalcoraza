@@ -420,7 +420,8 @@ export class MasterGrid implements OnInit {
     if (!confirm(msg)) return;
 
     this.busy.set(true);
-    this.globalMsg.set(null);
+    this.globalMsg.set('Encolando motor global…');
+    this.error.set(null);
     this.api
       .generateMotorGlobal({
         year,
@@ -430,18 +431,58 @@ export class MasterGrid implements OnInit {
       })
       .subscribe({
         next: (r) => {
-          this.busy.set(false);
-          this.globalMsg.set(
-            `Motor global ${r.tipoCiclo}: ${r.ok}/${r.processed} OK` +
-              (r.failed ? `, ${r.failed} con error` : ''),
-          );
-          this.reload();
+          this.globalMsg.set(`Tarea encolada (${r.jobId}). Procesando…`);
+          this.pollMotorJob(r.jobId);
         },
-        error: () => {
+        error: (err) => {
           this.busy.set(false);
-          this.error.set('No se pudo ejecutar el motor global');
+          const conflictJob = err?.error?.jobId as string | undefined;
+          if (err?.status === 409 && conflictJob) {
+            this.globalMsg.set('Ya hay un motor en curso; siguiendo progreso…');
+            this.busy.set(true);
+            this.pollMotorJob(conflictJob);
+            return;
+          }
+          this.error.set(
+            err?.error?.message || 'No se pudo encolar el motor global',
+          );
         },
       });
+  }
+
+  private pollMotorJob(jobId: string): void {
+    this.api.getMotorJob(jobId).subscribe({
+      next: (s) => {
+        if (s.progress) {
+          this.globalMsg.set(
+            `Motor global: ${s.progress.processed}/${s.progress.total}` +
+              ` (ok ${s.progress.ok}, err ${s.progress.failed})`,
+          );
+        }
+        if (s.status === 'completed') {
+          this.busy.set(false);
+          const r = s.result;
+          this.globalMsg.set(
+            r
+              ? `Motor global ${r.tipoCiclo}: ${r.ok}/${r.processed} OK` +
+                  (r.failed ? `, ${r.failed} con error` : '')
+              : 'Motor global completado',
+          );
+          this.reload();
+          return;
+        }
+        if (s.status === 'failed') {
+          this.busy.set(false);
+          this.error.set(s.failedReason || 'Motor global falló');
+          return;
+        }
+        setTimeout(() => this.pollMotorJob(jobId), 1500);
+      },
+      error: () => {
+        this.busy.set(false);
+        this.error.set('No se pudo consultar el estado del motor');
+      },
+    });
   }
 
   isWeekend(day: number): boolean {

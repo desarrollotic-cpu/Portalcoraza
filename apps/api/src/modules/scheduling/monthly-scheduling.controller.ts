@@ -21,7 +21,6 @@ import {
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
   GenerateMotorDto,
-  GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   MonthlyAlertsQueryDto,
@@ -131,14 +130,7 @@ export class MonthlySchedulingController {
     return this.service.createTemplate(dto, user.sub);
   }
 
-  @Post('motor-global')
-  @RequirePermissions('scheduling.edit')
-  generateMotorGlobal(
-    @Body() dto: GenerateMotorGlobalDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.service.generateMotorGlobal(dto, user.sub);
-  }
+  // POST motor-global + GET motor-jobs/:id → MotorJobsController (BullMQ)
 
   @Post()
   @RequirePermissions('scheduling.create')

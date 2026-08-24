@@ -21,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { QueuesModule } from './modules/queues/queues.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { PostEquipmentModule } from './modules/post-equipment/post-equipment.module';
@@ -81,6 +82,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     InventoryModule,
     DeliveriesModule,
     SchedulingModule,
+    QueuesModule.register(),
     DocumentalModule,
     NotificationsModule,
     PostsModule,

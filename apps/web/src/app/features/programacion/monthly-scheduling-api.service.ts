@@ -242,22 +242,33 @@ export class MonthlySchedulingApiService {
     month: number;
     tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
     createMissing?: boolean;
-  }): Observable<{
-    year: number;
-    month: number;
-    tipoCiclo: string;
-    processed: number;
-    ok: number;
-    failed: number;
-  }> {
-    return this.http.post<{
+  }): Observable<{ jobId: string; status: 'queued' }> {
+    return this.http.post<{ jobId: string; status: 'queued' }>(
+      `${this.baseUrl}/motor-global`,
+      payload,
+    );
+  }
+
+  getMotorJob(jobId: string): Observable<{
+    jobId: string;
+    status: 'queued' | 'active' | 'completed' | 'failed' | 'unknown';
+    progress: {
+      processed: number;
+      total: number;
+      ok: number;
+      failed: number;
+    } | null;
+    result: {
       year: number;
       month: number;
       tipoCiclo: string;
       processed: number;
       ok: number;
       failed: number;
-    }>(`${this.baseUrl}/motor-global`, payload);
+    } | null;
+    failedReason: string | null;
+  }> {
+    return this.http.get(`${this.baseUrl}/motor-jobs/${encodeURIComponent(jobId)}`);
   }
 
   getTodayCoverage(date?: string): Observable<TodayCoverageResponse> {

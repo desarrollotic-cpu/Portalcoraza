@@ -689,7 +689,16 @@ export class MonthlySchedulingService {
   /**
    * Aplica el motor a todas las programaciones del mes (opcionalmente crea faltantes).
    */
-  async generateMotorGlobal(dto: GenerateMotorGlobalDto, userId: string) {
+  async generateMotorGlobal(
+    dto: GenerateMotorGlobalDto,
+    userId: string,
+    onProgress?: (p: {
+      processed: number;
+      total: number;
+      ok: number;
+      failed: number;
+    }) => void | Promise<void>,
+  ) {
     const tipoCiclo = dto.tipoCiclo ?? '12x3';
     let schedules = await this.schedulesRepo.find({
       where: { year: dto.year, month: dto.month },
@@ -718,6 +727,13 @@ export class MonthlySchedulingService {
       error?: string;
     }> = [];
 
+    const total = schedules.length;
+    let okCount = 0;
+    let failCount = 0;
+    if (onProgress) {
+      await onProgress({ processed: 0, total, ok: 0, failed: 0 });
+    }
+
     for (const s of schedules) {
       try {
         const out = await this.generateWithMotor(
@@ -725,6 +741,7 @@ export class MonthlySchedulingService {
           { tipoCiclo },
           userId,
         );
+        okCount += 1;
         results.push({
           scheduleId: s.id,
           postId: s.postId,
@@ -732,11 +749,20 @@ export class MonthlySchedulingService {
           assignments: out.assignments?.length ?? 0,
         });
       } catch (err) {
+        failCount += 1;
         results.push({
           scheduleId: s.id,
           postId: s.postId,
           ok: false,
           error: err instanceof Error ? err.message : 'Error',
+        });
+      }
+      if (onProgress) {
+        await onProgress({
+          processed: results.length,
+          total,
+          ok: okCount,
+          failed: failCount,
         });
       }
     }
@@ -746,11 +772,13 @@ export class MonthlySchedulingService {
       module: 'scheduling',
       action: 'monthly_schedule.motor_global',
       entityType: 'monthly_schedule',
-      entityId: `${dto.year}-${dto.month}`,
       newValue: {
+        year: dto.year,
+        month: dto.month,
         tipoCiclo,
         processed: results.length,
-        ok: results.filter((r) => r.ok).length,
+        ok: okCount,
+        failed: failCount,
       },
     });
 
@@ -759,8 +787,8 @@ export class MonthlySchedulingService {
       month: dto.month,
       tipoCiclo,
       processed: results.length,
-      ok: results.filter((r) => r.ok).length,
-      failed: results.filter((r) => !r.ok).length,
+      ok: okCount,
+      failed: failCount,
       results,
     };
   }
