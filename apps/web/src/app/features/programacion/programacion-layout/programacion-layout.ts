@@ -25,35 +25,16 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 export class ProgramacionLayout {
   readonly nav: ModuleNavItem[] = [
     {
-      label: 'Panel',
-      route: '/programacion',
-      permission: 'scheduling.view',
-      icon: LucideLayoutDashboard,
-      exact: true,
-    },
-    {
-      label: 'Matriz multi-puesto',
-      route: '/programacion/matriz',
-      permission: 'scheduling.view',
-      icon: LucideLayoutGrid,
-    },
-    {
-      label: 'Cuadro mensual',
+      label: '📋 Cuadro de Turnos',
       route: '/programacion/cuadro',
       permission: 'scheduling.view',
       icon: LucideCalendarClock,
     },
     {
-      label: 'Liquidación de recargos',
+      label: '💰 Liquidación y Recargos (Excel)',
       route: '/programacion/recargos',
       permission: 'scheduling.view',
       icon: LucideCalculator,
-    },
-    {
-      label: 'Alertas',
-      route: '/programacion/alertas',
-      permission: 'scheduling.view',
-      icon: LucideAlertTriangle,
     },
   ];
 }

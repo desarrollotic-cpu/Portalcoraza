@@ -330,12 +330,7 @@ export const routes: Routes = [
           {
             path: '',
             pathMatch: 'full',
-            canActivate: [permissionGuard],
-            data: { permission: 'scheduling.view' },
-            loadComponent: () =>
-              import('./features/programacion/programacion-panel/programacion-panel').then(
-                (m) => m.ProgramacionPanel,
-              ),
+            redirectTo: 'cuadro',
           },
           {
             path: 'matriz',
