@@ -134,6 +134,21 @@ export class MotorTurnosService {
     return ((pos % total) + total) % total;
   }
 
+  getDefaultOffset(index: number, tipoCiclo: TipoCiclo, totalDays: number): number {
+    switch (tipoCiclo) {
+      case '2x2': // 2D -> 2N -> 2NR (totalDays = 6) -> desfase de 2 días por guardia
+        return (index * 2) % totalDays;
+      case '10x5': // 5D -> 5N -> 5Desc (totalDays = 15) -> desfase de 5 días
+        return (index * 5) % totalDays;
+      case '12x3': // 6D -> 6N -> 3Desc (totalDays = 15) -> desfase de 6 días
+        return (index * 6) % totalDays;
+      case '13x2': // 13D -> 2R -> 13N -> 2R (totalDays = 30) -> desfase de 15 días
+        return (index * 15) % totalDays;
+      default:
+        return (index * Math.floor(totalDays / 2)) % totalDays;
+    }
+  }
+
   /**
    * Genera las asignaciones del mes para cada rol del personal.
    * Titulares siguen el ciclo (12x3, etc.). Roles `relevante*` solo cubren
@@ -146,8 +161,9 @@ export class MotorTurnosService {
     tipoCiclo: TipoCiclo = '12x3',
     tipoCicloByRole?: Record<string, TipoCiclo>,
   ): GeneratedAssignment[] {
-    const titulares = personal.filter((p) => !this.isRelevanteRole(p.rol));
-    const relevantes = personal.filter((p) => this.isRelevanteRole(p.rol));
+    const isRelev = (p: PersonalRole) => this.isRelevanteRole(p.rol, p.displayName);
+    const titulares = personal.filter((p) => !isRelev(p));
+    const relevantes = personal.filter(isRelev);
     const cycleRoles = titulares.length > 0 ? titulares : personal;
 
     const result: GeneratedAssignment[] = [];
@@ -160,7 +176,7 @@ export class MotorTurnosService {
       const config = this.configs[cycleKey] ?? this.configs['12x3'];
       const len = config.totalDays;
       const baseOffset =
-        startPositions?.[role.rol] ?? (index * 6) % len;
+        startPositions?.[role.rol] ?? this.getDefaultOffset(index, cycleKey, len);
 
       for (let day = 1; day <= daysInMonth; day++) {
         const position = this.normalizePosition(baseOffset + (day - 1), cycleKey);
@@ -189,9 +205,15 @@ export class MotorTurnosService {
     return result;
   }
 
-  /** `relevante`, `relevante_1`, etc. */
-  isRelevanteRole(rol: string): boolean {
-    return /^relevante(_\d+)?$/i.test(rol.trim());
+  /** `relevante`, `relevante_1`, `Relevo`, etc. */
+  isRelevanteRole(rol: string, displayName?: string): boolean {
+    const text = `${rol} ${displayName ?? ''}`.toLowerCase().trim();
+    return (
+      text.includes('relev') ||
+      text.includes('apoyo') ||
+      text.includes('reemplazo') ||
+      /^relevante(_\d+)?$/i.test(rol.trim())
+    );
   }
 
   /** Códigos que cubren franja diurna (12h o 8h). */
