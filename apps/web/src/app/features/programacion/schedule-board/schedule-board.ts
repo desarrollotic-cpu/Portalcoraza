@@ -89,10 +89,15 @@ const CODES: CodeConfig[] = [
         </div>
       </header>
 
+      @if (error()) {
+        <div class="banner error-banner" style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:0.65rem 1rem; border-radius:8px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>⚠️ {{ error() }}</span>
+          <button type="button" class="ghost" style="padding:0.25rem 0.6rem; font-size:0.75rem;" (click)="onSelectionChange()">Reintentar</button>
+        </div>
+      }
+
       @if (loading()) {
-        <p>Cargando...</p>
-      } @else if (error()) {
-        <p class="error">{{ error() }}</p>
+        <p>Cargando programación…</p>
       } @else if (!postId) {
         <p>Selecciona un puesto y un mes para empezar.</p>
       } @else if (!schedule()) {
