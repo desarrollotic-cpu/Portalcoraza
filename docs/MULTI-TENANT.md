@@ -26,4 +26,16 @@ Tenant seed: `11111111-1111-1111-1111-111111111111` (Cooperativa Central).
 - Login guarda `coraza_tenant_id` en localStorage.
 - `tenantInterceptor` envía header `X-Tenant-ID` (sin cambios de vistas).
 
-## Semana 4 — RLS + tests aislamiento (pendiente)
+## Verificación local (2 tenants)
+
+```powershell
+npm run api:dev
+npm test -w @coraza/api -- --testPathPattern="tenant\\.(context|interceptor)|patch-typeorm-tenant"
+npm run db:smoke-multi-tenant -w @coraza/api
+```
+
+Comprueba: denylist globales, anti-spoof 403, create con `tenantId` del JWT, aislamiento posts A/B.
+
+## Semana 4 — RLS + tests aislamiento (siguiente)
+
+Políticas Postgres RLS como red de seguridad adicional.

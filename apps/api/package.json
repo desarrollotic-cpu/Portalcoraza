@@ -26,6 +26,7 @@
     "db:apply-multi-tenant": "ts-node scripts/apply-multi-tenant-foundation.ts",
     "db:apply-multi-tenant-default": "ts-node scripts/apply-multi-tenant-default.ts",
     "db:verify-multi-tenant": "ts-node scripts/verify-multi-tenant.ts",
+    "db:smoke-multi-tenant": "ts-node scripts/smoke-multi-tenant.ts",
     "db:drop-residential": "ts-node scripts/apply-drop-residential.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },

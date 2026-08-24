@@ -4,11 +4,12 @@ import {
   EventSubscriber,
   InsertEvent,
 } from 'typeorm';
+import { GLOBAL_TENANT_SKIP_TABLES } from './patch-typeorm-tenant';
 import { TenantContext } from './tenant.context';
 import { CENTRAL_ORGANIZATION_ID } from './tenant.constants';
 
 /**
- * Rellena tenantId en INSERT si la entidad tiene la columna y el valor viene vacío.
+ * Rellena tenantId en INSERT desde TenantContext (nunca en tablas globales).
  */
 @EventSubscriber()
 export class TenantInsertSubscriber implements EntitySubscriberInterface {
@@ -17,6 +18,9 @@ export class TenantInsertSubscriber implements EntitySubscriberInterface {
   }
 
   beforeInsert(event: InsertEvent<Record<string, unknown>>): void {
+    const table = event.metadata.tableName;
+    if (GLOBAL_TENANT_SKIP_TABLES.has(table)) return;
+
     const col = event.metadata.findColumnWithPropertyPath('tenantId');
     if (!col) return;
 
@@ -24,7 +28,12 @@ export class TenantInsertSubscriber implements EntitySubscriberInterface {
     if (!entity) return;
     if (entity['tenantId']) return;
 
-    entity['tenantId'] =
-      TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID;
+    const fromCtx = TenantContext.getOptional();
+    if (!fromCtx) {
+      // Sin contexto (seed/script): DEFAULT DB / Cooperativa Central
+      entity['tenantId'] = CENTRAL_ORGANIZATION_ID;
+      return;
+    }
+    entity['tenantId'] = fromCtx;
   }
 }

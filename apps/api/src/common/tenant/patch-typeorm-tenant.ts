@@ -1,7 +1,22 @@
 import { ObjectLiteral, Repository } from 'typeorm';
 import { TenantContext } from './tenant.context';
 
-function hasTenantColumn(repo: Repository<ObjectLiteral>): boolean {
+/** Tablas que NUNCA deben filtrarse por tenant (aunque el metadata mienta). */
+export const GLOBAL_TENANT_SKIP_TABLES = new Set([
+  'roles',
+  'permissions',
+  'role_permissions',
+  'diagnosticos_cie10',
+  'organizations',
+]);
+
+export function shouldApplyTenantFilter(
+  repo: Repository<ObjectLiteral>,
+): boolean {
+  const table = repo.metadata.tableName;
+  if (GLOBAL_TENANT_SKIP_TABLES.has(table)) {
+    return false;
+  }
   try {
     return Boolean(repo.metadata.findColumnWithPropertyPath('tenantId'));
   } catch {
@@ -9,7 +24,10 @@ function hasTenantColumn(repo: Repository<ObjectLiteral>): boolean {
   }
 }
 
-function injectTenant<T>(where: T | T[] | undefined, tenantId: string): T | T[] {
+export function injectTenantWhere<T>(
+  where: T | T[] | undefined,
+  tenantId: string,
+): T | T[] {
   if (where == null || where === undefined) {
     return { tenantId } as T;
   }
@@ -45,16 +63,16 @@ export function patchTypeOrmTenantFilter(): void {
     ) =>
     function (this: Repository<ObjectLiteral>, ...args: A): R {
       const tenantId = TenantContext.getOptional();
-      if (!tenantId || !hasTenantColumn(this)) {
+      if (!tenantId || !shouldApplyTenantFilter(this)) {
         return original.apply(this, args);
       }
 
       const { opts, criteriaIndex } = pickOptions(args);
       if (opts) {
-        opts.where = injectTenant(opts.where as object, tenantId);
+        opts.where = injectTenantWhere(opts.where as object, tenantId);
       }
       if (criteriaIndex != null && args[criteriaIndex] != null) {
-        (args as unknown[])[criteriaIndex] = injectTenant(
+        (args as unknown[])[criteriaIndex] = injectTenantWhere(
           args[criteriaIndex] as object,
           tenantId,
         );
@@ -62,7 +80,6 @@ export function patchTypeOrmTenantFilter(): void {
       return original.apply(this, args);
     };
 
-  // find(options?)
   const find = proto.find;
   proto.find = wrap(find, (args) => ({
     opts: (args[0] as FindOpts) ?? (args[0] = {}),
