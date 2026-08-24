@@ -1,5 +1,6 @@
 import { ObjectLiteral, Repository } from 'typeorm';
 import { TenantContext } from './tenant.context';
+import { TenantQueryRunnerContext } from './tenant-query-runner.context';
 
 /** Tablas que NUNCA deben filtrarse por tenant (aunque el metadata mienta). */
 export const GLOBAL_TENANT_SKIP_TABLES = new Set([
@@ -44,10 +45,22 @@ export function injectTenantWhere<T>(
 
 type FindOpts = { where?: unknown };
 
+function resolveRepo(
+  self: Repository<ObjectLiteral>,
+): Repository<ObjectLiteral> {
+  const qr = TenantQueryRunnerContext.getOptional();
+  if (!qr?.manager) return self;
+  try {
+    return qr.manager.getRepository(self.metadata.target as never);
+  } catch {
+    return self;
+  }
+}
+
 /**
- * Parchea Repository.find / findOne / findAndCount / findBy / findOneBy / count
- * para inyectar tenantId cuando la entidad lo tiene y hay TenantContext.
- * Debe llamarse una sola vez al arrancar (main.ts).
+ * Parchea Repository.find/save/… para:
+ * 1) Usar QueryRunner de la request (RLS + misma conexión)
+ * 2) Inyectar tenantId en where cuando aplica
  */
 export function patchTypeOrmTenantFilter(): void {
   const proto = Repository.prototype as Repository<ObjectLiteral> & {
@@ -56,15 +69,16 @@ export function patchTypeOrmTenantFilter(): void {
   if (proto.__tenantPatched) return;
   proto.__tenantPatched = true;
 
-  const wrap =
+  const wrapFind =
     <A extends unknown[], R>(
       original: (this: Repository<ObjectLiteral>, ...args: A) => R,
       pickOptions: (args: A) => { opts?: FindOpts; criteriaIndex?: number },
     ) =>
     function (this: Repository<ObjectLiteral>, ...args: A): R {
+      const repo = resolveRepo(this);
       const tenantId = TenantContext.getOptional();
-      if (!tenantId || !shouldApplyTenantFilter(this)) {
-        return original.apply(this, args);
+      if (!tenantId || !shouldApplyTenantFilter(repo)) {
+        return original.apply(repo, args);
       }
 
       const { opts, criteriaIndex } = pickOptions(args);
@@ -77,43 +91,52 @@ export function patchTypeOrmTenantFilter(): void {
           tenantId,
         );
       }
-      return original.apply(this, args);
+      return original.apply(repo, args);
     };
 
-  const find = proto.find;
-  proto.find = wrap(find, (args) => ({
+  const wrapMutate =
+    <A extends unknown[], R>(
+      original: (this: Repository<ObjectLiteral>, ...args: A) => R,
+    ) =>
+    function (this: Repository<ObjectLiteral>, ...args: A): R {
+      const repo = resolveRepo(this);
+      return original.apply(repo, args);
+    };
+
+  proto.find = wrapFind(proto.find, (args) => ({
     opts: (args[0] as FindOpts) ?? (args[0] = {}),
   }));
-
-  const findAndCount = proto.findAndCount;
-  proto.findAndCount = wrap(findAndCount, (args) => ({
+  proto.findAndCount = wrapFind(proto.findAndCount, (args) => ({
     opts: (args[0] as FindOpts) ?? (args[0] = {}),
   }));
-
-  const findOne = proto.findOne;
-  proto.findOne = wrap(findOne, (args) => ({
+  proto.findOne = wrapFind(proto.findOne, (args) => ({
     opts: (args[0] as FindOpts) ?? (args[0] = {}),
   }));
-
-  const findOneBy = proto.findOneBy;
-  proto.findOneBy = wrap(findOneBy, (args) => ({
+  proto.findOneBy = wrapFind(proto.findOneBy, (args) => ({
     criteriaIndex: 0,
   }));
-
-  const findBy = proto.findBy;
-  proto.findBy = wrap(findBy, (args) => ({
+  proto.findBy = wrapFind(proto.findBy, (args) => ({
     criteriaIndex: 0,
   }));
-
-  const count = proto.count;
-  proto.count = wrap(count, (args) => ({
+  proto.count = wrapFind(proto.count, (args) => ({
     opts: (args[0] as FindOpts) ?? (args[0] = {}),
   }));
-
-  const countBy = proto.countBy;
-  if (countBy) {
-    proto.countBy = wrap(countBy, (args) => ({
+  if (proto.countBy) {
+    proto.countBy = wrapFind(proto.countBy, (args) => ({
       criteriaIndex: 0,
     }));
+  }
+
+  // Overloads de save/remove no tipan bien con wrap genérico
+  (proto as { save: typeof proto.save }).save = wrapMutate(
+    proto.save,
+  ) as typeof proto.save;
+  proto.insert = wrapMutate(proto.insert);
+  proto.update = wrapMutate(proto.update);
+  proto.delete = wrapMutate(proto.delete);
+  if (proto.remove) {
+    (proto as { remove: typeof proto.remove }).remove = wrapMutate(
+      proto.remove,
+    ) as typeof proto.remove;
   }
 }

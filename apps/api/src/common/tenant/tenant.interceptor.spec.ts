@@ -11,10 +11,32 @@ function mockCtx(user?: { tenantId: string }, headers: Record<string, string> = 
   } as never;
 }
 
-describe('TenantInterceptor anti-spoof', () => {
-  const interceptor = new TenantInterceptor();
+function mockDataSource(opts?: { failRole?: boolean }) {
+  const qr = {
+    connect: jest.fn().mockResolvedValue(undefined),
+    startTransaction: jest.fn().mockResolvedValue(undefined),
+    commitTransaction: jest.fn().mockResolvedValue(undefined),
+    rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+    release: jest.fn().mockResolvedValue(undefined),
+    isTransactionActive: true,
+    isReleased: false,
+    query: jest.fn().mockImplementation(async (sql: string) => {
+      if (opts?.failRole && /SET LOCAL ROLE/i.test(sql)) {
+        throw new Error('role missing');
+      }
+      return undefined;
+    }),
+  };
+  return {
+    createQueryRunner: () => qr,
+    __qr: qr,
+  };
+}
 
-  it('rejects X-Tenant-ID different from JWT', async () => {
+describe('TenantInterceptor anti-spoof + RLS session', () => {
+  it('rejects X-Tenant-ID different from JWT', () => {
+    const ds = mockDataSource() as never;
+    const interceptor = new TenantInterceptor(ds);
     const next = { handle: () => of('ok') };
     expect(() =>
       interceptor.intercept(
@@ -24,7 +46,9 @@ describe('TenantInterceptor anti-spoof', () => {
     ).toThrow(ForbiddenException);
   });
 
-  it('allows matching X-Tenant-ID and sets context', async () => {
+  it('sets context and opens tenant transaction', async () => {
+    const ds = mockDataSource() as never;
+    const interceptor = new TenantInterceptor(ds);
     const next = {
       handle: () => {
         expect(TenantContext.getOptional()).toBe('tenant-a');
@@ -36,9 +60,17 @@ describe('TenantInterceptor anti-spoof', () => {
       next,
     );
     await expect(lastValueFrom(obs)).resolves.toBe('ok');
+    const qr = (ds as { __qr: { query: jest.Mock; commitTransaction: jest.Mock } }).__qr;
+    expect(qr.query).toHaveBeenCalledWith(
+      expect.stringMatching(/set_config\('app\.tenant_id'/),
+      ['tenant-a'],
+    );
+    expect(qr.commitTransaction).toHaveBeenCalled();
   });
 
   it('skips when no authenticated user', async () => {
+    const ds = mockDataSource() as never;
+    const interceptor = new TenantInterceptor(ds);
     const next = { handle: () => of('public') };
     const obs = interceptor.intercept(mockCtx(undefined), next);
     await expect(lastValueFrom(obs)).resolves.toBe('public');

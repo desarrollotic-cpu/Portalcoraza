@@ -5,16 +5,23 @@ import {
   Injectable,
   NestInterceptor,
 } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
 import { Observable } from 'rxjs';
+import { DataSource } from 'typeorm';
 import { JwtPayload } from '../../modules/auth/interfaces/jwt-payload.interface';
 import { TenantContext } from './tenant.context';
+import { TenantQueryRunnerContext } from './tenant-query-runner.context';
 
 /**
- * Establece TenantContext desde el JWT y rechaza spoofing de X-Tenant-ID.
- * Rutas públicas (sin req.user) no aplican filtro.
+ * Anti-spoof X-Tenant-ID, TenantContext, y transacción con:
+ *   SET LOCAL ROLE coraza_app
+ *   set_config('app.tenant_id', …, true)
+ * para que RLS de Postgres aplique en la misma conexión que TypeORM.
  */
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
+  constructor(@InjectDataSource() private readonly dataSource: DataSource) {}
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const req = context.switchToHttp().getRequest<{
       user?: JwtPayload;
@@ -40,14 +47,66 @@ export class TenantInterceptor implements NestInterceptor {
       );
     }
 
+    const tenantId = user.tenantId;
+
     return new Observable((subscriber) => {
-      TenantContext.run(user.tenantId, () => {
-        next.handle().subscribe({
-          next: (v) => subscriber.next(v),
-          error: (e) => subscriber.error(e),
-          complete: () => subscriber.complete(),
-        });
-      });
+      const qr = this.dataSource.createQueryRunner();
+      let finished = false;
+
+      const finish = async (rollback: boolean) => {
+        if (finished) return;
+        finished = true;
+        try {
+          if (qr.isTransactionActive) {
+            if (rollback) await qr.rollbackTransaction();
+            else await qr.commitTransaction();
+          }
+        } catch {
+          /* ignore */
+        }
+        try {
+          if (!qr.isReleased) await qr.release();
+        } catch {
+          /* ignore */
+        }
+      };
+
+      void (async () => {
+        try {
+          await qr.connect();
+          await qr.startTransaction();
+          // Si el login DB es superuser, RLS no aplica hasta SET ROLE.
+          try {
+            await qr.query(`SET LOCAL ROLE coraza_app`);
+          } catch {
+            // Rol aún no creado / sin GRANT: RLS puede no forzar; filtro app sigue.
+          }
+          await qr.query(`SELECT set_config('app.tenant_id', $1, true)`, [
+            tenantId,
+          ]);
+
+          TenantContext.run(tenantId, () => {
+            TenantQueryRunnerContext.run(qr, () => {
+              next.handle().subscribe({
+                next: (v) => subscriber.next(v),
+                error: (e) => {
+                  void finish(true).finally(() => subscriber.error(e));
+                },
+                complete: () => {
+                  void finish(false).finally(() => subscriber.complete());
+                },
+              });
+            });
+          });
+        } catch (e) {
+          await finish(true);
+          subscriber.error(e);
+        }
+      })();
+
+      return () => {
+        void finish(true);
+      };
     });
   }
 }

@@ -1,4 +1,4 @@
-# Multi-tenant (Semana 1–3)
+# Multi-tenant (Semanas 1–4)
 
 Ver diseño: `docs/superpowers/specs/2026-08-24-multi-tenant-design.md`  
 Plan: `docs/superpowers/plans/2026-08-24-multi-tenant-foundation.md`
@@ -16,8 +16,8 @@ Tenant seed: `11111111-1111-1111-1111-111111111111` (Cooperativa Central).
 ## Semana 2 — Backend
 
 - JWT incluye `tenantId`; login responde `user.tenantId`.
-- `TenantInterceptor` fija `TenantContext` y rechaza `X-Tenant-ID` distinto del JWT.
-- Parche TypeORM: `find`/`findOne`/… filtran por `tenantId` si hay contexto.
+- `TenantInterceptor`: contexto + anti-spoof + **transacción** con `SET LOCAL ROLE coraza_app` y `app.tenant_id`.
+- Parche TypeORM: filtra `where` y enruta queries al QueryRunner de la request (RLS).
 - `TenantInsertSubscriber` rellena `tenantId` en INSERT.
 - Entidades `Organization` + `Copropiedad` (sin CRUD).
 
@@ -26,16 +26,32 @@ Tenant seed: `11111111-1111-1111-1111-111111111111` (Cooperativa Central).
 - Login guarda `coraza_tenant_id` en localStorage.
 - `tenantInterceptor` envía header `X-Tenant-ID` (sin cambios de vistas).
 
-## Verificación local (2 tenants)
+## Semana 4 — RLS (Postgres)
+
+Migración: `supabase/migrations/030_multi_tenant_rls.sql`
+
+### Qué hace
+
+1. Crea rol **`coraza_app`** (`NOSUPERUSER`, `NOBYPASSRLS`).
+2. `GRANT` de DML sobre `public` a `coraza_app`.
+3. En tablas de negocio con `tenant_id`:
+   - `ENABLE ROW LEVEL SECURITY`
+   - `FORCE ROW LEVEL SECURITY`
+   - Políticas `tenant_isolation_select` / `tenant_isolation_write`  
+     condición: `tenant_id = current_setting('app.tenant_id')::uuid`
+4. **Sin RLS** en globales: `roles`, `permissions`, `role_permissions`, `diagnosticos_cie10`, `organizations`.
+
+### Aplicar / verificar
 
 ```powershell
+npm run db:apply-multi-tenant-rls -w @coraza/api
+npm run db:verify-rls -w @coraza/api
 npm run api:dev
-npm test -w @coraza/api -- --testPathPattern="tenant\\.(context|interceptor)|patch-typeorm-tenant"
 npm run db:smoke-multi-tenant -w @coraza/api
 ```
 
-Comprueba: denylist globales, anti-spoof 403, create con `tenantId` del JWT, aislamiento posts A/B.
+`db:verify-rls` comprueba a nivel SQL (con `SET LOCAL ROLE coraza_app`) que tenant A no ve filas de tenant B y que sin `app.tenant_id` el resultado es vacío (fail-closed).
 
-## Semana 4 — RLS + tests aislamiento (siguiente)
+### Por qué `SET LOCAL ROLE`
 
-Políticas Postgres RLS como red de seguridad adicional.
+En Supabase el usuario de conexión suele ser privilegiado y **bypassea RLS**. Dentro de cada request autenticada el interceptor hace `SET LOCAL ROLE coraza_app` + `set_config('app.tenant_id', …, true)` en la misma transacción que TypeORM, para que las políticas apliquen de verdad.
