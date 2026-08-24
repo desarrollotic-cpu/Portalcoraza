@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+import ExcelJS from 'exceljs';
 import { AuditService } from '../audit/audit.service';
 import {
   Associate,
@@ -1475,6 +1476,214 @@ export class MonthlySchedulingService {
       },
       associates: rows.sort((a, b) => a.nombre.localeCompare(b.nombre)),
     };
+  }
+
+  /**
+   * Genera un libro de Excel oficial (.xlsx) de alta definición con diseño corporativo Coraza.
+   */
+  async exportPayrollRecargosExcel(year: number, month: number): Promise<Buffer> {
+    const report = await this.getPayrollRecargos(year, month);
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    const monthName = monthNames[month - 1] || `MES ${month}`;
+    const periodLabel = `${monthName} DE ${year}`;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Portal Coraza Seguridad C.T.A.';
+    wb.lastModifiedBy = 'Sistema Integral Coraza';
+    wb.created = new Date();
+    wb.modified = new Date();
+
+    const ws = wb.addWorksheet(`Recargos ${monthName} ${year}`, {
+      views: [{ showGridLines: true }],
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+
+    // 1. Banner Superior Corporativo
+    ws.mergeCells('A1:N1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = '🛡️ CORAZA SEGURIDAD C.T.A. — INFORME OFICIAL DE LIQUIDACIÓN DE RECARGOS Y HORAS';
+    titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } }; // Navy blue
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 28;
+
+    ws.mergeCells('A2:N2');
+    const subCell = ws.getCell('A2');
+    subCell.value = `PERIODO DE PROGRAMACIÓN: ${periodLabel}  |  TOTAL ASOCIADOS EVALUADOS: ${report.totalAssociates}  |  TOTAL HORAS: ${report.totals.totalHorasLiquidables}`;
+    subCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFE2E8F0' } };
+    subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 20;
+
+    ws.mergeCells('A3:N3');
+    const metaCell = ws.getCell('A3');
+    metaCell.value = `NIT: 811.021.524-8 · Licencia SuperVigilancia Resol. No. 0002848 · PBX: (604) 448 2027 · Generado: ${new Date().toLocaleDateString('es-CO')} ${new Date().toLocaleTimeString('es-CO')}`;
+    metaCell.font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF475569' } };
+    metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(3).height = 18;
+
+    // Fila 4 vacía
+    ws.getRow(4).height = 10;
+
+    // 2. Encabezados de Tabla (Fila 5)
+    const headers = [
+      'CÉDULA',
+      'NOMBRE COMPLETO',
+      'CARGO',
+      'PUESTOS ASIGNADOS',
+      'DÍAS LAB.',
+      'TURNOS D',
+      'TURNOS N',
+      'DESCANSOS',
+      'HORAS ORD.',
+      'REC. NOCT. (35%)',
+      'EXT. DIUR. (1.25)',
+      'EXT. NOCT. (1.75)',
+      'DOM. Y FEST. (1.75)',
+      'TOTAL HORAS',
+    ];
+
+    const headerRow = ws.getRow(5);
+    headerRow.values = headers;
+    headerRow.height = 26;
+
+    headers.forEach((_, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }; // Teal corporate
+      cell.alignment = { horizontal: idx >= 4 ? 'right' : 'left', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF0D9488' } },
+        left: { style: 'thin', color: { argb: 'FF0D9488' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+        right: { style: 'thin', color: { argb: 'FF0D9488' } },
+      };
+    });
+
+    // 3. Filas de Datos
+    const startDataRow = 6;
+    let currentRowIdx = startDataRow;
+
+    for (const row of report.associates) {
+      const r = ws.getRow(currentRowIdx);
+      const isEven = currentRowIdx % 2 === 0;
+      const bg = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
+
+      r.values = [
+        row.cedula,
+        row.nombre,
+        row.cargo,
+        row.puestos,
+        row.diasLaborados,
+        row.turnosDiurnos,
+        row.turnosNocturnos,
+        row.descansos,
+        row.horasOrdinarias,
+        row.recargosNocturnos,
+        row.horasExtrasDiurnas,
+        row.horasExtrasNocturnas,
+        row.dominicalesFestivas,
+        row.totalHoras,
+      ];
+      r.height = 20;
+
+      for (let col = 1; col <= 14; col++) {
+        const cell = r.getCell(col);
+        cell.font = { name: 'Calibri', size: 9.5, bold: col === 2 || col === 14 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.alignment = {
+          horizontal: col === 1 ? 'center' : col >= 5 ? 'right' : 'left',
+          vertical: 'middle',
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (col >= 5) {
+          cell.numFmt = '#,##0';
+        }
+      }
+
+      currentRowIdx++;
+    }
+
+    // 4. Fila de Totales Generales con Fórmulas de Excel
+    const totalRow = ws.getRow(currentRowIdx);
+    totalRow.height = 24;
+
+    totalRow.getCell(1).value = 'TOTALES:';
+    totalRow.getCell(2).value = `${report.associates.length} ASOCIADOS`;
+    totalRow.getCell(3).value = '';
+    totalRow.getCell(4).value = '';
+
+    const colsToSum = [
+      { col: 5, letter: 'E' },
+      { col: 6, letter: 'F' },
+      { col: 7, letter: 'G' },
+      { col: 8, letter: 'H' },
+      { col: 9, letter: 'I' },
+      { col: 10, letter: 'J' },
+      { col: 11, letter: 'K' },
+      { col: 12, letter: 'L' },
+      { col: 13, letter: 'M' },
+      { col: 14, letter: 'N' },
+    ];
+
+    for (const s of colsToSum) {
+      if (report.associates.length > 0) {
+        totalRow.getCell(s.col).value = {
+          formula: `SUM(${s.letter}${startDataRow}:${s.letter}${currentRowIdx - 1})`,
+        };
+      } else {
+        totalRow.getCell(s.col).value = 0;
+      }
+    }
+
+    for (let col = 1; col <= 14; col++) {
+      const cell = totalRow.getCell(col);
+      cell.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF0F172A' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      cell.alignment = {
+        horizontal: col <= 4 ? 'left' : 'right',
+        vertical: 'middle',
+      };
+      cell.border = {
+        top: { style: 'medium', color: { argb: 'FF0F172A' } },
+        bottom: { style: 'double', color: { argb: 'FF0F172A' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+      if (col >= 5) {
+        cell.numFmt = '#,##0';
+      }
+    }
+
+    // 5. Anchos de Columna Optimizados
+    ws.columns = [
+      { width: 14 }, // Cédula
+      { width: 36 }, // Nombre
+      { width: 24 }, // Cargo
+      { width: 44 }, // Puestos
+      { width: 12 }, // Días
+      { width: 13 }, // Turnos D
+      { width: 13 }, // Turnos N
+      { width: 13 }, // Descansos
+      { width: 15 }, // Horas Ord
+      { width: 18 }, // Rec Noct
+      { width: 16 }, // Ext Diur
+      { width: 16 }, // Ext Noct
+      { width: 20 }, // Dom/Fest
+      { width: 18 }, // Total Horas
+    ];
+
+    const buffer = await wb.xlsx.writeBuffer();
+    return Buffer.from(buffer);
   }
 }
 

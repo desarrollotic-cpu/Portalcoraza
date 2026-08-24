@@ -26,8 +26,8 @@ import {
             Periodo
             <input type="month" [(ngModel)]="monthStr" (ngModelChange)="load()" />
           </label>
-          <button type="button" class="btn-primary" (click)="exportCsv()" [disabled]="!filteredRows().length">
-            📊 Exportar a Excel / CSV
+          <button type="button" class="btn-primary" (click)="exportExcel()" [disabled]="!filteredRows().length">
+            📊 Exportar a Excel Oficial (.xlsx)
           </button>
         </div>
       </header>
@@ -272,51 +272,24 @@ export class ProgramacionRecargos implements OnInit {
     );
   });
 
-  exportCsv(): void {
-    const rows = this.filteredRows();
-    if (!rows.length) return;
+  exportExcel(): void {
+    if (!this.monthStr) return;
+    const [yStr, mStr] = this.monthStr.split('-');
+    const year = parseInt(yStr, 10);
+    const month = parseInt(mStr, 10);
 
-    const headers = [
-      'CEDULA',
-      'NOMBRE_COMPLETO',
-      'CARGO',
-      'PUESTOS',
-      'DIAS_LABORADOS',
-      'TURNOS_DIURNOS',
-      'TURNOS_NOCTURNOS',
-      'DESCANSOS',
-      'HORAS_ORDINARIAS',
-      'EXTRAS_DIURNAS_1.25',
-      'RECARGOS_NOCTURNOS_0.35',
-      'EXTRAS_NOCTURNAS_1.75',
-      'DOMINICALES_FESTIVAS_1.75',
-      'TOTAL_HORAS',
-    ];
-
-    const lines = rows.map((r) => [
-      `"${r.cedula}"`,
-      `"${r.nombre}"`,
-      `"${r.cargo}"`,
-      `"${r.puestos}"`,
-      r.diasLaborados,
-      r.turnosDiurnos,
-      r.turnosNocturnos,
-      r.descansos,
-      r.horasOrdinarias,
-      r.horasExtrasDiurnas,
-      r.recargosNocturnos,
-      r.horasExtrasNocturnas,
-      r.dominicalesFestivas,
-      r.totalHoras,
-    ].join(';'));
-
-    const csvContent = '\uFEFF' + [headers.join(';'), ...lines].join('\r\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `liquidacion-recargos-turnos-${this.monthStr}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    this.api.downloadPayrollRecargosExcel(year, month).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `Liquidacion_Recargos_Coraza_${this.monthStr}.xlsx`;
+        link.click();
+        URL.revokeObjectURL(url);
+      },
+      error: () => {
+        alert('No se pudo generar el archivo de Excel oficial. Por favor intente de nuevo.');
+      },
+    });
   }
 }

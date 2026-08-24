@@ -7,8 +7,10 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -43,6 +45,27 @@ export class MonthlySchedulingController {
   @RequirePermissions('scheduling.view')
   getTodayCoverage(@Query('date') date?: string) {
     return this.service.getTodayCoverage(date);
+  }
+
+  @Get('payroll-recargos/export-excel')
+  @RequirePermissions('scheduling.view')
+  async exportPayrollRecargosExcel(
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @Res() res: Response,
+  ) {
+    const y = parseInt(year, 10) || new Date().getFullYear();
+    const m = parseInt(month, 10) || new Date().getMonth() + 1;
+    const buffer = await this.service.exportPayrollRecargosExcel(y, m);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Liquidacion_Recargos_Coraza_${y}-${String(m).padStart(2, '0')}.xlsx"`,
+    );
+    res.send(buffer);
   }
 
   @Get('payroll-recargos')
