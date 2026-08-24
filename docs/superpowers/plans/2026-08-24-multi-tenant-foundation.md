@@ -30,9 +30,9 @@
 
 **Steps:**
 - [x] Spec aprobado opción A
-- [ ] Migración 029 idempotente
-- [ ] Scripts apply + verify
-- [ ] Commit Semana 1 (no apply prod sin backup confirmado)
+- [x] Migración 029 idempotente
+- [x] Scripts apply + verify
+- [x] Commit Semana 1 (aplicada en Supabase + DEFAULT 029b)
 
 **Done when:** SQL y scripts en repo; verify script documentado.
 
