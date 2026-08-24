@@ -64,11 +64,12 @@
 ### Task 4: Semana 4 — RLS + tests + docs
 
 **Files:**
-- Create: `supabase/migrations/030_multi_tenant_rls.sql` (o ampliación)
-- Create: tests de aislamiento
-- Create: `docs/MULTI-TENANT.md`
+- Create: `supabase/migrations/030_multi_tenant_rls.sql`
+- Create: `apps/api/scripts/apply-multi-tenant-rls.ts`, `verify-rls.ts`
+- Modify: `tenant.interceptor.ts` (QueryRunner + SET LOCAL ROLE)
+- Update: `docs/MULTI-TENANT.md`
 
-**Done when:** RLS activo en tablas críticas; test cross-tenant falla como se espera; doc de runbook.
+**Done when:** RLS activo en tablas de negocio; verify-rls A/B OK; globales sin RLS; smoke HTTP OK.
 
 ---
 
