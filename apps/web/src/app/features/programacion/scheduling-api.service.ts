@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, shareReplay } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export type ShiftType = 'DAY' | 'NIGHT' | 'REST';
@@ -46,9 +46,15 @@ export class SchedulingApiService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/scheduling`;
   private readonly postsUrl = `${environment.apiUrl}/posts`;
+  private postsCache$: Observable<Post[]> | null = null;
 
-  listPosts(): Observable<Post[]> {
-    return this.http.get<Post[]>(this.postsUrl);
+  listPosts(forceRefresh = false): Observable<Post[]> {
+    if (!this.postsCache$ || forceRefresh) {
+      this.postsCache$ = this.http
+        .get<Post[]>(this.postsUrl)
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+    }
+    return this.postsCache$;
   }
 
   listShifts(query: ListShiftsQuery): Observable<ShiftSchedule[]> {

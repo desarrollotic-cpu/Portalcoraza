@@ -207,7 +207,7 @@ export class MonthlySchedulingService {
 
   async getBoardAlerts(query: BoardAlertsQueryDto) {
     const month = `${query.year}-${String(query.month).padStart(2, '0')}`;
-    const cells = await this.loadAlertCells(query.year, query.month);
+    const cells = await this.loadAlertCellsForPost(query.postId, query.year, query.month);
     const daysInMonth = new Date(query.year, query.month, 0).getDate();
     const all = computeMonthlyAlerts({ month, daysInMonth, cells });
 
@@ -295,6 +295,80 @@ export class MonthlySchedulingService {
       .filter(Boolean)
       .join(' ')
       .trim();
+  }
+
+  private async loadAlertCellsForPost(postId: string, year: number, month: number): Promise<AlertCellInput[]> {
+    const postAssocRows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.post_id = :postId AND s.year = :year AND s.month = :month', { postId, year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .select('DISTINCT a.associate_id', 'associateId')
+      .getRawMany<{ associateId: string }>();
+
+    const associateIds = postAssocRows.map((r) => r.associateId).filter(Boolean);
+
+    const qb = this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
+      .where('s.year = :year AND s.month = :month', { year, month });
+
+    if (associateIds.length > 0) {
+      qb.andWhere('(s.post_id = :postId OR a.associate_id IN (:...associateIds))', {
+        postId,
+        associateIds,
+      });
+    } else {
+      qb.andWhere('s.post_id = :postId', { postId });
+    }
+
+    const rows = await qb
+      .select([
+        's.post_id AS "postId"',
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        'a.day AS day',
+        'a.role AS role',
+        'a.associate_id AS "associateId"',
+        'a.codigo AS codigo',
+        'assoc.status AS "associateStatus"',
+        'assoc.first_name AS "firstName"',
+        'assoc.second_name AS "secondName"',
+        'assoc.first_last_name AS "firstLastName"',
+        'assoc.second_last_name AS "secondLastName"',
+      ])
+      .getRawMany<{
+        postId: string;
+        postName: string;
+        day: string | number;
+        role: string;
+        associateId: string | null;
+        codigo: string | null;
+        associateStatus: AssociateStatus | null;
+        firstName: string | null;
+        secondName: string | null;
+        firstLastName: string | null;
+        secondLastName: string | null;
+      }>();
+
+    return rows.map((r) => ({
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+      day: Number(r.day),
+      role: r.role,
+      associateId: r.associateId,
+      associateName: r.associateId
+        ? this.associateDisplayName({
+            firstName: r.firstName ?? undefined,
+            secondName: r.secondName,
+            firstLastName: r.firstLastName ?? undefined,
+            secondLastName: r.secondLastName,
+          }) || null
+        : null,
+      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
+      codigo: r.codigo,
+    }));
   }
 
   private async loadAlertCells(year: number, month: number): Promise<AlertCellInput[]> {
