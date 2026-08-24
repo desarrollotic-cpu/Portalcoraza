@@ -356,6 +356,15 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'recargos',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-recargos/programacion-recargos').then(
+                (m) => m.ProgramacionRecargos,
+              ),
+          },
+          {
             path: 'alertas',
             canActivate: [permissionGuard],
             data: { permission: 'scheduling.view' },

@@ -133,13 +133,16 @@ const CODES: CodeConfig[] = [
           </button>
           @if (schedule()!.status !== 'publicado') {
             <button type="button" class="success" (click)="setStatus('publicado')" [disabled]="saving() || dirty()">
-              Publicar
+              📢 Publicar Malla Oficial
             </button>
           } @else {
             <button type="button" (click)="setStatus('borrador')" [disabled]="saving()">
               Volver a borrador
             </button>
           }
+          <button type="button" class="btn-print" (click)="printPlanillaCartelera()" [disabled]="saving()">
+            🖨️ Imprimir Planilla Cartelera
+          </button>
           @if (dirty()) {
             <span class="hint warn">Hay cambios sin guardar</span>
           }
@@ -294,6 +297,8 @@ const CODES: CodeConfig[] = [
     button.primary { background: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
     button.success { background: #198754; color: #fff; border-color: #198754; }
     button.danger { background: #dc3545; color: #fff; border-color: #dc3545; }
+    button.btn-print { background: #0f766e; color: #fff; border-color: #0f766e; font-weight: 600; }
+    button.btn-print:hover:not(:disabled) { background: #115e59; }
     button.sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
     .empty-state { padding: 2rem; text-align: center; border: 1px dashed var(--coraza-border); border-radius: 12px; }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
@@ -631,6 +636,174 @@ export class ScheduleBoard implements OnInit {
         this.error.set('No se pudo cambiar el estado');
       },
     });
+  }
+
+  printPlanillaCartelera(): void {
+    const sched = this.schedule();
+    const post = this.posts().find(p => p.id === this.postId);
+    if (!sched || !post) return;
+
+    const month = this.month;
+    const [yStr, mStr] = month.split('-');
+    const year = parseInt(yStr, 10);
+    const mNum = parseInt(mStr, 10);
+    const daysInMonth = new Date(year, mNum, 0).getDate();
+    const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    const monthLabel = `${monthNames[mNum - 1]} DE ${year}`;
+
+    const printWin = window.open('', '_blank');
+    if (!printWin) {
+      alert('Por favor permita ventanas emergentes para imprimir la planilla.');
+      return;
+    }
+
+    const holidays = getColombiaHolidays(year);
+    const holidayDates = new Set(holidays.map(h => h.date));
+
+    let headerThs = '';
+    for (const d of days) {
+      const dObj = new Date(year, mNum - 1, d);
+      const isSun = dObj.getDay() === 0;
+      const iso = `${year}-${String(mNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const isHol = holidayDates.has(iso);
+      const bg = isSun ? '#fee2e2' : isHol ? '#fef3c7' : '#f8fafc';
+      const color = isSun ? '#991b1b' : isHol ? '#92400e' : '#1e293b';
+      headerThs += `<th style="background:${bg}; color:${color}; border:1px solid #94a3b8; padding:3px 1px; font-size:9px; text-align:center; min-width:18px;">${d}</th>`;
+    }
+
+    let rowsHtml = '';
+    for (const role of this.personal()) {
+      const assoc = role.associateId ? this.associates().find(a => a.id === role.associateId) : null;
+      const assocName = assoc ? `${assoc.firstName} ${assoc.lastName}` : 'SIN ASIGNAR';
+      const assocCc = assoc?.documentNumber ? `CC: ${assoc.documentNumber}` : '—';
+
+      let cellsTds = '';
+      for (const d of days) {
+        const state = this.cells().get(`${role.rol}:${d}`);
+        const code = state?.codigo || '—';
+        let cellBg = '#ffffff';
+        let cellColor = '#334155';
+        let fontW = 'normal';
+
+        if (code === 'D' || code === 'D8') {
+          cellBg = '#fef08a'; cellColor = '#854d0e'; fontW = 'bold';
+        } else if (code === 'N' || code === 'N8') {
+          cellBg = '#bbf7d0'; cellColor = '#166534'; fontW = 'bold';
+        } else if (code === 'DR' || code === 'NR' || code === 'L') {
+          cellBg = '#f1f5f9'; cellColor = '#475569';
+        } else if (code === 'IN' || code === 'VAC' || code === 'LC' || code === 'SP') {
+          cellBg = '#fee2e2'; cellColor = '#991b1b'; fontW = 'bold';
+        }
+
+        cellsTds += `<td style="background:${cellBg}; color:${cellColor}; font-weight:${fontW}; border:1px solid #cbd5e1; text-align:center; font-size:9.5px; padding:4px 1px;">${code}</td>`;
+      }
+
+      rowsHtml += `
+        <tr>
+          <td style="border:1px solid #94a3b8; padding:4px 6px; font-size:10px; background:#f8fafc;">
+            <strong>${role.displayName || role.rol}</strong><br>
+            <span style="font-size:9px; color:#1e293b;">${assocName}</span><br>
+            <span style="font-size:8px; color:#64748b;">${assocCc}</span>
+          </td>
+          ${cellsTds}
+        </tr>
+      `;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>Planilla de Programación - ${post.name} - ${monthLabel}</title>
+        <style>
+          @page { size: landscape; margin: 8mm; }
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 0; color: #0f172a; }
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 8px; }
+          .brand-title { font-size: 15px; font-weight: bold; color: #0f172a; margin: 0; }
+          .brand-sub { font-size: 8.5px; color: #475569; margin: 2px 0 0; }
+          .meta-box { border: 1px solid #0f172a; padding: 4px 8px; border-radius: 4px; text-align: right; background: #f8fafc; }
+          .meta-box h3 { margin: 0; font-size: 11px; color: #1e40af; }
+          .meta-box p { margin: 2px 0 0; font-size: 9px; }
+          .post-bar { display: flex; justify-content: space-between; background: #0f172a; color: #ffffff; padding: 4px 8px; font-size: 10px; border-radius: 3px; margin-bottom: 6px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+          .convenciones { display: flex; gap: 10px; font-size: 8.5px; margin-bottom: 14px; background: #f1f5f9; padding: 4px 8px; border-radius: 3px; }
+          .conv-item { display: flex; align-items: center; gap: 3px; }
+          .conv-box { display: inline-block; width: 14px; height: 12px; text-align: center; line-height: 12px; font-weight: bold; border-radius: 2px; font-size: 8px; }
+          .signatures { display: flex; justify-content: space-around; margin-top: 28px; }
+          .sign-box { width: 200px; text-align: center; border-top: 1px solid #0f172a; padding-top: 4px; font-size: 9px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1 class="brand-title">🛡️ CORAZA SEGURIDAD C.T.A.</h1>
+            <p class="brand-sub">NIT: 811.021.524-8 · Licencia SuperVigilancia Resol. No. 0002848 · PBX: (604) 448 2027</p>
+          </div>
+          <div class="meta-box">
+            <h3>PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
+            <p><strong>Periodo:</strong> ${monthLabel}</p>
+          </div>
+        </div>
+
+        <div class="post-bar">
+          <span><strong>PUESTO DE SERVICIO:</strong> ${post.name}</span>
+          <span><strong>ESTADO:</strong> OFICIAL / CARTELERA</span>
+          <span><strong>FECHA EMISIÓN:</strong> ${new Date().toLocaleDateString('es-CO')}</span>
+        </div>
+
+        <div class="convenciones">
+          <strong>CONVENCIONES:</strong>
+          <span class="conv-item"><span class="conv-box" style="background:#fef08a; color:#854d0e;">D</span> Diurno 12h (06:00 - 18:00)</span>
+          <span class="conv-item"><span class="conv-box" style="background:#bbf7d0; color:#166534;">N</span> Nocturno 12h (18:00 - 06:00)</span>
+          <span class="conv-item"><span class="conv-box" style="background:#f1f5f9; color:#475569;">DR</span> Descanso Remunerado</span>
+          <span class="conv-item"><span class="conv-box" style="background:#fee2e2; color:#991b1b;">IN</span> Incapacidad / Novedad Médica</span>
+          <span class="conv-item"><span class="conv-box" style="background:#fef3c7; color:#92400e;">VAC</span> Vacaciones</span>
+          <span class="conv-item" style="color:#991b1b;">■ Domingos / Festivos</span>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="border:1px solid #94a3b8; background:#0f172a; color:#ffffff; padding:4px 6px; font-size:9.5px; text-align:left; width:150px;">Rol / Personal</th>
+              ${headerThs}
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+
+        <div class="signatures">
+          <div class="sign-box">
+            <strong>SUPERVISOR DE OPERACIONES</strong><br>
+            <span>Coraza Seguridad C.T.A.</span>
+          </div>
+          <div class="sign-box">
+            <strong>COORDINADOR DE PUESTO</strong><br>
+            <span>Vigilancia y Control</span>
+          </div>
+          <div class="sign-box">
+            <strong>ADMINISTRADOR / CLIENTE</strong><br>
+            <span>Visto Bueno de Recepción</span>
+          </div>
+        </div>
+
+        <script>
+          window.onload = function() { window.print(); }
+        </script>
+      </body>
+      </html>
+    `;
+
+    printWin.document.open();
+    printWin.document.write(htmlContent);
+    printWin.document.close();
   }
 
   addRole(): void {

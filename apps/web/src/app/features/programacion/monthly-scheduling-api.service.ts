@@ -260,6 +260,19 @@ export class MonthlySchedulingApiService {
     }>(`${this.baseUrl}/motor-global`, payload);
   }
 
+  getTodayCoverage(date?: string): Observable<TodayCoverageResponse> {
+    let params = new HttpParams();
+    if (date) params = params.set('date', date);
+    return this.http.get<TodayCoverageResponse>(`${this.baseUrl}/today-coverage`, { params });
+  }
+
+  getPayrollRecargos(year: number, month: number): Observable<PayrollRecargosResponse> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<PayrollRecargosResponse>(`${this.baseUrl}/payroll-recargos`, { params });
+  }
+
   listTemplates(): Observable<ScheduleTemplate[]> {
     return this.http.get<ScheduleTemplate[]>(`${this.baseUrl}/templates`);
   }
@@ -294,3 +307,86 @@ export interface ScheduleTemplate {
   }>;
   createdAt: string;
 }
+
+export interface TodayGuardInfo {
+  role: string;
+  associateId: string | null;
+  nombre: string;
+  cedula: string;
+  telefono: string | null;
+  codigo: string | null;
+  jornada: Jornada;
+  turno: Turno | null;
+  inicio: string | null;
+  fin: string | null;
+  tipo?: string;
+}
+
+export interface TodayPostCoverage {
+  scheduleId: string;
+  status: ScheduleStatus;
+  post: {
+    id: string;
+    code: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+  };
+  turnoDia: TodayGuardInfo | null;
+  turnoNoche: TodayGuardInfo | null;
+  otros: TodayGuardInfo[];
+  isCovered: boolean;
+}
+
+export interface TodayCoverageResponse {
+  date: string;
+  year: number;
+  month: number;
+  day: number;
+  posts: TodayPostCoverage[];
+  summary: {
+    totalPosts: number;
+    coveredPosts: number;
+    uncoveredPosts: number;
+    diurnosCount: number;
+    nocturnosCount: number;
+    descansosCount: number;
+    novedadesCount: number;
+  };
+}
+
+export interface PayrollAssociateRecargo {
+  associateId: string;
+  nombre: string;
+  cedula: string;
+  cargo: string;
+  puestos: string;
+  diasLaborados: number;
+  turnosDiurnos: number;
+  turnosNocturnos: number;
+  descansos: number;
+  novedades: number;
+  horasOrdinarias: number;
+  horasExtrasDiurnas: number;
+  recargosNocturnos: number;
+  horasExtrasNocturnas: number;
+  dominicalesFestivas: number;
+  totalHoras: number;
+}
+
+export interface PayrollRecargosResponse {
+  year: number;
+  month: number;
+  daysInMonth: number;
+  totalAssociates: number;
+  totals: {
+    horasOrdinarias: number;
+    horasExtrasDiurnas: number;
+    recargosNocturnos: number;
+    horasExtrasNocturnas: number;
+    dominicalesFestivas: number;
+    totalHorasLiquidables: number;
+  };
+  associates: PayrollAssociateRecargo[];
+}
+

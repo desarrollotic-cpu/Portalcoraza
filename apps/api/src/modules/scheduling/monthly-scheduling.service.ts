@@ -1047,4 +1047,360 @@ export class MonthlySchedulingService {
 
     return DEFAULT_ROLES.map((r) => ({ ...r }));
   }
+
+  /**
+   * Obtiene la cobertura operativa del día de hoy (o una fecha específica).
+   * Devuelve quién está de turno diurno (D), nocturno (N), relevo, descanso (DR) o novedad en cada puesto.
+   */
+  async getTodayCoverage(dateIso?: string) {
+    const targetDate = dateIso ? new Date(dateIso) : new Date();
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+
+    const schedules = await this.schedulesRepo.find({
+      where: { year, month },
+    });
+
+    if (!schedules.length) {
+      return {
+        date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+        year,
+        month,
+        day,
+        posts: [],
+        summary: {
+          totalPosts: 0,
+          coveredPosts: 0,
+          uncoveredPosts: 0,
+          diurnosCount: 0,
+          nocturnosCount: 0,
+          descansosCount: 0,
+          novedadesCount: 0,
+        },
+      };
+    }
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments = await this.assignmentsRepo.find({
+      where: {
+        scheduleId: In(scheduleIds),
+        day,
+      },
+    });
+
+    const associateIds = [
+      ...new Set(
+        assignments
+          .map((a) => a.associateId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const associates = associateIds.length
+      ? await this.dataSource.getRepository(Associate).find({
+          where: { id: In(associateIds) },
+        })
+      : [];
+    const associateMap = new Map(associates.map((a) => [a.id, a]));
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const posts = await this.dataSource.getRepository(Post).find({
+      where: { id: In(postIds) },
+    });
+    const postMap = new Map(posts.map((p) => [p.id, p]));
+
+    const resultPosts = [];
+    let diurnosCount = 0;
+    let nocturnosCount = 0;
+    let descansosCount = 0;
+    let novedadesCount = 0;
+    let coveredPosts = 0;
+
+    for (const schedule of schedules) {
+      const post = postMap.get(schedule.postId);
+      if (!post) continue;
+
+      const postAssignments = assignments.filter(
+        (a) => a.scheduleId === schedule.id,
+      );
+
+      let turnoDia = null;
+      let turnoNoche = null;
+      const otros = [];
+
+      for (const a of postAssignments) {
+        const assoc = a.associateId ? associateMap.get(a.associateId) : null;
+        const assocName = assoc
+          ? `${assoc.firstName} ${assoc.firstLastName}`.trim()
+          : 'Sin Asignar';
+        const assocCedula = assoc?.documentNumber ?? '—';
+        const phone = assoc?.mobile ?? null;
+
+        const info = {
+          role: a.role,
+          associateId: a.associateId,
+          nombre: assocName,
+          cedula: assocCedula,
+          telefono: phone,
+          codigo: a.codigo,
+          jornada: a.jornada,
+          turno: a.turno,
+          inicio: a.inicio,
+          fin: a.fin,
+        };
+
+        if (a.codigo === 'D' || a.codigo === 'D8' || (a.jornada === 'normal' && a.turno === 'AM')) {
+          turnoDia = info;
+          if (a.associateId) diurnosCount++;
+        } else if (a.codigo === 'N' || a.codigo === 'N8' || (a.jornada === 'normal' && a.turno === 'PM')) {
+          turnoNoche = info;
+          if (a.associateId) nocturnosCount++;
+        } else if (a.codigo === 'DR' || a.codigo === 'NR' || a.jornada?.startsWith('descanso')) {
+          otros.push({ ...info, tipo: 'Descanso' });
+          if (a.associateId) descansosCount++;
+        } else {
+          otros.push({ ...info, tipo: 'Novedad' });
+          if (a.associateId) novedadesCount++;
+        }
+      }
+
+      const isCovered = Boolean(turnoDia?.associateId && turnoNoche?.associateId);
+      if (isCovered) coveredPosts++;
+
+      resultPosts.push({
+        scheduleId: schedule.id,
+        status: schedule.status,
+        post: {
+          id: post.id,
+          code: post.code,
+          name: post.name,
+          address: post.address ?? null,
+          city: post.zone ?? null,
+        },
+        turnoDia,
+        turnoNoche,
+        otros,
+        isCovered,
+      });
+    }
+
+    return {
+      date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      year,
+      month,
+      day,
+      posts: resultPosts.sort((a, b) => a.post.code.localeCompare(b.post.code)),
+      summary: {
+        totalPosts: resultPosts.length,
+        coveredPosts,
+        uncoveredPosts: resultPosts.length - coveredPosts,
+        diurnosCount,
+        nocturnosCount,
+        descansosCount,
+        novedadesCount,
+      },
+    };
+  }
+
+  /**
+   * Motor de liquidación de horas, recargos y extras mensual (Malla -> Nómina).
+   * Calcula automáticamente horas ordinarias, extras diurnas (1.25), recargos nocturnos (0.35),
+   * extras nocturnas (1.75) y dominicales/festivos (1.75) según el Código Sustantivo del Trabajo de Colombia.
+   */
+  async getPayrollRecargos(year: number, month: number) {
+    const schedules = await this.schedulesRepo.find({
+      where: { year, month },
+    });
+
+    if (!schedules.length) {
+      return {
+        year,
+        month,
+        totalAssociates: 0,
+        totals: {
+          horasOrdinarias: 0,
+          horasExtrasDiurnas: 0,
+          recargosNocturnos: 0,
+          horasExtrasNocturnas: 0,
+          dominicalesFestivas: 0,
+          totalHorasLiquidables: 0,
+        },
+        associates: [],
+      };
+    }
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments = await this.assignmentsRepo.find({
+      where: {
+        scheduleId: In(scheduleIds),
+      },
+    });
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const holidays = (await import('./utils/colombia-holidays')).getColombiaHolidays(year);
+    const holidayIsoSet = new Set(holidays.map((h) => h.date));
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const posts = await this.dataSource.getRepository(Post).find({
+      where: { id: In(postIds) },
+    });
+    const postMap = new Map(posts.map((p) => [p.id, p]));
+
+    const schedulePostMap = new Map(schedules.map((s) => [s.id, postMap.get(s.postId)]));
+
+    // Agrupar por asociado
+    const byAssociate = new Map<
+      string,
+      {
+        associateId: string;
+        puestos: Set<string>;
+        assignments: ScheduleAssignment[];
+      }
+    >();
+
+    for (const a of assignments) {
+      if (!a.associateId) continue;
+      let entry = byAssociate.get(a.associateId);
+      if (!entry) {
+        entry = {
+          associateId: a.associateId,
+          puestos: new Set<string>(),
+          assignments: [],
+        };
+        byAssociate.set(a.associateId, entry);
+      }
+      entry.assignments.push(a);
+      const p = schedulePostMap.get(a.scheduleId);
+      if (p) entry.puestos.add(`${p.code} - ${p.name}`);
+    }
+
+    const associateIds = [...byAssociate.keys()];
+    const associates = associateIds.length
+      ? await this.dataSource.getRepository(Associate).find({
+          where: { id: In(associateIds) },
+        })
+      : [];
+    const associateMap = new Map(associates.map((a) => [a.id, a]));
+
+    const rows = [];
+    let sumOrdinarias = 0;
+    let sumExtrasDiurnas = 0;
+    let sumRecargosNocturnos = 0;
+    let sumExtrasNocturnas = 0;
+    let sumDominicales = 0;
+
+    for (const [assocId, data] of byAssociate.entries()) {
+      const assoc = associateMap.get(assocId);
+      const nombre = assoc
+        ? `${assoc.firstName} ${assoc.firstLastName}`.trim()
+        : 'Asociado';
+      const cedula = assoc?.documentNumber ?? '—';
+      const cargo = 'Vigilante de Seguridad';
+
+      let countD = 0;
+      let countN = 0;
+      let countDR = 0;
+      let countNovedad = 0;
+
+      let ord = 0;
+      let extD = 0;
+      let recN = 0;
+      let extN = 0;
+      let dom = 0;
+
+      for (const assign of data.assignments) {
+        const day = assign.day;
+        const dateObj = new Date(year, month - 1, day);
+        const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSunday = dateObj.getDay() === 0;
+        const isHoliday = holidayIsoSet.has(iso);
+        const isFestivo = isSunday || isHoliday;
+
+        const code = assign.codigo;
+
+        if (code === 'D') {
+          countD++;
+          if (isFestivo) {
+            dom += 12;
+          } else {
+            ord += 8;
+            extD += 4;
+          }
+        } else if (code === 'N') {
+          countN++;
+          if (isFestivo) {
+            dom += 12;
+            recN += 5;
+          } else {
+            ord += 3;
+            recN += 5;
+            extN += 4;
+          }
+        } else if (code === 'D8') {
+          countD++;
+          if (isFestivo) {
+            dom += 8;
+          } else {
+            ord += 8;
+          }
+        } else if (code === 'N8') {
+          countN++;
+          if (isFestivo) {
+            dom += 8;
+            recN += 8;
+          } else {
+            ord += 8;
+            recN += 8;
+          }
+        } else if (code === 'DR' || code === 'NR') {
+          countDR++;
+        } else {
+          countNovedad++;
+        }
+      }
+
+      sumOrdinarias += ord;
+      sumExtrasDiurnas += extD;
+      sumRecargosNocturnos += recN;
+      sumExtrasNocturnas += extN;
+      sumDominicales += dom;
+
+      rows.push({
+        associateId: assocId,
+        nombre,
+        cedula,
+        cargo,
+        puestos: Array.from(data.puestos).join(' / ') || 'Sin Puesto Asignado',
+        diasLaborados: countD + countN,
+        turnosDiurnos: countD,
+        turnosNocturnos: countN,
+        descansos: countDR,
+        novedades: countNovedad,
+        horasOrdinarias: ord,
+        horasExtrasDiurnas: extD,
+        recargosNocturnos: recN,
+        horasExtrasNocturnas: extN,
+        dominicalesFestivas: dom,
+        totalHoras: ord + extD + extN + dom,
+      });
+    }
+
+    return {
+      year,
+      month,
+      daysInMonth,
+      totalAssociates: rows.length,
+      totals: {
+        horasOrdinarias: sumOrdinarias,
+        horasExtrasDiurnas: sumExtrasDiurnas,
+        recargosNocturnos: sumRecargosNocturnos,
+        horasExtrasNocturnas: sumExtrasNocturnas,
+        dominicalesFestivas: sumDominicales,
+        totalHorasLiquidables: sumOrdinarias + sumExtrasDiurnas + sumExtrasNocturnas + sumDominicales,
+      },
+      associates: rows.sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    };
+  }
 }
+

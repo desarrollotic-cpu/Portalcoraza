@@ -5,6 +5,7 @@ import {
   LucideLayoutDashboard,
   LucideLayoutGrid,
   LucideAlertTriangle,
+  LucideCalculator,
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
@@ -14,7 +15,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Programación"
-      subtitle="Cuadro mensual de asignación de personal por puesto."
+      subtitle="Cuadro mensual de asignación de personal por puesto y liquidación de recargos."
       [nav]="nav"
     >
       <router-outlet />
@@ -43,6 +44,12 @@ export class ProgramacionLayout {
       icon: LucideCalendarClock,
     },
     {
+      label: 'Liquidación de recargos',
+      route: '/programacion/recargos',
+      permission: 'scheduling.view',
+      icon: LucideCalculator,
+    },
+    {
       label: 'Alertas',
       route: '/programacion/alertas',
       permission: 'scheduling.view',
@@ -50,3 +57,4 @@ export class ProgramacionLayout {
     },
   ];
 }
+

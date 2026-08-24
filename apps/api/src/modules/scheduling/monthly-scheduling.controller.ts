@@ -39,6 +39,23 @@ export class MonthlySchedulingController {
     return this.service.getOne(query);
   }
 
+  @Get('today-coverage')
+  @RequirePermissions('scheduling.view')
+  getTodayCoverage(@Query('date') date?: string) {
+    return this.service.getTodayCoverage(date);
+  }
+
+  @Get('payroll-recargos')
+  @RequirePermissions('scheduling.view')
+  getPayrollRecargos(
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const y = parseInt(year, 10) || new Date().getFullYear();
+    const m = parseInt(month, 10) || new Date().getMonth() + 1;
+    return this.service.getPayrollRecargos(y, m);
+  }
+
   @Get('overview')
   @RequirePermissions('scheduling.view')
   overview(@Query() query: ListMonthlyScheduleDto) {
