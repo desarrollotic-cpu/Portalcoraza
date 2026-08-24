@@ -594,6 +594,8 @@ export class ScheduleBoard implements OnInit {
     return isColombiaHoliday(year, mon, day, this.holidays())?.name ?? null;
   }
 
+  private readonly scheduleCache = new Map<string, MonthlySchedule | null>();
+
   onSelectionChange(): void {
     this.editing.set(null);
     this.loadSchedule();
@@ -606,10 +608,21 @@ export class ScheduleBoard implements OnInit {
       return;
     }
     const [year, mon] = this.month.split('-').map(Number);
+    const cacheKey = `${this.postId}:${year}:${mon}`;
+
+    // Si ya está en memoria caché, aplicar al instante (0ms)
+    if (this.scheduleCache.has(cacheKey)) {
+      const cached = this.scheduleCache.get(cacheKey) ?? null;
+      this.applySchedule(cached);
+      this.loading.set(false);
+      return;
+    }
+
     this.loading.set(true);
     this.error.set(null);
     this.api.getOne(this.postId, year, mon).subscribe({
       next: (sched) => {
+        this.scheduleCache.set(cacheKey, sched);
         this.applySchedule(sched);
         this.loading.set(false);
         this.reloadBoardAlerts(year, mon);
@@ -627,15 +640,6 @@ export class ScheduleBoard implements OnInit {
       next: (res) => this.boardAlerts.set(res),
       error: () => this.boardAlerts.set(null),
     });
-    this.api.getAlerts(year, mon, 'current').subscribe({
-      next: (res) =>
-        this.monthConflictAlerts.set(
-          res.alerts.filter(
-            (a) => a.type === 'conflicto_mismo_turno' || a.type === 'asociado_inactivo',
-          ),
-        ),
-      error: () => this.monthConflictAlerts.set([]),
-    });
   }
 
   createSchedule(): void {
@@ -644,6 +648,8 @@ export class ScheduleBoard implements OnInit {
     this.saving.set(true);
     this.api.createOrGet(this.postId, year, mon).subscribe({
       next: (sched) => {
+        const cacheKey = `${this.postId}:${year}:${mon}`;
+        this.scheduleCache.set(cacheKey, sched);
         this.applySchedule(sched);
         this.saving.set(false);
       },
@@ -745,11 +751,13 @@ export class ScheduleBoard implements OnInit {
       .save(id, { ...savePayload, confirmWarnings: confirmWarnings || undefined })
       .subscribe({
         next: (updated) => {
+          const [year, mon] = this.month.split('-').map(Number);
+          const cacheKey = `${this.postId}:${year}:${mon}`;
+          this.scheduleCache.set(cacheKey, updated);
           this.applySchedule(updated);
           this.saving.set(false);
           this.confirmOpen.set(false);
           this.pendingSavePayload = null;
-          const [year, mon] = this.month.split('-').map(Number);
           this.reloadBoardAlerts(year, mon);
         },
         error: (err: HttpErrorResponse) => {
