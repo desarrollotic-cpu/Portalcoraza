@@ -273,23 +273,148 @@ export class ProgramacionRecargos implements OnInit {
   });
 
   exportExcel(): void {
-    if (!this.monthStr) return;
-    const [yStr, mStr] = this.monthStr.split('-');
-    const year = parseInt(yStr, 10);
-    const month = parseInt(mStr, 10);
+    const rows = this.filteredRows();
+    if (!rows.length) return;
 
-    this.api.downloadPayrollRecargosExcel(year, month).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `Liquidacion_Recargos_Coraza_${this.monthStr}.xlsx`;
-        link.click();
-        URL.revokeObjectURL(url);
-      },
-      error: () => {
-        alert('No se pudo generar el archivo de Excel oficial. Por favor intente de nuevo.');
-      },
+    const [yStr, mStr] = (this.monthStr || '').split('-');
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    const mIdx = (parseInt(mStr, 10) || 1) - 1;
+    const periodName = `${monthNames[mIdx] || mStr} DE ${yStr}`;
+    const dateNow = new Date().toLocaleDateString('es-CO') + ' ' + new Date().toLocaleTimeString('es-CO');
+
+    let tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Recargos ${periodName}</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Calibri, sans-serif; }
+          .title { background-color: #0F172A; color: #FFFFFF; font-size: 13pt; font-weight: bold; text-align: center; height: 32px; }
+          .sub { background-color: #1E293B; color: #E2E8F0; font-size: 10pt; font-weight: bold; text-align: center; height: 24px; }
+          .meta { background-color: #F1F5F9; color: #475569; font-size: 9pt; font-style: italic; text-align: center; height: 20px; }
+          .th { background-color: #0F766E; color: #FFFFFF; font-weight: bold; text-align: center; border: 1px solid #0D9488; height: 28px; font-size: 9.5pt; }
+          .td-text { text-align: left; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; }
+          .td-center { text-align: center; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; }
+          .td-num { text-align: right; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; mso-number-format: "#,##0"; }
+          .even { background-color: #F8FAFC; }
+          .total-row { background-color: #E2E8F0; font-weight: bold; font-size: 10pt; border-top: 2px solid #0F172A; border-bottom: 3px double #0F172A; }
+        </style>
+      </head>
+      <body>
+        <table border="0" cellspacing="0" cellpadding="4">
+          <tr>
+            <td colspan="14" class="title">CORAZA SEGURIDAD C.T.A. — INFORME OFICIAL DE LIQUIDACI&Oacute;N DE RECARGOS Y TURNOS</td>
+          </tr>
+          <tr>
+            <td colspan="14" class="sub">PERIODO: ${periodName} | TOTAL ASOCIADOS EN MALLA: ${rows.length}</td>
+          </tr>
+          <tr>
+            <td colspan="14" class="meta">NIT: 811.021.524-8 &middot; Licencia SuperVigilancia Resol. No. 0002848 &middot; Generado: ${dateNow}</td>
+          </tr>
+          <tr><td colspan="14" style="height:10px;"></td></tr>
+          <tr>
+            <th class="th">C&Eacute;DULA</th>
+            <th class="th">NOMBRE COMPLETO</th>
+            <th class="th">CARGO</th>
+            <th class="th">PUESTOS ASIGNADOS</th>
+            <th class="th">D&Iacute;AS LAB.</th>
+            <th class="th">TURNOS D</th>
+            <th class="th">TURNOS N</th>
+            <th class="th">DESCANSOS</th>
+            <th class="th">HORAS ORD.</th>
+            <th class="th">REC. NOCT. (35%)</th>
+            <th class="th">EXT. DIUR. (1.25)</th>
+            <th class="th">EXT. NOCT. (1.75)</th>
+            <th class="th">DOM. Y FEST. (1.75)</th>
+            <th class="th">TOTAL HORAS</th>
+          </tr>
+    `;
+
+    let totDias = 0;
+    let totD = 0;
+    let totN = 0;
+    let totDesc = 0;
+    let totOrd = 0;
+    let totRecN = 0;
+    let totExtD = 0;
+    let totExtN = 0;
+    let totDom = 0;
+    let totHoras = 0;
+
+    rows.forEach((r, idx) => {
+      const cls = idx % 2 === 0 ? '' : ' even';
+      totDias += r.diasLaborados || 0;
+      totD += r.turnosDiurnos || 0;
+      totN += r.turnosNocturnos || 0;
+      totDesc += r.descansos || 0;
+      totOrd += r.horasOrdinarias || 0;
+      totRecN += r.recargosNocturnos || 0;
+      totExtD += r.horasExtrasDiurnas || 0;
+      totExtN += r.horasExtrasNocturnas || 0;
+      totDom += r.dominicalesFestivas || 0;
+      totHoras += r.totalHoras || 0;
+
+      tableHtml += `
+        <tr class="${cls}">
+          <td class="td-center" style="mso-number-format:'\\@';">${r.cedula}</td>
+          <td class="td-text"><b>${r.nombre}</b></td>
+          <td class="td-text">${r.cargo}</td>
+          <td class="td-text">${r.puestos}</td>
+          <td class="td-num">${r.diasLaborados}</td>
+          <td class="td-num">${r.turnosDiurnos}</td>
+          <td class="td-num">${r.turnosNocturnos}</td>
+          <td class="td-num">${r.descansos}</td>
+          <td class="td-num">${r.horasOrdinarias}</td>
+          <td class="td-num">${r.recargosNocturnos}</td>
+          <td class="td-num">${r.horasExtrasDiurnas}</td>
+          <td class="td-num">${r.horasExtrasNocturnas}</td>
+          <td class="td-num">${r.dominicalesFestivas}</td>
+          <td class="td-num"><b>${r.totalHoras}</b></td>
+        </tr>
+      `;
     });
+
+    tableHtml += `
+        <tr class="total-row">
+          <td colspan="4" style="text-align:right; font-weight:bold; padding-right:10px;">TOTALES GENERALES (${rows.length} ASOCIADOS):</td>
+          <td class="td-num">${totDias}</td>
+          <td class="td-num">${totD}</td>
+          <td class="td-num">${totN}</td>
+          <td class="td-num">${totDesc}</td>
+          <td class="td-num">${totOrd}</td>
+          <td class="td-num">${totRecN}</td>
+          <td class="td-num">${totExtD}</td>
+          <td class="td-num">${totExtN}</td>
+          <td class="td-num">${totDom}</td>
+          <td class="td-num"><b>${totHoras}</b></td>
+        </tr>
+      </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\uFEFF' + tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Liquidacion_Recargos_Coraza_${this.monthStr}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 }
