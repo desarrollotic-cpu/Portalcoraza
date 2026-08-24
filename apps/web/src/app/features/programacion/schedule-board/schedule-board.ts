@@ -180,10 +180,17 @@ const CODES: CodeConfig[] = [
                 <th class="sticky-col">Rol / Titular</th>
                 @for (day of days(); track day) {
                   <th
-                    [class.weekend]="isWeekend(day)"
-                    [class.holiday]="holidayName(day)"
-                    [title]="holidayName(day) || ''"
-                  >{{ day }}</th>
+                    [class.col-sunday]="isSunday(day)"
+                    [class.col-saturday]="isSaturday(day)"
+                    [class.col-holiday]="isHoliday(day)"
+                    [title]="dayTooltip(day)"
+                  >
+                    <div class="day-dow">{{ dayOfWeekLetter(day) }}</div>
+                    <div class="day-num">{{ day }}</div>
+                    @if (isHoliday(day)) {
+                      <span class="hol-star" [title]="holidayName(day)">★</span>
+                    }
+                  </th>
                 }
               </tr>
             </thead>
@@ -198,7 +205,9 @@ const CODES: CodeConfig[] = [
                     <td
                       class="cell"
                       [class]="cellClass(role.rol, day)"
-                      [class.weekend]="isWeekend(day)"
+                      [class.col-sunday]="isSunday(day)"
+                      [class.col-saturday]="isSaturday(day)"
+                      [class.col-holiday]="isHoliday(day)"
                       (click)="openCell(role, day)"
                       [title]="cellTitle(role.rol, day)"
                     >
@@ -213,6 +222,21 @@ const CODES: CodeConfig[] = [
               }
             </tbody>
           </table>
+        </div>
+
+        <div class="calendar-indicators">
+          <span class="ind-pill ind-sun">
+            <span class="ind-box sun-bg">D / ★</span>
+            <strong>Domingos y Festivos de Colombia</strong>
+          </span>
+          <span class="ind-pill ind-sat">
+            <span class="ind-box sat-bg">S</span>
+            <strong>Sábados</strong>
+          </span>
+          <span class="ind-pill ind-week">
+            <span class="ind-box week-bg">L–V</span>
+            <span>Días hábiles</span>
+          </span>
         </div>
 
         <div class="legend">
@@ -308,10 +332,80 @@ const CODES: CodeConfig[] = [
     .role-name { width: 100%; }
     .matrix-wrap { overflow: auto; max-height: 65vh; border: 1px solid var(--coraza-border); border-radius: 8px; }
     .matrix { border-collapse: collapse; min-width: 100%; font-size: 0.75rem; }
-    th, td { border: 1px solid var(--coraza-border); padding: 0.35rem; text-align: center; min-width: 30px; }
-    th { background: var(--primary-50); position: sticky; top: 0; z-index: 1; }
-    th.weekend, td.weekend { background: #fafafa; }
-    th.holiday, td.holiday { background: #fff3cd; }
+    th, td { border: 1px solid var(--coraza-border); padding: 0.35rem 0.2rem; text-align: center; min-width: 32px; }
+    th { background: #f8fafc; color: #1e293b; position: sticky; top: 0; z-index: 1; vertical-align: middle; }
+    
+    /* DOMINGOS Y FESTIVOS (ROJO / SALMON DE ALMANAQUE COLOMBIANO) */
+    th.col-sunday, th.col-holiday {
+      background: #fee2e2 !important;
+      color: #991b1b !important;
+      border-color: #fca5a5 !important;
+    }
+    td.col-sunday, td.col-holiday {
+      background-color: #fff1f2;
+      border-color: #fed7aa;
+    }
+
+    /* SABADOS (AZUL CELESTE SUAVE) */
+    th.col-saturday {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+      border-color: #bae6fd !important;
+    }
+    td.col-saturday {
+      background-color: #f0f9ff;
+      border-color: #e0f2fe;
+    }
+
+    .day-dow {
+      font-size: 0.65rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 2px;
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+    .day-num {
+      font-size: 0.85rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .hol-star {
+      font-size: 0.65rem;
+      color: #dc2626;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .calendar-indicators {
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 0.85rem;
+      padding: 0.55rem 0.85rem;
+      background: #f8fafc;
+      border-radius: 0.5rem;
+      border: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+    }
+    .ind-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #334155;
+    }
+    .ind-box {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.3rem;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+    .sun-bg { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .sat-bg { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .week-bg { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
+
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
     .role-label { font-weight: 600; }
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
@@ -1031,6 +1125,38 @@ export class ScheduleBoard implements OnInit {
     const [year, mon] = this.month.split('-').map(Number);
     const dow = new Date(year, mon - 1, day).getDay();
     return dow === 0 || dow === 6;
+  }
+
+  isSunday(day: number): boolean {
+    const [year, mon] = this.month.split('-').map(Number);
+    const dow = new Date(year, mon - 1, day).getDay();
+    return dow === 0;
+  }
+
+  isSaturday(day: number): boolean {
+    const [year, mon] = this.month.split('-').map(Number);
+    const dow = new Date(year, mon - 1, day).getDay();
+    return dow === 6;
+  }
+
+  isHoliday(day: number): boolean {
+    return Boolean(this.holidayName(day));
+  }
+
+  dayOfWeekLetter(day: number): string {
+    const [year, mon] = this.month.split('-').map(Number);
+    const dow = new Date(year, mon - 1, day).getDay();
+    const letters = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    return letters[dow];
+  }
+
+  dayTooltip(day: number): string {
+    const [year, mon] = this.month.split('-').map(Number);
+    const date = new Date(year, mon - 1, day);
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const hName = this.holidayName(day);
+    const prefix = `${dayNames[date.getDay()]} ${day} de ${this.monthLabel()}`;
+    return hName ? `⭐ ${prefix} — FESTIVO: ${hName}` : prefix;
   }
 
   private applySchedule(sched: MonthlySchedule | null): void {

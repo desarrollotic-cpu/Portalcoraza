@@ -96,11 +96,16 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
                 <th class="sticky-col">Puesto</th>
                 @for (d of days(); track d) {
                   <th
-                    [class.weekend]="isWeekend(d)"
-                    [class.holiday]="holidayName(d)"
-                    [title]="holidayName(d) || ''"
+                    [class.col-sunday]="isSunday(d)"
+                    [class.col-saturday]="isSaturday(d)"
+                    [class.col-holiday]="isHoliday(d)"
+                    [title]="dayTooltip(d)"
                   >
-                    {{ d }}
+                    <div class="day-dow">{{ dayOfWeekLetter(d) }}</div>
+                    <div class="day-num">{{ d }}</div>
+                    @if (isHoliday(d)) {
+                      <span class="hol-star" [title]="holidayName(d)">★</span>
+                    }
                   </th>
                 }
               </tr>
@@ -123,8 +128,9 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
                   @for (d of days(); track d) {
                     <td
                       class="cell"
-                      [class.weekend]="isWeekend(d)"
-                      [class.holiday]="holidayName(d)"
+                      [class.col-sunday]="isSunday(d)"
+                      [class.col-saturday]="isSaturday(d)"
+                      [class.col-holiday]="isHoliday(d)"
                       [class]="cellClass(row, d)"
                       [title]="cellTitle(row, d)"
                     >
@@ -137,6 +143,21 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
           </table>
         </div>
 
+        <div class="calendar-indicators">
+          <span class="ind-pill ind-sun">
+            <span class="ind-box sun-bg">D / ★</span>
+            <strong>Domingos y Festivos de Colombia</strong>
+          </span>
+          <span class="ind-pill ind-sat">
+            <span class="ind-box sat-bg">S</span>
+            <strong>Sábados</strong>
+          </span>
+          <span class="ind-pill ind-week">
+            <span class="ind-box week-bg">L–V</span>
+            <span>Días hábiles</span>
+          </span>
+        </div>
+
         <div class="legend">
           <span class="badge c-d">D</span>
           <span class="badge c-n">N</span>
@@ -145,7 +166,7 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
           <span class="badge c-dr">DR</span>
           <span class="badge c-nr">NR</span>
           <span class="badge c-mix">MIX</span>
-          <span class="hint">Festivos CO resaltados · fin de semana atenuado</span>
+          <span class="hint">Festivos CO y domingos en rojo · Sábados en azul</span>
         </div>
       }
     </section>
@@ -179,7 +200,7 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
     }
     .banner.ok {
       padding: 0.75rem 1rem; border-radius: 10px;
-      background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; font-size: 0.88rem;
+      background: #e6f7ed; border: 1px solid #a3e0be; color: #0a5c36; font-size: 0.88rem;
     }
     .primary {
       border-radius: 999px; border: none;
@@ -187,24 +208,87 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
       cursor: pointer; padding: 0.45rem 0.85rem; font-size: 0.82rem;
     }
     .primary:disabled { opacity: 0.6; cursor: not-allowed; }
-    .matrix-wrap {
-      overflow: auto; max-height: 70vh;
-      border: 1px solid var(--coraza-border); border-radius: 12px;
-      background: var(--coraza-surface);
+    .matrix-wrap { overflow: auto; max-height: 70vh; border: 1px solid var(--coraza-border); border-radius: 8px; }
+    .matrix { border-collapse: collapse; min-width: 100%; font-size: 0.75rem; }
+    th, td { border: 1px solid var(--coraza-border); padding: 0.35rem 0.2rem; text-align: center; min-width: 30px; }
+    th { background: #f8fafc; color: #1e293b; position: sticky; top: 0; z-index: 2; font-weight: 700; }
+    
+    /* DOMINGOS Y FESTIVOS */
+    th.col-sunday, th.col-holiday {
+      background: #fee2e2 !important;
+      color: #991b1b !important;
+      border-color: #fca5a5 !important;
     }
-    .matrix { border-collapse: collapse; font-size: 0.72rem; min-width: 100%; }
-    th, td {
-      border: 1px solid var(--coraza-border); padding: 0.3rem 0.25rem;
-      text-align: center; min-width: 28px;
+    td.col-sunday, td.col-holiday {
+      background-color: #fff1f2;
+      border-color: #fed7aa;
     }
-    th { background: var(--primary-50); position: sticky; top: 0; z-index: 2; font-weight: 700; }
-    th.holiday, td.holiday { background: #fff3cd; }
-    th.weekend, td.weekend { background: #f8fafc; }
+
+    /* SABADOS */
+    th.col-saturday {
+      background: #e0f2fe !important;
+      color: #0369a1 !important;
+      border-color: #bae6fd !important;
+    }
+    td.col-saturday {
+      background-color: #f0f9ff;
+      border-color: #e0f2fe;
+    }
+
+    .day-dow {
+      font-size: 0.65rem;
+      font-weight: 800;
+      line-height: 1;
+      margin-bottom: 2px;
+      opacity: 0.85;
+      text-transform: uppercase;
+    }
+    .day-num {
+      font-size: 0.85rem;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .hol-star {
+      font-size: 0.65rem;
+      color: #dc2626;
+      display: block;
+      margin-top: 1px;
+    }
+
+    .calendar-indicators {
+      display: flex;
+      gap: 0.85rem;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 0.5rem;
+      padding: 0.55rem 0.85rem;
+      background: #f8fafc;
+      border-radius: 0.5rem;
+      border: 1px solid #e2e8f0;
+      font-size: 0.8rem;
+    }
+    .ind-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: #334155;
+    }
+    .ind-box {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.3rem;
+      font-weight: 800;
+      font-size: 0.72rem;
+    }
+    .sun-bg { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+    .sat-bg { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .week-bg { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
+
     .sticky-col {
       position: sticky; left: 0; z-index: 3; text-align: left;
       min-width: 200px; max-width: 260px; background: var(--coraza-surface); padding: 0.45rem 0.65rem;
     }
-    thead .sticky-col { z-index: 4; background: var(--primary-50); }
+    thead .sticky-col { z-index: 4; background: #f1f5f9; }
     .meta { margin-top: 0.15rem; font-size: 0.7rem; color: var(--text-secondary); }
     .st {
       display: inline-block; margin-left: 0.35rem; padding: 0.05rem 0.35rem;
@@ -364,6 +448,42 @@ export class MasterGrid implements OnInit {
     const { year, month } = this.yearMonth();
     const dow = new Date(year, month - 1, day).getDay();
     return dow === 0 || dow === 6;
+  }
+
+  isSunday(day: number): boolean {
+    const { year, month } = this.yearMonth();
+    const dow = new Date(year, month - 1, day).getDay();
+    return dow === 0;
+  }
+
+  isSaturday(day: number): boolean {
+    const { year, month } = this.yearMonth();
+    const dow = new Date(year, month - 1, day).getDay();
+    return dow === 6;
+  }
+
+  isHoliday(day: number): boolean {
+    return Boolean(this.holidayName(day));
+  }
+
+  dayOfWeekLetter(day: number): string {
+    const { year, month } = this.yearMonth();
+    const dow = new Date(year, month - 1, day).getDay();
+    const letters = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+    return letters[dow];
+  }
+
+  dayTooltip(day: number): string {
+    const { year, month } = this.yearMonth();
+    const date = new Date(year, month - 1, day);
+    const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const hName = this.holidayName(day);
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    const prefix = `${dayNames[date.getDay()]} ${day} de ${monthNames[month - 1]} de ${year}`;
+    return hName ? `⭐ ${prefix} — FESTIVO: ${hName}` : prefix;
   }
 
   holidayName(day: number): string | null {
