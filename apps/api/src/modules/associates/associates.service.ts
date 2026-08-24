@@ -65,6 +65,35 @@ export class AssociatesService {
     private readonly audit: AuditService,
   ) {}
 
+  async lookup(status?: string) {
+    const qb = this.associatesRepo
+      .createQueryBuilder('a')
+      .select([
+        'a.id',
+        'a.documentNumber',
+        'a.firstName',
+        'a.secondName',
+        'a.firstLastName',
+        'a.secondLastName',
+        'a.status',
+      ]);
+
+    if (status) {
+      qb.where('a.status = :status', { status });
+    }
+
+    qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
+
+    const rows = await qb.getMany();
+    return rows.map((r) => ({
+      id: r.id,
+      documentNumber: r.documentNumber,
+      firstName: [r.firstName, r.secondName].filter(Boolean).join(' '),
+      lastName: [r.firstLastName, r.secondLastName].filter(Boolean).join(' '),
+      status: r.status,
+    }));
+  }
+
   // ─── Consultas ────────────────────────────────────────────────────────
   async list(query: AssociatesQueryDto, user: JwtPayload) {
     const qb = this.associatesRepo

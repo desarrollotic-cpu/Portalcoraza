@@ -31,6 +31,12 @@ export class AssociatesController {
     return this.service.list(query, user);
   }
 
+  @Get('lookup')
+  @RequirePermissions('associates.view')
+  lookup(@Query('status') status?: string) {
+    return this.service.lookup(status);
+  }
+
   @Get(':id')
   @RequirePermissions('associates.view')
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

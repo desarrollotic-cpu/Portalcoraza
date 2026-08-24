@@ -577,7 +577,7 @@ export class ScheduleBoard implements OnInit {
       next: (posts) => this.posts.set(posts),
       error: () => this.error.set('No se pudieron cargar los puestos'),
     });
-    this.associatesApi.list('ACTIVO').subscribe({
+    this.associatesApi.lookup('ACTIVO').subscribe({
       next: (list) => this.associates.set(list),
       error: () => this.error.set('No se pudieron cargar los asociados'),
     });
