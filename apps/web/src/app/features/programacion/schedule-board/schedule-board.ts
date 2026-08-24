@@ -272,13 +272,34 @@ const CODES: CodeConfig[] = [
 
             <label>
               Código / estado
-              <select [(ngModel)]="editCodigo">
+              <select [(ngModel)]="editCodigo" (ngModelChange)="onEditCodigoChange($event)">
                 <option value="">Sin asignar</option>
                 @for (c of codes; track c.codigo) {
                   <option [value]="c.codigo">{{ c.label }}</option>
                 }
               </select>
             </label>
+
+            <!-- AJUSTE DE HORARIO Y NOVEDADES (HORA ENTRADA / SALIDA) -->
+            @if (showTimeInputs()) {
+              <div class="time-range-box">
+                <div class="time-range-row">
+                  <label class="time-label">
+                    Hora Entrada
+                    <input type="time" [(ngModel)]="editInicio" class="inp-time" />
+                  </label>
+                  <label class="time-label">
+                    Hora Salida
+                    <input type="time" [(ngModel)]="editFin" class="inp-time" />
+                  </label>
+                </div>
+                @if (calculatedHoursText()) {
+                  <div class="hours-badge">
+                    ⏱️ {{ calculatedHoursText() }}
+                  </div>
+                }
+              </div>
+            }
 
             <div class="modal-actions">
               <button type="button" (click)="closeCell()">Cancelar</button>
@@ -433,6 +454,47 @@ const CODES: CodeConfig[] = [
     .modal { background: #fff; border-radius: 12px; padding: 1.5rem; width: min(420px, 92vw); display: flex; flex-direction: column; gap: 0.85rem; }
     .modal h3 { margin: 0; }
     .modal-sub { margin: 0; color: var(--coraza-text-muted); font-size: 0.85rem; }
+    
+    .time-range-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-top: 0.25rem;
+    }
+    .time-range-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+    .time-label {
+      font-size: 0.75rem !important;
+      font-weight: 700;
+      color: #334155;
+    }
+    .inp-time {
+      padding: 0.4rem 0.55rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.45rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .hours-badge {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #0f766e;
+      background: #f0fdf4;
+      padding: 0.35rem 0.5rem;
+      border-radius: 0.35rem;
+      border: 1px solid #bbf7d0;
+      text-align: center;
+    }
+
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
   `,
 })
@@ -465,6 +527,8 @@ export class ScheduleBoard implements OnInit {
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
   editAssociateId: string | null = null;
   editCodigo = '';
+  editInicio: string | null = null;
+  editFin: string | null = null;
 
   readonly boardAlerts = signal<BoardAlertsResponse | null>(null);
   readonly monthConflictAlerts = signal<ScheduleAlertItem[]>([]);
@@ -940,7 +1004,47 @@ export class ScheduleBoard implements OnInit {
     const state = this.cells().get(`${role.rol}:${day}`);
     this.editAssociateId = state?.associateId ?? role.associateId ?? null;
     this.editCodigo = state?.codigo ?? '';
+    this.editInicio = state?.inicio ?? null;
+    this.editFin = state?.fin ?? null;
     this.editing.set({ role, roleName: role.displayName || role.rol, day });
+  }
+
+  onEditCodigoChange(code: string): void {
+    const config = this.codes.find((c) => c.codigo === code);
+    if (config?.inicio && config?.fin) {
+      this.editInicio = config.inicio;
+      this.editFin = config.fin;
+    } else {
+      this.editInicio = null;
+      this.editFin = null;
+    }
+  }
+
+  showTimeInputs(): boolean {
+    const isWorkingShift =
+      this.editCodigo === 'D' ||
+      this.editCodigo === 'N' ||
+      this.editCodigo === 'D8' ||
+      this.editCodigo === 'N8';
+    return Boolean(isWorkingShift || this.editInicio || this.editFin);
+  }
+
+  calculatedHoursText(): string | null {
+    if (!this.editInicio || !this.editFin) return null;
+    const [h1, m1] = this.editInicio.split(':').map(Number);
+    const [h2, m2] = this.editFin.split(':').map(Number);
+    if (isNaN(h1) || isNaN(m1) || isNaN(h2) || isNaN(m2)) return null;
+
+    let mins = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (mins <= 0) {
+      mins += 24 * 60; // cruce de medianoche (ej: 18:00 a 06:00)
+    }
+    const hrs = mins / 60;
+    const hrsFormatted = Number.isInteger(hrs) ? String(hrs) : hrs.toFixed(1);
+    if (hrs === 12) return 'Jornada estándar: 12 horas programadas';
+    if (hrs === 8) return 'Jornada estándar: 8 horas programadas';
+    if (hrs > 12) return `Jornada extendida / doblada: ${hrsFormatted} horas (+${(hrs - 12).toFixed(1)}h extra)`;
+    return `Horario personalizado: ${hrsFormatted} horas`;
   }
 
   closeCell(): void {
@@ -1023,8 +1127,8 @@ export class ScheduleBoard implements OnInit {
           jornada: config.jornada,
           codigo: config.codigo,
           turno: config.turno,
-          inicio: config.inicio,
-          fin: config.fin,
+          inicio: this.editInicio || config.inicio,
+          fin: this.editFin || config.fin,
         }
       : {
           associateId: this.editAssociateId,
