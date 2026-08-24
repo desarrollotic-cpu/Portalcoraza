@@ -10,6 +10,8 @@ import {
 export class LibraryFolder {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ type: 'varchar', length: 120 })
   name!: string;

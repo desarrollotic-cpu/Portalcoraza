@@ -25,6 +25,8 @@ export enum ReceptionTransport {
 export class ReceptionVisitor {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'document_number', type: 'varchar', length: 40, nullable: true })
   documentNumber!: string | null;

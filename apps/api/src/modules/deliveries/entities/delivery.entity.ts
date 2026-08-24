@@ -21,6 +21,8 @@ export enum DeliveryStatus {
 export class Delivery {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'associate_id', type: 'uuid', nullable: true })
   associateId!: string | null;

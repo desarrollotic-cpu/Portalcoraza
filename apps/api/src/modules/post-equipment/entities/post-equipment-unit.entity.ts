@@ -21,6 +21,8 @@ export enum PostEquipmentUnitStatus {
 export class PostEquipmentUnit {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'catalog_id', type: 'uuid' })
   catalogId!: string;

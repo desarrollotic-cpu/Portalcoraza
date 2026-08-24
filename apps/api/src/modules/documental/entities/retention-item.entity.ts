@@ -10,6 +10,8 @@ import {
 export class RetentionItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'dependency_code', type: 'varchar', length: 10 })
   dependencyCode!: string;

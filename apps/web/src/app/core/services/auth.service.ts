@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthUser, LoginResponse } from '../models/auth.model';
+import { TENANT_KEY } from '../interceptors/tenant.interceptor';
 
 const ACCESS_KEY = 'coraza_access';
 const REFRESH_KEY = 'coraza_refresh';
@@ -27,6 +28,9 @@ export class AuthService {
           localStorage.setItem(ACCESS_KEY, res.accessToken);
           localStorage.setItem(REFRESH_KEY, res.refreshToken);
           localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+          if (res.user.tenantId) {
+            localStorage.setItem(TENANT_KEY, res.user.tenantId);
+          }
           this.currentUser.set(res.user);
         }),
       );
@@ -78,6 +82,7 @@ export class AuthService {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TENANT_KEY);
     this.currentUser.set(null);
     this.router.navigate(['/auth/login']);
   }
@@ -91,12 +96,19 @@ export class AuthService {
         return null;
       }
 
+      const tenantId =
+        parsed.tenantId || localStorage.getItem(TENANT_KEY) || '';
+      if (tenantId) {
+        localStorage.setItem(TENANT_KEY, tenantId);
+      }
+
       return {
         id: parsed.id,
         email: parsed.email,
         fullName: parsed.fullName ?? null,
         role: parsed.role,
         permissions: Array.isArray(parsed.permissions) ? parsed.permissions : [],
+        tenantId,
       };
     } catch {
       return null;

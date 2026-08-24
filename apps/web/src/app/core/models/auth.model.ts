@@ -4,6 +4,7 @@ export interface AuthUser {
   fullName: string | null;
   role: { code: string; name: string };
   permissions: string[];
+  tenantId: string;
 }
 
 export interface LoginResponse {

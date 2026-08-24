@@ -1,4 +1,4 @@
-import { CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryColumn } from 'typeorm';
 import { Post } from '../../posts/entities/post.entity';
 import { User } from './user.entity';
 
@@ -9,6 +9,9 @@ export class UserPost {
 
   @PrimaryColumn({ name: 'post_id', type: 'uuid' })
   postId!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

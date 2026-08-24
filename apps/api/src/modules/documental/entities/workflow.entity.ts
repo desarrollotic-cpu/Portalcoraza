@@ -10,6 +10,8 @@ import {
 export class Workflow {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'workflow_type', type: 'varchar', length: 120, nullable: true })
   workflowType!: string | null;

@@ -13,6 +13,8 @@ import { DocumentType } from './document-type.entity';
 export class DocumentRecord {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ type: 'varchar', length: 100, unique: true })
   code!: string;

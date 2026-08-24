@@ -10,6 +10,8 @@ import {
 export class Correspondence {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'document_code', type: 'varchar', length: 60, unique: true, nullable: true })
   documentCode!: string | null;
