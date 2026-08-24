@@ -15,6 +15,8 @@ import { InventoryStock } from './inventory-stock.entity';
 export class InventoryVariant {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'item_id', type: 'uuid' })
   itemId!: string;

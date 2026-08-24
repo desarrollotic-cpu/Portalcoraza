@@ -18,6 +18,7 @@ import { HrPositionsModule } from './modules/hr-positions/hr-positions.module';
 import { HrRetirementsModule } from './modules/hr-retirements/hr-retirements.module';
 import { HrWorkCentersModule } from './modules/hr-work-centers/hr-work-centers.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
@@ -41,7 +42,6 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    CommonModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       url: process.env.DATABASE_URL,
@@ -62,8 +62,10 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
         keepAlive: true,
       },
     }),
+    CommonModule,
     AuthModule,
     UsersModule,
+    OrganizationsModule,
     RolesModule,
     PermissionsModule,
     HrCatalogsModule,

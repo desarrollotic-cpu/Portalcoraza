@@ -10,6 +10,8 @@ import {
 export class WorkCenter {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ type: 'varchar', length: 30, unique: true })
   code!: string;

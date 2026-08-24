@@ -47,6 +47,8 @@ export enum AssociateMaritalStatus {
 export class Associate {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   // ─── Identidad ──────────────────────────────────────────────────────────
   @Column({ name: 'folder_number', type: 'integer', nullable: true })

@@ -10,6 +10,8 @@ import {
 export class Minute {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'minute_type', type: 'varchar', length: 60 })
   minuteType!: string;

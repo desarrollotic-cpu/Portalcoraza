@@ -10,6 +10,8 @@ import {
 export class Contract {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'contract_type', type: 'varchar', length: 120, nullable: true })
   contractType!: string | null;

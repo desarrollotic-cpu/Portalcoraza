@@ -10,6 +10,8 @@ import {
 export class InventoryCategory {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ unique: true, length: 50 })
   code!: string;

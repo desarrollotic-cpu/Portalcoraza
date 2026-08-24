@@ -12,6 +12,8 @@ import { User } from '../../users/entities/user.entity';
 export class RefreshToken {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'user_id', type: 'uuid' })
   userId!: string;

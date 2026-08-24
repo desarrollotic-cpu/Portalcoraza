@@ -27,6 +27,8 @@ export type Turno = 'AM' | 'PM' | '24H';
 export class ScheduleAssignment {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'schedule_id', type: 'uuid' })
   scheduleId!: string;

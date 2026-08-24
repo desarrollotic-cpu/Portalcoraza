@@ -23,8 +23,10 @@ export enum PostType {
 export class Post {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
-  @Column({ unique: true, length: 50 })
+  @Column({ length: 50 })
   code!: string;
 
   @Column({ length: 200 })

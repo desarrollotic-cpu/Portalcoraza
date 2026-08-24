@@ -14,6 +14,7 @@ import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
+import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
 
 @Injectable()
 export class AuthService {
@@ -43,11 +44,14 @@ export class AuthService {
     const permissions =
       await this.permissionsService.getPermissionCodesForUser(user.id);
 
+    const tenantId = user.tenantId || CENTRAL_ORGANIZATION_ID;
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       roleCode: user.role.code,
       permissions,
+      tenantId,
     };
 
     const accessToken = await this.signAccess(payload);
@@ -87,11 +91,14 @@ export class AuthService {
     const permissions =
       await this.permissionsService.getPermissionCodesForUser(stored.user.id);
 
+    const tenantId = stored.user.tenantId || CENTRAL_ORGANIZATION_ID;
+
     const payload: JwtPayload = {
       sub: stored.user.id,
       email: stored.user.email,
       roleCode: stored.user.role.code,
       permissions,
+      tenantId,
     };
 
     const accessToken = await this.signAccess(payload);
@@ -205,6 +212,7 @@ export class AuthService {
       email: string;
       fullName: string | null;
       role: { code: string; name: string };
+      tenantId?: string | null;
       warehouseId?: string | null;
       warehouse?: { id: string; code: string; name: string } | null;
     },
@@ -215,6 +223,7 @@ export class AuthService {
       email: user.email,
       fullName: user.fullName,
       role: { code: user.role.code, name: user.role.name },
+      tenantId: user.tenantId || CENTRAL_ORGANIZATION_ID,
       warehouseId: user.warehouseId ?? user.warehouse?.id ?? null,
       warehouse: user.warehouse
         ? { id: user.warehouse.id, code: user.warehouse.code, name: user.warehouse.name }

@@ -25,6 +25,8 @@ export interface PersonalRole {
 export class MonthlySchedule {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'post_id', type: 'uuid' })
   postId!: string;

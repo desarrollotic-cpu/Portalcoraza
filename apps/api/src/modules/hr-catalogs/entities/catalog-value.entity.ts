@@ -30,6 +30,8 @@ export enum CatalogKind {
 export class CatalogValue {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({
     type: 'enum',

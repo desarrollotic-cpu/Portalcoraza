@@ -14,6 +14,8 @@ import { InventoryCategory } from './inventory-category.entity';
 export class InventoryItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'category_id', type: 'uuid' })
   categoryId!: string;

@@ -13,6 +13,8 @@ import { Delivery } from './delivery.entity';
 export class DeliveryDetail {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'delivery_id', type: 'uuid' })
   deliveryId!: string;

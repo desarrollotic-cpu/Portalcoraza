@@ -14,8 +14,10 @@ import { Role } from '../../roles/entities/role.entity';
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
-  @Column({ unique: true })
+  @Column()
   email!: string;
 
   @Column({ name: 'password_hash' })

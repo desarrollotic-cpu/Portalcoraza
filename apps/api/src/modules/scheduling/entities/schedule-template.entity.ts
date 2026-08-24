@@ -18,6 +18,8 @@ export interface TemplatePatternItem {
 export class ScheduleTemplate {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ type: 'text' })
   name!: string;

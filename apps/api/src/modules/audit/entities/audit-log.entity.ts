@@ -9,6 +9,8 @@ import {
 export class AuditLog {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'user_id', type: 'uuid', nullable: true })
   userId!: string | null;

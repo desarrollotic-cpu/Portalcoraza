@@ -9,6 +9,7 @@ import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
+import { TENANT_KEY } from './tenant.interceptor';
 
 const ACCESS_KEY = 'coraza_access';
 const REFRESH_KEY = 'coraza_refresh';
@@ -80,6 +81,7 @@ function clearSession(auth: AuthService, router: Router): void {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(USER_KEY);
+  localStorage.removeItem(TENANT_KEY);
   auth.currentUser.set(null);
   void router.navigate(['/auth/login']);
 }

@@ -16,6 +16,8 @@ export enum ShiftType {
 export class ShiftSchedule {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'associate_id', type: 'uuid' })
   associateId!: string;
