@@ -23,6 +23,9 @@
     "db:apply-absences": "ts-node scripts/apply-hr-absenteeism.ts",
     "db:apply-inventory": "ts-node scripts/apply-inventory-fields.ts",
     "db:apply-documental": "ts-node scripts/apply-documental-sgd.ts",
+    "db:apply-multi-tenant": "ts-node scripts/apply-multi-tenant-foundation.ts",
+    "db:apply-multi-tenant-default": "ts-node scripts/apply-multi-tenant-default.ts",
+    "db:verify-multi-tenant": "ts-node scripts/verify-multi-tenant.ts",
     "db:drop-residential": "ts-node scripts/apply-drop-residential.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts"
   },
