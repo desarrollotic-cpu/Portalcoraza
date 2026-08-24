@@ -60,7 +60,10 @@ function fringeOf(codigo: string | null | undefined): 'D' | 'N' | null {
 }
 
 function isActiveCoverage(cell: AlertCellInput): boolean {
-  return cell.associateStatus === 'ACTIVO' && fringeOf(cell.codigo) !== null;
+  // Si la celda tiene un asociado asignado (o sin estado inválido) y código D o N, cubre el puesto
+  if (!cell.associateId) return false;
+  if (cell.associateStatus && cell.associateStatus !== 'ACTIVO') return false;
+  return fringeOf(cell.codigo) !== null;
 }
 
 /**
