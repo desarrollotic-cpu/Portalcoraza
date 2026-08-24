@@ -59,7 +59,14 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
               <h3>Colillas de Pago: {{ selectedPeriod()?.periodName }}</h3>
               <p class="subtitle">Liquidación detallada por asociado cruzada con la programación de turnos y recargos.</p>
             </div>
-            <span class="count-badge">{{ slips().length }} Colilla(s) Generada(s)</span>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              @if (slips().length > 0) {
+                <button class="btn-export-excel" (click)="exportConsolidatedExcel()">
+                  📊 Exportar Consolidado (.xls)
+                </button>
+              }
+              <span class="count-badge">{{ slips().length }} Colilla(s) Generada(s)</span>
+            </div>
           </div>
 
           <div class="table-wrap">
@@ -230,6 +237,11 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .data-table th { background: #f8fafc; padding: 0.65rem 0.85rem; border-bottom: 1px solid #cbd5e1; text-align: left; font-weight: 700; color: #475569; font-size: 0.8rem; }
     .data-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
     .data-table code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; color: #0f172a; font-size: 0.85rem; }
+    .btn-export-excel {
+      background: #0f766e; color: #fff; border: none; padding: 0.35rem 0.75rem; border-radius: 0.4rem;
+      font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
+    }
+    .btn-export-excel:hover { background: #0d9488; }
     .th-center, .td-center { text-align: center !important; }
     .th-num, .td-num { text-align: right !important; }
     .highlight-rec { color: #0f766e; font-weight: 600; }
@@ -330,5 +342,121 @@ export class PayrollPeriodsComponent implements OnInit {
 
   printSlip() {
     window.print();
+  }
+
+  exportConsolidatedExcel(): void {
+    const list = this.slips();
+    if (!list.length) return;
+
+    const periodName = this.selectedPeriod()?.periodName || 'Nomina';
+    const dateNow = new Date().toLocaleDateString('es-CO') + ' ' + new Date().toLocaleTimeString('es-CO');
+
+    let tableHtml = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+        <!--[if gte mso 9]>
+        <xml>
+          <x:ExcelWorkbook>
+            <x:ExcelWorksheets>
+              <x:ExcelWorksheet>
+                <x:Name>Nomina</x:Name>
+                <x:WorksheetOptions>
+                  <x:DisplayGridlines/>
+                </x:WorksheetOptions>
+              </x:ExcelWorksheet>
+            </x:ExcelWorksheets>
+          </x:ExcelWorkbook>
+        </xml>
+        <![endif]-->
+        <style>
+          body { font-family: Calibri, sans-serif; }
+          .title { background-color: #0F172A; color: #FFFFFF; font-size: 13pt; font-weight: bold; text-align: center; height: 32px; }
+          .sub { background-color: #1E293B; color: #E2E8F0; font-size: 10pt; font-weight: bold; text-align: center; height: 24px; }
+          .meta { background-color: #F1F5F9; color: #475569; font-size: 9pt; font-style: italic; text-align: center; height: 20px; }
+          .th { background-color: #0F766E; color: #FFFFFF; font-weight: bold; text-align: center; border: 1px solid #0D9488; height: 28px; font-size: 9.5pt; }
+          .td-text { text-align: left; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; }
+          .td-center { text-align: center; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; }
+          .td-num { text-align: right; border: 1px solid #CBD5E1; font-size: 9pt; padding: 4px; mso-number-format: "$#,##0"; }
+          .even { background-color: #F8FAFC; }
+          .total-row { background-color: #E2E8F0; font-weight: bold; font-size: 10pt; border-top: 2px solid #0F172A; border-bottom: 3px double #0F172A; }
+        </style>
+      </head>
+      <body>
+        <table border="0" cellspacing="0" cellpadding="4">
+          <tr>
+            <td colspan="9" class="title">CORAZA SEGURIDAD C.T.A. — CONSOLIDADO OFICIAL DE LIQUIDACI&Oacute;N DE N&Oacute;MINA</td>
+          </tr>
+          <tr>
+            <td colspan="9" class="sub">PERIODO: ${periodName} | TOTAL ASOCIADOS: ${list.length}</td>
+          </tr>
+          <tr>
+            <td colspan="9" class="meta">NIT: 811.021.524-8 &middot; Licencia SuperVigilancia Resol. No. 0002848 &middot; Generado: ${dateNow}</td>
+          </tr>
+          <tr><td colspan="9" style="height:10px;"></td></tr>
+          <tr>
+            <th class="th">C&Eacute;DULA</th>
+            <th class="th">NOMBRE COMPLETO</th>
+            <th class="th">D&Iacute;AS</th>
+            <th class="th">B&Aacute;SICO</th>
+            <th class="th">AUX. TRANSPORTE</th>
+            <th class="th">RECARGOS (NOCT / DOM / FEST)</th>
+            <th class="th">TOTAL DEVENGADO</th>
+            <th class="th">TOTAL DEDUCCIONES</th>
+            <th class="th">NETO A PAGAR</th>
+          </tr>
+    `;
+
+    let totDias = 0, totBas = 0, totAux = 0, totRec = 0, totDev = 0, totDed = 0, totNet = 0;
+
+    list.forEach((s, idx) => {
+      const cls = idx % 2 === 0 ? '' : ' even';
+      const name = `${s.associate?.firstName || ''} ${s.associate?.firstLastName || ''}`.trim();
+      totDias += s.workedDays || 0;
+      totBas += s.basicSalary || 0;
+      totAux += s.transportAllowance || 0;
+      totRec += s.nightSurcharges || 0;
+      totDev += s.totalDevengado || 0;
+      totDed += s.totalDeducido || 0;
+      totNet += s.netPay || 0;
+
+      tableHtml += `
+        <tr class="${cls}">
+          <td class="td-center" style="mso-number-format:'\\@';">${s.associate?.documentNumber || ''}</td>
+          <td class="td-text"><b>${name}</b></td>
+          <td class="td-center">${s.workedDays || 0}</td>
+          <td class="td-num">${s.basicSalary || 0}</td>
+          <td class="td-num">${s.transportAllowance || 0}</td>
+          <td class="td-num">${s.nightSurcharges || 0}</td>
+          <td class="td-num" style="font-weight:bold; color:#16a34a;">${s.totalDevengado || 0}</td>
+          <td class="td-num" style="color:#dc2626;">${s.totalDeducido || 0}</td>
+          <td class="td-num" style="font-weight:bold; color:#0f766e;">${s.netPay || 0}</td>
+        </tr>
+      `;
+    });
+
+    tableHtml += `
+        <tr class="total-row">
+          <td colspan="2" style="text-align:right; font-weight:bold; padding-right:10px;">TOTALES GENERALES (${list.length} ASOCIADOS):</td>
+          <td class="td-center">${totDias}</td>
+          <td class="td-num">${totBas}</td>
+          <td class="td-num">${totAux}</td>
+          <td class="td-num">${totRec}</td>
+          <td class="td-num" style="color:#16a34a;">${totDev}</td>
+          <td class="td-num" style="color:#dc2626;">${totDed}</td>
+          <td class="td-num" style="color:#0f766e;">${totNet}</td>
+        </tr>
+      </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\uFEFF' + tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Consolidado_Nomina_${periodName.replace(/\s+/g, '_')}.xls`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 }
