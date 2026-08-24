@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { ShiftSchedule, ShiftType } from '../scheduling/entities/shift-schedule.entity';
 import { AccountingService } from '../accounting/accounting.service';
+import { getColombiaHolidays } from '../scheduling/utils/colombia-holidays';
 import { PayrollPeriod } from './entities/payroll-period.entity';
 import { PayrollSlipDetail } from './entities/payroll-slip-detail.entity';
 import { PayrollSlip } from './entities/payroll-slip.entity';
@@ -63,41 +64,112 @@ export class PayrollsService {
       throw new BadRequestException('No hay asociados activos para liquidar en este periodo');
     }
 
-    // SMMLV y Auxilio de Transporte 2026 estimación base Colombia
+    // SMMLV y Auxilio de Transporte 2026 Colombia
     const SMMLV_2026 = 1450000;
     const AUX_TRANSPORTE_2026 = 180000;
+    const hourlyRate = SMMLV_2026 / 240;
+
+    const startDate = new Date(period.startDate);
+    const year = startDate.getFullYear();
+    const month = startDate.getMonth() + 1;
+    const holidays = getColombiaHolidays(year);
+    const holidayDates = new Set(holidays.map((h) => h.date));
+
+    // Consultar todas las asignaciones oficiales de este mes y año
+    const assignments = await this.scheduleRepo.manager.query(
+      `
+      SELECT sa.associate_id, sa.day, sa.codigo, sa.turno, sa.jornada, sa.inicio, sa.fin
+      FROM schedule_assignments sa
+      JOIN monthly_schedules ms ON ms.id = sa.schedule_id
+      WHERE ms.year = $1 AND ms.month = $2 AND sa.associate_id IS NOT NULL
+      `,
+      [year, month],
+    );
+
+    // Agrupar asignaciones por asociado
+    const assignmentsByAssociate = new Map<string, any[]>();
+    for (const a of assignments) {
+      const list = assignmentsByAssociate.get(a.associate_id) ?? [];
+      list.push(a);
+      assignmentsByAssociate.set(a.associate_id, list);
+    }
 
     let totalNominaGasto = 0;
 
     for (const assoc of associates) {
+      const assocAssignments = assignmentsByAssociate.get(assoc.id) ?? [];
       const basicSalary = SMMLV_2026;
-      const workedDays = 30; // Mes laboral ordinario
 
-      // Consultar turnos asignados en el rango de fechas
-      const shifts = await this.scheduleRepo.find({
-        where: {
-          associateId: assoc.id,
-        },
-      });
+      let workedDays = 0;
+      let regularHours = 0;
+      let nightHoursRegular = 0;
+      let sundayHolidayDayHours = 0;
+      let sundayHolidayNightHours = 0;
 
-      const nightShiftsCount = shifts.filter((s) => s.shiftType === ShiftType.NIGHT).length;
-      const hourlyRate = basicSalary / 240;
-      const nightSurcharges = Number((nightShiftsCount * 8 * hourlyRate * 0.35).toFixed(2));
-      const overtimeAmount = 0; // Calculable según novedades extras
+      for (const asig of assocAssignments) {
+        const c = (asig.codigo || '').toUpperCase().trim();
+        if (!c || c === 'DR' || c === 'NR' || c === 'VAC' || c === 'LC' || c === 'IN' || c === 'SP') {
+          continue;
+        }
 
+        workedDays++;
+        const dayNum = asig.day;
+        const dObj = new Date(year, month - 1, dayNum);
+        const iso = `${year}-${String(month).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
+        const isSundayOrHoliday = dObj.getDay() === 0 || holidayDates.has(iso);
+
+        if (c === 'D' || c === 'D12' || c === '12D') {
+          regularHours += 12;
+          if (isSundayOrHoliday) {
+            sundayHolidayDayHours += 12;
+          }
+        } else if (c === 'N' || c === 'N12' || c === '12N') {
+          regularHours += 12;
+          if (isSundayOrHoliday) {
+            sundayHolidayDayHours += 3;
+            sundayHolidayNightHours += 9;
+          } else {
+            nightHoursRegular += 9;
+          }
+        } else if (c === 'D8' || c === '8D') {
+          regularHours += 8;
+          if (isSundayOrHoliday) {
+            sundayHolidayDayHours += 8;
+          }
+        } else if (c === 'N8' || c === '8N') {
+          regularHours += 8;
+          if (isSundayOrHoliday) {
+            sundayHolidayNightHours += 8;
+          } else {
+            nightHoursRegular += 8;
+          }
+        } else {
+          regularHours += 8;
+        }
+      }
+
+      // Si no tiene asignaciones en la malla, asumimos los 30 días base estándar
+      if (workedDays === 0) {
+        workedDays = 30;
+      }
+
+      const nightSurcharges = Number((nightHoursRegular * hourlyRate * 0.35).toFixed(2));
+      const sundayHolidaySurcharges = Number(
+        (sundayHolidayDayHours * hourlyRate * 0.75 + sundayHolidayNightHours * hourlyRate * 1.10).toFixed(2)
+      );
+      const totalRecargos = nightSurcharges + sundayHolidaySurcharges;
       const transportAllowance = basicSalary <= SMMLV_2026 * 2 ? AUX_TRANSPORTE_2026 : 0;
+      const overtimeAmount = 0;
 
-      const totalDevengado = basicSalary + transportAllowance + nightSurcharges + overtimeAmount;
-
+      const totalDevengado = basicSalary + transportAllowance + totalRecargos + overtimeAmount;
       const healthDeduction = Number((basicSalary * 0.04).toFixed(2));
       const pensionDeduction = Number((basicSalary * 0.04).toFixed(2));
       const totalDeducido = healthDeduction + pensionDeduction;
-
       const netPay = totalDevengado - totalDeducido;
 
       totalNominaGasto += totalDevengado;
 
-      // Buscar colilla existente o crear nueva
+      // Guardar o actualizar colilla
       let slip = await this.slipRepo.findOne({
         where: { periodId: period.id, associateId: assoc.id },
       });
@@ -110,9 +182,9 @@ export class PayrollsService {
       }
 
       slip.basicSalary = basicSalary;
-      slip.workedDays = workedDays;
+      slip.workedDays = Math.min(30, workedDays);
       slip.transportAllowance = transportAllowance;
-      slip.nightSurcharges = nightSurcharges;
+      slip.nightSurcharges = totalRecargos;
       slip.overtimeAmount = overtimeAmount;
       slip.healthDeduction = healthDeduction;
       slip.pensionDeduction = pensionDeduction;
@@ -122,15 +194,70 @@ export class PayrollsService {
 
       const savedSlip = await this.slipRepo.save(slip);
 
-      // Guardar detalle de conceptos
+      // Guardar desglose oficial de conceptos
       await this.detailRepo.delete({ slipId: savedSlip.id });
 
       const details = [
-        this.detailRepo.create({ slipId: savedSlip.id, conceptCode: '510506', conceptName: 'Sueldo Básico', type: 'DEVENGADO', hours: 240, amount: basicSalary }),
-        ...(transportAllowance > 0 ? [this.detailRepo.create({ slipId: savedSlip.id, conceptCode: '510527', conceptName: 'Auxilio de Transporte', type: 'DEVENGADO', hours: 0, amount: transportAllowance })] : []),
-        ...(nightSurcharges > 0 ? [this.detailRepo.create({ slipId: savedSlip.id, conceptCode: '510515', conceptName: 'Recargos Nocturnos (35%)', type: 'DEVENGADO', hours: nightShiftsCount * 8, amount: nightSurcharges })] : []),
-        this.detailRepo.create({ slipId: savedSlip.id, conceptCode: '237005', conceptName: 'Deducción Salud (4%)', type: 'DEDUCCION', hours: 0, amount: healthDeduction }),
-        this.detailRepo.create({ slipId: savedSlip.id, conceptCode: '237010', conceptName: 'Deducción Pensión (4%)', type: 'DEDUCCION', hours: 0, amount: pensionDeduction }),
+        this.detailRepo.create({
+          slipId: savedSlip.id,
+          conceptCode: '510506',
+          conceptName: 'Sueldo Básico',
+          type: 'DEVENGADO',
+          hours: Math.min(240, (workedDays || 30) * 8),
+          amount: basicSalary,
+        }),
+        ...(transportAllowance > 0
+          ? [
+              this.detailRepo.create({
+                slipId: savedSlip.id,
+                conceptCode: '510527',
+                conceptName: 'Auxilio de Transporte',
+                type: 'DEVENGADO',
+                hours: 0,
+                amount: transportAllowance,
+              }),
+            ]
+          : []),
+        ...(nightSurcharges > 0
+          ? [
+              this.detailRepo.create({
+                slipId: savedSlip.id,
+                conceptCode: '510515',
+                conceptName: `Recargo Nocturno Ordinario 35% (${nightHoursRegular}h)`,
+                type: 'DEVENGADO',
+                hours: nightHoursRegular,
+                amount: nightSurcharges,
+              }),
+            ]
+          : []),
+        ...(sundayHolidaySurcharges > 0
+          ? [
+              this.detailRepo.create({
+                slipId: savedSlip.id,
+                conceptCode: '510518',
+                conceptName: `Recargos Dominicales y Festivos (${sundayHolidayDayHours + sundayHolidayNightHours}h)`,
+                type: 'DEVENGADO',
+                hours: sundayHolidayDayHours + sundayHolidayNightHours,
+                amount: sundayHolidaySurcharges,
+              }),
+            ]
+          : []),
+        this.detailRepo.create({
+          slipId: savedSlip.id,
+          conceptCode: '237005',
+          conceptName: 'Deducción Salud (4%)',
+          type: 'DEDUCCION',
+          hours: 0,
+          amount: healthDeduction,
+        }),
+        this.detailRepo.create({
+          slipId: savedSlip.id,
+          conceptCode: '237010',
+          conceptName: 'Deducción Pensión (4%)',
+          type: 'DEDUCCION',
+          hours: 0,
+          amount: pensionDeduction,
+        }),
       ];
 
       await this.detailRepo.save(details);
