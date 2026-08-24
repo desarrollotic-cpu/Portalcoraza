@@ -54,18 +54,25 @@ export class MonthlySchedulingController {
     @Query('month') month: string,
     @Res() res: Response,
   ) {
-    const y = parseInt(year, 10) || new Date().getFullYear();
-    const m = parseInt(month, 10) || new Date().getMonth() + 1;
-    const buffer = await this.service.exportPayrollRecargosExcel(y, m);
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="Liquidacion_Recargos_Coraza_${y}-${String(m).padStart(2, '0')}.xlsx"`,
-    );
-    res.send(buffer);
+    try {
+      const y = parseInt(year, 10) || new Date().getFullYear();
+      const m = parseInt(month, 10) || new Date().getMonth() + 1;
+      const buffer = await this.service.exportPayrollRecargosExcel(y, m);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="Liquidacion_Recargos_Coraza_${y}-${String(m).padStart(2, '0')}.xlsx"`,
+      );
+      res.status(200).end(buffer);
+    } catch (err: any) {
+      res.status(500).json({
+        statusCode: 500,
+        message: err?.message || 'Error al generar el archivo de Excel oficial',
+      });
+    }
   }
 
   @Get('payroll-recargos')
