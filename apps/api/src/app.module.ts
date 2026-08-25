@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CacheModule } from './common/cache/cache.module';
 import { CommonModule } from './common/common.module';
 import { AssociatesModule } from './modules/associates/associates.module';
 import { AuditModule } from './modules/audit/audit.module';
@@ -64,6 +65,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
       },
     }),
     CommonModule,
+    CacheModule,
     AuthModule,
     UsersModule,
     OrganizationsModule,

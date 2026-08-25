@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Brackets, Repository } from 'typeorm';
+import { TenantCacheService } from '../../common/cache/tenant-cache.service';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -63,7 +64,30 @@ export class AssociatesService {
     private readonly sensitive: SensitiveDataService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly cache: TenantCacheService,
   ) {}
+
+  private static readonly LIST_TTL_SEC = 60;
+  private static readonly CACHE_PREFIX = 'associates:';
+
+  private cacheKeyForList(query: AssociatesQueryDto): string {
+    return `${AssociatesService.CACHE_PREFIX}list:${JSON.stringify({
+      s: query.status ?? null,
+      wc: query.workCenterId ?? null,
+      jp: query.jobPositionId ?? null,
+      edu: query.educationLevelId ?? null,
+      crit: query.isCritical ?? null,
+      q: query.search?.trim() ?? null,
+      tmin: query.tenureMinYears ?? null,
+      tmax: query.tenureMaxYears ?? null,
+      p: query.page ?? '1',
+      l: query.limit ?? '50',
+    })}`;
+  }
+
+  private invalidateListCache(): Promise<number> {
+    return this.cache.invalidatePrefix(AssociatesService.CACHE_PREFIX);
+  }
 
   async lookup(status?: string) {
     const qb = this.associatesRepo
@@ -96,6 +120,24 @@ export class AssociatesService {
 
   // ─── Consultas ────────────────────────────────────────────────────────
   async list(query: AssociatesQueryDto, user: JwtPayload) {
+    // Cache-aside por (tenant + filtros + page). El enmascaramiento (sensitive) se
+    // aplica sobre datos ya cacheados; distintos roles ven distinto ⇒ no cachear
+    // por rol para evitar N caches — se enmascara post-cache abajo.
+    const cached = await this.cache.getOrSet(
+      this.cacheKeyForList(query),
+      AssociatesService.LIST_TTL_SEC,
+      () => this.listUncached(query),
+    );
+
+    return {
+      ...cached,
+      items: cached.items.map((row) =>
+        this.sensitive.maskAssociate(row, user),
+      ),
+    };
+  }
+
+  private async listUncached(query: AssociatesQueryDto) {
     const qb = this.associatesRepo
       .createQueryBuilder('a')
       .leftJoinAndSelect('a.jobPosition', 'jobPosition')
@@ -165,7 +207,7 @@ export class AssociatesService {
         .map((a) => a.id);
       const pageRetirements = await this.latestRetirementDates(pageRetired);
       return {
-        items: rows.map((a) => this.enrich(a, user, pageRetirements.get(a.id))),
+        items: rows.map((a) => this.enrichBase(a, pageRetirements.get(a.id))),
         total,
         page,
         limit,
@@ -180,7 +222,7 @@ export class AssociatesService {
     const retirementByAssociate = await this.latestRetirementDates(retiredIds);
 
     return {
-      items: rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id))),
+      items: rows.map((a) => this.enrichBase(a, retirementByAssociate.get(a.id))),
       total,
       page,
       limit,
@@ -273,6 +315,7 @@ export class AssociatesService {
       ipAddress,
     });
 
+    await this.invalidateListCache();
     return this.findOne(saved.id, user);
   }
 
@@ -320,6 +363,7 @@ export class AssociatesService {
       ipAddress,
     });
 
+    await this.invalidateListCache();
     return this.findOne(saved.id, user);
   }
 
@@ -366,6 +410,7 @@ export class AssociatesService {
       ipAddress,
     });
 
+    await this.invalidateListCache();
     return this.findOne(saved.id, user);
   }
 
@@ -395,6 +440,7 @@ export class AssociatesService {
     await this.notifications.sendToRole('RRHH', `Asociado retirado: ${name}`, saved.documentNumber, 'rrhh');
     await this.notifications.sendToRole('GERENCIA', `Asociado retirado: ${name}`, saved.documentNumber, 'rrhh');
 
+    await this.invalidateListCache();
     return this.findOne(saved.id, user);
   }
 
@@ -419,19 +465,15 @@ export class AssociatesService {
     return clean as Partial<Associate>;
   }
 
-  /** Añade campos derivados y aplica enmascaramiento sensible. */
-  private enrich(
-    associate: Associate,
-    user: JwtPayload,
-    retirementDate?: string | null,
-  ) {
+  /** Añade campos derivados sin enmascarar (cacheable). Masking se aplica por request. */
+  private enrichBase(associate: Associate, retirementDate?: string | null) {
     const derived = this.derived.compute({
       birthDate: associate.birthDate,
       hireDate: associate.hireDate,
       status: associate.status,
       retirementDate: retirementDate ?? null,
     });
-    const enriched = {
+    return {
       ...associate,
       ageAtHire: derived.ageAtHire,
       currentAge: derived.currentAge,
@@ -446,7 +488,17 @@ export class AssociatesService {
         .join(' ')
         .trim(),
     };
-    return this.sensitive.maskAssociate(enriched, user);
+  }
+
+  private enrich(
+    associate: Associate,
+    user: JwtPayload,
+    retirementDate?: string | null,
+  ) {
+    return this.sensitive.maskAssociate(
+      this.enrichBase(associate, retirementDate),
+      user,
+    );
   }
 
   private async latestRetirementDate(associateId: string): Promise<string | null> {
