@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
@@ -27,7 +27,7 @@ type PeriodKey = CommandPeriod;
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, Icon, DatePipe, DecimalPipe],
+  imports: [RouterLink, Icon, DatePipe],
   template: `
     <section class="dashboard">
       <!-- HERO PRINCIPAL EJECUTIVO -->

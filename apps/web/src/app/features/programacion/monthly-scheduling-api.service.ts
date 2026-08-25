@@ -268,7 +268,25 @@ export class MonthlySchedulingApiService {
     } | null;
     failedReason: string | null;
   }> {
-    return this.http.get(`${this.baseUrl}/motor-jobs/${encodeURIComponent(jobId)}`);
+    return this.http.get<{
+      jobId: string;
+      status: 'queued' | 'active' | 'completed' | 'failed' | 'unknown';
+      progress: {
+        processed: number;
+        total: number;
+        ok: number;
+        failed: number;
+      } | null;
+      result: {
+        year: number;
+        month: number;
+        tipoCiclo: string;
+        processed: number;
+        ok: number;
+        failed: number;
+      } | null;
+      failedReason: string | null;
+    }>(`${this.baseUrl}/motor-jobs/${encodeURIComponent(jobId)}`);
   }
 
   getTodayCoverage(date?: string): Observable<TodayCoverageResponse> {

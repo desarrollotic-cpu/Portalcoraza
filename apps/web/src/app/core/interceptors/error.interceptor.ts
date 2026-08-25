@@ -8,8 +8,11 @@ import { inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { AuthUser } from '../models/auth.model';
 import { AuthService } from '../services/auth.service';
 import { TENANT_KEY } from './tenant.interceptor';
+
+const CENTRAL_ORGANIZATION_ID = '11111111-1111-1111-1111-111111111111';
 
 const ACCESS_KEY = 'coraza_access';
 const REFRESH_KEY = 'coraza_refresh';
@@ -36,7 +39,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         return rawHttp
-          .post<{ accessToken: string; user?: { id: string; email: string; fullName: string | null; role: { code: string; name: string }; permissions: string[] } }>(
+          .post<{ accessToken: string; user?: Partial<AuthUser> }>(
             `${environment.apiUrl}/auth/refresh`,
             { refreshToken },
           )
@@ -44,8 +47,24 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             switchMap((res) => {
               localStorage.setItem(ACCESS_KEY, res.accessToken);
               if (res.user) {
-                localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-                auth.currentUser.set(res.user);
+                const user: AuthUser = {
+                  id: res.user.id!,
+                  email: res.user.email!,
+                  fullName: res.user.fullName ?? null,
+                  role: res.user.role!,
+                  permissions: res.user.permissions ?? [],
+                  tenantId:
+                    res.user.tenantId ||
+                    localStorage.getItem(TENANT_KEY) ||
+                    CENTRAL_ORGANIZATION_ID,
+                  warehouseId: res.user.warehouseId ?? null,
+                  warehouse: res.user.warehouse ?? null,
+                };
+                localStorage.setItem(USER_KEY, JSON.stringify(user));
+                if (user.tenantId) {
+                  localStorage.setItem(TENANT_KEY, user.tenantId);
+                }
+                auth.currentUser.set(user);
               } else {
                 auth.syncPermissionsFromAccessToken();
               }
