@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as XLSX from 'xlsx';
 import { Brackets, Repository } from 'typeorm';
+import { TenantCacheService } from '../../common/cache/tenant-cache.service';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
 import { CreateAbsenceDto, UpdateAbsenceDto } from './dto/absence.dto';
@@ -26,9 +27,36 @@ export class HrAbsenteeismService {
     @InjectRepository(Associate)
     private readonly associatesRepo: Repository<Associate>,
     private readonly auditService: AuditService,
+    private readonly cache: TenantCacheService,
   ) {}
 
+  private static readonly CACHE_PREFIX = 'hr-absences:';
+  private static readonly LIST_TTL_SEC = 60;
+
+  private invalidateCache() {
+    return this.cache.invalidatePrefix(HrAbsenteeismService.CACHE_PREFIX);
+  }
+
   async list(filters?: {
+    kind?: AbsenteeismKind;
+    associateId?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  }) {
+    const key = `${HrAbsenteeismService.CACHE_PREFIX}list:${JSON.stringify({
+      k: filters?.kind ?? null,
+      a: filters?.associateId ?? null,
+      q: filters?.search?.trim() ?? null,
+      f: filters?.from ?? null,
+      t: filters?.to ?? null,
+    })}`;
+    return this.cache.getOrSet(key, HrAbsenteeismService.LIST_TTL_SEC, () =>
+      this.listUncached(filters),
+    );
+  }
+
+  private async listUncached(filters?: {
     kind?: AbsenteeismKind;
     associateId?: string;
     search?: string;
@@ -65,6 +93,14 @@ export class HrAbsenteeismService {
   }
 
   async stats() {
+    return this.cache.getOrSet(
+      `${HrAbsenteeismService.CACHE_PREFIX}stats`,
+      HrAbsenteeismService.LIST_TTL_SEC,
+      () => this.statsUncached(),
+    );
+  }
+
+  private async statsUncached() {
     const rows = await this.absencesRepo.find({ relations: { diagnosis: true } });
     const total = rows.length;
     const totalDays = rows.reduce((s, r) => s + (r.absenceDays || 0), 0);
@@ -116,6 +152,7 @@ export class HrAbsenteeismService {
       entityId: saved.id,
       newValue: payload as unknown as Record<string, unknown>,
     });
+    await this.invalidateCache();
     return this.findOne(saved.id);
   }
 
@@ -158,6 +195,7 @@ export class HrAbsenteeismService {
       entityId: id,
       newValue: next as unknown as Record<string, unknown>,
     });
+    await this.invalidateCache();
     return this.findOne(id);
   }
 
@@ -172,6 +210,7 @@ export class HrAbsenteeismService {
       entityId: id,
       oldValue: { associateId: current.associateId },
     });
+    await this.invalidateCache();
     return { ok: true };
   }
 
@@ -270,6 +309,7 @@ export class HrAbsenteeismService {
       );
     }
 
+    await this.invalidateCache();
     return report;
   }
 

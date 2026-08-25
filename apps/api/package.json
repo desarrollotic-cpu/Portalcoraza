@@ -37,7 +37,8 @@
     "db:drop-residential": "ts-node scripts/apply-drop-residential.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts",
     "test:demo": "ts-node scripts/demo-smoke.ts",
-    "smoke:motor-bullmq": "ts-node -r dotenv/config scripts/smoke-motor-bullmq.ts"
+    "smoke:motor-bullmq": "ts-node -r dotenv/config scripts/smoke-motor-bullmq.ts",
+    "smoke:cache": "ts-node -r dotenv/config scripts/smoke-cache.ts"
   },
   "dependencies": {
     "@nestjs/bullmq": "^11.0.5",
