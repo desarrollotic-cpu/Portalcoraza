@@ -29,35 +29,38 @@ export class DocumentalMailService {
     this.logger.log(`📧 [EMAIL ENVIADO] De: ${this.senderEmail} -> Para: ${notice.email} | Asunto: ${subject}`);
     this.logger.debug(`Detalle del préstamo vencido: Documento="${notice.document}", Solicitante="${notice.requester}", Vencimiento="${notice.returnDate}"`);
 
-    // Intentar envío por transporte SMTP si las variables de entorno están configuradas (p.ej. SMTP_HOST/SMTP_USER)
+    // Envío por transporte SMTP con Google Workspace oficial
     try {
-      if (process.env.SMTP_HOST && process.env.SMTP_USER) {
-        // En producción enviará a través del servidor SMTP configurado
-        const nodemailer = await import('nodemailer').catch(() => null);
-        if (nodemailer) {
-          const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: Number(process.env.SMTP_PORT) || 587,
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-              user: process.env.SMTP_USER,
-              pass: process.env.SMTP_PASS,
-            },
-          });
+      const nodemailer = await import('nodemailer').catch(() => null);
+      if (nodemailer) {
+        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+        const smtpPort = Number(process.env.SMTP_PORT) || 465;
+        const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
+        const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
+        const smtpSecure = process.env.SMTP_SECURE !== 'false';
 
-          await transporter.sendMail({
-            from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-            to: notice.email,
-            subject,
-            html: htmlBody,
-          });
-          this.logger.log(`✅ Correo entregado exitosamente a ${notice.email}`);
-          return true;
-        }
+        const transporter = nodemailer.createTransport({
+          host: smtpHost,
+          port: smtpPort,
+          secure: smtpSecure,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+        });
+
+        await transporter.sendMail({
+          from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
+          to: notice.email,
+          subject,
+          html: htmlBody,
+        });
+        this.logger.log(`✅ Correo entregado exitosamente a ${notice.email}`);
+        return true;
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`No se pudo despachar por SMTP directo (${errorMsg}). Registro de alerta completado.`);
+      this.logger.warn(`No se pudo despachar por SMTP directo (${errorMsg}).`);
     }
 
     return true;
