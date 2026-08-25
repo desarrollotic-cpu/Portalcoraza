@@ -43,10 +43,20 @@ Mes en Portal: **1–12** (APP usaba 0–11).
 | `2x2` | 6 | 2D → 2N → 2NR |
 | `13x2` | 30 | 13D → 2R → 13N → 2R |
 
+| Código | Significado | Horario |
+|--------|-------------|---------|
+| `D` | Diurno 12 h | 06:00–18:00 |
+| `N` | Nocturno 12 h | 18:00–06:00 |
+| `D8` | Diurno 8 h | 06:00–14:00 |
+| `N8` | Nocturno 8 h | 22:00–06:00 |
+
+El motor de ciclo (12×3, etc.) genera **D/N 12 h**. `D8`/`N8` se asignan a mano en la celda. Para cobertura, D8 cuenta como diurno y N8 como nocturno.
+
 **Invariantes:**
 1. Ciclo **continuo entre meses** (posición del día 1 = última del mes anterior + 1).
 2. Cambios manuales de celda permitidos (sin cascada automática).
 3. Validaciones: cobertura D/N, doble descanso, >6 consecutivos D o N.
+4. Rol **relevante***: no lleva ciclo propio; solo cubre huecos D/N que dejan los titulares ese día (resto NR = libre en ese puesto para otro).
 
 Fuente original: `APP-CONTABILIDAD/src/store/motorTurnos.ts`.
 

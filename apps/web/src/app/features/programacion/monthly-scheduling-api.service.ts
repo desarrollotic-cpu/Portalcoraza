@@ -75,6 +75,8 @@ export interface ProgramacionOverview {
   month: number;
   kpis: {
     postsInMonth: number;
+    postsCovered: number;
+    postsUncovered: number;
     assignedCells: number;
     conflicts: number;
     templates: number;
@@ -93,6 +95,61 @@ export interface SavePayload {
     codigo?: string | null;
     inicio?: string | null;
     fin?: string | null;
+  }>;
+  confirmWarnings?: boolean;
+}
+
+export type ScheduleAlertType =
+  | 'hueco_cobertura'
+  | 'asociado_inactivo'
+  | 'conflicto_mismo_turno'
+  | 'carga_sobre_24';
+
+export interface ScheduleAlertItem {
+  id: string;
+  type: ScheduleAlertType;
+  severity: 'error' | 'warning';
+  month: string;
+  day?: number;
+  postId: string;
+  postName: string;
+  associateId?: string;
+  associateName?: string;
+  shift?: 'D' | 'N';
+  otherPostId?: string;
+  otherPostName?: string;
+  message: string;
+}
+
+export interface MonthlyAlertsResponse {
+  generatedAt: string;
+  months: string[];
+  totals: {
+    huecos: number;
+    inactivos: number;
+    conflictos: number;
+    carga: number;
+  };
+  alerts: ScheduleAlertItem[];
+}
+
+export interface BoardAlertsResponse {
+  month: string;
+  postId: string;
+  cells: Array<{
+    day: number;
+    types: ScheduleAlertType[];
+    severity: 'error' | 'warning';
+    messages: string[];
+  }>;
+  associateLoad: ScheduleAlertItem[];
+  placements?: Array<{
+    associateId: string;
+    associateName: string | null;
+    day: number;
+    shift: 'D' | 'N';
+    postId: string;
+    postName: string;
   }>;
 }
 
@@ -130,6 +187,30 @@ export class MonthlySchedulingApiService {
     return this.http.get<ScheduleConflict[]>(`${this.baseUrl}/conflicts`, { params });
   }
 
+  getAlerts(
+    year: number,
+    month: number,
+    scope: 'auto' | 'current' | 'next' = 'auto',
+  ): Observable<MonthlyAlertsResponse> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month))
+      .set('scope', scope);
+    return this.http.get<MonthlyAlertsResponse>(`${this.baseUrl}/alerts`, { params });
+  }
+
+  getBoardAlerts(
+    postId: string,
+    year: number,
+    month: number,
+  ): Observable<BoardAlertsResponse> {
+    const params = new HttpParams()
+      .set('postId', postId)
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<BoardAlertsResponse>(`${this.baseUrl}/alerts/board`, { params });
+  }
+
   createOrGet(postId: string, year: number, month: number): Observable<MonthlySchedule> {
     return this.http.post<MonthlySchedule>(this.baseUrl, { postId, year, month });
   }
@@ -144,7 +225,11 @@ export class MonthlySchedulingApiService {
 
   generateMotor(
     id: string,
-    opts?: { roles?: string[]; tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2' },
+    opts?: {
+      roles?: string[];
+      tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+      personal?: PersonalRole[];
+    },
   ): Observable<MonthlySchedule & { motorAlerts?: unknown[] }> {
     return this.http.post<MonthlySchedule & { motorAlerts?: unknown[] }>(
       `${this.baseUrl}/${id}/motor`,
@@ -157,22 +242,56 @@ export class MonthlySchedulingApiService {
     month: number;
     tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
     createMissing?: boolean;
-  }): Observable<{
-    year: number;
-    month: number;
-    tipoCiclo: string;
-    processed: number;
-    ok: number;
-    failed: number;
-  }> {
-    return this.http.post<{
+  }): Observable<{ jobId: string; status: 'queued' }> {
+    return this.http.post<{ jobId: string; status: 'queued' }>(
+      `${this.baseUrl}/motor-global`,
+      payload,
+    );
+  }
+
+  getMotorJob(jobId: string): Observable<{
+    jobId: string;
+    status: 'queued' | 'active' | 'completed' | 'failed' | 'unknown';
+    progress: {
+      processed: number;
+      total: number;
+      ok: number;
+      failed: number;
+    } | null;
+    result: {
       year: number;
       month: number;
       tipoCiclo: string;
       processed: number;
       ok: number;
       failed: number;
-    }>(`${this.baseUrl}/motor-global`, payload);
+    } | null;
+    failedReason: string | null;
+  }> {
+    return this.http.get(`${this.baseUrl}/motor-jobs/${encodeURIComponent(jobId)}`);
+  }
+
+  getTodayCoverage(date?: string): Observable<TodayCoverageResponse> {
+    let params = new HttpParams();
+    if (date) params = params.set('date', date);
+    return this.http.get<TodayCoverageResponse>(`${this.baseUrl}/today-coverage`, { params });
+  }
+
+  getPayrollRecargos(year: number, month: number): Observable<PayrollRecargosResponse> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<PayrollRecargosResponse>(`${this.baseUrl}/payroll-recargos`, { params });
+  }
+
+  downloadPayrollRecargosExcel(year: number, month: number): Observable<Blob> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get(`${this.baseUrl}/payroll-recargos/export-excel`, {
+      params,
+      responseType: 'blob',
+    });
   }
 
   listTemplates(): Observable<ScheduleTemplate[]> {
@@ -209,3 +328,86 @@ export interface ScheduleTemplate {
   }>;
   createdAt: string;
 }
+
+export interface TodayGuardInfo {
+  role: string;
+  associateId: string | null;
+  nombre: string;
+  cedula: string;
+  telefono: string | null;
+  codigo: string | null;
+  jornada: Jornada;
+  turno: Turno | null;
+  inicio: string | null;
+  fin: string | null;
+  tipo?: string;
+}
+
+export interface TodayPostCoverage {
+  scheduleId: string;
+  status: ScheduleStatus;
+  post: {
+    id: string;
+    code: string;
+    name: string;
+    address: string | null;
+    city: string | null;
+  };
+  turnoDia: TodayGuardInfo | null;
+  turnoNoche: TodayGuardInfo | null;
+  otros: TodayGuardInfo[];
+  isCovered: boolean;
+}
+
+export interface TodayCoverageResponse {
+  date: string;
+  year: number;
+  month: number;
+  day: number;
+  posts: TodayPostCoverage[];
+  summary: {
+    totalPosts: number;
+    coveredPosts: number;
+    uncoveredPosts: number;
+    diurnosCount: number;
+    nocturnosCount: number;
+    descansosCount: number;
+    novedadesCount: number;
+  };
+}
+
+export interface PayrollAssociateRecargo {
+  associateId: string;
+  nombre: string;
+  cedula: string;
+  cargo: string;
+  puestos: string;
+  diasLaborados: number;
+  turnosDiurnos: number;
+  turnosNocturnos: number;
+  descansos: number;
+  novedades: number;
+  horasOrdinarias: number;
+  horasExtrasDiurnas: number;
+  recargosNocturnos: number;
+  horasExtrasNocturnas: number;
+  dominicalesFestivas: number;
+  totalHoras: number;
+}
+
+export interface PayrollRecargosResponse {
+  year: number;
+  month: number;
+  daysInMonth: number;
+  totalAssociates: number;
+  totals: {
+    horasOrdinarias: number;
+    horasExtrasDiurnas: number;
+    recargosNocturnos: number;
+    horasExtrasNocturnas: number;
+    dominicalesFestivas: number;
+    totalHorasLiquidables: number;
+  };
+  associates: PayrollAssociateRecargo[];
+}
+

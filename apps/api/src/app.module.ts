@@ -21,12 +21,19 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { OrganizationsModule } from './modules/organizations/organizations.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { QueuesModule } from './modules/queues/queues.module';
 import { PermissionsModule } from './modules/permissions/permissions.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { PostEquipmentModule } from './modules/post-equipment/post-equipment.module';
 import { ReceptionModule } from './modules/reception/reception.module';
 import { RolesModule } from './modules/roles/roles.module';
+import { SstModule } from './modules/sst/sst.module';
+import { MinutaModule } from './modules/minuta/minuta.module';
+import { SigModule } from './modules/sig/sig.module';
 import { UsersModule } from './modules/users/users.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
+import { PayrollsModule } from './modules/payroll/payrolls.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 function isSupabaseDatabaseUrl(url?: string): boolean {
   if (!url) return false;
@@ -75,11 +82,18 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     InventoryModule,
     DeliveriesModule,
     SchedulingModule,
+    QueuesModule.register(),
     DocumentalModule,
     NotificationsModule,
     PostsModule,
     PostEquipmentModule,
     ReceptionModule,
+    SstModule,
+    MinutaModule,
+    SigModule,
+    AccountingModule,
+    PayrollsModule,
+    DashboardModule,
     AuditModule,
   ],
 })

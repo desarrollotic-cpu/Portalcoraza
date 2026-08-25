@@ -40,7 +40,7 @@ export class HrRetirementsService {
     private readonly audit: HrAuditService,
   ) {}
 
-  async list(filters: { from?: string; to?: string; reasonId?: string }) {
+  async list(filters: { from?: string; to?: string; reasonId?: string; page?: string; limit?: string }) {
     const qb = this.retirementRepo
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.associate', 'a')
@@ -54,7 +54,16 @@ export class HrRetirementsService {
     if (filters.to) qb.andWhere('r.retirementDate <= :to', { to: filters.to });
     if (filters.reasonId) qb.andWhere('r.reasonId = :reasonId', { reasonId: filters.reasonId });
 
-    return qb.getMany();
+    const page = Math.max(1, parseInt(filters.page ?? '1', 10) || 1);
+    const limit = Math.min(200, Math.max(1, parseInt(filters.limit ?? '50', 10) || 50));
+    const [items, total] = await qb.skip((page - 1) * limit).take(limit).getManyAndCount();
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+    };
   }
 
   async findOne(id: string) {

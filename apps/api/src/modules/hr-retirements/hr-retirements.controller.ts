@@ -29,8 +29,10 @@ export class HrRetirementsController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('reasonId') reasonId?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.service.list({ from, to, reasonId });
+    return this.service.list({ from, to, reasonId, page, limit });
   }
 
   @Get(':id')

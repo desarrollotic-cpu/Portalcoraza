@@ -28,7 +28,7 @@ Tenant seed: `11111111-1111-1111-1111-111111111111` (Cooperativa Central).
 
 ## Semana 4 — RLS (Postgres)
 
-Migración: `supabase/migrations/030_multi_tenant_rls.sql`
+Migración: `supabase/migrations/041_multi_tenant_rls.sql`
 
 ### Qué hace
 

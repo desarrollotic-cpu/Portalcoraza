@@ -1,7 +1,8 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of, switchMap } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   AdminApiService,
@@ -47,6 +48,26 @@ import {
                 }
               </select>
             </label>
+            <label>
+              Almacén
+              <select [(ngModel)]="create.warehouseId" name="warehouseId">
+                <option value="">Ninguno</option>
+                @for (w of warehouses(); track w.id) {
+                  <option [value]="w.id">{{ w.name }}</option>
+                }
+              </select>
+            </label>
+            @if (isPuestoRole(create.roleId)) {
+              <label>
+                Puesto (Minuta) *
+                <select [(ngModel)]="createPostId" name="createPostId" required>
+                  <option value="">Seleccione puesto...</option>
+                  @for (p of posts(); track p.id) {
+                    <option [value]="p.id">{{ p.code }} — {{ p.name }}</option>
+                  }
+                </select>
+              </label>
+            }
             <button type="submit" class="btn btn-primary" [disabled]="submitting()">Crear usuario</button>
           </form>
           @if (formError()) {
@@ -88,6 +109,26 @@ import {
                 }
               </select>
             </label>
+            <label>
+              Almacén
+              <select [(ngModel)]="editForm.warehouseId" name="editWarehouseId">
+                <option value="">Ninguno</option>
+                @for (w of warehouses(); track w.id) {
+                  <option [value]="w.id">{{ w.name }}</option>
+                }
+              </select>
+            </label>
+            @if (isPuestoRole(editForm.roleId)) {
+              <label>
+                Puesto (Minuta) *
+                <select [(ngModel)]="editPostId" name="editPostId" required>
+                  <option value="">Seleccione puesto...</option>
+                  @for (p of posts(); track p.id) {
+                    <option [value]="p.id">{{ p.code }} — {{ p.name }}</option>
+                  }
+                </select>
+              </label>
+            }
             <label class="checkbox-field">
               <span>Estado</span>
               <span class="check-row">
@@ -170,6 +211,7 @@ import {
               <th>Correo</th>
               <th>Nombre</th>
               <th>Rol</th>
+              <th>Almacén</th>
               <th>Estado</th>
               <th>Último acceso</th>
               @if (canManage()) {
@@ -182,7 +224,8 @@ import {
               <tr [class.inactive-row]="!u.isActive">
                 <td>{{ u.email }}</td>
                 <td>{{ u.fullName ?? '—' }}</td>
-                <td>{{ u.role?.name ?? '—' }}</td>
+                <td>{{ u.role ? u.role.name : '—' }}</td>
+                <td>{{ u.warehouse?.name ?? '—' }}</td>
                 <td>{{ u.isActive ? 'Activo' : 'Inactivo' }}</td>
                 <td>{{ u.lastLoginAt ? (u.lastLoginAt | date: 'short') : '—' }}</td>
                 @if (canManage()) {
@@ -208,7 +251,7 @@ import {
               </tr>
             } @empty {
               <tr>
-                <td [attr.colspan]="canManage() ? 6 : 5">No hay usuarios.</td>
+                <td [attr.colspan]="canManage() ? 7 : 6">No hay usuarios.</td>
               </tr>
             }
           </tbody>
@@ -362,6 +405,8 @@ export class UsersList implements OnInit {
 
   readonly users = signal<AdminUser[]>([]);
   readonly roles = signal<AdminRole[]>([]);
+  readonly warehouses = signal<Array<{ id: string; code: string; name: string }>>([]);
+  readonly posts = signal<Array<{ id: string; code: string; name: string }>>([]);
   readonly loading = signal(true);
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
@@ -371,14 +416,18 @@ export class UsersList implements OnInit {
   readonly resetting = signal<AdminUser | null>(null);
   readonly currentUserId = signal<string | null>(null);
 
-  create: CreateUserPayload = { email: '', password: '', fullName: '', roleId: '' };
+  create: CreateUserPayload = { email: '', password: '', fullName: '', roleId: '', warehouseId: '' };
+  createPostId = '';
+  editPostId = '';
+  private editAssignedPostIds: string[] = [];
   editForm: {
     email: string;
     password: string;
     fullName: string;
     roleId: string;
+    warehouseId: string;
     isActive: boolean;
-  } = { email: '', password: '', fullName: '', roleId: '', isActive: true };
+  } = { email: '', password: '', fullName: '', roleId: '', warehouseId: '', isActive: true };
   resetPassword = '';
   resetConfirm = '';
 
@@ -387,10 +436,16 @@ export class UsersList implements OnInit {
     forkJoin({
       users: this.api.listUsers(),
       roles: this.api.listRoles(),
+      warehouses: this.api.listWarehouses().pipe(catchError(() => of([]))),
+      posts: this.api.listPosts().pipe(catchError(() => of([]))),
     }).subscribe({
-      next: ({ users, roles }) => {
+      next: ({ users, roles, warehouses, posts }) => {
         this.users.set(users);
         this.roles.set(roles);
+        this.warehouses.set(warehouses);
+        this.posts.set(
+          [...posts].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+        );
         this.loading.set(false);
       },
       error: () => {
@@ -400,12 +455,20 @@ export class UsersList implements OnInit {
     });
   }
 
+  isPuestoRole(roleId: string): boolean {
+    return this.roles().find((r) => r.id === roleId)?.code === 'PUESTO';
+  }
+
   canManage(): boolean {
     return this.auth.hasPermission('users.edit');
   }
 
   submitCreate(): void {
     if (!this.create.email || !this.create.password || !this.create.roleId) return;
+    if (this.isPuestoRole(this.create.roleId) && !this.createPostId) {
+      this.formError.set('Seleccione el puesto para la cuenta de Minuta');
+      return;
+    }
     this.submitting.set(true);
     this.formError.set(null);
     this.formSuccess.set(null);
@@ -415,12 +478,15 @@ export class UsersList implements OnInit {
       password: this.create.password,
       roleId: this.create.roleId,
       fullName: this.create.fullName || undefined,
+      warehouseId: this.create.warehouseId || null,
+      postId: this.isPuestoRole(this.create.roleId) ? this.createPostId || null : null,
     };
 
     this.api.createUser(payload).subscribe({
       next: (user) => {
         this.users.update((list) => [user, ...list]);
-        this.create = { email: '', password: '', fullName: '', roleId: '' };
+        this.create = { email: '', password: '', fullName: '', roleId: '', warehouseId: '' };
+        this.createPostId = '';
         this.formSuccess.set('Usuario creado');
         this.submitting.set(false);
       },
@@ -439,14 +505,25 @@ export class UsersList implements OnInit {
       password: '',
       fullName: user.fullName ?? '',
       roleId: user.role.id,
+      warehouseId: user.warehouseId ?? user.warehouse?.id ?? '',
       isActive: user.isActive,
     };
+    this.editPostId = '';
+    this.editAssignedPostIds = [];
     this.formError.set(null);
     this.formSuccess.set(null);
+    this.api.listUserPosts(user.id).subscribe({
+      next: (rows) => {
+        this.editAssignedPostIds = rows.map((r) => r.postId);
+        this.editPostId = rows[0]?.postId ?? '';
+      },
+    });
   }
 
   cancelEdit(): void {
     this.editing.set(null);
+    this.editPostId = '';
+    this.editAssignedPostIds = [];
     this.formError.set(null);
     this.formSuccess.set(null);
   }
@@ -501,6 +578,10 @@ export class UsersList implements OnInit {
   submitEdit(): void {
     const target = this.editing();
     if (!target || !this.editForm.email || !this.editForm.roleId) return;
+    if (this.isPuestoRole(this.editForm.roleId) && !this.editPostId) {
+      this.formError.set('Seleccione el puesto para la cuenta de Minuta');
+      return;
+    }
 
     this.submitting.set(true);
     this.formError.set(null);
@@ -511,23 +592,45 @@ export class UsersList implements OnInit {
       fullName: this.editForm.fullName.trim() || null,
       roleId: this.editForm.roleId,
       isActive: this.editForm.isActive,
+      warehouseId: this.editForm.warehouseId || null,
     };
     if (this.editForm.password.trim()) {
       payload.password = this.editForm.password.trim();
     }
 
-    this.api.updateUser(target.id, payload).subscribe({
-      next: (updated) => {
-        this.users.update((list) => list.map((u) => (u.id === updated.id ? updated : u)));
-        this.formSuccess.set('Usuario actualizado');
-        this.submitting.set(false);
-        this.editing.set(null);
-      },
-      error: (err) => {
-        this.submitting.set(false);
-        this.formError.set(err?.error?.message ?? 'No se pudo actualizar el usuario');
-      },
-    });
+    const wantPost = this.isPuestoRole(this.editForm.roleId) ? this.editPostId : '';
+    const previousPosts = [...this.editAssignedPostIds];
+
+    this.api
+      .updateUser(target.id, payload)
+      .pipe(
+        switchMap((updated) => {
+          if (!wantPost) {
+            return of(updated);
+          }
+          const removals = previousPosts
+            .filter((id) => id !== wantPost)
+            .map((id) => this.api.removeUserPost(updated.id, id).pipe(catchError(() => of(null))));
+          const assign$ = previousPosts.includes(wantPost)
+            ? of(null)
+            : this.api.assignUserPost(updated.id, wantPost);
+          return forkJoin([assign$, ...removals]).pipe(map(() => updated));
+        }),
+      )
+      .subscribe({
+        next: (updated) => {
+          this.users.update((list) => list.map((u) => (u.id === updated.id ? updated : u)));
+          this.formSuccess.set('Usuario actualizado');
+          this.submitting.set(false);
+          this.editing.set(null);
+          this.editPostId = '';
+          this.editAssignedPostIds = [];
+        },
+        error: (err) => {
+          this.submitting.set(false);
+          this.formError.set(err?.error?.message ?? 'No se pudo actualizar el usuario');
+        },
+      });
   }
 
   deactivate(user: AdminUser): void {

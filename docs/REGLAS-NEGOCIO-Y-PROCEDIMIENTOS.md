@@ -1,6 +1,6 @@
 # Portal Coraza — Reglas de negocio y procedimientos
 
-**Versión:** 2026-08-05  
+**Versión:** 2026-08-19  
 **Audiencia:** gerencia, operaciones, soporte y desarrollo  
 **Objetivo:** entender *cómo funciona* cada módulo sin tener que leer el código.
 
@@ -46,7 +46,7 @@
 ### Permisos
 
 - Formato: `modulo.accion` (ej. `inventory.edit`, `deliveries.sign`).
-- GERENCIA suele tener todos los permisos de negocio.
+- GERENCIA tiene acceso amplio de **consulta**. En Dotación **no** crea catálogo, no mueve stock ni entrega (permisos de escritura de inventario/entregas revocados).
 - Cada pantalla/API exige uno o más permisos concretos.
 - El rol **AUDITOR** solo tiene permisos de consulta (`*.view` y equivalentes de lectura).
 
@@ -75,8 +75,9 @@ Gestionar quién entra al portal, qué rol tiene y (vía API) a qué puestos est
 
 1. Administración → Usuarios → crear.
 2. Definir email, contraseña y rol.
-3. El email se guarda en minúsculas y debe ser único.
-4. Preferir dominio corporativo `@corazaseguridadcta.com` cuando aplique la política vigente.
+3. Si el rol es almacenista, asignar **almacén** (Medellín o Rionegro). Sin almacén no puede ingresar ni entregar.
+4. El email se guarda en minúsculas y debe ser único.
+5. Preferir dominio corporativo `@corazaseguridadcta.com` cuando aplique la política vigente.
 
 ### Procedimiento — desactivar usuario
 
@@ -116,6 +117,8 @@ RRHH es la **fuente de verdad del personal**. Dotación y Programación consumen
 
 **Rutas:** `/rrhh/asociados`, alta/edición/ficha/reingreso  
 **Permisos:** `associates.view/create/edit/retire`, `retirements.readmit`, `hr_sensitive.view`
+
+El **Directorio** pagina de a 50. Filtros: búsqueda, estado, cargo, centro de trabajo, **nivel educativo** (catálogo `NIVEL_ESTUDIO`: bachiller, técnico, tecnólogo, profesional, etc.) y criticidad. Al elegir un valor en el combo, la lista se recarga sola (no hay botón “Aplicar”). La tabla muestra la columna **Nivel educativo**.
 
 #### Estados del asociado
 
@@ -173,15 +176,41 @@ Catálogos maestros (EPS, género, motivos de retiro, etc.) alimentan formulario
 
 ## 4. Dotación — Inventario
 
-**Rutas:** `/dotacion/inventario`, …  
+**Rutas:** `/dotacion/inventario`, historial de movimientos  
 **Permisos:** `inventory.view/create/edit/move/alerts`  
-**Rol típico:** ALMACENISTA, GERENCIA
+**Roles:** ALMACENISTA (escribe en su sede), GERENCIA (solo ve)
 
-### Reglas típicas
+Hay **dos almacenes físicos**: Medellín y Rionegro. El catálogo (camisa, pantalón, botas, tallas) es **el mismo**. El stock es **por variante y almacén**. Cada prenda nace con líneas **hombre y mujer**.
 
-- Stock por **variantes** (talla/género/etc.).
-- Movimientos de entrada/salida quedan registrados.
-- Alertas de stock bajo visibles en panel de Dotación.
+### Quién puede qué
+
+| | Ve stock e historial | Crea/edita elementos | Ingreso, entrega, ajuste | Traslado desde su sede |
+|---|---|---|---|---|
+| Almacenista Medellín | todo | sí | solo Medellín | Medellín → Rionegro |
+| Almacenista Rionegro | todo | sí | solo Rionegro | Rionegro → Medellín |
+| GERENCIA | todo | no | no | no |
+
+El usuario de almacén debe tener `warehouse_id`. Tras un cambio de sede o permisos: **volver a iniciar sesión**.
+
+### Procedimiento — ingreso
+
+1. Inventario → en la línea (género/talla) **+ stock**.
+2. Cantidad y motivo (compra, devolución, etc.).
+3. Suma solo al almacén del usuario. No se puede cargar al almacén contrario.
+
+### Procedimiento — traslado
+
+1. Misma fila → **traslado**.
+2. Sale del almacén propio y entra al otro. Requiere stock suficiente en origen.
+3. Queda en historial: origen → destino, cantidad y quién lo hizo.
+
+### Historial
+
+Ingresos, salidas, ajustes, traslados, entregas y **quién creó o editó un elemento**.
+
+### Alertas
+
+Stock bajo se evalúa **por almacén** frente al umbral del ítem.
 
 ---
 
@@ -195,8 +224,9 @@ Catálogos maestros (EPS, género, motivos de retiro, etc.) alimentan formulario
 | Regla | Detalle |
 |-------|---------|
 | Destinatario | Asociado `ACTIVO` o `VACACIONES` |
+| Almacén | La entrega descuenta stock **del almacén del almacenista** que la crea/firma |
 | Firma | Confirma la entrega; imagen en bucket privado vía API |
-| Reversión | Solo con flujo/permiso previsto; no “borrar” el histórico a mano |
+| Reversión | Solo con flujo/permiso previsto (ventana 5 días); devuelve stock al mismo almacén |
 
 ---
 
@@ -243,6 +273,8 @@ Turnos de personal por puesto (matriz mensual / cuadro). El **panel** resume pue
 
 Consume asociados (RRHH) y puestos. El alcance por puestos del rol PROGRAMADOR debe respetarse operativamente cuando el usuario tenga puestos asignados.
 
+**Cargado (2026-08-19):** 226 puestos desde la BD de programación (`puestos` → `posts`). Se conservaron los UUID de origen. Usuarios/roles del Portal no se tocaron. Los centros de trabajo RRHH (33) no coinciden por código con `MED-####`; `work_center_id` queda vacío. El formulario de Operaciones cubre zona, contacto, teléfono, prioridad, contrato, tipo de servicio, armamento, requisitos e instrucciones. **No se migran** turnos ni asignaciones de esa BD hasta un plan de bajo error aparte.
+
 ---
 
 ## 8. Documental
@@ -276,12 +308,12 @@ SGD nativo del portal (ya no hay redirección a Google Apps Script): radicación
 
 ### Para qué sirve
 
-Control de ingreso/salida de visitantes a **sede** (independiente de asociados RRHH). **No** es el antiguo módulo Residencial.
+Control de ingreso/salida de visitantes a **sede**. Al registrar con cédula, el sistema cruza con RRHH (ACTIVO / VACACIONES) y etiqueta **Asociado** o **Visitante** (se guarda y se ve en Dentro, Historial y PDF).
 
 ### Procedimiento
 
-1. **Registrar** ingreso (muchos campos son opcionales).
-2. Ver quién está **dentro**.
+1. **Registrar** ingreso (muchos campos son opcionales). Si hay cédula, aparece la etiqueta Asociado/Visitante.
+2. Ver quién está **dentro** (con la misma etiqueta).
 3. Registrar **salida** (no se borra el registro: se cierra con hora de salida). La pantalla **no** salta al historial: se puede dar salida a varios seguidos desde “Visitantes dentro” o el panel.
 4. Consultar **historial** (y PDF de historial si aplica).
 
@@ -290,7 +322,7 @@ Control de ingreso/salida de visitantes a **sede** (independiente de asociados R
 | Regla | Detalle |
 |-------|---------|
 | Historial permanente | No hay borrado de visitas; se cierra con salida |
-| Independencia | No se liga automáticamente a Asociados RRHH |
+| Asociado vs Visitante | Por documento (solo dígitos) contra asociados ACTIVO/VACACIONES; se guarda al registrar |
 
 ---
 
@@ -345,9 +377,9 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 
 | Rol (código) | Enfoque típico |
 |--------------|----------------|
-| `GERENCIA` | Todo / supervisión |
+| `GERENCIA` | Supervisión / consulta amplia; en Dotación no mueve stock |
 | `RRHH` | Asociados, alertas, retiros, datos sensibles |
-| `ALMACENISTA` | Inventario, entregas, movimientos |
+| `ALMACENISTA` | Inventario y entregas **de su almacén** (Medellín o Rionegro) |
 | `PROGRAMADOR` | Turnos / matriz |
 | `RECEPCIONISTA` | Recepción sede |
 | `SUPERVISOR` | Consulta operativa / dashboard |
@@ -371,6 +403,8 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 | Asociado | Persona de nómina/planta en RRHH |
 | Puesto (`Post`) | Ubicación/servicio operativo |
 | Variante | Ítem de inventario con talla/género/etc. |
+| Almacén | Sede física de stock: Medellín o Rionegro |
+| Traslado | Sale de un almacén y entra al otro; no es una compra |
 | Entrega | Dotación personal (o a puesto) con firma |
 | Elemento de puesto | Activo físico asignable a un puesto |
 | Soft-delete | Desactivar sin borrar histórico |
@@ -385,3 +419,5 @@ Al cambiar una regla de negocio en código:
 1. Actualizar la sección del módulo aquí.
 2. Anotar fecha en la cabecera.
 3. Si el cambio afecta roles, actualizar la matriz de la sección 13.
+
+Rendimiento (pool, paginación, techos): [`docs/RENDIMIENTO.md`](RENDIMIENTO.md). Persistencia de inventario: [`docs/INVENTARIO_PERSISTENCIA.md`](INVENTARIO_PERSISTENCIA.md).

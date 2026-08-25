@@ -471,7 +471,7 @@ export class Login {
     this.auth.login(email, password).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigate(['/dashboard']);
+        this.router.navigateByUrl(this.auth.getDefaultRoute());
       },
       error: (err: unknown) => {
         this.loading.set(false);

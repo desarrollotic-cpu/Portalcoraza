@@ -68,14 +68,7 @@ export class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        fullName: user.fullName,
-        role: { code: user.role.code, name: user.role.name },
-        permissions,
-        tenantId,
-      },
+      user: this.toAuthUser(user, permissions),
     };
   }
 
@@ -83,7 +76,7 @@ export class AuthService {
     const hash = this.hashToken(refreshToken);
     const stored = await this.refreshRepo.findOne({
       where: { tokenHash: hash },
-      relations: { user: { role: true } },
+      relations: { user: { role: true, warehouse: true } },
     });
 
     if (
@@ -109,7 +102,11 @@ export class AuthService {
     };
 
     const accessToken = await this.signAccess(payload);
-    return { accessToken };
+    const user = stored.user;
+    return {
+      accessToken,
+      user: this.toAuthUser(user, permissions),
+    };
   }
 
   async logout(userId: string, refreshToken?: string) {
@@ -207,5 +204,31 @@ export class AuthService {
 
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  private toAuthUser(
+    user: {
+      id: string;
+      email: string;
+      fullName: string | null;
+      role: { code: string; name: string };
+      tenantId?: string | null;
+      warehouseId?: string | null;
+      warehouse?: { id: string; code: string; name: string } | null;
+    },
+    permissions: string[],
+  ) {
+    return {
+      id: user.id,
+      email: user.email,
+      fullName: user.fullName,
+      role: { code: user.role.code, name: user.role.name },
+      tenantId: user.tenantId || CENTRAL_ORGANIZATION_ID,
+      warehouseId: user.warehouseId ?? user.warehouse?.id ?? null,
+      warehouse: user.warehouse
+        ? { id: user.warehouse.id, code: user.warehouse.code, name: user.warehouse.name }
+        : null,
+      permissions,
+    };
   }
 }

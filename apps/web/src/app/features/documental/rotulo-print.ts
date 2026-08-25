@@ -1,6 +1,14 @@
-/** Rótulo físico de carpeta — portado del SGD (`_construirEImprimirRotulo` / cola de tiras). */
+/** 
+ * Rótulo físico de carpeta y lomo de libro — Medidas y diseño 100% original del SGD Coraza.
+ * - Minutas: Medida exacta original de 130px x 390px (3.5cm x 10.5cm), con consecutivo
+ *   numérico apilado verticalmente (- / 0 / 0 / 9 / 8) dentro de la cabecera.
+ * - Carpetas legajadoras: Medida exacta original de 380px x 160px (9.5cm x 4.2cm).
+ * - Sistema de Cola y Memoria: Guarda automáticamente un HISTORIAL de lotes impresos
+ *   para poder reimprimir cualquier lote anterior en caso de fallos de impresora o reimpresiones.
+ */
 
 export interface RotuloItem {
+  id?: string;
   codigo: string;
   titulo: string;
   fechas?: string;
@@ -10,13 +18,22 @@ export interface RotuloItem {
   modulo: 'MINUTAS' | 'CONTRATOS' | 'PERSONAL' | 'CORRESPONDENCIA' | string;
 }
 
+export interface LoteHistorial {
+  id: string;
+  fecha: string;
+  cantidad: number;
+  items: Array<RotuloItem & { id: string }>;
+}
+
 const COLA_KEY = 'colaTirasCoraza';
+const HISTORIAL_KEY = 'historialLotesCoraza';
 
 export function addToPrintQueue(item: RotuloItem & { id: string }): void {
   const cola: Array<RotuloItem & { id: string }> = JSON.parse(localStorage.getItem(COLA_KEY) || '[]');
   if (cola.some((i) => i.id === item.id && i.modulo === item.modulo)) return;
   cola.push(item);
   localStorage.setItem(COLA_KEY, JSON.stringify(cola));
+  window.dispatchEvent(new Event('storage'));
 }
 
 export function getPrintQueue(): Array<RotuloItem & { id: string }> {
@@ -25,105 +42,361 @@ export function getPrintQueue(): Array<RotuloItem & { id: string }> {
 
 export function clearPrintQueue(): void {
   localStorage.setItem(COLA_KEY, '[]');
+  window.dispatchEvent(new Event('storage'));
 }
 
-function stripHtml(item: RotuloItem): string {
-  const cod = String(item.codigo || 'S/N').replace(/^#/, '');
-  const titulo = (item.titulo || 'CARPETA ARCHIVO').toUpperCase();
-  const slot = (item.slotFisico || 'A').replace(/^VOXEL_/, '');
-  const fechas = item.fechas || 'S/F';
-  const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
-
-  if (esMinuta) {
-    // Tira vertical libro de minutas — 3.5cm × 10.5cm
-    return `
-      <div class="strip minuta">
-        <div class="head">CORAZA C.T.A.</div>
-        <div class="code">#${cod}</div>
-        <div class="title">${escapeHtml(titulo)}</div>
-        <div class="meta">${escapeHtml(fechas)}</div>
-        <div class="foot">MINUTAS · EST. ${escapeHtml(slot)}</div>
-        <div class="ver">SGD CORAZA</div>
-      </div>`;
+export function removeFromPrintQueue(idx: number): void {
+  const cola: Array<RotuloItem & { id: string }> = JSON.parse(localStorage.getItem(COLA_KEY) || '[]');
+  if (cola[idx]) {
+    cola.splice(idx, 1);
+    localStorage.setItem(COLA_KEY, JSON.stringify(cola));
+    window.dispatchEvent(new Event('storage'));
   }
+}
 
-  const mod = item.modulo.toUpperCase();
-  return `
-    <div class="strip carpeta">
-      <div class="head">${escapeHtml(mod)} · ESTANTE ${escapeHtml(slot)}</div>
-      <div class="title">${escapeHtml(titulo)}</div>
-      <div class="meta">
-        ${item.nit ? 'NIT/CC: ' + escapeHtml(item.nit) : ''}
-        ${item.numContrato ? ' | Cto. N°: ' + escapeHtml(item.numContrato) : ''}
-      </div>
-      <div class="meta">${escapeHtml(fechas)}</div>
-      <div class="code-box">
-        <span>CÓDIGO</span>
-        <strong>${escapeHtml(cod)}</strong>
-        <em>CORAZA CTA</em>
-      </div>
-    </div>`;
+/** Guarda un lote en el historial persistente de reimpresión (guarda los últimos 15 lotes). */
+export function saveBatchToHistory(items: Array<RotuloItem & { id: string }>): void {
+  if (!items || items.length === 0) return;
+  const historial: LoteHistorial[] = JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+  const nuevoLote: LoteHistorial = {
+    id: 'lote_' + Date.now(),
+    fecha: new Date().toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' }),
+    cantidad: items.length,
+    items: [...items],
+  };
+  historial.unshift(nuevoLote);
+  if (historial.length > 15) historial.pop(); // Mantener últimos 15 lotes
+  localStorage.setItem(HISTORIAL_KEY, JSON.stringify(historial));
+}
+
+export function getBatchesHistory(): LoteHistorial[] {
+  return JSON.parse(localStorage.getItem(HISTORIAL_KEY) || '[]');
+}
+
+export function restoreBatchToQueue(batchId: string): void {
+  const historial = getBatchesHistory();
+  const found = historial.find((h) => h.id === batchId);
+  if (found && found.items.length) {
+    localStorage.setItem(COLA_KEY, JSON.stringify(found.items));
+    window.dispatchEvent(new Event('storage'));
+  }
 }
 
 function escapeHtml(s: string): string {
-  return s
+  return String(s || '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 }
 
+function stripHtml(item: RotuloItem): string {
+  const codClean = String(item.codigo || 'S/N').replace(/^#/, '');
+  const tit = (item.titulo || 'CARPETA DE ARCHIVO').toUpperCase();
+  const slotRaw = (item.slotFisico || 'ESTANTE A').replace(/^VOXEL_/, '');
+  const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
+  const fechas = item.fechas || '';
+  const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
+
+  if (esMinuta) {
+    // Extraer únicamente los dígitos numéricos del consecutivo (ej. 0098 o 0529)
+    const matchDigits = codClean.match(/\d+$/);
+    const digits = (matchDigits ? matchDigits[0] : codClean).padStart(4, '0');
+    const digitsList = digits.split('');
+
+    // FORMATO 1: Medidas exactas originales (130px x 390px / 3.5cm x 10.5cm)
+    return `
+      <div class="strip-minuta-orig">
+        <div class="strip-minuta-head">
+          <div class="strip-org">CORAZA C.T.A.</div>
+          <div class="strip-digits-col">
+            <div class="strip-dash">-</div>
+            ${digitsList.map((d) => `<div class="strip-num">${escapeHtml(d)}</div>`).join('')}
+          </div>
+        </div>
+        <div class="strip-tit">${escapeHtml(tit)}</div>
+        ${fechas ? `<div class="strip-fec">${escapeHtml(fechas)}</div>` : ''}
+        <div class="strip-slot">MINUTAS · ${escapeHtml(slot)}</div>
+        <div class="strip-ver">SGD CORAZA 2027</div>
+      </div>`;
+  }
+
+  // FORMATO 2: Medidas exactas originales de Carpeta Legajadora (380px x 160px / 9.5cm x 4.2cm)
+  const cod = `#${codClean}`;
+  const modLabel = item.modulo.toUpperCase();
+  return `
+    <div class="rotulo-carpeta-orig">
+      <div class="carpeta-orig-left">
+        <div class="carpeta-orig-mod">${escapeHtml(modLabel)} · ${escapeHtml(slot)}</div>
+        <div class="carpeta-orig-tit">${escapeHtml(tit)}</div>
+        <div class="carpeta-orig-meta">
+          ${item.nit ? `<span>NIT/CC: ${escapeHtml(item.nit)}</span>` : ''}
+          ${item.numContrato ? `<span> | Contrato N° ${escapeHtml(item.numContrato)}</span>` : ''}
+        </div>
+        ${fechas ? `<div class="carpeta-orig-meta">${escapeHtml(fechas)}</div>` : ''}
+      </div>
+      <div class="carpeta-orig-right">
+        <div class="carpeta-orig-lbl">CÓDIGO</div>
+        <div class="carpeta-orig-cod">${escapeHtml(cod)}</div>
+        <div class="carpeta-orig-sub">CORAZA CTA</div>
+      </div>
+    </div>`;
+}
+
 const PRINT_CSS = `
-  * { box-sizing: border-box; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; background: #fff; color: #000; }
-  .hint { font-size: 11px; color: #555; margin-bottom: 12px; border-bottom: 1px dashed #999; padding-bottom: 8px; }
-  .strip.minuta {
-    width: 3.5cm; height: 10.5cm; border: 2px solid #000; padding: 6px 4px;
-    display: flex; flex-direction: column; align-items: center; text-align: center;
-    justify-content: space-between; page-break-inside: avoid;
+  * { 
+    box-sizing: border-box; 
+    -webkit-print-color-adjust: exact !important; 
+    print-color-adjust: exact !important; 
   }
-  .strip.minuta .head { font-size: 9px; font-weight: 800; letter-spacing: .04em; }
-  .strip.minuta .code { font-size: 16px; font-weight: 900; }
-  .strip.minuta .title { font-size: 11px; font-weight: 700; writing-mode: horizontal-tb; word-break: break-word; }
-  .strip.minuta .meta { font-size: 8px; }
-  .strip.minuta .foot { font-size: 8px; font-weight: 700; }
-  .strip.minuta .ver { font-size: 7px; color: #444; }
-  .strip.carpeta {
-    width: 9.5cm; height: 4.2cm; border: 2px solid #000; padding: 6px 8px;
-    display: grid; grid-template-columns: 1fr auto; gap: 4px; page-break-inside: avoid;
+  @page {
+    size: letter portrait;
+    margin: 8mm;
   }
-  .strip.carpeta .head { font-size: 9px; font-weight: 800; grid-column: 1 / -1; }
-  .strip.carpeta .title { font-size: 13px; font-weight: 800; }
-  .strip.carpeta .meta { font-size: 9px; grid-column: 1; }
-  .strip.carpeta .code-box {
-    grid-row: 2 / 5; grid-column: 2; border: 1px solid #000; padding: 4px 6px;
-    text-align: center; display: flex; flex-direction: column; justify-content: center;
+  body { 
+    font-family: Arial, Helvetica, sans-serif; 
+    margin: 0; 
+    padding: 8px; 
+    background: #fff; 
+    color: #000; 
   }
-  .strip.carpeta .code-box span { font-size: 7px; }
-  .strip.carpeta .code-box strong { font-size: 16px; }
-  .strip.carpeta .code-box em { font-size: 7px; font-style: normal; }
-  @media print { body { padding: 0; } @page { margin: 8mm; } .hint { display: none; } }
+  .print-banner {
+    font-size: 11px;
+    font-weight: 700;
+    color: #475569;
+    border-bottom: 2px dashed #94a3b8;
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .print-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  /* ========================================================= */
+  /* MINUTAS — MEDIDAS ORIGINALES: 130px x 390px (3.5cm x 10.5cm)*/
+  /* ========================================================= */
+  .strip-minuta-orig {
+    border: 2px dashed #000000;
+    width: 130px;
+    height: 390px;
+    padding: 8px;
+    margin: 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    text-align: center;
+    page-break-inside: avoid;
+    border-radius: 4px;
+    background: #ffffff;
+  }
+  .strip-minuta-head {
+    width: 100%;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 4px;
+  }
+  .strip-org {
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #000000;
+  }
+  .strip-digits-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    line-height: 1;
+  }
+  .strip-dash {
+    font-size: 1.2rem;
+    font-weight: 900;
+    color: #000000;
+    line-height: 0.8;
+    margin-bottom: 2px;
+  }
+  .strip-num {
+    font-size: 1.7rem;
+    font-weight: 900;
+    color: #0284c7;
+    line-height: 1.05;
+  }
+  .strip-tit {
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.2;
+    word-break: break-word;
+    color: #000000;
+  }
+  .strip-fec {
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: #334155;
+  }
+  .strip-slot {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #0284c7;
+    text-transform: uppercase;
+  }
+  .strip-ver {
+    border-top: 1px solid #000000;
+    width: 100%;
+    padding-top: 4px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #475569;
+  }
+
+  /* ========================================================= */
+  /* CARPETAS — MEDIDAS ORIGINALES: 380px x 160px (9.5cm x 4.2cm)*/
+  /* ========================================================= */
+  .rotulo-carpeta-orig {
+    border: 2px dashed #000000;
+    width: 380px;
+    height: 160px;
+    padding: 8px;
+    margin: 4px;
+    display: flex;
+    justify-content: space-between;
+    page-break-inside: avoid;
+    border-radius: 4px;
+    background: #ffffff;
+  }
+  .carpeta-orig-left {
+    flex: 1;
+    border: 1.5px solid #000000;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 4px;
+    min-width: 0;
+  }
+  .carpeta-orig-mod {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #0284c7;
+    text-transform: uppercase;
+  }
+  .carpeta-orig-tit {
+    font-size: 0.85rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    line-height: 1.2;
+    word-break: break-word;
+    color: #000000;
+  }
+  .carpeta-orig-meta {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .carpeta-orig-right {
+    width: 80px;
+    border: 2px solid #0284c7;
+    background: #eff6ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    border-radius: 4px;
+    text-align: center;
+    padding: 4px;
+  }
+  .carpeta-orig-lbl {
+    font-size: 0.52rem;
+    font-weight: 900;
+    color: #0369a1;
+  }
+  .carpeta-orig-cod {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: #0284c7;
+    line-height: 1.1;
+    margin: 3px 0;
+  }
+  .carpeta-orig-sub {
+    font-size: 0.52rem;
+    font-weight: 800;
+    color: #64748b;
+  }
+
+  @media print {
+    body { padding: 0; }
+    .print-banner { display: none; }
+  }
 `;
 
-/** Abre el diálogo de impresión del navegador con el rótulo. */
 export function printRotulo(item: RotuloItem): void {
+  const itemWithId = {
+    ...item,
+    id: item.id || `${item.modulo}_${item.codigo}_${Date.now()}`,
+  };
+  addToPrintQueue(itemWithId);
+  saveBatchToHistory([itemWithId]);
+
   const html = `
-    <div class="hint">CORAZA SEGURIDAD C.T.A. — RÓTULO OFICIAL. Imprima, recorte y pegue en la carpeta física.</div>
-    ${stripHtml(item)}
+    <div class="print-banner">
+      <span>CORAZA SEGURIDAD C.T.A. — RÓTULO OFICIAL DE ARCHIVO</span>
+      <span>✂️ Recorte por la línea punteada</span>
+    </div>
+    <div class="print-grid">
+      ${stripHtml(item)}
+    </div>
   `;
   printHtml(html, `Rótulo #${item.codigo} - ${item.titulo}`);
 }
 
-/** Imprime todas las tiras de la cola (una hoja) y vacía la cola. */
-export function printQueue(): void {
+/** 
+ * Imprime las tiras acumuladas.
+ * Guarda una copia en el historial de lotes para poder reimprimir cuando se desee.
+ * NO borra la cola automáticamente a menos que el usuario lo solicite.
+ */
+export function printQueue(clearAfter = false): void {
   const items = getPrintQueue();
   if (!items.length) return;
+  
+  // Guardar en historial antes de imprimir
+  saveBatchToHistory(items);
+
   const html = `
-    <div class="hint">CORAZA SEGURIDAD C.T.A. — LOTE DE TIRAS. Imprima, corte por la línea y pegue en las carpetas.</div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">${items.map(stripHtml).join('')}</div>
+    <div class="print-banner">
+      <span>CORAZA SEGURIDAD C.T.A. — LOTE DE TIRAS (${items.length} Rótulos)</span>
+      <span>✂️ Recorte por las líneas punteadas · Ahorro de Papel</span>
+    </div>
+    <div class="print-grid">
+      ${items.map(stripHtml).join('')}
+    </div>
   `;
   printHtml(html, `Lote de ${items.length} rótulos - Coraza`);
-  clearPrintQueue();
+
+  if (clearAfter) {
+    clearPrintQueue();
+  }
+}
+
+/** Imprime directamente un lote específico del historial. */
+export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): void {
+  if (!items || !items.length) return;
+  const html = `
+    <div class="print-banner">
+      <span>CORAZA SEGURIDAD C.T.A. — REIMPRESIÓN DE LOTE (${items.length} Rótulos)</span>
+      <span>✂️ Recorte por las líneas punteadas</span>
+    </div>
+    <div class="print-grid">
+      ${items.map(stripHtml).join('')}
+    </div>
+  `;
+  printHtml(html, `Reimpresión de Lote (${items.length} rótulos) - Coraza`);
 }
 
 function printHtml(content: string, title: string): void {

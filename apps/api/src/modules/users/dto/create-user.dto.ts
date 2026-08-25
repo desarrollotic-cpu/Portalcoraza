@@ -26,4 +26,13 @@ export class CreateUserDto {
 
   @IsUUID()
   roleId!: string;
+
+  @IsOptional()
+  @IsUUID()
+  warehouseId?: string | null;
+
+  /** Puesto para cuentas Minuta (rol PUESTO). */
+  @IsOptional()
+  @IsUUID()
+  postId?: string | null;
 }

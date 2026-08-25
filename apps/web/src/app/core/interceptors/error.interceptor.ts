@@ -36,12 +36,19 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         }
 
         return rawHttp
-          .post<{ accessToken: string }>(`${environment.apiUrl}/auth/refresh`, {
-            refreshToken,
-          })
+          .post<{ accessToken: string; user?: { id: string; email: string; fullName: string | null; role: { code: string; name: string }; permissions: string[] } }>(
+            `${environment.apiUrl}/auth/refresh`,
+            { refreshToken },
+          )
           .pipe(
             switchMap((res) => {
               localStorage.setItem(ACCESS_KEY, res.accessToken);
+              if (res.user) {
+                localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+                auth.currentUser.set(res.user);
+              } else {
+                auth.syncPermissionsFromAccessToken();
+              }
               const retry = req.clone({
                 setHeaders: {
                   Authorization: `Bearer ${res.accessToken}`,

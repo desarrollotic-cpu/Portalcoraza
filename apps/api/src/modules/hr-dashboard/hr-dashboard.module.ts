@@ -14,5 +14,6 @@ import { HrDashboardService } from './hr-dashboard.service';
   ],
   controllers: [HrDashboardController, HrAuditController],
   providers: [HrDashboardService],
+  exports: [HrDashboardService],
 })
 export class HrDashboardModule {}

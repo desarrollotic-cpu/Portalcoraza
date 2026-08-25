@@ -23,18 +23,46 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
-        <label>Tipo de contrato<input [(ngModel)]="model.contractType" name="contractType" /></label>
-        <label>Número (auto si vacío)<input [(ngModel)]="model.contractNumber" name="contractNumber" [placeholder]="suggested()" /></label>
-        <label>Parte A<input [(ngModel)]="model.partyA" name="partyA" /></label>
-        <label>Parte B (cliente)<input [(ngModel)]="model.partyB" name="partyB" /></label>
-        <label>NIT<input [(ngModel)]="model.nit" name="nit" /></label>
-        <label>Valor (COP)<input type="text" inputmode="decimal" [(ngModel)]="model.contractValue" name="contractValue" /></label>
-        <label>Inicio<input type="date" [(ngModel)]="model.startDate" name="startDate" /></label>
-        <label>Fin<input type="date" [(ngModel)]="model.endDate" name="endDate" /></label>
-        <label>VOXELSERA<input [(ngModel)]="model.voxelsera" name="voxelsera" placeholder="VOXEL_C1" /></label>
-        <label class="full">Objeto<textarea [(ngModel)]="model.contractObject" name="contractObject" rows="2"></textarea></label>
+        <label>
+          Tipo de Contrato *
+          <select [(ngModel)]="model.contractType" name="contractType" required>
+            <option value="">-- Seleccionar Tipo de Contrato * --</option>
+            <option value="VIGILANCIA FIJA">🛡️ Vigilancia Fija y Control de Acceso</option>
+            <option value="VIGILANCIA MOVIL">🚓 Vigilancia Móvil / Patrullaje</option>
+            <option value="ESCOLTA">👤 Escolta a Personas y Mercancías</option>
+            <option value="SEGURIDAD ELECTRONICA">📹 Seguridad Electrónica y CCTV</option>
+            <option value="CONSULTORIA">📋 Consultoría y Asesoría en Seguridad</option>
+            <option value="CONVENIO CTA">👥 Convenio de Trabajo Asociado (CTA)</option>
+            <option value="ARRENDAMIENTO">🏢 Arrendamiento / Inmueble</option>
+            <option value="PROVEEDOR">📦 Proveedor / Suministros</option>
+            <option value="OTRO">📁 Otro Contrato</option>
+          </select>
+        </label>
+        <label>Número de Contrato (Opcional / Auto)<input [(ngModel)]="model.contractNumber" name="contractNumber" [placeholder]="suggested()" /></label>
+        <label>Parte A (Contratante)<input [(ngModel)]="model.partyA" name="partyA" placeholder="CORAZA SEGURIDAD C.T.A." /></label>
+        <label>Parte B (Cliente / Proveedor) *<input [(ngModel)]="model.partyB" name="partyB" required placeholder="Nombre de la empresa o cliente" /></label>
+        <label>NIT / Cédula Cliente *<input [(ngModel)]="model.nit" name="nit" required placeholder="Ej: 900.123.456-7" /></label>
+        <label>Valor Total COP (Opcional)<input type="text" inputmode="decimal" [(ngModel)]="model.contractValue" name="contractValue" placeholder="Ej: 15000000" /></label>
+        <label>Fecha de Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
+        <label>Fecha de Terminación *<input type="date" [(ngModel)]="model.endDate" name="endDate" required /></label>
+        <label>
+          Ubicación en Archivo (Voxelsera) *
+          <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
+            <option value="">-- Selecciona una casilla obligatoria * --</option>
+            <option value="VOXEL_C1">📑 Estante C — Casilla C1 (Contratos)</option>
+            <option value="VOXEL_C2">📑 Estante C — Casilla C2 (Contratos)</option>
+            <option value="VOXEL_C3">📑 Estante C — Casilla C3 (Contratos)</option>
+            <option value="VOXEL_C4">📑 Estante C — Casilla C4 (Contratos)</option>
+            <option value="VOXEL_C5">📑 Estante C — Casilla C5 (Contratos)</option>
+            <option value="VOXEL_C6">📑 Estante C — Casilla C6 (Contratos)</option>
+            <option value="VOXEL_C7">📑 Estante C — Casilla C7 (Contratos)</option>
+            <option value="VOXEL_C8">📑 Estante C — Casilla C8 (Contratos)</option>
+            <option value="VOXEL_C9">📑 Estante C — Casilla C9 (Contratos)</option>
+          </select>
+        </label>
+        <label class="full">Objeto del Contrato (Opcional)<textarea [(ngModel)]="model.contractObject" name="contractObject" rows="2" placeholder="Descripción del servicio contratado..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Contrato</button>
           <span class="muted">Valor &gt; $1.000.000 genera workflow de aprobación.</span>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
@@ -135,6 +163,18 @@ export class ContractsScreen implements OnInit {
   }
 
   save(): void {
+    if (
+      !this.model.contractType ||
+      !this.model.partyB?.trim() ||
+      !this.model.nit?.trim() ||
+      !this.model.startDate ||
+      !this.model.endDate ||
+      !this.model.voxelsera
+    ) {
+      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Tipo, Cliente/Parte B, NIT/Cédula, Fecha Inicio, Fecha Terminación y Ubicación en Estante.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     const payload: Record<string, string> = {};

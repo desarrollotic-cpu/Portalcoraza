@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { AuditLog } from './entities/audit-log.entity';
 
 export interface AuditEntry {
@@ -35,5 +35,21 @@ export class AuditService {
       userAgent: entry.userAgent ?? null,
     });
     await this.auditRepo.save(log);
+  }
+
+  listByActions(module: string, actions: string[], take = 200) {
+    return this.auditRepo.find({
+      where: { module, action: In(actions) },
+      order: { createdAt: 'DESC' },
+      take,
+    });
+  }
+
+  /** Últimas entradas de auditoría (actividad reciente del portal). */
+  listRecent(take = 25) {
+    return this.auditRepo.find({
+      order: { createdAt: 'DESC' },
+      take: Math.min(Math.max(take, 1), 50),
+    });
   }
 }

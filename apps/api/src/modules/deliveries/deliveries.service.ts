@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -203,43 +204,34 @@ export class DeliveriesService {
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
 
-    const [
-      lowStockCount,
-      lowStockVariants,
-      pendingDeliveries,
-      deliveredToday,
-      deliveredThisWeek,
-      totalActiveAssociates,
-      withoutDotacionCount,
-      recentRows,
-      inventoryItemCount,
-      inventoryVariantCount,
-      topDeliveredItems,
-    ] = await Promise.all([
-      this.inventoryService.countLowStockVariants(),
-      this.inventoryService.listLowStockVariants(8),
-      this.deliveriesRepo.count({ where: { status: DeliveryStatus.PENDING } }),
-      this.deliveriesRepo
-        .createQueryBuilder('d')
-        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
-        .andWhere('d.delivered_at >= :todayStart', { todayStart })
-        .getCount(),
-      this.deliveriesRepo
-        .createQueryBuilder('d')
-        .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
-        .andWhere('d.delivered_at >= :weekStart', { weekStart })
-        .getCount(),
-      this.associatesRepo.count({ where: { status: In(DELIVERABLE_STATUSES) } }),
-      this.countWithoutDotacion(7),
-      this.deliveriesRepo.find({
-        relations: { associate: true, details: true },
-        order: { createdAt: 'DESC' },
-        take: 6,
-      }),
-      this.inventoryService.countItems(),
-      this.inventoryService.countVariants(),
-      this.getTopDeliveredItems(8),
-    ]);
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const lowStockCount = await this.inventoryService.countLowStockVariants();
+    const lowStockVariants = await this.inventoryService.listLowStockVariants(8);
+    const pendingDeliveries = await this.deliveriesRepo.count({
+      where: { status: DeliveryStatus.PENDING },
+    });
+    const deliveredToday = await this.deliveriesRepo
+      .createQueryBuilder('d')
+      .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+      .andWhere('d.delivered_at >= :todayStart', { todayStart })
+      .getCount();
+    const deliveredThisWeek = await this.deliveriesRepo
+      .createQueryBuilder('d')
+      .where('d.status = :status', { status: DeliveryStatus.DELIVERED })
+      .andWhere('d.delivered_at >= :weekStart', { weekStart })
+      .getCount();
+    const totalActiveAssociates = await this.associatesRepo.count({
+      where: { status: In(DELIVERABLE_STATUSES) },
+    });
+    const withoutDotacionCount = await this.countWithoutDotacion(7);
+    const recentRows = await this.deliveriesRepo.find({
+      relations: { associate: true, details: true },
+      order: { createdAt: 'DESC' },
+      take: 6,
+    });
+    const inventoryItemCount = await this.inventoryService.countItems();
+    const inventoryVariantCount = await this.inventoryService.countVariants();
+    const topDeliveredItems = await this.getTopDeliveredItems(8);
 
     return {
       lowStockCount,
@@ -269,6 +261,53 @@ export class DeliveriesService {
         date: (d.deliveredAt ?? d.createdAt).toISOString(),
       })),
     };
+  }
+
+  /** Entregas DELIVERED por día (últimos N días, Bogotá). */
+  async getDeliveredPerDay(days = 14): Promise<{ day: string; count: number }[]> {
+    const n = Math.min(Math.max(days, 1), 60);
+    const tz = 'America/Bogota';
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const y = Number(parts.find((p) => p.type === 'year')?.value);
+    const m = Number(parts.find((p) => p.type === 'month')?.value);
+    const d = Number(parts.find((p) => p.type === 'day')?.value);
+    const dayEnd = new Date(
+      `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T00:00:00-05:00`,
+    );
+    dayEnd.setTime(dayEnd.getTime() + 24 * 60 * 60 * 1000);
+    const seriesStart = new Date(dayEnd.getTime() - n * 24 * 60 * 60 * 1000);
+
+    const rows = (await this.deliveriesRepo.query(
+      `
+        SELECT (delivered_at AT TIME ZONE $1)::date::text AS day,
+               COUNT(*)::int AS count
+        FROM deliveries
+        WHERE status = 'DELIVERED'
+          AND delivered_at >= $2 AND delivered_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, seriesStart, dayEnd],
+    )) as { day: string; count: number }[];
+
+    const map = new Map(rows.map((r) => [r.day, Number(r.count) || 0]));
+    const out: { day: string; count: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const t = new Date(seriesStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(t);
+      out.push({ day, count: map.get(day) ?? 0 });
+    }
+    return out;
   }
 
   async listWithoutDotacion(months = 7): Promise<WithoutDotacionRowDto[]> {
@@ -445,6 +484,7 @@ export class DeliveriesService {
       await this.assertDeliverableAssociate(dto.associateId);
     }
 
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
     const variantIds = dto.items.map((i) => i.variantId);
     const variants = await this.variantsRepo.find({
       where: { id: In(variantIds) },
@@ -461,6 +501,7 @@ export class DeliveriesService {
         observations: dto.observations ?? null,
         status: DeliveryStatus.PENDING,
         createdBy: userId,
+        warehouseId: warehouse.id,
       }),
     );
 
@@ -505,21 +546,19 @@ export class DeliveriesService {
 
     const signatureUrl = await this.uploadSignature(id, dto.signatureData);
 
-    const variants = await this.variantsRepo.findBy({
-      id: In(delivery.details.map((d) => d.variantId)),
-    });
-    const variantById = new Map(variants.map((v) => [v.id, v]));
-    for (const detail of delivery.details) {
-      const variant = variantById.get(detail.variantId);
-      if (!variant) {
-        throw new NotFoundException('Variante de inventario no encontrada');
-      }
-      if (detail.quantity > variant.stockCurrent) {
-        throw new ConflictException('Stock insuficiente para confirmar entrega');
-      }
-      variant.stockCurrent -= detail.quantity;
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
+    if (delivery.warehouseId && delivery.warehouseId !== warehouse.id) {
+      throw new ForbiddenException('Esta entrega pertenece a otro almacén');
     }
-    await this.variantsRepo.save(variants);
+    const warehouseId = delivery.warehouseId ?? warehouse.id;
+
+    await this.inventoryService.changeStocks(
+      delivery.details.map((detail) => ({
+        variantId: detail.variantId,
+        warehouseId,
+        delta: -detail.quantity,
+      })),
+    );
 
     const oldStatus = delivery.status;
     delivery.signatureUrl = signatureUrl;
@@ -572,18 +611,19 @@ export class DeliveriesService {
       );
     }
 
-    const variants = await this.variantsRepo.findBy({
-      id: In(delivery.details.map((d) => d.variantId)),
-    });
-    const variantById = new Map(variants.map((v) => [v.id, v]));
-    for (const detail of delivery.details) {
-      const variant = variantById.get(detail.variantId);
-      if (!variant) {
-        throw new NotFoundException('Variante de inventario no encontrada');
-      }
-      variant.stockCurrent += detail.quantity;
+    const warehouse = await this.inventoryService.requireActorWarehouse(userId);
+    if (delivery.warehouseId && delivery.warehouseId !== warehouse.id) {
+      throw new ForbiddenException('Esta entrega pertenece a otro almacén');
     }
-    await this.variantsRepo.save(variants);
+    const warehouseId = delivery.warehouseId ?? warehouse.id;
+
+    await this.inventoryService.changeStocks(
+      delivery.details.map((detail) => ({
+        variantId: detail.variantId,
+        warehouseId,
+        delta: detail.quantity,
+      })),
+    );
 
     const oldStatus = delivery.status;
     delivery.status = DeliveryStatus.REVERTED;

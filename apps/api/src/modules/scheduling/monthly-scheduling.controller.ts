@@ -7,20 +7,23 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
+  BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
   GenerateMotorDto,
-  GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
+  MonthlyAlertsQueryDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
 } from './dto/monthly-scheduling.dto';
@@ -37,6 +40,51 @@ export class MonthlySchedulingController {
     return this.service.getOne(query);
   }
 
+  @Get('today-coverage')
+  @RequirePermissions('scheduling.view')
+  getTodayCoverage(@Query('date') date?: string) {
+    return this.service.getTodayCoverage(date);
+  }
+
+  @Get('payroll-recargos/export-excel')
+  @RequirePermissions('scheduling.view')
+  async exportPayrollRecargosExcel(
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const y = parseInt(year, 10) || new Date().getFullYear();
+      const m = parseInt(month, 10) || new Date().getMonth() + 1;
+      const buffer = await this.service.exportPayrollRecargosExcel(y, m);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="Liquidacion_Recargos_Coraza_${y}-${String(m).padStart(2, '0')}.xlsx"`,
+      );
+      res.status(200).end(buffer);
+    } catch (err: any) {
+      res.status(500).json({
+        statusCode: 500,
+        message: err?.message || 'Error al generar el archivo de Excel oficial',
+      });
+    }
+  }
+
+  @Get('payroll-recargos')
+  @RequirePermissions('scheduling.view')
+  getPayrollRecargos(
+    @Query('year') year: string,
+    @Query('month') month: string,
+  ) {
+    const y = parseInt(year, 10) || new Date().getFullYear();
+    const m = parseInt(month, 10) || new Date().getMonth() + 1;
+    return this.service.getPayrollRecargos(y, m);
+  }
+
   @Get('overview')
   @RequirePermissions('scheduling.view')
   overview(@Query() query: ListMonthlyScheduleDto) {
@@ -47,6 +95,18 @@ export class MonthlySchedulingController {
   @RequirePermissions('scheduling.view')
   listByMonth(@Query() query: ListMonthlyScheduleDto) {
     return this.service.listByMonth(query);
+  }
+
+  @Get('alerts')
+  @RequirePermissions('scheduling.view')
+  getAlerts(@Query() query: MonthlyAlertsQueryDto) {
+    return this.service.getAlerts(query);
+  }
+
+  @Get('alerts/board')
+  @RequirePermissions('scheduling.view')
+  getBoardAlerts(@Query() query: BoardAlertsQueryDto) {
+    return this.service.getBoardAlerts(query);
   }
 
   @Get('conflicts')
@@ -70,14 +130,7 @@ export class MonthlySchedulingController {
     return this.service.createTemplate(dto, user.sub);
   }
 
-  @Post('motor-global')
-  @RequirePermissions('scheduling.edit')
-  generateMotorGlobal(
-    @Body() dto: GenerateMotorGlobalDto,
-    @CurrentUser() user: JwtPayload,
-  ) {
-    return this.service.generateMotorGlobal(dto, user.sub);
-  }
+  // POST motor-global + GET motor-jobs/:id → MotorJobsController (BullMQ)
 
   @Post()
   @RequirePermissions('scheduling.create')

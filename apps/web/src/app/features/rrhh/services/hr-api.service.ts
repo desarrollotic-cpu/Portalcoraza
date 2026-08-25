@@ -23,6 +23,7 @@ import type {
   HrAlertStatus,
   HrAlertType,
   JobPosition,
+  Paginated,
   PositionHistoryEntry,
   Retirement,
   WorkCenter,
@@ -39,12 +40,12 @@ export class HrApiService {
   private readonly api = environment.apiUrl;
 
   // ─── Asociados ────────────────────────────────────────────────────────
-  listAssociates(query: AssociatesQuery = {}): Observable<Associate[]> {
+  listAssociates(query: AssociatesQuery = {}): Observable<Paginated<Associate>> {
     let params = new HttpParams();
     for (const [k, v] of Object.entries(query)) {
       if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v));
     }
-    return this.http.get<Associate[]>(`${this.api}/associates`, { params });
+    return this.http.get<Paginated<Associate>>(`${this.api}/associates`, { params });
   }
 
   getAssociate(id: string): Observable<Associate> {
@@ -129,11 +130,13 @@ export class HrApiService {
   }
 
   // ─── Retiros ─────────────────────────────────────────────────────────
-  listRetirements(from?: string, to?: string): Observable<Retirement[]> {
-    let params = new HttpParams();
+  listRetirements(from?: string, to?: string, page = 1, limit = 50): Observable<Paginated<Retirement>> {
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('limit', String(limit));
     if (from) params = params.set('from', from);
     if (to) params = params.set('to', to);
-    return this.http.get<Retirement[]>(`${this.api}/hr/retirements`, { params });
+    return this.http.get<Paginated<Retirement>>(`${this.api}/hr/retirements`, { params });
   }
 
   getRetirementByAssociate(associateId: string): Observable<Retirement[]> {

@@ -1,0 +1,35 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Post } from '../posts/entities/post.entity';
+import { UserPost } from '../users/entities/user-post.entity';
+import {
+  MinutaContratista,
+  MinutaCorrespondencia,
+  MinutaDomiciliario,
+  MinutaEntregaPuesto,
+  MinutaIncidente,
+  MinutaServicio,
+  MinutaVisitante,
+} from './entities/minuta.entities';
+import { MinutaController } from './minuta.controller';
+import { MinutaSchemaBootstrap } from './minuta-schema.bootstrap';
+import { MinutaService } from './minuta.service';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      MinutaVisitante,
+      MinutaCorrespondencia,
+      MinutaContratista,
+      MinutaDomiciliario,
+      MinutaIncidente,
+      MinutaServicio,
+      MinutaEntregaPuesto,
+      UserPost,
+      Post,
+    ]),
+  ],
+  controllers: [MinutaController],
+  providers: [MinutaService, MinutaSchemaBootstrap],
+})
+export class MinutaModule {}

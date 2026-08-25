@@ -51,6 +51,13 @@ import {
                   <tr>
                     <td>
                       <strong>{{ v.displayName }}</strong>
+                      <span
+                        class="badge"
+                        [class.associate]="v.isAssociate"
+                        [class.visitor]="!v.isAssociate"
+                      >
+                        {{ v.isAssociate ? 'Asociado' : 'Visitante' }}
+                      </span>
                       @if (v.documentNumber) {
                         <div class="meta">{{ v.documentNumber }}</div>
                       }
@@ -94,6 +101,13 @@ import {
                   <tr>
                     <td>
                       <strong>{{ v.displayName }}</strong>
+                      <span
+                        class="badge"
+                        [class.associate]="v.isAssociate"
+                        [class.visitor]="!v.isAssociate"
+                      >
+                        {{ v.isAssociate ? 'Asociado' : 'Visitante' }}
+                      </span>
                       @if (v.visitReason) {
                         <div class="meta">{{ v.visitReason }}</div>
                       }
@@ -249,6 +263,8 @@ import {
       color: var(--neutral-600);
     }
     .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: #15803d; }
+    .badge.associate { background: #dcfce7; color: #166534; }
+    .badge.visitor { background: #f3f4f6; color: #4b5563; }
     .actions { text-align: right; white-space: nowrap; }
     .btn-sm {
       padding: 0.35rem 0.75rem;

@@ -1,4 +1,4 @@
--- 029_multi_tenant_foundation.sql
+-- 040_multi_tenant_foundation.sql
 -- Multi-tenant foundation (opción A): organizations + tenant_id + cp_* + copropiedades
 -- SAFE: ADD nullable → backfill Cooperativa Central → NOT NULL → FK → indexes
 -- Idempotent where possible (IF NOT EXISTS / DO blocks)

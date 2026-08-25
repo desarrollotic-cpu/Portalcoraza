@@ -179,9 +179,20 @@ export interface AssociatesQuery {
   status?: AssociateStatus;
   workCenterId?: string;
   jobPositionId?: string;
+  educationLevelId?: string;
   isCritical?: 'true' | 'false';
   tenureMinYears?: string;
   tenureMaxYears?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface Paginated<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface AssociateHistoryEntry {

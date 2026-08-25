@@ -134,11 +134,25 @@ export class MotorTurnosService {
     return ((pos % total) + total) % total;
   }
 
+  getDefaultOffset(index: number, tipoCiclo: TipoCiclo, totalDays: number): number {
+    switch (tipoCiclo) {
+      case '2x2': // 2D -> 2N -> 2NR (totalDays = 6) -> desfase de 2 días por guardia
+        return (index * 2) % totalDays;
+      case '10x5': // 5D -> 5N -> 5Desc (totalDays = 15) -> desfase de 5 días
+        return (index * 5) % totalDays;
+      case '12x3': // 6D -> 6N -> 3Desc (totalDays = 15) -> desfase de 6 días
+        return (index * 6) % totalDays;
+      case '13x2': // 13D -> 2R -> 13N -> 2R (totalDays = 30) -> desfase de 15 días
+        return (index * 15) % totalDays;
+      default:
+        return (index * Math.floor(totalDays / 2)) % totalDays;
+    }
+  }
+
   /**
    * Genera las asignaciones del mes para cada rol del personal.
-   * @param startPositions posición inicial del ciclo por rol (continuidad mes anterior)
-   * @param tipoCiclo ciclo a aplicar (default 12x3)
-   * @param tipoCicloByRole permite ciclo distinto por rol (como en APP)
+   * Titulares siguen el ciclo (12x3, etc.). Roles `relevante*` solo cubren
+   * huecos D/N que dejan los titulares ese día (resto: NR = libre en este puesto).
    */
   generate(
     personal: PersonalRole[],
@@ -147,9 +161,14 @@ export class MotorTurnosService {
     tipoCiclo: TipoCiclo = '12x3',
     tipoCicloByRole?: Record<string, TipoCiclo>,
   ): GeneratedAssignment[] {
+    const isRelev = (p: PersonalRole) => this.isRelevanteRole(p.rol, p.displayName);
+    const titulares = personal.filter((p) => !isRelev(p));
+    const relevantes = personal.filter(isRelev);
+    const cycleRoles = titulares.length > 0 ? titulares : personal;
+
     const result: GeneratedAssignment[] = [];
 
-    personal.forEach((role, index) => {
+    cycleRoles.forEach((role, index) => {
       const cycleKey =
         tipoCicloByRole?.[role.rol] ??
         (role as PersonalRole & { tipoCiclo?: TipoCiclo }).tipoCiclo ??
@@ -157,7 +176,7 @@ export class MotorTurnosService {
       const config = this.configs[cycleKey] ?? this.configs['12x3'];
       const len = config.totalDays;
       const baseOffset =
-        startPositions?.[role.rol] ?? (index * 6) % len;
+        startPositions?.[role.rol] ?? this.getDefaultOffset(index, cycleKey, len);
 
       for (let day = 1; day <= daysInMonth; day++) {
         const position = this.normalizePosition(baseOffset + (day - 1), cycleKey);
@@ -177,7 +196,105 @@ export class MotorTurnosService {
       }
     });
 
+    if (titulares.length > 0 && relevantes.length > 0) {
+      result.push(
+        ...this.generateRelevanteGapFill(relevantes, result, daysInMonth),
+      );
+    }
+
     return result;
+  }
+
+  /** `relevante`, `relevante_1`, `Relevo`, etc. */
+  isRelevanteRole(rol: string, displayName?: string): boolean {
+    const text = `${rol} ${displayName ?? ''}`.toLowerCase().trim();
+    return (
+      text.includes('relev') ||
+      text.includes('apoyo') ||
+      text.includes('reemplazo') ||
+      /^relevante(_\d+)?$/i.test(rol.trim())
+    );
+  }
+
+  /** Códigos que cubren franja diurna (12h o 8h). */
+  isDayCode(codigo: string | null | undefined): boolean {
+    return codigo === 'D' || codigo === 'D8';
+  }
+
+  /** Códigos que cubren franja nocturna (12h o 8h). */
+  isNightCode(codigo: string | null | undefined): boolean {
+    return codigo === 'N' || codigo === 'N8';
+  }
+
+  isWorkCode(codigo: string | null | undefined): boolean {
+    return this.isDayCode(codigo) || this.isNightCode(codigo);
+  }
+
+  /**
+   * Relevante solo trabaja cuando falta D o N entre titulares.
+   * Si no hay hueco, queda NR (disponible para otro puesto / descanso).
+   */
+  generateRelevanteGapFill(
+    relevantes: PersonalRole[],
+    titularAssignments: GeneratedAssignment[],
+    daysInMonth: number,
+  ): GeneratedAssignment[] {
+    const out: GeneratedAssignment[] = [];
+    const rest = nr();
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const cells = titularAssignments.filter((a) => a.day === day);
+      const hasD = cells.some((c) => this.isDayCode(c.codigo));
+      const hasN = cells.some((c) => this.isNightCode(c.codigo));
+      const gaps: Array<'D' | 'N'> = [];
+      if (!hasD) gaps.push('D');
+      if (!hasN) gaps.push('N');
+
+      relevantes.forEach((role, index) => {
+        const gap = gaps[index];
+        if (gap === 'D') {
+          const slot = d();
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: slot.turno,
+            jornada: slot.jornada,
+            codigo: slot.codigo,
+            inicio: slot.inicio,
+            fin: slot.fin,
+            cyclePosition: -1,
+          });
+        } else if (gap === 'N') {
+          const slot = n();
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: slot.turno,
+            jornada: slot.jornada,
+            codigo: slot.codigo,
+            inicio: slot.inicio,
+            fin: slot.fin,
+            cyclePosition: -1,
+          });
+        } else {
+          out.push({
+            day,
+            role: role.rol,
+            associateId: role.associateId ?? null,
+            turno: rest.turno,
+            jornada: rest.jornada,
+            codigo: rest.codigo,
+            inicio: rest.inicio,
+            fin: rest.fin,
+            cyclePosition: -1,
+          });
+        }
+      });
+    }
+
+    return out;
   }
 
   /**
@@ -228,8 +345,8 @@ export class MotorTurnosService {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const cells = assignments.filter((a) => a.day === day);
-      const hasD = cells.some((c) => c.codigo === 'D');
-      const hasN = cells.some((c) => c.codigo === 'N');
+      const hasD = cells.some((c) => this.isDayCode(c.codigo));
+      const hasN = cells.some((c) => this.isNightCode(c.codigo));
       const allRest = cells.every(
         (c) => c.codigo === 'R' || c.codigo === 'NR' || c.codigo === 'DR',
       );
@@ -271,9 +388,9 @@ export class MotorTurnosService {
       let streak = 0;
       let lastCode: string | null = null;
       for (const c of sorted) {
-        if ((c.codigo === 'D' || c.codigo === 'N') && c.codigo === lastCode) {
+        if (this.isWorkCode(c.codigo) && c.codigo === lastCode) {
           streak += 1;
-        } else if (c.codigo === 'D' || c.codigo === 'N') {
+        } else if (this.isWorkCode(c.codigo)) {
           streak = 1;
           lastCode = c.codigo;
         } else {

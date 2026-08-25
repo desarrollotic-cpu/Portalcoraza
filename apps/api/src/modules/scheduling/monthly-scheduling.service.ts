@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+import ExcelJS from 'exceljs';
 import { AuditService } from '../audit/audit.service';
+import {
+  Associate,
+  AssociateStatus,
+} from '../associates/entities/associate.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Post, PostStatus } from '../posts/entities/post.entity';
 import {
@@ -15,15 +20,26 @@ import {
   TemplatePatternItem,
 } from './entities/schedule-template.entity';
 import {
+  BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
   GenerateMotorDto,
   GenerateMotorGlobalDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
+  MonthlyAlertsQueryDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
 } from './dto/monthly-scheduling.dto';
+import {
+  AlertCellInput,
+  AssociateStatusCode,
+  AlertType,
+  AlertSeverity,
+  ScheduleAlertItem,
+  computeMonthlyAlerts,
+  monthsForAlertsScope,
+} from './monthly-alerts.compute';
 import { MotorTurnosService } from './motor-turnos.service';
 
 const DEFAULT_ROLES: PersonalRole[] = [
@@ -57,9 +73,37 @@ export class MonthlySchedulingService {
   async listByMonth(query: ListMonthlyScheduleDto) {
     const schedules = await this.schedulesRepo.find({
       where: { year: query.year, month: query.month },
-      relations: { assignments: true },
       order: { createdAt: 'ASC' },
     });
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments =
+      scheduleIds.length === 0
+        ? []
+        : await this.assignmentsRepo
+            .createQueryBuilder('a')
+            .select([
+              'a.id',
+              'a.scheduleId',
+              'a.day',
+              'a.role',
+              'a.associateId',
+              'a.turno',
+              'a.jornada',
+              'a.codigo',
+              'a.inicio',
+              'a.fin',
+            ])
+            .where('a.schedule_id IN (:...scheduleIds)', { scheduleIds })
+            .andWhere('a.jornada != :sin', { sin: 'sin_asignar' })
+            .getMany();
+
+    const bySchedule = new Map<string, ScheduleAssignment[]>();
+    for (const a of assignments) {
+      const list = bySchedule.get(a.scheduleId) ?? [];
+      list.push(a);
+      bySchedule.set(a.scheduleId, list);
+    }
 
     const postIds = [...new Set(schedules.map((s) => s.postId))];
     const postRows =
@@ -74,6 +118,7 @@ export class MonthlySchedulingService {
       const post = postMap.get(s.postId);
       return {
         ...s,
+        assignments: bySchedule.get(s.id) ?? [],
         post: post
           ? {
               id: post.id,
@@ -101,7 +146,7 @@ export class MonthlySchedulingService {
       })
       .andWhere('a.associate_id IS NOT NULL')
       .andWhere(`a.jornada NOT IN ('sin_asignar')`)
-      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N')`)
+      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N', 'D8', 'N8')`)
       .select([
         'a.associate_id AS "associateId"',
         'a.day AS day',
@@ -119,6 +164,331 @@ export class MonthlySchedulingService {
       postCount: Number(r.postCount),
       postIds: (r.postIds as string[]) ?? [],
     }));
+  }
+
+  async getAlerts(query: MonthlyAlertsQueryDto) {
+    const scope = query.scope ?? 'auto';
+    const today = this.bogotaYmd();
+    const months = monthsForAlertsScope({
+      scope,
+      year: query.year,
+      month: query.month,
+      todayYear: today.year,
+      todayMonth: today.month,
+      todayDay: today.day,
+    });
+
+    const alerts: ScheduleAlertItem[] = [];
+    const monthLabels: string[] = [];
+
+    for (const m of months) {
+      const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
+      monthLabels.push(label);
+      const cells = await this.loadAlertCells(m.year, m.month);
+      const daysInMonth = new Date(m.year, m.month, 0).getDate();
+      alerts.push(
+        ...computeMonthlyAlerts({ month: label, daysInMonth, cells }),
+      );
+    }
+
+    const totals = {
+      huecos: alerts.filter((a) => a.type === 'hueco_cobertura').length,
+      inactivos: alerts.filter((a) => a.type === 'asociado_inactivo').length,
+      conflictos: alerts.filter((a) => a.type === 'conflicto_mismo_turno').length,
+      carga: alerts.filter((a) => a.type === 'carga_sobre_24').length,
+    };
+
+    return {
+      generatedAt: new Date().toISOString(),
+      months: monthLabels,
+      totals,
+      alerts,
+    };
+  }
+
+  async getBoardAlerts(query: BoardAlertsQueryDto) {
+    const month = `${query.year}-${String(query.month).padStart(2, '0')}`;
+    const cells = await this.loadAlertCellsForPost(query.postId, query.year, query.month);
+    const daysInMonth = new Date(query.year, query.month, 0).getDate();
+    const all = computeMonthlyAlerts({ month, daysInMonth, cells });
+
+    const associateIdsOnPost = new Set(
+      cells
+        .filter((c) => c.postId === query.postId && c.associateId)
+        .map((c) => c.associateId as string),
+    );
+
+    const relevant = all.filter((a) => {
+      if (a.postId === query.postId) return true;
+      if (a.type === 'carga_sobre_24' && a.associateId && associateIdsOnPost.has(a.associateId)) {
+        return true;
+      }
+      if (
+        a.type === 'conflicto_mismo_turno' &&
+        (a.postId === query.postId || a.otherPostId === query.postId)
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    const byDay = new Map<
+      number,
+      { day: number; types: AlertType[]; severity: AlertSeverity; messages: string[] }
+    >();
+
+    for (const a of relevant) {
+      if (a.type === 'carga_sobre_24') continue;
+      const day = a.day ?? 0;
+      if (!day) continue;
+      if (a.postId !== query.postId && a.otherPostId !== query.postId) continue;
+      // Solo pintar celdas del post pedido
+      if (a.postId !== query.postId && a.type !== 'conflicto_mismo_turno') continue;
+      const cur = byDay.get(day) ?? {
+        day,
+        types: [],
+        severity: 'warning' as AlertSeverity,
+        messages: [],
+      };
+      if (!cur.types.includes(a.type)) cur.types.push(a.type);
+      if (a.severity === 'error') cur.severity = 'error';
+      if (!cur.messages.includes(a.message)) cur.messages.push(a.message);
+      byDay.set(day, cur);
+    }
+
+    return {
+      month,
+      postId: query.postId,
+      cells: [...byDay.values()].sort((a, b) => a.day - b.day),
+      associateLoad: relevant.filter((a) => a.type === 'carga_sobre_24'),
+      placements: cells
+        .filter((c) => c.associateId && (c.codigo === 'D' || c.codigo === 'N' || c.codigo === 'D8' || c.codigo === 'N8'))
+        .map((c) => ({
+          associateId: c.associateId as string,
+          associateName: c.associateName,
+          day: c.day,
+          shift: (c.codigo === 'D' || c.codigo === 'D8' ? 'D' : 'N') as 'D' | 'N',
+          postId: c.postId,
+          postName: c.postName,
+        })),
+    };
+  }
+
+  private bogotaYmd(): { year: number; month: number; day: number } {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date());
+    const num = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((p) => p.type === type)?.value ?? '0');
+    return { year: num('year'), month: num('month'), day: num('day') };
+  }
+
+  private associateDisplayName(a: {
+    firstName?: string;
+    secondName?: string | null;
+    firstLastName?: string;
+    secondLastName?: string | null;
+  }): string {
+    return [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+  }
+
+  private async loadAlertCellsForPost(postId: string, year: number, month: number): Promise<AlertCellInput[]> {
+    const postAssocRows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.post_id = :postId AND s.year = :year AND s.month = :month', { postId, year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .select('DISTINCT a.associate_id', 'associateId')
+      .getRawMany<{ associateId: string }>();
+
+    const associateIds = postAssocRows.map((r) => r.associateId).filter(Boolean);
+
+    const qb = this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
+      .where('s.year = :year AND s.month = :month', { year, month });
+
+    if (associateIds.length > 0) {
+      qb.andWhere('(s.post_id = :postId OR a.associate_id IN (:...associateIds))', {
+        postId,
+        associateIds,
+      });
+    } else {
+      qb.andWhere('s.post_id = :postId', { postId });
+    }
+
+    const rows = await qb
+      .select([
+        's.post_id AS "postId"',
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        'a.day AS day',
+        'a.role AS role',
+        'a.associate_id AS "associateId"',
+        'a.codigo AS codigo',
+        'assoc.status AS "associateStatus"',
+        'assoc.first_name AS "firstName"',
+        'assoc.second_name AS "secondName"',
+        'assoc.first_last_name AS "firstLastName"',
+        'assoc.second_last_name AS "secondLastName"',
+      ])
+      .getRawMany<{
+        postId: string;
+        postName: string;
+        day: string | number;
+        role: string;
+        associateId: string | null;
+        codigo: string | null;
+        associateStatus: AssociateStatus | null;
+        firstName: string | null;
+        secondName: string | null;
+        firstLastName: string | null;
+        secondLastName: string | null;
+      }>();
+
+    return rows.map((r) => ({
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+      day: Number(r.day),
+      role: r.role,
+      associateId: r.associateId,
+      associateName: r.associateId
+        ? this.associateDisplayName({
+            firstName: r.firstName ?? undefined,
+            secondName: r.secondName,
+            firstLastName: r.firstLastName ?? undefined,
+            secondLastName: r.secondLastName,
+          }) || null
+        : null,
+      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
+      codigo: r.codigo,
+    }));
+  }
+
+  private async loadAlertCells(year: number, month: number): Promise<AlertCellInput[]> {
+    const rows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .select([
+        's.post_id AS "postId"',
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        'a.day AS day',
+        'a.role AS role',
+        'a.associate_id AS "associateId"',
+        'a.codigo AS codigo',
+        'assoc.status AS "associateStatus"',
+        'assoc.first_name AS "firstName"',
+        'assoc.second_name AS "secondName"',
+        'assoc.first_last_name AS "firstLastName"',
+        'assoc.second_last_name AS "secondLastName"',
+      ])
+      .getRawMany<{
+        postId: string;
+        postName: string;
+        day: string | number;
+        role: string;
+        associateId: string | null;
+        codigo: string | null;
+        associateStatus: AssociateStatus | null;
+        firstName: string | null;
+        secondName: string | null;
+        firstLastName: string | null;
+        secondLastName: string | null;
+      }>();
+
+    return rows.map((r) => ({
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+      day: Number(r.day),
+      role: r.role,
+      associateId: r.associateId,
+      associateName: r.associateId
+        ? this.associateDisplayName({
+            firstName: r.firstName ?? undefined,
+            secondName: r.secondName,
+            firstLastName: r.firstLastName ?? undefined,
+            secondLastName: r.secondLastName,
+          }) || null
+        : null,
+      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
+      codigo: r.codigo,
+    }));
+  }
+
+  private async collectSaveWarnings(
+    schedule: MonthlySchedule,
+    dto: SaveMonthlyScheduleDto,
+  ): Promise<ScheduleAlertItem[]> {
+    const year = schedule.year;
+    const month = schedule.month;
+    const monthLabel = `${year}-${String(month).padStart(2, '0')}`;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    const otherCells = (await this.loadAlertCells(year, month)).filter(
+      (c) => c.postId !== schedule.postId,
+    );
+
+    const associateIds = [
+      ...new Set(
+        dto.assignments
+          .map((a) => a.associateId)
+          .filter((id): id is string => !!id),
+      ),
+    ];
+    const statusMap = new Map<string, { status: AssociateStatus; name: string }>();
+    if (associateIds.length) {
+      const associates = await this.dataSource.getRepository(Associate).find({
+        where: { id: In(associateIds) },
+      });
+      for (const a of associates) {
+        statusMap.set(a.id, {
+          status: a.status,
+          name: this.associateDisplayName(a),
+        });
+      }
+    }
+
+    const post =
+      (await this.dataSource.getRepository(Post).findOne({ where: { id: schedule.postId } })) ??
+      null;
+    const postName =
+      post?.code || post?.name || schedule.postId.slice(0, 8);
+
+    const dtoCells: AlertCellInput[] = dto.assignments.map((a) => {
+      const info = a.associateId ? statusMap.get(a.associateId) : undefined;
+      return {
+        postId: schedule.postId,
+        postName,
+        day: a.day,
+        role: a.role,
+        associateId: a.associateId ?? null,
+        associateName: info?.name ?? null,
+        associateStatus: (info?.status as AssociateStatusCode | undefined) ?? null,
+        codigo: a.codigo ?? null,
+      };
+    });
+
+    const alerts = computeMonthlyAlerts({
+      month: monthLabel,
+      daysInMonth,
+      cells: [...otherCells, ...dtoCells],
+    });
+
+    return alerts.filter(
+      (a) =>
+        (a.type === 'asociado_inactivo' || a.type === 'conflicto_mismo_turno') &&
+        a.postId === schedule.postId,
+    );
   }
 
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {
@@ -158,6 +528,17 @@ export class MonthlySchedulingService {
 
   async save(id: string, dto: SaveMonthlyScheduleDto, userId: string) {
     const schedule = await this.getById(id);
+
+    if (!dto.confirmWarnings) {
+      const warnings = await this.collectSaveWarnings(schedule, dto);
+      if (warnings.length) {
+        throw new ConflictException({
+          code: 'SCHEDULING_WARNINGS',
+          message: 'Hay advertencias de programación; confirme para continuar',
+          warnings,
+        });
+      }
+    }
 
     await this.dataSource.transaction(async (manager) => {
       await manager.update(MonthlySchedule, id, {
@@ -237,6 +618,13 @@ export class MonthlySchedulingService {
     const tipoCiclo = dto.tipoCiclo ?? '12x3';
 
     let personal = schedule.personal ?? [];
+    if (dto.personal?.length) {
+      personal = dto.personal as PersonalRole[];
+      await this.schedulesRepo.update(id, {
+        personal,
+        updatedBy: userId,
+      });
+    }
     if (dto.roles?.length) {
       personal = personal.filter((p) => dto.roles!.includes(p.rol));
     }
@@ -286,13 +674,14 @@ export class MonthlySchedulingService {
       newValue: {
         assignments: generated.length,
         tipoCiclo,
+        roles: personal.length,
         alerts: this.motor.validateBoard(generated, daysInMonth).length,
       },
     });
 
-    const saved = await this.getById(id);
+    const updated = await this.getById(id);
     return {
-      ...saved,
+      ...updated,
       motorAlerts: this.motor.validateBoard(generated, daysInMonth),
     };
   }
@@ -300,7 +689,16 @@ export class MonthlySchedulingService {
   /**
    * Aplica el motor a todas las programaciones del mes (opcionalmente crea faltantes).
    */
-  async generateMotorGlobal(dto: GenerateMotorGlobalDto, userId: string) {
+  async generateMotorGlobal(
+    dto: GenerateMotorGlobalDto,
+    userId: string,
+    onProgress?: (p: {
+      processed: number;
+      total: number;
+      ok: number;
+      failed: number;
+    }) => void | Promise<void>,
+  ) {
     const tipoCiclo = dto.tipoCiclo ?? '12x3';
     let schedules = await this.schedulesRepo.find({
       where: { year: dto.year, month: dto.month },
@@ -329,6 +727,13 @@ export class MonthlySchedulingService {
       error?: string;
     }> = [];
 
+    const total = schedules.length;
+    let okCount = 0;
+    let failCount = 0;
+    if (onProgress) {
+      await onProgress({ processed: 0, total, ok: 0, failed: 0 });
+    }
+
     for (const s of schedules) {
       try {
         const out = await this.generateWithMotor(
@@ -336,6 +741,7 @@ export class MonthlySchedulingService {
           { tipoCiclo },
           userId,
         );
+        okCount += 1;
         results.push({
           scheduleId: s.id,
           postId: s.postId,
@@ -343,11 +749,20 @@ export class MonthlySchedulingService {
           assignments: out.assignments?.length ?? 0,
         });
       } catch (err) {
+        failCount += 1;
         results.push({
           scheduleId: s.id,
           postId: s.postId,
           ok: false,
           error: err instanceof Error ? err.message : 'Error',
+        });
+      }
+      if (onProgress) {
+        await onProgress({
+          processed: results.length,
+          total,
+          ok: okCount,
+          failed: failCount,
         });
       }
     }
@@ -357,11 +772,13 @@ export class MonthlySchedulingService {
       module: 'scheduling',
       action: 'monthly_schedule.motor_global',
       entityType: 'monthly_schedule',
-      entityId: `${dto.year}-${dto.month}`,
       newValue: {
+        year: dto.year,
+        month: dto.month,
         tipoCiclo,
         processed: results.length,
-        ok: results.filter((r) => r.ok).length,
+        ok: okCount,
+        failed: failCount,
       },
     });
 
@@ -370,8 +787,8 @@ export class MonthlySchedulingService {
       month: dto.month,
       tipoCiclo,
       processed: results.length,
-      ok: results.filter((r) => r.ok).length,
-      failed: results.filter((r) => !r.ok).length,
+      ok: okCount,
+      failed: failCount,
       results,
     };
   }
@@ -382,31 +799,56 @@ export class MonthlySchedulingService {
 
   /**
    * Bundle de KPIs del mes para el panel de Programación.
-   * Secuencial a propósito (pooler Supabase session).
+   * Agregaciones SQL (no baja la matriz completa). Secuencial (pooler session).
    */
   async overview(year: number, month: number) {
-    const schedules = await this.listByMonth({ year, month });
+    const postsInMonth = await this.schedulesRepo.count({ where: { year, month } });
+
+    const assignedCells = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .getCount();
+
+    const postsCoveredRow = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('COUNT(DISTINCT s.post_id)::int', 'n')
+      .getRawOne<{ n: string | number }>();
+    const postsCovered = Number(postsCoveredRow?.n ?? 0);
+
+    const assignedRows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('s.post_id', 'postId')
+      .addSelect(
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        'label',
+      )
+      .addSelect('COUNT(*)::int', 'value')
+      .groupBy('s.post_id')
+      .addGroupBy('p.code')
+      .addGroupBy('p.name')
+      .getRawMany<{ postId: string; label: string; value: string | number }>();
+
+    const assignedByPost = new Map(
+      assignedRows.map((r) => [
+        r.postId,
+        { label: r.label || r.postId.slice(0, 8), value: Number(r.value) },
+      ]),
+    );
+
     const conflicts = await this.findConflicts({ year, month });
     const templates = await this.listTemplates();
-
-    let assignedCells = 0;
-    const assignedByPost = new Map<string, { label: string; value: number }>();
-
-    for (const s of schedules) {
-      const postLabel =
-        (s as { post?: { code?: string; name?: string } | null }).post?.code ||
-        (s as { post?: { name?: string } | null }).post?.name ||
-        s.postId.slice(0, 8);
-      const asg = s.assignments ?? [];
-      let postAssigned = 0;
-      for (const a of asg) {
-        if (a.associateId && a.jornada !== 'sin_asignar') {
-          assignedCells += 1;
-          postAssigned += 1;
-        }
-      }
-      assignedByPost.set(s.postId, { label: postLabel, value: postAssigned });
-    }
 
     const conflictByPost = new Map<string, number>();
     for (const c of conflicts) {
@@ -437,12 +879,113 @@ export class MonthlySchedulingService {
       year,
       month,
       kpis: {
-        postsInMonth: schedules.length,
+        postsInMonth,
+        postsCovered,
+        postsUncovered: Math.max(0, postsInMonth - postsCovered),
         assignedCells,
         conflicts: conflicts.length,
         templates: templates.length,
       },
       series,
+    };
+  }
+
+  /**
+   * Cobertura del día actual (Bogotá) + próximo turno con hora de inicio.
+   * Solo datos de cuadros mensuales existentes.
+   */
+  async getTodaySnapshot() {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Bogota',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).formatToParts(new Date());
+    const num = (type: Intl.DateTimeFormatPartTypes) =>
+      Number(parts.find((p) => p.type === type)?.value ?? '0');
+    const year = num('year');
+    const month = num('month');
+    const day = num('day');
+    const hour = num('hour');
+    const minute = num('minute');
+    const nowMinutes = hour * 60 + minute;
+
+    const postsInMonth = await this.schedulesRepo.count({ where: { year, month } });
+
+    const coveredTodayRow = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .select('COUNT(DISTINCT s.post_id)::int', 'n')
+      .getRawOne<{ n: string | number }>();
+    const postsCoveredToday = Number(coveredTodayRow?.n ?? 0);
+
+    const shiftsToday = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .getCount();
+
+    const withInicio = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.day = :day', { day })
+      .andWhere('a.associate_id IS NOT NULL')
+      .andWhere(`a.jornada != 'sin_asignar'`)
+      .andWhere('a.inicio IS NOT NULL')
+      .select('a.inicio', 'inicio')
+      .addSelect('a.turno', 'turno')
+      .addSelect(
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        'postLabel',
+      )
+      .getRawMany<{ inicio: string; turno: string | null; postLabel: string }>();
+
+    let nextShift: {
+      postLabel: string;
+      turno: string | null;
+      inicio: string;
+      minutesUntil: number;
+    } | null = null;
+
+    for (const row of withInicio) {
+      const m = /^(\d{1,2}):(\d{2})/.exec(String(row.inicio ?? '').trim());
+      if (!m) continue;
+      const start = Number(m[1]) * 60 + Number(m[2]);
+      const minutesUntil = start - nowMinutes;
+      if (minutesUntil < 0) continue;
+      if (!nextShift || minutesUntil < nextShift.minutesUntil) {
+        nextShift = {
+          postLabel: row.postLabel,
+          turno: row.turno,
+          inicio: `${String(m[1]).padStart(2, '0')}:${m[2]}`,
+          minutesUntil,
+        };
+      }
+    }
+
+    return {
+      year,
+      month,
+      day,
+      postsInMonth,
+      postsCoveredToday,
+      postsUncoveredToday: Math.max(0, postsInMonth - postsCoveredToday),
+      shiftsToday,
+      coveragePct:
+        postsInMonth > 0 ? Math.round((postsCoveredToday / postsInMonth) * 100) : null,
+      nextShift,
     };
   }
 
@@ -607,4 +1150,568 @@ export class MonthlySchedulingService {
 
     return DEFAULT_ROLES.map((r) => ({ ...r }));
   }
+
+  /**
+   * Obtiene la cobertura operativa del día de hoy (o una fecha específica).
+   * Devuelve quién está de turno diurno (D), nocturno (N), relevo, descanso (DR) o novedad en cada puesto.
+   */
+  async getTodayCoverage(dateIso?: string) {
+    const targetDate = dateIso ? new Date(dateIso) : new Date();
+    const year = targetDate.getFullYear();
+    const month = targetDate.getMonth() + 1;
+    const day = targetDate.getDate();
+
+    const schedules = await this.schedulesRepo.find({
+      where: { year, month },
+    });
+
+    if (!schedules.length) {
+      return {
+        date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+        year,
+        month,
+        day,
+        posts: [],
+        summary: {
+          totalPosts: 0,
+          coveredPosts: 0,
+          uncoveredPosts: 0,
+          diurnosCount: 0,
+          nocturnosCount: 0,
+          descansosCount: 0,
+          novedadesCount: 0,
+        },
+      };
+    }
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments = await this.assignmentsRepo.find({
+      where: {
+        scheduleId: In(scheduleIds),
+        day,
+      },
+    });
+
+    const associateIds = [
+      ...new Set(
+        assignments
+          .map((a) => a.associateId)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+
+    const associates = associateIds.length
+      ? await this.dataSource.getRepository(Associate).find({
+          where: { id: In(associateIds) },
+        })
+      : [];
+    const associateMap = new Map(associates.map((a) => [a.id, a]));
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const posts = await this.dataSource.getRepository(Post).find({
+      where: { id: In(postIds) },
+    });
+    const postMap = new Map(posts.map((p) => [p.id, p]));
+
+    const resultPosts = [];
+    let diurnosCount = 0;
+    let nocturnosCount = 0;
+    let descansosCount = 0;
+    let novedadesCount = 0;
+    let coveredPosts = 0;
+
+    for (const schedule of schedules) {
+      const post = postMap.get(schedule.postId);
+      if (!post) continue;
+
+      const postAssignments = assignments.filter(
+        (a) => a.scheduleId === schedule.id,
+      );
+
+      let turnoDia = null;
+      let turnoNoche = null;
+      const otros = [];
+
+      for (const a of postAssignments) {
+        const assoc = a.associateId ? associateMap.get(a.associateId) : null;
+        const assocName = assoc
+          ? `${assoc.firstName} ${assoc.firstLastName}`.trim()
+          : 'Sin Asignar';
+        const assocCedula = assoc?.documentNumber ?? '—';
+        const phone = assoc?.mobile ?? null;
+
+        const info = {
+          role: a.role,
+          associateId: a.associateId,
+          nombre: assocName,
+          cedula: assocCedula,
+          telefono: phone,
+          codigo: a.codigo,
+          jornada: a.jornada,
+          turno: a.turno,
+          inicio: a.inicio,
+          fin: a.fin,
+        };
+
+        if (a.codigo === 'D' || a.codigo === 'D8' || (a.jornada === 'normal' && a.turno === 'AM')) {
+          turnoDia = info;
+          if (a.associateId) diurnosCount++;
+        } else if (a.codigo === 'N' || a.codigo === 'N8' || (a.jornada === 'normal' && a.turno === 'PM')) {
+          turnoNoche = info;
+          if (a.associateId) nocturnosCount++;
+        } else if (a.codigo === 'DR' || a.codigo === 'NR' || a.jornada?.startsWith('descanso')) {
+          otros.push({ ...info, tipo: 'Descanso' });
+          if (a.associateId) descansosCount++;
+        } else {
+          otros.push({ ...info, tipo: 'Novedad' });
+          if (a.associateId) novedadesCount++;
+        }
+      }
+
+      const isCovered = Boolean(turnoDia?.associateId && turnoNoche?.associateId);
+      if (isCovered) coveredPosts++;
+
+      resultPosts.push({
+        scheduleId: schedule.id,
+        status: schedule.status,
+        post: {
+          id: post.id,
+          code: post.code,
+          name: post.name,
+          address: post.address ?? null,
+          city: post.zone ?? null,
+        },
+        turnoDia,
+        turnoNoche,
+        otros,
+        isCovered,
+      });
+    }
+
+    return {
+      date: `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+      year,
+      month,
+      day,
+      posts: resultPosts.sort((a, b) => a.post.code.localeCompare(b.post.code)),
+      summary: {
+        totalPosts: resultPosts.length,
+        coveredPosts,
+        uncoveredPosts: resultPosts.length - coveredPosts,
+        diurnosCount,
+        nocturnosCount,
+        descansosCount,
+        novedadesCount,
+      },
+    };
+  }
+
+  /**
+   * Motor de liquidación de horas, recargos y extras mensual (Malla -> Nómina).
+   * Calcula automáticamente horas ordinarias, extras diurnas (1.25), recargos nocturnos (0.35),
+   * extras nocturnas (1.75) y dominicales/festivos (1.75) según el Código Sustantivo del Trabajo de Colombia.
+   */
+  async getPayrollRecargos(year: number, month: number) {
+    const schedules = await this.schedulesRepo.find({
+      where: { year, month },
+    });
+
+    if (!schedules.length) {
+      return {
+        year,
+        month,
+        totalAssociates: 0,
+        totals: {
+          horasOrdinarias: 0,
+          horasExtrasDiurnas: 0,
+          recargosNocturnos: 0,
+          horasExtrasNocturnas: 0,
+          dominicalesFestivas: 0,
+          totalHorasLiquidables: 0,
+        },
+        associates: [],
+      };
+    }
+
+    const scheduleIds = schedules.map((s) => s.id);
+    const assignments = await this.assignmentsRepo.find({
+      where: {
+        scheduleId: In(scheduleIds),
+      },
+    });
+
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const holidays = (await import('./utils/colombia-holidays')).getColombiaHolidays(year);
+    const holidayIsoSet = new Set(holidays.map((h) => h.date));
+
+    const postIds = [...new Set(schedules.map((s) => s.postId))];
+    const posts = await this.dataSource.getRepository(Post).find({
+      where: { id: In(postIds) },
+    });
+    const postMap = new Map(posts.map((p) => [p.id, p]));
+
+    const schedulePostMap = new Map(schedules.map((s) => [s.id, postMap.get(s.postId)]));
+
+    // Agrupar por asociado
+    const byAssociate = new Map<
+      string,
+      {
+        associateId: string;
+        puestos: Set<string>;
+        assignments: ScheduleAssignment[];
+      }
+    >();
+
+    for (const a of assignments) {
+      if (!a.associateId) continue;
+      let entry = byAssociate.get(a.associateId);
+      if (!entry) {
+        entry = {
+          associateId: a.associateId,
+          puestos: new Set<string>(),
+          assignments: [],
+        };
+        byAssociate.set(a.associateId, entry);
+      }
+      entry.assignments.push(a);
+      const p = schedulePostMap.get(a.scheduleId);
+      if (p) entry.puestos.add(`${p.code} - ${p.name}`);
+    }
+
+    const associateIds = [...byAssociate.keys()];
+    const associates = associateIds.length
+      ? await this.dataSource.getRepository(Associate).find({
+          where: { id: In(associateIds) },
+        })
+      : [];
+    const associateMap = new Map(associates.map((a) => [a.id, a]));
+
+    const rows = [];
+    let sumOrdinarias = 0;
+    let sumExtrasDiurnas = 0;
+    let sumRecargosNocturnos = 0;
+    let sumExtrasNocturnas = 0;
+    let sumDominicales = 0;
+
+    for (const [assocId, data] of byAssociate.entries()) {
+      const assoc = associateMap.get(assocId);
+      const nombre = assoc
+        ? `${assoc.firstName} ${assoc.firstLastName}`.trim()
+        : 'Asociado';
+      const cedula = assoc?.documentNumber ?? '—';
+      const cargo = 'Vigilante de Seguridad';
+
+      let countD = 0;
+      let countN = 0;
+      let countDR = 0;
+      let countNovedad = 0;
+
+      let ord = 0;
+      let extD = 0;
+      let recN = 0;
+      let extN = 0;
+      let dom = 0;
+
+      for (const assign of data.assignments) {
+        const day = assign.day;
+        const dateObj = new Date(year, month - 1, day);
+        const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const isSunday = dateObj.getDay() === 0;
+        const isHoliday = holidayIsoSet.has(iso);
+        const isFestivo = isSunday || isHoliday;
+
+        const code = assign.codigo;
+
+        if (code === 'D') {
+          countD++;
+          if (isFestivo) {
+            dom += 12;
+          } else {
+            ord += 8;
+            extD += 4;
+          }
+        } else if (code === 'N') {
+          countN++;
+          if (isFestivo) {
+            dom += 12;
+            recN += 5;
+          } else {
+            ord += 3;
+            recN += 5;
+            extN += 4;
+          }
+        } else if (code === 'D8') {
+          countD++;
+          if (isFestivo) {
+            dom += 8;
+          } else {
+            ord += 8;
+          }
+        } else if (code === 'N8') {
+          countN++;
+          if (isFestivo) {
+            dom += 8;
+            recN += 8;
+          } else {
+            ord += 8;
+            recN += 8;
+          }
+        } else if (code === 'DR' || code === 'NR') {
+          countDR++;
+        } else {
+          countNovedad++;
+        }
+      }
+
+      sumOrdinarias += ord;
+      sumExtrasDiurnas += extD;
+      sumRecargosNocturnos += recN;
+      sumExtrasNocturnas += extN;
+      sumDominicales += dom;
+
+      rows.push({
+        associateId: assocId,
+        nombre,
+        cedula,
+        cargo,
+        puestos: Array.from(data.puestos).join(' / ') || 'Sin Puesto Asignado',
+        diasLaborados: countD + countN,
+        turnosDiurnos: countD,
+        turnosNocturnos: countN,
+        descansos: countDR,
+        novedades: countNovedad,
+        horasOrdinarias: ord,
+        horasExtrasDiurnas: extD,
+        recargosNocturnos: recN,
+        horasExtrasNocturnas: extN,
+        dominicalesFestivas: dom,
+        totalHoras: ord + extD + extN + dom,
+      });
+    }
+
+    return {
+      year,
+      month,
+      daysInMonth,
+      totalAssociates: rows.length,
+      totals: {
+        horasOrdinarias: sumOrdinarias,
+        horasExtrasDiurnas: sumExtrasDiurnas,
+        recargosNocturnos: sumRecargosNocturnos,
+        horasExtrasNocturnas: sumExtrasNocturnas,
+        dominicalesFestivas: sumDominicales,
+        totalHorasLiquidables: sumOrdinarias + sumExtrasDiurnas + sumExtrasNocturnas + sumDominicales,
+      },
+      associates: rows.sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    };
+  }
+
+  /**
+   * Genera un libro de Excel oficial (.xlsx) de alta definición con diseño corporativo Coraza.
+   */
+  async exportPayrollRecargosExcel(year: number, month: number): Promise<Buffer> {
+    const report = await this.getPayrollRecargos(year, month);
+    const monthNames = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    const monthName = monthNames[month - 1] || `MES ${month}`;
+    const periodLabel = `${monthName} DE ${year}`;
+
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Portal Coraza Seguridad C.T.A.';
+    wb.lastModifiedBy = 'Sistema Integral Coraza';
+    wb.created = new Date();
+    wb.modified = new Date();
+
+    const ws = wb.addWorksheet(`Recargos ${monthName} ${year}`, {
+      views: [{ showGridLines: true }],
+      pageSetup: { orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
+    });
+
+    // 1. Banner Superior Corporativo
+    ws.mergeCells('A1:N1');
+    const titleCell = ws.getCell('A1');
+    titleCell.value = '🛡️ CORAZA SEGURIDAD C.T.A. — INFORME OFICIAL DE LIQUIDACIÓN DE RECARGOS Y HORAS';
+    titleCell.font = { name: 'Calibri', size: 14, bold: true, color: { argb: 'FFFFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F172A' } }; // Navy blue
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(1).height = 28;
+
+    ws.mergeCells('A2:N2');
+    const subCell = ws.getCell('A2');
+    subCell.value = `PERIODO DE PROGRAMACIÓN: ${periodLabel}  |  TOTAL ASOCIADOS EVALUADOS: ${report.totalAssociates}  |  TOTAL HORAS: ${report.totals.totalHorasLiquidables}`;
+    subCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFE2E8F0' } };
+    subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+    subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(2).height = 20;
+
+    ws.mergeCells('A3:N3');
+    const metaCell = ws.getCell('A3');
+    metaCell.value = `NIT: 811.021.524-8 · Licencia SuperVigilancia Resol. No. 0002848 · PBX: (604) 448 2027 · Generado: ${new Date().toLocaleDateString('es-CO')} ${new Date().toLocaleTimeString('es-CO')}`;
+    metaCell.font = { name: 'Calibri', size: 9, italic: true, color: { argb: 'FF475569' } };
+    metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+    metaCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    ws.getRow(3).height = 18;
+
+    // Fila 4 vacía
+    ws.getRow(4).height = 10;
+
+    // 2. Encabezados de Tabla (Fila 5)
+    const headers = [
+      'CÉDULA',
+      'NOMBRE COMPLETO',
+      'CARGO',
+      'PUESTOS ASIGNADOS',
+      'DÍAS LAB.',
+      'TURNOS D',
+      'TURNOS N',
+      'DESCANSOS',
+      'HORAS ORD.',
+      'REC. NOCT. (35%)',
+      'EXT. DIUR. (1.25)',
+      'EXT. NOCT. (1.75)',
+      'DOM. Y FEST. (1.75)',
+      'TOTAL HORAS',
+    ];
+
+    const headerRow = ws.getRow(5);
+    headerRow.values = headers;
+    headerRow.height = 26;
+
+    headers.forEach((_, idx) => {
+      const cell = headerRow.getCell(idx + 1);
+      cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0F766E' } }; // Teal corporate
+      cell.alignment = { horizontal: idx >= 4 ? 'right' : 'left', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FF0D9488' } },
+        left: { style: 'thin', color: { argb: 'FF0D9488' } },
+        bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+        right: { style: 'thin', color: { argb: 'FF0D9488' } },
+      };
+    });
+
+    // 3. Filas de Datos
+    const startDataRow = 6;
+    let currentRowIdx = startDataRow;
+
+    for (const row of report.associates) {
+      const r = ws.getRow(currentRowIdx);
+      const isEven = currentRowIdx % 2 === 0;
+      const bg = isEven ? 'FFF8FAFC' : 'FFFFFFFF';
+
+      r.values = [
+        row.cedula,
+        row.nombre,
+        row.cargo,
+        row.puestos,
+        row.diasLaborados,
+        row.turnosDiurnos,
+        row.turnosNocturnos,
+        row.descansos,
+        row.horasOrdinarias,
+        row.recargosNocturnos,
+        row.horasExtrasDiurnas,
+        row.horasExtrasNocturnas,
+        row.dominicalesFestivas,
+        row.totalHoras,
+      ];
+      r.height = 20;
+
+      for (let col = 1; col <= 14; col++) {
+        const cell = r.getCell(col);
+        cell.font = { name: 'Calibri', size: 9.5, bold: col === 2 || col === 14 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.alignment = {
+          horizontal: col === 1 ? 'center' : col >= 5 ? 'right' : 'left',
+          vertical: 'middle',
+        };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+          right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+        };
+        if (col >= 5) {
+          cell.numFmt = '#,##0';
+        }
+      }
+
+      currentRowIdx++;
+    }
+
+    // 4. Fila de Totales Generales con Fórmulas de Excel
+    const totalRow = ws.getRow(currentRowIdx);
+    totalRow.height = 24;
+
+    totalRow.getCell(1).value = 'TOTALES:';
+    totalRow.getCell(2).value = `${report.associates.length} ASOCIADOS`;
+    totalRow.getCell(3).value = '';
+    totalRow.getCell(4).value = '';
+
+    const colsToSum = [
+      { col: 5, letter: 'E' },
+      { col: 6, letter: 'F' },
+      { col: 7, letter: 'G' },
+      { col: 8, letter: 'H' },
+      { col: 9, letter: 'I' },
+      { col: 10, letter: 'J' },
+      { col: 11, letter: 'K' },
+      { col: 12, letter: 'L' },
+      { col: 13, letter: 'M' },
+      { col: 14, letter: 'N' },
+    ];
+
+    for (const s of colsToSum) {
+      if (report.associates.length > 0) {
+        totalRow.getCell(s.col).value = {
+          formula: `SUM(${s.letter}${startDataRow}:${s.letter}${currentRowIdx - 1})`,
+        };
+      } else {
+        totalRow.getCell(s.col).value = 0;
+      }
+    }
+
+    for (let col = 1; col <= 14; col++) {
+      const cell = totalRow.getCell(col);
+      cell.font = { name: 'Calibri', size: 10.5, bold: true, color: { argb: 'FF0F172A' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE2E8F0' } };
+      cell.alignment = {
+        horizontal: col <= 4 ? 'left' : 'right',
+        vertical: 'middle',
+      };
+      cell.border = {
+        top: { style: 'medium', color: { argb: 'FF0F172A' } },
+        bottom: { style: 'double', color: { argb: 'FF0F172A' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      };
+      if (col >= 5) {
+        cell.numFmt = '#,##0';
+      }
+    }
+
+    // 5. Anchos de Columna Optimizados
+    ws.columns = [
+      { width: 14 }, // Cédula
+      { width: 36 }, // Nombre
+      { width: 24 }, // Cargo
+      { width: 44 }, // Puestos
+      { width: 12 }, // Días
+      { width: 13 }, // Turnos D
+      { width: 13 }, // Turnos N
+      { width: 13 }, // Descansos
+      { width: 15 }, // Horas Ord
+      { width: 18 }, // Rec Noct
+      { width: 16 }, // Ext Diur
+      { width: 16 }, // Ext Noct
+      { width: 20 }, // Dom/Fest
+      { width: 18 }, // Total Horas
+    ];
+
+    const buffer = await wb.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
 }
+

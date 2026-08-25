@@ -17,6 +17,9 @@ export class AssociatesQueryDto {
   @IsOptional() @IsUUID()
   jobPositionId?: string;
 
+  @IsOptional() @IsUUID()
+  educationLevelId?: string;
+
   @IsOptional() @IsBooleanString()
   isCritical?: string; // 'true' | 'false'
 
@@ -25,4 +28,10 @@ export class AssociatesQueryDto {
 
   @IsOptional() @IsNumberString()
   tenureMaxYears?: string;
+
+  @IsOptional() @IsNumberString()
+  page?: string;
+
+  @IsOptional() @IsNumberString()
+  limit?: string;
 }

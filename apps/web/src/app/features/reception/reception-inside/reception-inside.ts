@@ -60,6 +60,9 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
               <tr>
                 <td>
                   <strong>{{ v.displayName }}</strong>
+                  <span class="badge" [class.associate]="v.isAssociate" [class.visitor]="!v.isAssociate">
+                    {{ v.isAssociate ? 'Asociado' : 'Visitante' }}
+                  </span>
                   @if (v.documentNumber) {
                     <div class="meta">C.C. {{ v.documentNumber }}</div>
                   }
@@ -167,6 +170,17 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       color: var(--primary-dark);
     }
     .meta { margin-top: 0.15rem; font-size: 0.78rem; color: var(--text-secondary); }
+    .badge {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      vertical-align: middle;
+    }
+    .badge.associate { background: #dcfce7; color: #166534; }
+    .badge.visitor { background: #f3f4f6; color: #4b5563; }
     .actions { text-align: right; }
     .ghost {
       border-radius: 999px;

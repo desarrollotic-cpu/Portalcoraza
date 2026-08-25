@@ -1,6 +1,12 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideCalendarClock, LucideLayoutDashboard, LucideLayoutGrid } from '@lucide/angular';
+import {
+  LucideCalendarClock,
+  LucideLayoutDashboard,
+  LucideLayoutGrid,
+  LucideAlertTriangle,
+  LucideCalculator,
+} from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -9,7 +15,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Programación"
-      subtitle="Cuadro mensual de asignación de personal por puesto."
+      subtitle="Cuadro mensual de asignación de personal por puesto y liquidación de recargos."
       [nav]="nav"
     >
       <router-outlet />
@@ -19,23 +25,23 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 export class ProgramacionLayout {
   readonly nav: ModuleNavItem[] = [
     {
-      label: 'Panel',
-      route: '/programacion',
-      permission: 'scheduling.view',
-      icon: LucideLayoutDashboard,
-      exact: true,
-    },
-    {
-      label: 'Matriz multi-puesto',
-      route: '/programacion/matriz',
-      permission: 'scheduling.view',
-      icon: LucideLayoutGrid,
-    },
-    {
-      label: 'Cuadro mensual',
+      label: '📋 Cuadro de Turnos',
       route: '/programacion/cuadro',
       permission: 'scheduling.view',
       icon: LucideCalendarClock,
     },
+    {
+      label: '⚠️ Control de Alertas',
+      route: '/programacion/alertas',
+      permission: 'scheduling.view',
+      icon: LucideAlertTriangle,
+    },
+    {
+      label: '💰 Liquidación y Recargos (Excel)',
+      route: '/programacion/recargos',
+      permission: 'scheduling.view',
+      icon: LucideCalculator,
+    },
   ];
 }
+

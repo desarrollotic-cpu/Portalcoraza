@@ -76,30 +76,37 @@ function toLegacy(a: HrAssociate): Associate {
 
 
 
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { shareReplay } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
 @Injectable({ providedIn: 'root' })
-
 export class AssociatesApiService {
-
+  private readonly http = inject(HttpClient);
   private readonly hr = inject(HrApiService);
+  private lookupCache$ = new Map<string, Observable<Associate[]>>();
 
-
+  lookup(status?: string, forceRefresh = false): Observable<Associate[]> {
+    const key = status || '__all__';
+    if (!this.lookupCache$.has(key) || forceRefresh) {
+      let params = new HttpParams();
+      if (status) params = params.set('status', status);
+      const obs$ = this.http
+        .get<Associate[]>(`${environment.apiUrl}/associates/lookup`, { params })
+        .pipe(shareReplay({ bufferSize: 1, refCount: false }));
+      this.lookupCache$.set(key, obs$);
+    }
+    return this.lookupCache$.get(key)!;
+  }
 
   list(status?: string): Observable<Associate[]> {
-
     const query = status ? { status: status as AssociateStatus } : {};
-
-    return this.hr.listAssociates(query).pipe(map((rows) => rows.map(toLegacy)));
-
+    return this.hr.listAssociates({ ...query, page: 1, limit: 2000 }).pipe(map((res) => res.items.map(toLegacy)));
   }
-
-
 
   getById(id: string): Observable<Associate> {
-
     return this.hr.getAssociate(id).pipe(map(toLegacy));
-
   }
-
 }
 
 

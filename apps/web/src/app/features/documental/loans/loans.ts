@@ -1,86 +1,590 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  LucideCheck,
+  LucideClock,
+  LucideCopy,
+  LucideExternalLink,
+  LucideFileText,
+  LucideMail,
+  LucidePlus,
+  LucideQrCode,
+  LucideX,
+} from '@lucide/angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { Icon } from '../../../shared/components/icon/icon';
 import { DocumentalApiService, Loan } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
 
 @Component({
   selector: 'app-doc-loans',
-  imports: [FormsModule],
+  imports: [FormsModule, Icon],
   template: `
-    <div class="toolbar">
-      <h3>Préstamos de documentos</h3>
-      @if (canCreate()) {
-        <button class="btn-primary" (click)="toggle()">{{ showForm() ? 'Cerrar' : 'Nuevo préstamo' }}</button>
+    <div class="loans-container">
+      <!-- HEADER Y ACCIONES PRINCIPALES -->
+      <div class="toolbar">
+        <div>
+          <h3>Préstamos de Documentos y Custodia</h3>
+          <p class="muted">Control de salida física de expedientes, solicitudes públicas, notificaciones de vencimiento y devoluciones.</p>
+        </div>
+        <div class="header-btns">
+          <button type="button" class="btn-qr-share" (click)="openQrModal()">
+            <app-icon [icon]="icons.QrCode" [size]="16" [strokeWidth]="2" />
+            <span>Enlace / QR Público</span>
+          </button>
+          @if (canCreate()) {
+            <button class="btn-primary" (click)="toggle()">
+              <app-icon [icon]="showForm() ? icons.X : icons.Plus" [size]="16" [strokeWidth]="2" />
+              <span>{{ showForm() ? 'Cerrar Formulario' : 'Nuevo Préstamo' }}</span>
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- BANNER DE ENLACE PÚBLICO COMPARTIBLE -->
+      <div class="public-link-banner">
+        <div class="banner-left">
+          <div class="qr-icon-circle">
+            <app-icon [icon]="icons.QrCode" [size]="20" [strokeWidth]="2" />
+          </div>
+          <div>
+            <strong>Enlace Público de Solicitud de Préstamos (Sin Login)</strong>
+            <p>El solicitante ingresa su correo y el sistema le notificará automáticamente desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha.</p>
+          </div>
+        </div>
+        <div class="banner-actions">
+          <button type="button" class="btn-banner-action" (click)="copyPublicLink()">
+            <app-icon [icon]="copied() ? icons.Check : icons.Copy" [size]="14" [strokeWidth]="2" />
+            <span>{{ copied() ? '¡Copiado!' : 'Copiar Enlace' }}</span>
+          </button>
+          <button type="button" class="btn-banner-action primary" (click)="openQrModal()">
+            <app-icon [icon]="icons.QrCode" [size]="14" [strokeWidth]="2" />
+            <span>Ver Código QR</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ALERTAS DE SOLICITUDES PENDIENTES -->
+      @if (pendingCount() > 0) {
+        <div class="pending-alert-box">
+          <div class="alert-icon">⏳</div>
+          <div class="alert-content">
+            <strong>Hay {{ pendingCount() }} solicitud(es) pública(s) pendiente(s) de aprobación</strong>
+            <p>Revisa la disponibilidad del expediente y pulsa Aprobar o Rechazar.</p>
+          </div>
+        </div>
+      }
+
+      @if (emailStatusMsg()) {
+        <div class="email-toast">
+          {{ emailStatusMsg() }}
+        </div>
+      }
+
+      <!-- FORMULARIO DE REGISTRO MANUAL DE PRÉSTAMO -->
+      @if (showForm()) {
+        <form class="card form-loan" (ngSubmit)="save()">
+          <div class="form-title">
+            <app-icon [icon]="icons.FileText" [size]="18" [strokeWidth]="2" />
+            <h4>Registrar Préstamo Directo</h4>
+          </div>
+          <div class="form-grid">
+            <label>
+              <span>Solicitante *</span>
+              <input [(ngModel)]="model.requester" name="requester" required placeholder="Nombre completo del solicitante" />
+            </label>
+            <label>
+              <span>Correo Electrónico (Para Alertas de Vencimiento)</span>
+              <input type="email" [(ngModel)]="model.email" name="email" placeholder="Ej: funcionario@corazaseguridadcta.com" />
+            </label>
+            <label>
+              <span>Departamento / Área</span>
+              <input [(ngModel)]="model.department" name="department" placeholder="Ej: Operaciones, RRHH..." />
+            </label>
+            <label>
+              <span>Documento / Carpeta Prestada *</span>
+              <input [(ngModel)]="model.document" name="document" required placeholder="Ej: Carpeta Contrato #120..." />
+            </label>
+            <label>
+              <span>Código de Documento</span>
+              <input [(ngModel)]="model.documentCode" name="documentCode" placeholder="Ej: CTR-120-2026, MIN-VIS-004..." />
+            </label>
+            <label>
+              <span>Fecha de Préstamo *</span>
+              <input type="date" [(ngModel)]="model.loanDate" name="loanDate" required />
+            </label>
+            <label>
+              <span>Fecha Estimada de Devolución</span>
+              <input type="date" [(ngModel)]="model.returnDate" name="returnDate" />
+            </label>
+          </div>
+          <div class="actions">
+            <button type="submit" class="btn-primary" [disabled]="saving()">
+              {{ saving() ? 'Guardando...' : 'Registrar Préstamo' }}
+            </button>
+            <button type="button" class="btn-ghost" (click)="toggle()">Cancelar</button>
+            @if (error()) { <span class="error">{{ error() }}</span> }
+          </div>
+        </form>
+      }
+
+      <!-- LISTADO TABLA DE PRÉSTAMOS -->
+      @if (loading()) {
+        <div class="loading-box"><p>Cargando préstamos...</p></div>
+      } @else {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Solicitante & Correo</th>
+                <th>Área / Dpto</th>
+                <th>Documento</th>
+                <th>Fecha Préstamo</th>
+                <th>Fecha Devolución</th>
+                <th>Estado</th>
+                <th style="text-align:right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of items(); track l.id) {
+                <tr [class.row-pending]="l.status === 'PENDIENTE_APROBACION'" [class.row-vencido]="l.status === 'VENCIDO'">
+                  <td>
+                    <strong>{{ l.requester }}</strong>
+                    @if (l.email) {
+                      <div class="email-tag">
+                        <app-icon [icon]="icons.Mail" [size]="11" [strokeWidth]="2" />
+                        <span>{{ l.email }}</span>
+                      </div>
+                    }
+                    @if (l.observations) {
+                      <div class="obs-text">{{ l.observations }}</div>
+                    }
+                  </td>
+                  <td>{{ l.department ?? '—' }}</td>
+                  <td>
+                    <span>{{ l.document ?? '—' }}</span>
+                    @if (l.documentCode) {
+                      <div class="doc-code-tag">#{{ l.documentCode }}</div>
+                    }
+                  </td>
+                  <td>{{ l.loanDate ?? '—' }}</td>
+                  <td>
+                    <span>{{ l.returnDate ?? '—' }}</span>
+                    @if (l.overdueNotifiedAt) {
+                      <div class="notif-badge" title="Notificación de vencimiento enviada">
+                        ✉️ Notificado
+                      </div>
+                    }
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [class.ok]="l.status === 'ACTIVO' || l.status === 'DEVUELTO'"
+                      [class.crit]="l.status === 'VENCIDO' || l.status === 'RECHAZADO'"
+                      [class.warn]="l.status === 'PENDIENTE_APROBACION'"
+                    >
+                      {{ l.status }}
+                    </span>
+                  </td>
+                  <td style="text-align:right">
+                    @if (canManage()) {
+                      @if (l.status === 'PENDIENTE_APROBACION') {
+                        <div class="btn-group-right">
+                          <button type="button" class="btn-act-approve" (click)="approve(l)" title="Aprobar Solicitud">
+                            <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
+                            Aprobar
+                          </button>
+                          <button type="button" class="btn-act-reject" (click)="reject(l)" title="Rechazar Solicitud">
+                            <app-icon [icon]="icons.X" [size]="13" [strokeWidth]="2.5" />
+                            Rechazar
+                          </button>
+                        </div>
+                      } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
+                        <div class="btn-group-right">
+                          @if (l.email) {
+                            <button
+                              type="button"
+                              class="btn-notify-email"
+                              (click)="sendEmailReminder(l)"
+                              title="Enviar recordatorio de devolución desde Documental@corazaseguridadcta.com"
+                            >
+                              <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
+                              <span>Notificar</span>
+                            </button>
+                          }
+                          <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
+                            📥 Devolver
+                          </button>
+                        </div>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">Sin préstamos registrados en el sistema.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
       }
     </div>
 
-    @if (showForm()) {
-      <form class="card" (ngSubmit)="save()">
-        <label>Solicitante<input [(ngModel)]="model.requester" name="requester" required /></label>
-        <label>Departamento<input [(ngModel)]="model.department" name="department" /></label>
-        <label>Documento<input [(ngModel)]="model.document" name="document" /></label>
-        <label>Código documento<input [(ngModel)]="model.documentCode" name="documentCode" /></label>
-        <label>Fecha préstamo<input type="date" [(ngModel)]="model.loanDate" name="loanDate" /></label>
-        <label>Fecha devolución<input type="date" [(ngModel)]="model.returnDate" name="returnDate" /></label>
-        <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
-          @if (error()) { <span class="error">{{ error() }}</span> }
-        </div>
-      </form>
-    }
+    <!-- MODAL DE CÓDIGO QR / ENLACE PÚBLICO -->
+    @if (qrModalOpen()) {
+      <div class="modal-backdrop" (click)="closeQrModal()">
+        <div class="qr-modal-card" (click)="$event.stopPropagation()">
+          <div class="qr-modal-header">
+            <div class="qr-title-box">
+              <app-icon [icon]="icons.QrCode" [size]="22" [strokeWidth]="2" />
+              <div>
+                <h4>Solicitud Pública de Préstamos</h4>
+                <p>Código QR para escanear desde dispositivos móviles</p>
+              </div>
+            </div>
+            <button type="button" class="btn-close" (click)="closeQrModal()">
+              <app-icon [icon]="icons.X" [size]="18" [strokeWidth]="2" />
+            </button>
+          </div>
 
-    @if (loading()) {
-      <p>Cargando...</p>
-    } @else {
-      <table>
-        <thead><tr><th>Solicitante</th><th>Documento</th><th>Préstamo</th><th>Devolución</th><th>Estado</th><th>Acciones</th></tr></thead>
-        <tbody>
-          @for (l of items(); track l.id) {
-            <tr>
-              <td>{{ l.requester }}</td>
-              <td>{{ l.document ?? '—' }}</td>
-              <td>{{ l.loanDate ?? '—' }}</td>
-              <td>{{ l.returnDate ?? '—' }}</td>
-              <td>
-                <span class="badge"
-                  [class.ok]="l.status === 'ACTIVO' || l.status === 'DEVUELTO'"
-                  [class.crit]="l.status === 'VENCIDO' || l.status === 'RECHAZADO'"
-                  [class.warn]="l.status === 'PENDIENTE_APROBACION'">{{ l.status }}</span>
-              </td>
-              <td>
-                @if (canManage()) {
-                  @if (l.status === 'PENDIENTE_APROBACION') {
-                    <button class="btn-ghost" (click)="approve(l)">Aprobar</button>
-                    <button class="btn-ghost" (click)="reject(l)">Rechazar</button>
-                  } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
-                    <button class="btn-ghost" (click)="ret(l)">Devolver</button>
-                  } @else { <span class="muted">—</span> }
-                }
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="6" class="muted">Sin préstamos registrados.</td></tr>
-          }
-        </tbody>
-      </table>
+          <div class="qr-modal-body">
+            <div class="qr-box-inner" id="printableQrBox">
+              <div class="qr-corp-header">
+                <strong>CORAZA SEGURIDAD C.T.A.</strong>
+                <span>Sistema de Gestión Documental</span>
+              </div>
+              <div class="qr-image-wrap">
+                <img
+                  [src]="qrImageUrl()"
+                  alt="QR Solicitud de Préstamos"
+                  class="qr-code-img"
+                />
+              </div>
+              <div class="qr-instructions">
+                <strong>ESCANEA PARA SOLICITAR PRÉSTAMO</strong>
+                <p>Abre la cámara de tu celular para radicar la solicitud de expedientes físicos sin iniciar sesión. Las alertas de vencimiento se enviarán desde Documental&#64;corazaseguridadcta.com.</p>
+              </div>
+            </div>
+
+            <div class="link-copy-box">
+              <input type="text" [value]="publicUrl()" readonly />
+              <button type="button" class="btn-copy" (click)="copyPublicLink()">
+                <app-icon [icon]="copied() ? icons.Check : icons.Copy" [size]="14" [strokeWidth]="2" />
+                <span>{{ copied() ? 'Copiado' : 'Copiar' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="qr-modal-footer">
+            <button type="button" class="btn-ghost" (click)="closeQrModal()">Cerrar</button>
+            <button type="button" class="btn-primary" (click)="printQrSheet()">
+              🖨️ Imprimir Cartel / Ficha QR
+            </button>
+          </div>
+        </div>
+      </div>
     }
   `,
-  styles: [DOC_STYLES],
+  styles: [
+    DOC_STYLES,
+    `
+    .loans-container { display: flex; flex-direction: column; gap: 1rem; }
+    .header-btns { display: flex; gap: 0.5rem; align-items: center; }
+
+    .btn-qr-share {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 0.55rem;
+      padding: 0.45rem 0.85rem;
+      font-weight: 700;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-qr-share:hover { background: #dbeafe; }
+
+    /* BANNER ENLACE PÚBLICO */
+    .public-link-banner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      border: 1px solid #86efac;
+      border-radius: 0.85rem;
+      padding: 1rem 1.25rem;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .banner-left { display: flex; align-items: center; gap: 0.85rem; }
+    .qr-icon-circle {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: #15803d;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .banner-left strong { display: block; font-size: 0.92rem; color: #14532d; }
+    .banner-left p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #166534; }
+
+    .banner-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .btn-banner-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #ffffff;
+      color: #15803d;
+      border: 1px solid #86efac;
+      border-radius: 0.5rem;
+      padding: 0.45rem 0.85rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-banner-action:hover { background: #f0fdf4; border-color: #4ade80; }
+    .btn-banner-action.primary {
+      background: #15803d;
+      color: #ffffff;
+      border-color: #15803d;
+    }
+    .btn-banner-action.primary:hover { background: #166534; }
+
+    /* ALERT PENDING */
+    .pending-alert-box {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-left: 4px solid #f59e0b;
+      padding: 0.85rem 1.15rem;
+      border-radius: 0.65rem;
+    }
+    .alert-icon { font-size: 1.5rem; }
+    .alert-content strong { display: block; font-size: 0.88rem; color: #92400e; }
+    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #b45309; }
+
+    .email-toast {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+      padding: 0.75rem 1rem;
+      border-radius: 0.6rem;
+      font-size: 0.84rem;
+      font-weight: 700;
+      animation: fadeIn 0.2s ease;
+    }
+
+    /* FORM */
+    .form-loan {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0.85rem;
+      padding: 1.25rem;
+    }
+    .form-title { display: flex; align-items: center; gap: 0.5rem; color: var(--primary-700); margin-bottom: 1rem; }
+    .form-title h4 { margin: 0; font-size: 0.95rem; font-weight: 800; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem; }
+    .form-grid label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); }
+
+    /* TABLE */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
+    .row-pending { background: #fffdf5; }
+    .row-vencido { background: #fff5f5; }
+    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #2563eb; font-weight: 600; margin-top: 0.15rem; }
+    .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
+    .doc-code-tag { font-size: 0.72rem; color: #2563eb; font-weight: 700; }
+    .notif-badge { font-size: 0.68rem; color: #b45309; background: #fef3c7; padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
+    
+    .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
+    .btn-act-approve {
+      background: #ecfdf5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .btn-act-approve:hover { background: #d1fae5; }
+    .btn-act-reject {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .btn-act-reject:hover { background: #fee2e2; }
+    
+    .btn-notify-email {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.74rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    .btn-notify-email:hover { background: #dbeafe; }
+
+    .btn-return { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.35rem; font-weight: 700; }
+
+    /* MODAL QR */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .qr-modal-card {
+      background: #ffffff;
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .qr-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #1e3a8a; }
+    .qr-title-box h4 { margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; }
+    .qr-title-box p { margin: 0.1rem 0 0; font-size: 0.75rem; color: #64748b; }
+    .btn-close { background: transparent; border: none; color: #94a3b8; cursor: pointer; }
+    .btn-close:hover { color: #0f172a; }
+
+    .qr-modal-body { padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem; }
+    .qr-box-inner {
+      background: #ffffff;
+      border: 2px dashed #94a3b8;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .qr-corp-header strong { display: block; font-size: 0.9rem; color: #0f172a; font-weight: 900; }
+    .qr-corp-header span { font-size: 0.75rem; color: #64748b; }
+    .qr-image-wrap { margin: 1rem 0; padding: 0.5rem; background: #ffffff; border-radius: 0.5rem; }
+    .qr-code-img { width: 180px; height: 180px; display: block; }
+    .qr-instructions strong { display: block; font-size: 0.85rem; color: #1e3a8a; margin-bottom: 0.25rem; }
+    .qr-instructions p { margin: 0; font-size: 0.76rem; color: #475569; line-height: 1.35; max-width: 280px; }
+
+    .link-copy-box { display: flex; gap: 0.4rem; width: 100%; }
+    .link-copy-box input { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.65rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; background: #f8fafc; }
+    .btn-copy {
+      background: #1e3a8a;
+      color: #ffffff;
+      border: none;
+      border-radius: 0.4rem;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .btn-copy:hover { background: #172554; }
+
+    .qr-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #f1f5f9;
+      background: #f8fafc;
+    }
+  `,
+  ],
 })
 export class LoansScreen implements OnInit {
   private readonly api = inject(DocumentalApiService);
   private readonly auth = inject(AuthService);
+
+  readonly icons = {
+    Check: LucideCheck,
+    Clock: LucideClock,
+    Copy: LucideCopy,
+    ExternalLink: LucideExternalLink,
+    FileText: LucideFileText,
+    Mail: LucideMail,
+    Plus: LucidePlus,
+    QrCode: LucideQrCode,
+    X: LucideX,
+  };
 
   readonly items = signal<Loan[]>([]);
   readonly loading = signal(true);
   readonly showForm = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly qrModalOpen = signal(false);
+  readonly copied = signal(false);
+  readonly emailStatusMsg = signal<string | null>(null);
+
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
 
-  model = { requester: '', department: '', document: '', documentCode: '', loanDate: '', returnDate: '' };
+  readonly pendingCount = computed(() =>
+    this.items().filter((l) => l.status === 'PENDIENTE_APROBACION').length,
+  );
+
+  readonly publicUrl = computed(() => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portalcoraza-web.onrender.com';
+    return `${origin}/#/solicitud-prestamo`;
+  });
+
+  readonly qrImageUrl = computed(() => {
+    const enc = encodeURIComponent(this.publicUrl());
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${enc}&margin=6`;
+  });
+
+  model = {
+    requester: '',
+    department: '',
+    document: '',
+    documentCode: '',
+    email: '',
+    loanDate: new Date().toISOString().slice(0, 10),
+    returnDate: '',
+  };
 
   ngOnInit(): void {
     this.load();
@@ -88,6 +592,68 @@ export class LoansScreen implements OnInit {
 
   toggle(): void {
     this.showForm.update((v) => !v);
+  }
+
+  openQrModal(): void {
+    this.qrModalOpen.set(true);
+    this.copied.set(false);
+  }
+
+  closeQrModal(): void {
+    this.qrModalOpen.set(false);
+  }
+
+  copyPublicLink(): void {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(this.publicUrl());
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2500);
+    }
+  }
+
+  printQrSheet(): void {
+    const url = this.publicUrl();
+    const qrImg = this.qrImageUrl();
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <title>Cartel QR - Solicitud de Préstamos Coraza C.T.A.</title>
+          <style>
+            * { box-sizing: border-box; font-family: system-ui, sans-serif; }
+            body { padding: 40px; text-align: center; color: #0f172a; }
+            .card {
+              max-width: 500px; margin: 0 auto; border: 3px solid #1e3a8a;
+              border-radius: 20px; padding: 30px;
+            }
+            h1 { font-size: 22px; color: #1e3a8a; margin: 0; }
+            h2 { font-size: 16px; color: #475569; margin: 5px 0 20px; font-weight: normal; }
+            img { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
+            .inst { font-size: 14px; font-weight: bold; color: #1e3a8a; margin-top: 15px; }
+            .desc { font-size: 12px; color: #64748b; margin-top: 5px; }
+            .url { font-size: 11px; color: #2563eb; margin-top: 15px; word-break: break-all; }
+            @media print { body { padding: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <h1>CORAZA SEGURIDAD C.T.A.</h1>
+            <h2>Sistema de Gestión Documental · Archivo Central</h2>
+            <img src="${qrImg}" alt="QR" />
+            <div class="inst">ESCANEA ESTE CÓDIGO QR CON TU CELULAR</div>
+            <div class="desc">Para radicar solicitudes de préstamo y consulta de expedientes físicos sin iniciar sesión.</div>
+            <div class="url">${url}</div>
+          </div>
+          <script>
+            setTimeout(() => { window.print(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
   }
 
   private load(): void {
@@ -109,7 +675,15 @@ export class LoansScreen implements OnInit {
       next: () => {
         this.saving.set(false);
         this.showForm.set(false);
-        this.model = { requester: '', department: '', document: '', documentCode: '', loanDate: '', returnDate: '' };
+        this.model = {
+          requester: '',
+          department: '',
+          document: '',
+          documentCode: '',
+          email: '',
+          loanDate: new Date().toISOString().slice(0, 10),
+          returnDate: '',
+        };
         this.load();
       },
       error: () => {
@@ -124,11 +698,26 @@ export class LoansScreen implements OnInit {
   }
 
   reject(l: Loan): void {
-    const motivo = window.prompt('Motivo de rechazo:') ?? '';
+    const motivo = window.prompt('Motivo de rechazo de la solicitud:') ?? '';
     this.api.rejectLoan(l.id, motivo).subscribe({ next: () => this.load() });
   }
 
   ret(l: Loan): void {
     this.api.returnLoan(l.id).subscribe({ next: () => this.load() });
+  }
+
+  sendEmailReminder(l: Loan): void {
+    if (!l.email) return;
+    this.api.sendLoanReminder(l.id).subscribe({
+      next: (res) => {
+        this.emailStatusMsg.set(`📧 Correo de recordatorio enviado a ${l.email} desde Documental@corazaseguridadcta.com`);
+        this.load();
+        setTimeout(() => this.emailStatusMsg.set(null), 5000);
+      },
+      error: () => {
+        this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
+        setTimeout(() => this.emailStatusMsg.set(null), 4000);
+      },
+    });
   }
 }

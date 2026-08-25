@@ -24,7 +24,7 @@ async function main() {
     '..',
     'supabase',
     'migrations',
-    '029b_tenant_id_default.sql',
+    '040b_tenant_id_default.sql',
   );
   const client = new Client({
     connectionString: url,
@@ -35,7 +35,7 @@ async function main() {
   });
   await client.connect();
   try {
-    console.log('→ 029b_tenant_id_default.sql');
+    console.log('→ 040b_tenant_id_default.sql');
     await client.query(fs.readFileSync(file, 'utf8'));
     console.log('✓ DEFAULT tenant_id aplicado');
   } finally {

@@ -25,7 +25,7 @@ async function main() {
     '..',
     'supabase',
     'migrations',
-    '029_multi_tenant_foundation.sql',
+    '040_multi_tenant_foundation.sql',
   );
   if (!fs.existsSync(file)) {
     console.error('No existe', file);
@@ -41,7 +41,7 @@ async function main() {
   });
   await client.connect();
   try {
-    console.log('→ 029_multi_tenant_foundation.sql');
+    console.log('→ 040_multi_tenant_foundation.sql');
     await client.query(fs.readFileSync(file, 'utf8'));
     console.log('✓ Migración multi-tenant aplicada');
   } finally {

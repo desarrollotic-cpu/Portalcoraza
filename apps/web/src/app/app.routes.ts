@@ -7,6 +7,13 @@ import { MainLayout } from './layouts/main-layout/main-layout';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
+    path: 'solicitud-prestamo',
+    loadComponent: () =>
+      import('./features/documental/public-loan-request/public-loan-request').then(
+        (m) => m.PublicLoanRequestComponent,
+      ),
+  },
+  {
     path: 'auth',
     component: AuthLayout,
     children: [
@@ -24,7 +31,23 @@ export const routes: Routes = [
     children: [
       {
         path: 'dashboard',
+        canActivate: [permissionGuard],
+        data: { permission: 'users.view' },
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'nomina',
+        canActivate: [permissionGuard],
+        data: { permission: 'payroll.view' },
+        loadComponent: () =>
+          import('./features/payroll/payroll-periods').then((m) => m.PayrollPeriodsComponent),
+      },
+      {
+        path: 'contabilidad',
+        canActivate: [permissionGuard],
+        data: { permission: 'accounting.view' },
+        loadComponent: () =>
+          import('./features/accounting/puc-list').then((m) => m.PucListComponent),
       },
       {
         // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
@@ -307,12 +330,7 @@ export const routes: Routes = [
           {
             path: '',
             pathMatch: 'full',
-            canActivate: [permissionGuard],
-            data: { permission: 'scheduling.view' },
-            loadComponent: () =>
-              import('./features/programacion/programacion-panel/programacion-panel').then(
-                (m) => m.ProgramacionPanel,
-              ),
+            redirectTo: 'cuadro',
           },
           {
             path: 'matriz',
@@ -330,6 +348,24 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/programacion/schedule-board/schedule-board').then(
                 (m) => m.ScheduleBoard,
+              ),
+          },
+          {
+            path: 'recargos',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-recargos/programacion-recargos').then(
+                (m) => m.ProgramacionRecargos,
+              ),
+          },
+          {
+            path: 'alertas',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/programacion-alertas/programacion-alertas').then(
+                (m) => m.ProgramacionAlertas,
               ),
           },
         ],
@@ -403,13 +439,11 @@ export const routes: Routes = [
           },
           {
             path: 'workflows',
-            loadComponent: () =>
-              import('./features/documental/workflows/workflows').then((m) => m.WorkflowsScreen),
+            redirectTo: 'correspondencia',
           },
           {
             path: 'trd',
-            loadComponent: () =>
-              import('./features/documental/retention/retention').then((m) => m.RetentionScreen),
+            redirectTo: 'correspondencia',
           },
         ],
       },
@@ -439,6 +473,15 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/operaciones/puestos-list/puestos-list').then(
                 (m) => m.PuestosList,
+              ),
+          },
+          {
+            path: 'minutas',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import('./features/operaciones/minutas-list/minutas-list').then(
+                (m) => m.MinutasList,
               ),
           },
         ],
@@ -488,6 +531,97 @@ export const routes: Routes = [
               import('./features/reception/reception-history/reception-history').then(
                 (m) => m.ReceptionHistory,
               ),
+          },
+        ],
+      },
+      {
+        path: 'minutas',
+        canActivate: [permissionGuard],
+        data: { permission: 'minuta.view' },
+        loadComponent: () =>
+          import('./features/minuta/minuta-layout/minuta-layout').then((m) => m.MinutaLayout),
+        children: [
+          {
+            path: '',
+            pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.view' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-inicio/minuta-inicio').then((m) => m.MinutaInicio),
+          },
+          {
+            path: 'nuevo',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.create' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-nuevo/minuta-nuevo').then((m) => m.MinutaNuevo),
+          },
+          {
+            path: 'historial',
+            canActivate: [permissionGuard],
+            data: { permission: 'minuta.view' },
+            loadComponent: () =>
+              import('./features/minuta/minuta-historial/minuta-historial').then(
+                (m) => m.MinutaHistorial,
+              ),
+          },
+        ],
+      },
+      {
+        path: 'sig',
+        canActivate: [permissionGuard],
+        data: { permission: 'sig.view' },
+        loadComponent: () =>
+          import('./features/sig/sig-home/sig-home').then((m) => m.SigHome),
+      },
+      {
+        path: 'sst',
+        canActivate: [permissionGuard],
+        data: { permission: 'sst.view' },
+        loadComponent: () =>
+          import('./features/sst/sst-layout/sst-layout').then((m) => m.SstLayout),
+        children: [
+          { path: '', redirectTo: 'panel', pathMatch: 'full' },
+          {
+            path: 'panel',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-panel/sst-panel').then((m) => m.SstPanel),
+          },
+          {
+            path: 'inspecciones/nueva',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.inspect' },
+            loadComponent: () =>
+              import('./features/sst/sst-inspection-new/sst-inspection-new').then(
+                (m) => m.SstInspectionNew,
+              ),
+          },
+          {
+            path: 'inspecciones/:id',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-inspection-detail/sst-inspection-detail').then(
+                (m) => m.SstInspectionDetail,
+              ),
+          },
+          {
+            path: 'planes',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-action-plans/sst-action-plans').then(
+                (m) => m.SstActionPlans,
+              ),
+          },
+          {
+            path: 'puestos',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.manage' },
+            loadComponent: () =>
+              import('./features/sst/sst-sites/sst-sites').then((m) => m.SstSites),
           },
         ],
       },

@@ -27,4 +27,9 @@ export class CreateLoanDto {
   @IsOptional()
   @IsDateString()
   returnDate?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  email?: string;
 }

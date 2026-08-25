@@ -1,5 +1,5 @@
 /**
- * Aplica 030_multi_tenant_rls.sql
+ * Aplica 041_multi_tenant_rls.sql
  * Uso: npm run db:apply-multi-tenant-rls -w @coraza/api
  */
 import * as dns from 'dns';
@@ -24,7 +24,7 @@ async function main() {
     '..',
     'supabase',
     'migrations',
-    '030_multi_tenant_rls.sql',
+    '041_multi_tenant_rls.sql',
   );
   const client = new Client({
     connectionString: url,
@@ -35,7 +35,7 @@ async function main() {
   });
   await client.connect();
   try {
-    console.log('→ 030_multi_tenant_rls.sql');
+    console.log('→ 041_multi_tenant_rls.sql');
     await client.query(fs.readFileSync(file, 'utf8'));
     console.log('✓ RLS multi-tenant aplicado');
   } finally {

@@ -1,6 +1,6 @@
 # Módulo Operaciones
 
-**Fecha:** 2026-08-11
+**Fecha:** 2026-08-19
 
 ## Alcance inicial
 
@@ -31,6 +31,12 @@ Reutiliza `PostsModule` existente:
 
 Los **centros de trabajo** en RRHH (`/rrhh/admin/centros`) siguen sincronizando a `posts` vía `syncFromWorkCenter`.  
 El catálogo operativo principal para Programación vive en **Operaciones → Puestos**.
+
+**Cargado (2026-08-19):** 226 puestos operativos en `posts` (códigos `MED-####`, UUID de la app de programación). No se modificaron usuarios/roles. No hay cruce de código con los 33 centros de trabajo RRHH; el vínculo `work_center_id` quedó vacío.
+
+El formulario de puesto incluye, además de código/nombre/tipo/estado/cliente/dirección/notas: **zona, contacto, teléfono, prioridad, n.º contrato, tipo de servicio, armamento, requisitos e instrucciones**.
+
+**Programación:** cargada desde la app antigua en **borrador** — abr–nov 2026 (agosto verificado 1:1). Mes inválido `2027-0` omitido. Algunos vigilantes no cruzan por cédula con asociados RRHH.
 
 ## UI
 

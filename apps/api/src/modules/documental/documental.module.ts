@@ -27,6 +27,7 @@ import { RetiredPersonnel } from './entities/retired-personnel.entity';
 import { Workflow } from './entities/workflow.entity';
 import { ContractsService } from './services/contracts.service';
 import { CorrespondenceService } from './services/correspondence.service';
+import { DocumentalMailService } from './services/documental-mail.service';
 import { LibraryService } from './services/library.service';
 import { LoansService } from './services/loans.service';
 import { MinutesService } from './services/minutes.service';
@@ -77,7 +78,8 @@ import { WorkflowsService } from './services/workflows.service';
     LibraryService,
     WorkflowsService,
     OverviewService,
+    DocumentalMailService,
   ],
-  exports: [DocumentalService],
+  exports: [DocumentalService, OverviewService, DocumentalMailService],
 })
 export class DocumentalModule {}

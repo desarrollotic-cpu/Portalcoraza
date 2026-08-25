@@ -25,22 +25,35 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
-        <label>Tipo de minuta
+        <label>
+          Tipo de Minuta *
           <select [(ngModel)]="model.minuteType" name="minuteType" required>
-            <option value="SERVICIO">Servicio</option>
-            <option value="VISITANTES">Visitantes</option>
-            <option value="CORRESPONDENCIA">Correspondencia</option>
+            <option value="SERVICIO">⚙️ SERVICIO — Minuta de Puesto de Vigilancia</option>
+            <option value="VISITANTES">📋 VISITANTES — Control de Ingreso y Accesos</option>
+            <option value="CORRESPONDENCIA">📧 CORRESPONDENCIA — Paquetería y Sobres</option>
           </select>
         </label>
-        <label>Puesto<input [(ngModel)]="model.postName" name="postName" /></label>
-        <label>Fecha inicio<input type="date" [(ngModel)]="model.startDate" name="startDate" /></label>
-        <label>Fecha cierre<input type="date" [(ngModel)]="model.closeDate" name="closeDate" /></label>
-        <label>Ubicación VOXELSERA
-          <input [(ngModel)]="model.voxelsera" name="voxelsera" placeholder="VOXEL_A1 / A-1" />
+        <label>Nombre del Puesto de Vigilancia *<input [(ngModel)]="model.postName" name="postName" required placeholder="Ej: Puesto Central, Torre Norte, Shangrila..." /></label>
+        <label>Fecha Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
+        <label>Fecha Cierre *<input type="date" [(ngModel)]="model.closeDate" name="closeDate" required /></label>
+        <label>
+          Ubicación en Archivo (Voxelsera) *
+          <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
+            <option value="">-- Selecciona una casilla obligatoria * --</option>
+            <option value="VOXEL_A1">📋 Estante A — Casilla A1 (Minutas)</option>
+            <option value="VOXEL_A2">📋 Estante A — Casilla A2 (Minutas)</option>
+            <option value="VOXEL_A3">📋 Estante A — Casilla A3 (Minutas)</option>
+            <option value="VOXEL_A4">📋 Estante A — Casilla A4 (Minutas)</option>
+            <option value="VOXEL_A5">📋 Estante A — Casilla A5 (Minutas)</option>
+            <option value="VOXEL_A6">📋 Estante A — Casilla A6 (Minutas)</option>
+            <option value="VOXEL_A7">📋 Estante A — Casilla A7 (Minutas)</option>
+            <option value="VOXEL_A8">📋 Estante A — Casilla A8 (Minutas)</option>
+            <option value="VOXEL_A9">📋 Estante A — Casilla A9 (Minutas)</option>
+          </select>
         </label>
-        <label class="full">Observaciones<textarea [(ngModel)]="model.observations" name="observations" rows="2"></textarea></label>
+        <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Minuta</button>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
       </form>
@@ -140,6 +153,17 @@ export class MinutesScreen implements OnInit {
   }
 
   save(): void {
+    if (
+      !this.model.minuteType ||
+      !this.model.postName?.trim() ||
+      !this.model.startDate ||
+      !this.model.closeDate ||
+      !this.model.voxelsera
+    ) {
+      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Tipo, Puesto, Fecha Inicio, Fecha Cierre y Ubicación en Estante.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
     const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));

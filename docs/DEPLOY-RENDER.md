@@ -46,10 +46,10 @@ En **Render Dashboard** → servicio `portalcoraza-web` → **Redirects/Rewrites
 | Destination Path | `/index.html` |
 | Action | `Rewrite` |
 
-Sin esa regla, `https://portalcoraza-web.onrender.com/auth/login` devuelve **Not Found**.  
-La raíz `/` sí carga, pero las rutas profundas no.
+Sin esa regla, rutas como `/auth/login` o `/sst/panel` devuelven **Not Found**.  
+La raíz `/` sí carga; también sirven las rutas pregeneradas por `apps/web/scripts/spa-fallback-pages.js` tras el build.
 
-> Mientras esa regla no esté en el Dashboard, el frontend usa **HashLocation** (`/#/auth/login`) para que el portal funcione igual.
+> Recomendado: deja la rewrite `/*` → `/index.html` en el Dashboard. El script de fallback cubre las rutas principales si la rewrite aún no está.
 
 ### Después del deploy del frontend
 

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideBriefcaseBusiness, LucideMapPin } from '@lucide/angular';
+import { LucideBriefcaseBusiness, LucideClipboardList, LucideMapPin } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -30,6 +30,13 @@ export class OperacionesLayout {
       route: '/operaciones/puestos',
       permission: 'posts.view',
       icon: LucideMapPin,
+      exact: true,
+    },
+    {
+      label: 'Minutas',
+      route: '/operaciones/minutas',
+      permission: 'posts.view',
+      icon: LucideClipboardList,
       exact: true,
     },
   ];

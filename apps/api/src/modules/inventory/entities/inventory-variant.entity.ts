@@ -4,10 +4,12 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { InventoryItem } from './inventory-item.entity';
+import { InventoryStock } from './inventory-stock.entity';
 
 @Entity('inventory_variants')
 export class InventoryVariant {
@@ -40,6 +42,9 @@ export class InventoryVariant {
 
   @Column({ name: 'stock_current', type: 'int', default: 0 })
   stockCurrent!: number;
+
+  @OneToMany(() => InventoryStock, (s) => s.variant)
+  stocks?: InventoryStock[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

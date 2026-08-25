@@ -12,6 +12,8 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
+import { Permission } from '../src/modules/permissions/entities/permission.entity';
+import { RolePermission } from '../src/modules/roles/entities/role-permission.entity';
 import { Role } from '../src/modules/roles/entities/role.entity';
 import { User } from '../src/modules/users/entities/user.entity';
 
@@ -22,7 +24,7 @@ async function main() {
   const ds = new DataSource({
     type: 'postgres',
     url: process.env.DATABASE_URL,
-    entities: [Role, User],
+    entities: [Role, User, RolePermission, Permission],
     ssl: (process.env.DATABASE_URL?.includes('supabase') || process.env.DATABASE_URL?.includes('pooler'))
       ? { rejectUnauthorized: false }
       : false,
@@ -36,6 +38,20 @@ async function main() {
   if (!role) {
     throw new Error('Ejecuta primero supabase/seed/001_roles_permissions.sql');
   }
+
+  // Siempre re-sincroniza: permisos nuevos (inventario, etc.) no quedan fuera de Gerencia.
+  const sync = await ds.query(
+    `
+    INSERT INTO role_permissions (role_id, permission_id)
+    SELECT r.id, p.id
+    FROM roles r
+    CROSS JOIN permissions p
+    WHERE r.code = 'GERENCIA'
+    ON CONFLICT DO NOTHING
+    RETURNING permission_id
+    `,
+  );
+  console.log(`GERENCIA: +${sync.length} permisos sincronizados (todos los del catálogo)`);
 
   const existing = await users.findOne({ where: { email } });
   if (existing) {

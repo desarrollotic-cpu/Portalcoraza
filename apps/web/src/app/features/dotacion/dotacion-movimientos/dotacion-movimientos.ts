@@ -4,7 +4,16 @@ import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Delivery, InventoryApiService, InventoryMovement } from '../inventory-api.service';
 
-type ActivityKind = 'MOVEMENT_IN' | 'MOVEMENT_OUT' | 'MOVEMENT_ADJ' | 'DELIVERY' | 'REVERT' | 'PENDING';
+type ActivityKind =
+  | 'MOVEMENT_IN'
+  | 'MOVEMENT_OUT'
+  | 'MOVEMENT_ADJ'
+  | 'MOVEMENT_TRANSFER'
+  | 'CATALOG_CREATE'
+  | 'CATALOG_UPDATE'
+  | 'DELIVERY'
+  | 'REVERT'
+  | 'PENDING';
 
 interface ActivityRow {
   id: string;
@@ -40,6 +49,8 @@ interface ActivityRow {
             <select [value]="filterKind()" (change)="onFilterKind($event)">
               <option value="ALL">Todos</option>
               <option value="MOVEMENT">Movimientos de stock</option>
+              <option value="TRANSFER">Traslados</option>
+              <option value="CATALOG">Alta / edición de elementos</option>
               <option value="DELIVERY">Entregas</option>
               <option value="REVERT">Reversiones</option>
             </select>
@@ -99,7 +110,9 @@ export class DotacionMovimientos implements OnInit {
 
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly filterKind = signal<'ALL' | 'MOVEMENT' | 'DELIVERY' | 'REVERT'>('ALL');
+  readonly filterKind = signal<
+    'ALL' | 'MOVEMENT' | 'TRANSFER' | 'CATALOG' | 'DELIVERY' | 'REVERT'
+  >('ALL');
   readonly rows = signal<ActivityRow[]>([]);
 
   readonly filteredRows = computed(() => {
@@ -107,7 +120,13 @@ export class DotacionMovimientos implements OnInit {
     const all = this.rows();
     if (kind === 'ALL') return all;
     if (kind === 'MOVEMENT') {
-      return all.filter((r) => r.kind.startsWith('MOVEMENT_'));
+      return all.filter((r) => r.kind === 'MOVEMENT_IN' || r.kind === 'MOVEMENT_OUT' || r.kind === 'MOVEMENT_ADJ');
+    }
+    if (kind === 'TRANSFER') {
+      return all.filter((r) => r.kind === 'MOVEMENT_TRANSFER');
+    }
+    if (kind === 'CATALOG') {
+      return all.filter((r) => r.kind === 'CATALOG_CREATE' || r.kind === 'CATALOG_UPDATE');
     }
     if (kind === 'DELIVERY') {
       return all.filter((r) => r.kind === 'DELIVERY' || r.kind === 'PENDING');
@@ -132,7 +151,13 @@ export class DotacionMovimientos implements OnInit {
   }
 
   onFilterKind(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value as 'ALL' | 'MOVEMENT' | 'DELIVERY' | 'REVERT';
+    const value = (event.target as HTMLSelectElement).value as
+      | 'ALL'
+      | 'MOVEMENT'
+      | 'TRANSFER'
+      | 'CATALOG'
+      | 'DELIVERY'
+      | 'REVERT';
     this.filterKind.set(value);
   }
 
@@ -140,6 +165,8 @@ export class DotacionMovimientos implements OnInit {
     if (kind === 'MOVEMENT_IN') return 'dot-badge dot-badge--in';
     if (kind === 'MOVEMENT_OUT') return 'dot-badge dot-badge--out';
     if (kind === 'MOVEMENT_ADJ') return 'dot-badge dot-badge--adj';
+    if (kind === 'MOVEMENT_TRANSFER') return 'dot-badge dot-badge--adj';
+    if (kind === 'CATALOG_CREATE' || kind === 'CATALOG_UPDATE') return 'dot-badge';
     if (kind === 'DELIVERY') return 'dot-badge dot-badge--delivered';
     if (kind === 'REVERT') return 'dot-badge dot-badge--reverted';
     return 'dot-badge dot-badge--pending';
@@ -150,6 +177,9 @@ export class DotacionMovimientos implements OnInit {
       MOVEMENT_IN: 'Ingreso',
       MOVEMENT_OUT: 'Salida',
       MOVEMENT_ADJ: 'Ajuste',
+      MOVEMENT_TRANSFER: 'Traslado',
+      CATALOG_CREATE: 'Alta elemento',
+      CATALOG_UPDATE: 'Edición elemento',
       DELIVERY: 'Entrega',
       REVERT: 'Reversión',
       PENDING: 'Pendiente',
@@ -159,26 +189,37 @@ export class DotacionMovimientos implements OnInit {
 
   private buildTimeline(movements: InventoryMovement[], deliveries: Delivery[]): ActivityRow[] {
     const movementRows: ActivityRow[] = movements.map((m) => {
-      const itemName = m.variant?.item?.name ?? m.variant?.sku ?? 'Variante';
+      const itemName = m.variant?.item?.name ?? m.variant?.sku ?? m.observations ?? 'Elemento';
       const attrs = m.variant?.attributes ? this.formatAttributes(m.variant.attributes) : '';
       const kind: ActivityKind =
         m.movementType === 'IN'
           ? 'MOVEMENT_IN'
           : m.movementType === 'OUT'
             ? 'MOVEMENT_OUT'
-            : 'MOVEMENT_ADJ';
+            : m.movementType === 'TRANSFER'
+              ? 'MOVEMENT_TRANSFER'
+              : m.movementType === 'CREATE'
+                ? 'CATALOG_CREATE'
+                : m.movementType === 'UPDATE'
+                  ? 'CATALOG_UPDATE'
+                  : 'MOVEMENT_ADJ';
+
+      const warehouseBit =
+        m.movementType === 'TRANSFER' && m.warehouseName && m.destWarehouseName
+          ? `${m.warehouseName} → ${m.destWarehouseName}`
+          : m.warehouseName ?? '';
 
       return {
         id: `mov-${m.id}`,
         date: m.createdAt,
         kind,
-        summary: `${itemName}${attrs ? ` (${attrs})` : ''}`,
+        summary: `${itemName}${attrs ? ` (${attrs})` : ''}${warehouseBit ? ` · ${warehouseBit}` : ''}`,
         detail:
           [m.entryReason, m.observations].filter(Boolean).join(' — ') ||
           m.reason?.trim() ||
-          'Movimiento manual',
+          'Movimiento',
         performer: m.performedByName ?? null,
-        quantity: m.quantity,
+        quantity: m.quantity || null,
         link: null,
       };
     });

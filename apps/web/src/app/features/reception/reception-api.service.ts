@@ -34,6 +34,7 @@ export interface ReceptionVisitor {
   exitNotes: string | null;
   exitedBy: string | null;
   notes: string | null;
+  isAssociate: boolean;
   isInside: boolean;
   createdAt: string;
   updatedAt: string;
@@ -87,6 +88,13 @@ export class ReceptionApiService {
 
   register(payload: RegisterReceptionVisitorPayload): Observable<ReceptionVisitor> {
     return this.http.post<ReceptionVisitor>(`${this.baseUrl}/visitors`, payload);
+  }
+
+  lookupAssociate(document: string): Observable<{ isAssociate: boolean; label: string }> {
+    return this.http.get<{ isAssociate: boolean; label: string }>(
+      `${this.baseUrl}/visitors/lookup-associate`,
+      { params: { document } },
+    );
   }
 
   registerExit(id: string, exitNotes?: string): Observable<ReceptionVisitor> {

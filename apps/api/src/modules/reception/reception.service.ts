@@ -6,6 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import PDFDocument = require('pdfkit');
 import { IsNull, Repository } from 'typeorm';
+import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
 import { ExitReceptionVisitorDto } from './dto/exit-visitor.dto';
 import { RegisterReceptionVisitorDto } from './dto/register-visitor.dto';
@@ -26,13 +27,18 @@ const LIST_COLUMNS: (keyof ReceptionVisitor)[] = [
   'transportMeans',
   'travelTimeMinutes',
   'exitAt',
+  'isAssociate',
 ];
+
+const ASSOCIATE_MATCH_STATUSES = [AssociateStatus.ACTIVO, AssociateStatus.VACACIONES];
 
 @Injectable()
 export class ReceptionService {
   constructor(
     @InjectRepository(ReceptionVisitor)
     private readonly visitorsRepo: Repository<ReceptionVisitor>,
+    @InjectRepository(Associate)
+    private readonly associatesRepo: Repository<Associate>,
     private readonly audit: AuditService,
   ) {}
 
@@ -40,9 +46,9 @@ export class ReceptionService {
     const bounds = this.bogotaBounds();
     const tz = 'America/Bogota';
 
-    const [statsRow, byDay, inside, todayList] = await Promise.all([
-      this.visitorsRepo.query(
-        `
+    // Secuencial a propósito (pooler Supabase session ~5).
+    const statsRow = (await this.visitorsRepo.query(
+      `
         SELECT
           (SELECT COUNT(*)::int FROM reception_visitors WHERE exit_at IS NULL) AS inside_now,
           (SELECT COUNT(*)::int FROM reception_visitors
@@ -54,25 +60,24 @@ export class ReceptionService {
           (SELECT COUNT(*)::int FROM reception_visitors
             WHERE entry_at >= $5 AND entry_at < $6) AS year_entries
         `,
-        [
-          bounds.dayStart,
-          bounds.dayEnd,
-          bounds.monthStart,
-          bounds.monthEnd,
-          bounds.yearStart,
-          bounds.yearEnd,
-        ],
-      ) as Promise<
-        {
-          inside_now: number;
-          today_entries: number;
-          today_still_inside: number;
-          month_entries: number;
-          year_entries: number;
-        }[]
-      >,
-      this.visitorsRepo.query(
-        `
+      [
+        bounds.dayStart,
+        bounds.dayEnd,
+        bounds.monthStart,
+        bounds.monthEnd,
+        bounds.yearStart,
+        bounds.yearEnd,
+      ],
+    )) as {
+      inside_now: number;
+      today_entries: number;
+      today_still_inside: number;
+      month_entries: number;
+      year_entries: number;
+    }[];
+
+    const byDay = (await this.visitorsRepo.query(
+      `
         SELECT
           (entry_at AT TIME ZONE $1)::date::text AS day,
           COUNT(*)::int AS entries
@@ -81,39 +86,41 @@ export class ReceptionService {
         GROUP BY 1
         ORDER BY 1 ASC
         `,
-        [tz, bounds.days14Start, bounds.dayEnd],
-      ) as Promise<{ day: string; entries: number }[]>,
-      this.visitorsRepo.find({
-        select: LIST_COLUMNS,
-        where: { exitAt: IsNull() },
-        order: { entryAt: 'DESC' },
-        take: 50,
-      }),
-      this.visitorsRepo
-        .createQueryBuilder('v')
-        .select([
-          'v.id',
-          'v.documentNumber',
-          'v.firstSurname',
-          'v.secondSurname',
-          'v.firstName',
-          'v.secondName',
-          'v.originPlace',
-          'v.visitReason',
-          'v.entryAt',
-          'v.authorizedBy',
-          'v.transportMeans',
-          'v.travelTimeMinutes',
-          'v.exitAt',
-        ])
-        .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
-          dayStart: bounds.dayStart,
-          dayEnd: bounds.dayEnd,
-        })
-        .orderBy('v.entry_at', 'DESC')
-        .take(100)
-        .getMany(),
-    ]);
+      [tz, bounds.days14Start, bounds.dayEnd],
+    )) as { day: string; entries: number }[];
+
+    const inside = await this.visitorsRepo.find({
+      select: LIST_COLUMNS,
+      where: { exitAt: IsNull() },
+      order: { entryAt: 'DESC' },
+      take: 50,
+    });
+
+    const todayList = await this.visitorsRepo
+      .createQueryBuilder('v')
+      .select([
+        'v.id',
+        'v.documentNumber',
+        'v.firstSurname',
+        'v.secondSurname',
+        'v.firstName',
+        'v.secondName',
+        'v.originPlace',
+        'v.visitReason',
+        'v.entryAt',
+        'v.authorizedBy',
+        'v.transportMeans',
+        'v.travelTimeMinutes',
+        'v.exitAt',
+        'v.isAssociate',
+      ])
+      .where('v.entry_at >= :dayStart AND v.entry_at < :dayEnd', {
+        dayStart: bounds.dayStart,
+        dayEnd: bounds.dayEnd,
+      })
+      .orderBy('v.entry_at', 'DESC')
+      .take(100)
+      .getMany();
 
     const row = statsRow[0] ?? {};
 
@@ -130,6 +137,122 @@ export class ReceptionService {
       last14Days: this.fillLast14Days(byDay, bounds),
       insideNow: inside.map((v) => this.toDto(v)),
       today: todayList.map((v) => this.toDto(v)),
+    };
+  }
+
+  /** Insights extra para el command-center (ayer + pico horario + series). Secuencial. */
+  async getCommandInsights(seriesDays = 14) {
+    const bounds = this.bogotaBounds();
+    const tz = 'America/Bogota';
+    const days = Math.min(Math.max(seriesDays, 1), 60);
+    const yesterdayStart = new Date(bounds.dayStart.getTime() - 24 * 60 * 60 * 1000);
+    const days7Start = new Date(bounds.dayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+    const seriesStart = new Date(bounds.dayStart.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+    const prevPeriodStart = new Date(seriesStart.getTime() - days * 24 * 60 * 60 * 1000);
+
+    const yesterdayRows = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [yesterdayStart, bounds.dayStart],
+    )) as { n: number }[];
+
+    const yesterdayExits = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE exit_at IS NOT NULL AND exit_at >= $1 AND exit_at < $2
+      `,
+      [yesterdayStart, bounds.dayStart],
+    )) as { n: number }[];
+
+    const todayExits = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE exit_at IS NOT NULL AND exit_at >= $1 AND exit_at < $2
+      `,
+      [bounds.dayStart, bounds.dayEnd],
+    )) as { n: number }[];
+
+    const periodEntries = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [seriesStart, bounds.dayEnd],
+    )) as { n: number }[];
+
+    const prevPeriodEntries = (await this.visitorsRepo.query(
+      `
+        SELECT COUNT(*)::int AS n
+        FROM reception_visitors
+        WHERE entry_at >= $1 AND entry_at < $2
+      `,
+      [prevPeriodStart, seriesStart],
+    )) as { n: number }[];
+
+    const byDay = (await this.visitorsRepo.query(
+      `
+        SELECT (entry_at AT TIME ZONE $1)::date::text AS day,
+               COUNT(*)::int AS entries
+        FROM reception_visitors
+        WHERE entry_at >= $2 AND entry_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, seriesStart, bounds.dayEnd],
+    )) as { day: string; entries: number }[];
+
+    const byHour = (await this.visitorsRepo.query(
+      `
+        SELECT EXTRACT(HOUR FROM (entry_at AT TIME ZONE $1))::int AS hour,
+               COUNT(*)::int AS entries
+        FROM reception_visitors
+        WHERE entry_at >= $2 AND entry_at < $3
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
+      [tz, days7Start, bounds.dayEnd],
+    )) as { hour: number; entries: number }[];
+
+    const hourMap = new Map(byHour.map((r) => [Number(r.hour), Number(r.entries) || 0]));
+    const hourly = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      entries: hourMap.get(hour) ?? 0,
+    }));
+    const peak = hourly.reduce(
+      (best, cur) => (cur.entries > best.entries ? cur : best),
+      { hour: 0, entries: 0 },
+    );
+
+    const dayMap = new Map(byDay.map((r) => [r.day, Number(r.entries) || 0]));
+    const dailySeries: { day: string; entries: number }[] = [];
+    for (let i = 0; i < days; i++) {
+      const t = new Date(seriesStart.getTime() + i * 24 * 60 * 60 * 1000);
+      const day = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Bogota',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(t);
+      dailySeries.push({ day, entries: dayMap.get(day) ?? 0 });
+    }
+
+    return {
+      yesterdayEntries: Number(yesterdayRows[0]?.n ?? 0),
+      yesterdayExits: Number(yesterdayExits[0]?.n ?? 0),
+      todayExits: Number(todayExits[0]?.n ?? 0),
+      periodEntries: Number(periodEntries[0]?.n ?? 0),
+      previousPeriodEntries: Number(prevPeriodEntries[0]?.n ?? 0),
+      seriesDays: days,
+      dailySeries,
+      hourlyLast7Days: hourly,
+      peakHour: peak.entries > 0 ? peak.hour : null,
+      peakEntries: peak.entries,
     };
   }
 
@@ -154,10 +277,17 @@ export class ReceptionService {
     return rows.map((v) => this.toDto(v));
   }
 
+  async lookupAssociate(document?: string) {
+    const isAssociate = await this.resolveIsAssociate(document);
+    return { isAssociate, label: isAssociate ? 'Asociado' : 'Visitante' };
+  }
+
   async register(dto: RegisterReceptionVisitorDto, userId: string) {
+    const documentNumber = this.trimOrNull(dto.documentNumber);
+    const isAssociate = await this.resolveIsAssociate(documentNumber);
     const saved = await this.visitorsRepo.save(
       this.visitorsRepo.create({
-        documentNumber: this.trimOrNull(dto.documentNumber),
+        documentNumber,
         firstSurname: this.trimOrNull(dto.firstSurname),
         secondSurname: this.trimOrNull(dto.secondSurname),
         firstName: this.trimOrNull(dto.firstName),
@@ -177,6 +307,7 @@ export class ReceptionService {
             ? null
             : Number(dto.travelTimeMinutes),
         notes: this.trimOrNull(dto.notes),
+        isAssociate,
         exitAt: null,
       }),
     );
@@ -271,6 +402,7 @@ export class ReceptionService {
         .text(
           [
             dto.documentNumber ? `C.C. ${dto.documentNumber}` : null,
+            dto.isAssociate ? 'Tipo: Asociado' : 'Tipo: Visitante',
             `Ingreso: ${this.formatDateTime(v.entryAt)}`,
             v.exitAt ? `Salida: ${this.formatDateTime(v.exitAt)}` : 'Salida: sin registrar',
             v.exitAt ? `Permanencia: ${this.durationLabel(v.entryAt, v.exitAt)}` : null,
@@ -396,6 +528,29 @@ export class ReceptionService {
     }
   }
 
+  private digitsOnly(value: string | null | undefined): string {
+    return String(value ?? '').replace(/\D/g, '');
+  }
+
+  private async resolveIsAssociate(document?: string | null): Promise<boolean> {
+    const digits = this.digitsOnly(document);
+    if (!digits) return false;
+
+    const hit = await this.associatesRepo
+      .createQueryBuilder('a')
+      .select(['a.id'])
+      .where('a.status IN (:...statuses)', { statuses: ASSOCIATE_MATCH_STATUSES })
+      .andWhere(
+        `(regexp_replace(COALESCE(a.document_number, ''), '[^0-9]', '', 'g') = :digits
+          OR a.document_number = :raw)`,
+        { digits, raw: String(document ?? '').trim() },
+      )
+      .limit(1)
+      .getOne();
+
+    return !!hit;
+  }
+
   private trimOrNull(v?: string | null): string | null {
     const t = v?.trim();
     return t ? t : null;
@@ -432,6 +587,7 @@ export class ReceptionService {
       exitNotes: v.exitNotes ?? null,
       exitedBy: v.exitedBy ?? null,
       notes: v.notes ?? null,
+      isAssociate: !!v.isAssociate,
       isInside: !v.exitAt,
       createdAt: v.createdAt ?? v.entryAt,
       updatedAt: v.updatedAt ?? v.entryAt,

@@ -7,11 +7,13 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { InventoryVariant } from './inventory-variant.entity';
+import { InventoryWarehouse } from './inventory-warehouse.entity';
 
 export enum InventoryMovementType {
   IN = 'IN',
   OUT = 'OUT',
   ADJ = 'ADJ',
+  TRANSFER = 'TRANSFER',
 }
 
 @Entity('inventory_movements')
@@ -28,7 +30,7 @@ export class InventoryMovement {
   @JoinColumn({ name: 'variant_id' })
   variant!: InventoryVariant;
 
-  @Column({ name: 'movement_type', type: 'varchar', length: 10 })
+  @Column({ name: 'movement_type', type: 'varchar', length: 12 })
   movementType!: InventoryMovementType;
 
   @Column({ type: 'int' })
@@ -47,6 +49,20 @@ export class InventoryMovement {
 
   @Column({ type: 'varchar', nullable: true, length: 120 })
   reference!: string | null;
+
+  @Column({ name: 'warehouse_id', type: 'uuid', nullable: true })
+  warehouseId!: string | null;
+
+  @ManyToOne(() => InventoryWarehouse, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'warehouse_id' })
+  warehouse?: InventoryWarehouse | null;
+
+  @Column({ name: 'dest_warehouse_id', type: 'uuid', nullable: true })
+  destWarehouseId!: string | null;
+
+  @ManyToOne(() => InventoryWarehouse, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'dest_warehouse_id' })
+  destWarehouse?: InventoryWarehouse | null;
 
   @Column({ name: 'performed_by', type: 'uuid', nullable: true })
   performedBy!: string | null;

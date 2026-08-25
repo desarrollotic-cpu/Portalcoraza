@@ -1,4 +1,4 @@
--- 030_multi_tenant_rls.sql
+-- 041_multi_tenant_rls.sql
 -- Row Level Security por tenant_id. Tablas globales SIN RLS.
 -- Rol coraza_app: sin BYPASSRLS (para que FORCE RLS aplique aunque el login sea superuser vía SET ROLE).
 

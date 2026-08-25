@@ -23,7 +23,7 @@
 
 **Files:**
 - Create: `docs/superpowers/specs/2026-08-24-multi-tenant-design.md`
-- Create: `supabase/migrations/029_multi_tenant_foundation.sql`
+- Create: `supabase/migrations/040_multi_tenant_foundation.sql`
 - Create: `apps/api/scripts/apply-multi-tenant-foundation.ts`
 - Create: `apps/api/scripts/verify-multi-tenant.ts`
 - Modify: `apps/api/package.json` (scripts npm)
@@ -64,7 +64,7 @@
 ### Task 4: Semana 4 — RLS + tests + docs
 
 **Files:**
-- Create: `supabase/migrations/030_multi_tenant_rls.sql`
+- Create: `supabase/migrations/041_multi_tenant_rls.sql`
 - Create: `apps/api/scripts/apply-multi-tenant-rls.ts`, `verify-rls.ts`
 - Modify: `tenant.interceptor.ts` (QueryRunner + SET LOCAL ROLE)
 - Update: `docs/MULTI-TENANT.md`

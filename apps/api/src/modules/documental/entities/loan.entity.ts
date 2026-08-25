@@ -40,6 +40,12 @@ export class Loan {
   @Column({ type: 'text', nullable: true })
   observations!: string | null;
 
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  email!: string | null;
+
+  @Column({ name: 'overdue_notified_at', type: 'timestamptz', nullable: true })
+  overdueNotifiedAt!: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 

@@ -15,7 +15,7 @@ export const permissionGuard: CanActivateFn = (route) => {
         ? requiredPermissions.every((p) => auth.hasPermission(p))
         : requiredPermissions.some((p) => auth.hasPermission(p));
     if (allowed) return true;
-    return router.createUrlTree(['/dashboard']);
+    return router.createUrlTree([auth.getDefaultRoute()]);
   }
 
   if (!requiredPermission) {
@@ -26,5 +26,5 @@ export const permissionGuard: CanActivateFn = (route) => {
     return true;
   }
 
-  return router.createUrlTree(['/dashboard']);
+  return router.createUrlTree([auth.getDefaultRoute()]);
 };

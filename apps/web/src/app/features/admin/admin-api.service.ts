@@ -10,6 +10,8 @@ export interface AdminUser {
   isActive: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  warehouseId?: string | null;
+  warehouse?: { id: string; code: string; name: string } | null;
   role: { id: string; code: string; name: string };
 }
 
@@ -53,6 +55,8 @@ export interface CreateUserPayload {
   password: string;
   fullName?: string;
   roleId: string;
+  warehouseId?: string | null;
+  postId?: string | null;
 }
 
 export interface UpdateUserPayload {
@@ -61,6 +65,7 @@ export interface UpdateUserPayload {
   fullName?: string | null;
   roleId?: string;
   isActive?: boolean;
+  warehouseId?: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -97,6 +102,34 @@ export class AdminApiService {
 
   listRoles(): Observable<AdminRole[]> {
     return this.http.get<AdminRole[]>(`${this.baseUrl}/roles`);
+  }
+
+  listWarehouses(): Observable<Array<{ id: string; code: string; name: string }>> {
+    return this.http.get<Array<{ id: string; code: string; name: string }>>(
+      `${this.baseUrl}/inventory/warehouses`,
+    );
+  }
+
+  listPosts(): Observable<Array<{ id: string; code: string; name: string; status?: string }>> {
+    return this.http.get<Array<{ id: string; code: string; name: string; status?: string }>>(
+      `${this.baseUrl}/posts`,
+    );
+  }
+
+  listUserPosts(userId: string): Observable<
+    Array<{ postId: string; post: { id: string; code: string; name: string } }>
+  > {
+    return this.http.get<
+      Array<{ postId: string; post: { id: string; code: string; name: string } }>
+    >(`${this.baseUrl}/users/${userId}/posts`);
+  }
+
+  assignUserPost(userId: string, postId: string): Observable<unknown> {
+    return this.http.post(`${this.baseUrl}/users/${userId}/posts`, { postId });
+  }
+
+  removeUserPost(userId: string, postId: string): Observable<unknown> {
+    return this.http.delete(`${this.baseUrl}/users/${userId}/posts/${postId}`);
   }
 
   listPermissions(): Observable<Permission[]> {

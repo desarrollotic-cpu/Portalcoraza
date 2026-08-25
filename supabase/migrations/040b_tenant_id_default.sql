@@ -1,5 +1,5 @@
--- 029b: DEFAULT tenant_id = Cooperativa Central until Nest Week-2 sets it explicitly
--- Keeps current API inserts working after 029 NOT NULL without breaking multi-tenant path.
+-- 040b: DEFAULT tenant_id = Cooperativa Central until Nest Week-2 sets it explicitly
+-- Keeps current API inserts working after 040 NOT NULL without breaking multi-tenant path.
 
 DO $$
 DECLARE

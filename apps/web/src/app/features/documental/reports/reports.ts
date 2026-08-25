@@ -81,9 +81,9 @@ import { DOC_STYLES } from '../documental.styles';
           <section>
             <h4>Distributivo de minutas</h4>
             <ul>
-              <li>Puestos de vigilancia (SERVICIO): {{ r.minutasBreakdown?.['SERVICIO'] ?? 0 }}</li>
-              <li>Control de visitantes: {{ r.minutasBreakdown?.['VISITANTES'] ?? 0 }}</li>
-              <li>Correspondencia / novedades: {{ r.minutasBreakdown?.['CORRESPONDENCIA'] ?? 0 }}</li>
+              <li>Puestos de vigilancia (SERVICIO): {{ r.minutasBreakdown['SERVICIO'] || 0 }}</li>
+              <li>Control de visitantes: {{ r.minutasBreakdown['VISITANTES'] || 0 }}</li>
+              <li>Correspondencia / novedades: {{ r.minutasBreakdown['CORRESPONDENCIA'] || 0 }}</li>
             </ul>
           </section>
         }
