@@ -22,9 +22,26 @@ import { Icon } from '../../shared/components/icon/icon';
 
       <!-- CONTENEDOR PRINCIPAL FLOTANTE ESTILO TARJETA PREMIUM -->
       <main class="auth-main-container">
-        <!-- LADO IZQUIERDO: ESCENARIO INTEGRADO DE LA MASCOTA CON EL ENTORNO -->
+        <!-- LADO IZQUIERDO: EL VIDEO OCUPA TODO EL CUADRO AZUL COMPLETO -->
         <div class="auth-hero-side">
-          <!-- CABECERA DE MARCA -->
+          <!-- VIDEO DE FONDO TOTAL EN EL CUADRO IZQUIERDO -->
+          <video
+            #mascotVideo
+            class="hero-full-video"
+            src="/videos/mascota-coraza.mp4"
+            autoplay
+            [muted]="true"
+            loop
+            playsinline
+            preload="auto"
+            (loadedmetadata)="onLoadedVideo($event)"
+          ></video>
+
+          <!-- CAPAS DE INTEGRACIÓN Y DEGRADADO CORPORATIVO -->
+          <div class="video-blue-gradient"></div>
+          <div class="video-ambient-vignette"></div>
+
+          <!-- CABECERA SUPERIOR IZQUIERDA -->
           <header class="hero-header">
             <div class="logo-badge">
               <img
@@ -41,37 +58,8 @@ import { Icon } from '../../shared/components/icon/icon';
             </div>
           </header>
 
-          <!-- ESCENARIO CENTRAL: MASCOTA INTEGRADA AL ENTORNO CON FORMAS ORGÁNICAS -->
-          <div class="mascot-greeting-wrapper">
-            <div class="mascot-stage-container">
-              <!-- LISTONES Y FORMAS GEOMÉTRICAS DECORATIVAS (ESTILO REFERENCIA) -->
-              <div class="decorative-ribbon ribbon-gold"></div>
-              <div class="decorative-ribbon ribbon-cyan"></div>
-              <div class="decorative-ribbon ribbon-pink"></div>
-              <div class="ambient-glow"></div>
-
-              <!-- MARCO PRINCIPAL DEL VIDEO CON INTEGRACIÓN DE COLOR AL FONDO -->
-              <div class="mascot-avatar-frame">
-                <video
-                  #mascotVideo
-                  class="mascot-video-element"
-                  src="/videos/mascota-coraza.mp4"
-                  autoplay
-                  [muted]="true"
-                  loop
-                  playsinline
-                  preload="auto"
-                  (loadedmetadata)="onLoadedVideo($event)"
-                ></video>
-
-                <!-- CAPA DE COLOR Y LUZ PARA INTEGRAR EL FONDO DEL VIDEO CON EL ENTORNO AZUL -->
-                <div class="video-color-tint"></div>
-                <div class="video-radial-feather"></div>
-                <div class="video-ambient-vignette"></div>
-              </div>
-            </div>
-
-            <!-- INSIGNIA DE SALUDO FLOTANTE -->
+          <!-- INSIGNIA FLOTANTE EN LA PARTE INFERIOR -->
+          <div class="hero-greeting-box">
             <div class="greeting-badge">
               <span class="online-dot"></span>
               ¡Hola! Soy Coco, tu guardián oficial
@@ -174,16 +162,57 @@ import { Icon } from '../../shared/components/icon/icon';
       background: var(--bg-surface, #ffffff);
     }
 
-    /* LADO IZQUIERDO: DEGRADADO AZUL CON INTEGRACIÓN COMPLETA DE COLOR */
+    /* LADO IZQUIERDO: EL VIDEO LLENA TODO EL CUADRO */
     .auth-hero-side {
-      background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 40%, #3b82f6 75%, #4f46e5 100%);
+      position: relative;
       padding: 2.25rem 2.5rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       color: #ffffff;
-      position: relative;
       overflow: hidden;
+      background: #1d4ed8;
+    }
+
+    /* VIDEO DE FONDO A TODO TAMAÑO EN EL CUADRO IZQUIERDO */
+    .hero-full-video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+      transform: scale(1.05);
+      z-index: 0;
+      filter: contrast(1.08) saturate(1.15);
+    }
+
+    /* DEGRADADO AZUL QUE INTEGRA EL VIDEO DE FORMA PREMIUM */
+    .video-blue-gradient {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        145deg,
+        rgba(37, 99, 235, 0.35) 0%,
+        rgba(29, 78, 216, 0.2) 40%,
+        rgba(30, 58, 138, 0.6) 100%
+      );
+      mix-blend-mode: multiply;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .video-ambient-vignette {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        circle at 50% 40%,
+        transparent 30%,
+        rgba(15, 23, 42, 0.35) 75%,
+        rgba(15, 23, 42, 0.7) 100%
+      );
+      pointer-events: none;
+      z-index: 1;
     }
 
     .hero-header {
@@ -199,7 +228,7 @@ import { Icon } from '../../shared/components/icon/icon';
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
     }
     .hero-logo-img {
       border-radius: 50%;
@@ -210,133 +239,27 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
     }
     .hero-brand-name {
-      font-size: 1.3rem;
+      font-size: 1.35rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #ffffff;
       line-height: 1.15;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
     .hero-brand-sub {
       font-size: 0.75rem;
       font-weight: 700;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.9);
       letter-spacing: 0.04em;
       text-transform: uppercase;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
 
-    /* ESCENARIO DE SALUDO DE LA MASCOTA CON ADORNOS */
-    .mascot-greeting-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 1.5rem;
-      margin: 1rem 0;
+    .hero-greeting-box {
       z-index: 5;
-    }
-
-    .mascot-stage-container {
-      position: relative;
-      width: 270px;
-      height: 270px;
       display: flex;
-      align-items: center;
       justify-content: center;
-    }
-
-    /* LISTONES DECORATIVOS ORGÁNICOS (ESTILO REFERENCIA) */
-    .decorative-ribbon {
-      position: absolute;
-      border-radius: 999px;
-      pointer-events: none;
-      z-index: 1;
-    }
-    .ribbon-gold {
-      width: 210px;
-      height: 16px;
-      background: linear-gradient(90deg, #f59e0b, #fbbf24);
-      bottom: 25px;
-      left: -20px;
-      transform: rotate(-35deg);
-      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
-    }
-    .ribbon-pink {
-      width: 170px;
-      height: 16px;
-      background: linear-gradient(90deg, #f43f5e, #fb7185);
-      top: 35px;
-      right: -15px;
-      transform: rotate(42deg);
-      box-shadow: 0 6px 20px rgba(244, 63, 94, 0.45);
-    }
-    .ribbon-cyan {
-      width: 140px;
-      height: 14px;
-      background: linear-gradient(90deg, #38bdf8, #818cf8);
-      bottom: 45px;
-      right: -10px;
-      transform: rotate(-25deg);
-      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.45);
-    }
-
-    .ambient-glow {
-      position: absolute;
-      inset: -20px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(96, 165, 250, 0.5) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 75%);
-      filter: blur(25px);
-      z-index: 0;
-    }
-
-    /* MARCO DEL VIDEO CON TRANSICIÓN INTEGRADA */
-    .mascot-avatar-frame {
-      position: relative;
-      width: 250px;
-      height: 250px;
-      border-radius: 50%;
-      overflow: hidden;
-      background: radial-gradient(circle, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
-      box-shadow:
-        0 20px 45px rgba(15, 23, 42, 0.45),
-        0 0 0 6px rgba(255, 255, 255, 0.35);
-      z-index: 2;
-    }
-
-    /* VIDEO DEL COCODRILO CON FILTROS Y AJUSTE DE COLOR */
-    .mascot-video-element {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      transform: scale(1.06);
-      filter: contrast(1.12) saturate(1.18) brightness(1.02);
-    }
-
-    /* INTEGRACIÓN DEL COLOR DE FONDO DEL VIDEO CON EL ENTORNO AZUL */
-    .video-color-tint {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(30, 64, 175, 0.45) 80%, rgba(30, 58, 138, 0.7) 100%);
-      mix-blend-mode: color;
-      pointer-events: none;
-    }
-
-    .video-radial-feather {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, transparent 40%, rgba(29, 78, 216, 0.3) 70%, rgba(30, 58, 138, 0.8) 100%);
-      mix-blend-mode: multiply;
-      pointer-events: none;
-    }
-
-    .video-ambient-vignette {
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      box-shadow:
-        inset 0 0 35px rgba(29, 78, 216, 0.6),
-        inset 0 0 15px rgba(255, 255, 255, 0.25);
-      pointer-events: none;
+      margin: auto 0 1rem 0;
     }
 
     /* INSIGNIA DE SALUDO */
@@ -344,16 +267,16 @@ import { Icon } from '../../shared/components/icon/icon';
       display: inline-flex;
       align-items: center;
       gap: 0.55rem;
-      background: rgba(255, 255, 255, 0.22);
+      background: rgba(15, 23, 42, 0.65);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.4);
-      padding: 0.55rem 1.25rem;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 0.6rem 1.4rem;
       border-radius: 999px;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-weight: 700;
       color: #ffffff;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
     }
 
     .online-dot {
@@ -376,8 +299,9 @@ import { Icon } from '../../shared/components/icon/icon';
     .hero-footer p {
       margin: 0;
       font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.85);
+      color: rgba(255, 255, 255, 0.9);
       font-weight: 500;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
 
     /* LADO DERECHO: FORMULARIO */
@@ -427,13 +351,8 @@ import { Icon } from '../../shared/components/icon/icon';
       .auth-main-container {
         grid-template-columns: 1fr;
       }
-      .mascot-stage-container {
-        width: 210px;
-        height: 210px;
-      }
-      .mascot-avatar-frame {
-        width: 190px;
-        height: 190px;
+      .auth-hero-side {
+        min-height: 280px;
       }
       .auth-form-side {
         padding: 2rem 1.5rem;
