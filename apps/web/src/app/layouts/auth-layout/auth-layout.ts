@@ -15,52 +15,72 @@ import { Icon } from '../../shared/components/icon/icon';
   imports: [RouterOutlet, Icon],
   template: `
     <div class="auth-outer-canvas">
-      <!-- FONDO AMBIENTAL CON FORMAS CURVAS -->
+      <!-- FORMAS AMBIENTALES DECORATIVAS DEL FONDO -->
       <div class="bg-shape-1"></div>
       <div class="bg-shape-2"></div>
+      <div class="bg-shape-3"></div>
 
-      <!-- CONTENEDOR PRINCIPAL FLOTANTE ESTILO TARJETA MODERNA (COMO LA REFERENCIA) -->
+      <!-- CONTENEDOR PRINCIPAL FLOTANTE ESTILO TARJETA PREMIUM -->
       <main class="auth-main-container">
-        <!-- LADO IZQUIERDO: SALUDO Y MASCOTA DE BIENVENIDA -->
+        <!-- LADO IZQUIERDO: ESCENARIO INTEGRADO DE LA MASCOTA CON EL ENTORNO -->
         <div class="auth-hero-side">
-          <!-- CABECERA DE MARCA SUPERIOR IZQUIERDA -->
+          <!-- CABECERA DE MARCA -->
           <header class="hero-header">
-            <img
-              class="hero-logo-img"
-              src="/brand/logo-coraza-cta.png"
-              width="44"
-              height="44"
-              alt="Logo Coraza"
-            />
-            <span class="hero-brand-name">Portal Coraza</span>
+            <div class="logo-badge">
+              <img
+                class="hero-logo-img"
+                src="/brand/logo-coraza-cta.png"
+                width="40"
+                height="40"
+                alt="Logo Coraza"
+              />
+            </div>
+            <div class="brand-text-col">
+              <span class="hero-brand-name">Portal Coraza</span>
+              <span class="hero-brand-sub">Seguridad C.T.A.</span>
+            </div>
           </header>
 
-          <!-- ESCENARIO CENTRAL: MASCOTA EN VIDEO DE SALUDO Y BIENVENIDA -->
+          <!-- ESCENARIO CENTRAL: MASCOTA INTEGRADA AL ENTORNO CON FORMAS ORGÁNICAS -->
           <div class="mascot-greeting-wrapper">
-            <div class="mascot-avatar-frame">
-              <video
-                #mascotVideo
-                class="mascot-video-element"
-                src="/videos/mascota-coraza.mp4"
-                autoplay
-                [muted]="true"
-                loop
-                playsinline
-                preload="auto"
-                (loadedmetadata)="onLoadedVideo($event)"
-              ></video>
-              <div class="mascot-ring-glow"></div>
+            <div class="mascot-stage-container">
+              <!-- LISTONES Y FORMAS GEOMÉTRICAS DECORATIVAS (ESTILO REFERENCIA) -->
+              <div class="decorative-ribbon ribbon-gold"></div>
+              <div class="decorative-ribbon ribbon-cyan"></div>
+              <div class="decorative-ribbon ribbon-pink"></div>
+              <div class="ambient-glow"></div>
+
+              <!-- MARCO PRINCIPAL DEL VIDEO CON INTEGRACIÓN DE COLOR AL FONDO -->
+              <div class="mascot-avatar-frame">
+                <video
+                  #mascotVideo
+                  class="mascot-video-element"
+                  src="/videos/mascota-coraza.mp4"
+                  autoplay
+                  [muted]="true"
+                  loop
+                  playsinline
+                  preload="auto"
+                  (loadedmetadata)="onLoadedVideo($event)"
+                ></video>
+
+                <!-- CAPA DE COLOR Y LUZ PARA INTEGRAR EL FONDO DEL VIDEO CON EL ENTORNO AZUL -->
+                <div class="video-color-tint"></div>
+                <div class="video-radial-feather"></div>
+                <div class="video-ambient-vignette"></div>
+              </div>
             </div>
 
+            <!-- INSIGNIA DE SALUDO FLOTANTE -->
             <div class="greeting-badge">
               <span class="online-dot"></span>
-              ¡Hola! Soy Coco, tu guardián
+              ¡Hola! Soy Coco, tu guardián oficial
             </div>
           </div>
 
           <!-- FOOTER INFERIOR IZQUIERDO -->
           <footer class="hero-footer">
-            <p>© {{ year }} Coraza Seguridad C.T.A. Todos los derechos reservados.</p>
+            <p>© {{ year }} Coraza Seguridad C.T.A. · Vigilancia y Talento Humano</p>
           </footer>
         </div>
 
@@ -85,7 +105,7 @@ import { Icon } from '../../shared/components/icon/icon';
           </div>
 
           <div class="form-footer-links">
-            <span>Seguridad privada y talento humano</span>
+            <span>Seguridad y excelencia operativa</span>
           </div>
         </div>
       </main>
@@ -97,7 +117,7 @@ import { Icon } from '../../shared/components/icon/icon';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #1e2235;
+      background: #1b2032;
       padding: 1.5rem;
       position: relative;
       overflow: hidden;
@@ -106,10 +126,10 @@ import { Icon } from '../../shared/components/icon/icon';
     /* FORMAS ABSTRACTAS DECORATIVAS DEL FONDO */
     .bg-shape-1 {
       position: absolute;
-      top: -10vw;
-      right: -10vw;
-      width: 45vw;
-      height: 45vw;
+      top: -8vw;
+      right: -8vw;
+      width: 48vw;
+      height: 48vw;
       border-radius: 50%;
       background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
       opacity: 0.85;
@@ -117,14 +137,25 @@ import { Icon } from '../../shared/components/icon/icon';
     }
     .bg-shape-2 {
       position: absolute;
-      bottom: -15vw;
-      left: -10vw;
-      width: 50vw;
-      height: 50vw;
+      bottom: -12vw;
+      left: -8vw;
+      width: 52vw;
+      height: 52vw;
       border-radius: 50%;
       background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-      opacity: 0.35;
-      filter: blur(40px);
+      opacity: 0.4;
+      filter: blur(50px);
+      pointer-events: none;
+    }
+    .bg-shape-3 {
+      position: absolute;
+      bottom: 20%;
+      right: 15%;
+      width: 25vw;
+      height: 25vw;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+      filter: blur(60px);
       pointer-events: none;
     }
 
@@ -133,19 +164,19 @@ import { Icon } from '../../shared/components/icon/icon';
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 1060px;
-      min-height: 580px;
+      max-width: 1080px;
+      min-height: 590px;
       display: grid;
-      grid-template-columns: 1.15fr 0.95fr;
-      border-radius: 2rem;
+      grid-template-columns: 1.18fr 0.92fr;
+      border-radius: 2.25rem;
       overflow: hidden;
-      box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
       background: var(--bg-surface, #ffffff);
     }
 
-    /* LADO IZQUIERDO: DEGRADADO AZUL/VIOLETA CON LA MASCOTA */
+    /* LADO IZQUIERDO: DEGRADADO AZUL CON INTEGRACIÓN COMPLETA DE COLOR */
     .auth-hero-side {
-      background: linear-gradient(145deg, #3b82f6 0%, #2563eb 45%, #4f46e5 100%);
+      background: linear-gradient(145deg, #2563eb 0%, #1d4ed8 40%, #3b82f6 75%, #4f46e5 100%);
       padding: 2.25rem 2.5rem;
       display: flex;
       flex-direction: column;
@@ -158,83 +189,179 @@ import { Icon } from '../../shared/components/icon/icon';
     .hero-header {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      z-index: 2;
+      gap: 0.85rem;
+      z-index: 5;
+    }
+    .logo-badge {
+      background: #ffffff;
+      border-radius: 50%;
+      padding: 3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
     }
     .hero-logo-img {
       border-radius: 50%;
-      background: #ffffff;
-      padding: 2px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      display: block;
+    }
+    .brand-text-col {
+      display: flex;
+      flex-direction: column;
     }
     .hero-brand-name {
-      font-size: 1.25rem;
+      font-size: 1.3rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #ffffff;
+      line-height: 1.15;
+    }
+    .hero-brand-sub {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.8);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
-    /* ESCENARIO DE SALUDO DE LA MASCOTA */
+    /* ESCENARIO DE SALUDO DE LA MASCOTA CON ADORNOS */
     .mascot-greeting-wrapper {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 1.25rem;
-      margin: 1.5rem 0;
-      z-index: 2;
+      gap: 1.5rem;
+      margin: 1rem 0;
+      z-index: 5;
     }
 
+    .mascot-stage-container {
+      position: relative;
+      width: 270px;
+      height: 270px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* LISTONES DECORATIVOS ORGÁNICOS (ESTILO REFERENCIA) */
+    .decorative-ribbon {
+      position: absolute;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .ribbon-gold {
+      width: 210px;
+      height: 16px;
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+      bottom: 25px;
+      left: -20px;
+      transform: rotate(-35deg);
+      box-shadow: 0 6px 20px rgba(245, 158, 11, 0.45);
+    }
+    .ribbon-pink {
+      width: 170px;
+      height: 16px;
+      background: linear-gradient(90deg, #f43f5e, #fb7185);
+      top: 35px;
+      right: -15px;
+      transform: rotate(42deg);
+      box-shadow: 0 6px 20px rgba(244, 63, 94, 0.45);
+    }
+    .ribbon-cyan {
+      width: 140px;
+      height: 14px;
+      background: linear-gradient(90deg, #38bdf8, #818cf8);
+      bottom: 45px;
+      right: -10px;
+      transform: rotate(-25deg);
+      box-shadow: 0 6px 18px rgba(56, 189, 248, 0.45);
+    }
+
+    .ambient-glow {
+      position: absolute;
+      inset: -20px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(96, 165, 250, 0.5) 0%, rgba(59, 130, 246, 0.2) 50%, transparent 75%);
+      filter: blur(25px);
+      z-index: 0;
+    }
+
+    /* MARCO DEL VIDEO CON TRANSICIÓN INTEGRADA */
     .mascot-avatar-frame {
       position: relative;
       width: 250px;
       height: 250px;
       border-radius: 50%;
       overflow: hidden;
-      background: #000000;
+      background: radial-gradient(circle, #3b82f6 0%, #1d4ed8 60%, #1e3a8a 100%);
       box-shadow:
-        0 20px 40px rgba(0, 0, 0, 0.4),
-        0 0 0 6px rgba(255, 255, 255, 0.25);
+        0 20px 45px rgba(15, 23, 42, 0.45),
+        0 0 0 6px rgba(255, 255, 255, 0.35);
+      z-index: 2;
     }
 
+    /* VIDEO DEL COCODRILO CON FILTROS Y AJUSTE DE COLOR */
     .mascot-video-element {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
-      transform: scale(1.05);
+      transform: scale(1.06);
+      filter: contrast(1.12) saturate(1.18) brightness(1.02);
     }
 
-    .mascot-ring-glow {
+    /* INTEGRACIÓN DEL COLOR DE FONDO DEL VIDEO CON EL ENTORNO AZUL */
+    .video-color-tint {
       position: absolute;
       inset: 0;
-      border-radius: 50%;
-      box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.5);
+      background: radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, rgba(30, 64, 175, 0.45) 80%, rgba(30, 58, 138, 0.7) 100%);
+      mix-blend-mode: color;
       pointer-events: none;
     }
 
+    .video-radial-feather {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, transparent 40%, rgba(29, 78, 216, 0.3) 70%, rgba(30, 58, 138, 0.8) 100%);
+      mix-blend-mode: multiply;
+      pointer-events: none;
+    }
+
+    .video-ambient-vignette {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      box-shadow:
+        inset 0 0 35px rgba(29, 78, 216, 0.6),
+        inset 0 0 15px rgba(255, 255, 255, 0.25);
+      pointer-events: none;
+    }
+
+    /* INSIGNIA DE SALUDO */
     .greeting-badge {
       display: inline-flex;
       align-items: center;
-      gap: 0.5rem;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.35);
-      padding: 0.5rem 1.15rem;
+      gap: 0.55rem;
+      background: rgba(255, 255, 255, 0.22);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      padding: 0.55rem 1.25rem;
       border-radius: 999px;
       font-size: 0.92rem;
       font-weight: 700;
       color: #ffffff;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
     }
 
     .online-dot {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
+      box-shadow: 0 0 10px #22c55e;
       animation: pulseDot 1.5s infinite;
     }
     @keyframes pulseDot {
@@ -244,12 +371,13 @@ import { Icon } from '../../shared/components/icon/icon';
     }
 
     .hero-footer {
-      z-index: 2;
+      z-index: 5;
     }
     .hero-footer p {
       margin: 0;
       font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255, 255, 255, 0.85);
+      font-weight: 500;
     }
 
     /* LADO DERECHO: FORMULARIO */
@@ -299,9 +427,13 @@ import { Icon } from '../../shared/components/icon/icon';
       .auth-main-container {
         grid-template-columns: 1fr;
       }
+      .mascot-stage-container {
+        width: 210px;
+        height: 210px;
+      }
       .mascot-avatar-frame {
-        width: 180px;
-        height: 180px;
+        width: 190px;
+        height: 190px;
       }
       .auth-form-side {
         padding: 2rem 1.5rem;
