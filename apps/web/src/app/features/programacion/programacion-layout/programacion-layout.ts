@@ -25,6 +25,12 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
 export class ProgramacionLayout {
   readonly nav: ModuleNavItem[] = [
     {
+      label: '📊 Panel & Disponibilidad',
+      route: '/programacion/panel',
+      permission: 'scheduling.view',
+      icon: LucideLayoutDashboard,
+    },
+    {
       label: '📋 Cuadro de Turnos',
       route: '/programacion/cuadro',
       permission: 'scheduling.view',
