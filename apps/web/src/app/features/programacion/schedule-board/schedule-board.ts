@@ -61,15 +61,25 @@ const CODES: CodeConfig[] = [
     <section>
       <header class="toolbar">
         <div class="toolbar-controls">
-          <label>
-            Puesto
-            <select [(ngModel)]="postId" (ngModelChange)="onSelectionChange()">
-              <option value="">Seleccione...</option>
-              @for (p of posts(); track p.id) {
-                <option [value]="p.id">{{ p.name }}</option>
-              }
-            </select>
-          </label>
+          <div class="post-nav-group">
+            <label>
+              Puesto
+              <div class="post-select-row">
+                <button type="button" class="btn-nav" (click)="prevPost()" [disabled]="!canPrevPost()" title="Puesto anterior">◀</button>
+                <select [(ngModel)]="postId" (ngModelChange)="onSelectionChange()" class="select-post">
+                  <option value="">Seleccione puesto...</option>
+                  @for (p of posts(); track p.id) {
+                    <option [value]="p.id">{{ p.name }}</option>
+                  }
+                </select>
+                <button type="button" class="btn-nav" (click)="nextPost()" [disabled]="!canNextPost()" title="Puesto siguiente">▶</button>
+              </div>
+            </label>
+            @if (postId && currentPostIndex() >= 0) {
+              <span class="post-counter">Puesto {{ currentPostIndex() + 1 }} de {{ posts().length }}</span>
+            }
+          </div>
+
           <label>
             Mes
             <input type="month" [(ngModel)]="month" (ngModelChange)="onSelectionChange()" />
@@ -197,6 +207,10 @@ const CODES: CodeConfig[] = [
                     }
                   </th>
                 }
+                <th class="summary-th" title="Días Laborados">Días</th>
+                <th class="summary-th" title="Turnos Diurnos">D</th>
+                <th class="summary-th" title="Turnos Nocturnos">N</th>
+                <th class="summary-th" title="Total Horas Liquidables">Horas</th>
               </tr>
             </thead>
             <tbody>
@@ -219,10 +233,16 @@ const CODES: CodeConfig[] = [
                       {{ cellLabel(role.rol, day) }}
                     </td>
                   }
+                  <td class="summary-td">{{ getGuardMetrics(role.rol).dias }}</td>
+                  <td class="summary-td diurno-td">{{ getGuardMetrics(role.rol).turnosD }}</td>
+                  <td class="summary-td nocturno-td">{{ getGuardMetrics(role.rol).turnosN }}</td>
+                  <td class="summary-td hours-td" [class.hours-over]="getGuardMetrics(role.rol).totalHoras > 240">
+                    <strong>{{ getGuardMetrics(role.rol).totalHoras }}h</strong>
+                  </td>
                 </tr>
               } @empty {
                 <tr>
-                  <td [attr.colspan]="days().length + 1">Agrega al menos un rol.</td>
+                  <td [attr.colspan]="days().length + 5">Agrega al menos un rol.</td>
                 </tr>
               }
             </tbody>
@@ -285,6 +305,21 @@ const CODES: CodeConfig[] = [
               </select>
             </label>
 
+            <!-- BOTONERA DE ACCESO RÁPIDO Y NOVEDADES EN 1 CLIC -->
+            <div class="quick-novelty-bar">
+              <span class="quick-label">⚡ Acceso Rápido / Novedad (1 Clic):</span>
+              <div class="quick-btns">
+                <button type="button" class="btn-q c-d" (click)="quickSelectCode('D')">☀️ D (12h)</button>
+                <button type="button" class="btn-q c-n" (click)="quickSelectCode('N')">🌙 N (12h)</button>
+                <button type="button" class="btn-q c-d8" (click)="quickSelectCode('D8')">☀️ D8 (8h)</button>
+                <button type="button" class="btn-q c-n8" (click)="quickSelectCode('N8')">🌙 N8 (8h)</button>
+                <button type="button" class="btn-q c-dr" (click)="quickSelectCode('DR')">🧘 Descanso</button>
+                <button type="button" class="btn-q c-vac" (click)="quickSelectCode('VAC')">🏖️ Vacaciones</button>
+                <button type="button" class="btn-q c-in" (click)="quickSelectCode('IN')">🏥 Incapacidad</button>
+                <button type="button" class="btn-q c-lc" (click)="quickSelectCode('LC')">📝 Licencia</button>
+              </div>
+            </div>
+
             <!-- AJUSTE DE HORARIO Y NOVEDADES (HORA ENTRADA / SALIDA) -->
             @if (showTimeInputs()) {
               <div class="time-range-box">
@@ -333,6 +368,28 @@ const CODES: CodeConfig[] = [
     header p { color: var(--coraza-text-muted); margin: 0.25rem 0 1rem; }
     .toolbar { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; margin-bottom: 1rem; }
     .toolbar-controls { display: flex; flex-wrap: wrap; gap: 1rem; align-items: end; width: 100%; }
+    
+    .post-nav-group { display: flex; flex-direction: column; gap: 0.25rem; }
+    .post-select-row { display: flex; align-items: center; gap: 0.35rem; }
+    .btn-nav {
+      padding: 0.45rem 0.65rem;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #0f172a;
+      border-radius: 6px;
+      font-weight: 800;
+      font-size: 0.8rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+    }
+    .btn-nav:hover:not(:disabled) { background: #1e293b; }
+    .btn-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+    .select-post { min-width: 240px; font-weight: 600; color: #0f172a; }
+    .post-counter { font-size: 0.72rem; color: #64748b; font-weight: 700; }
+
     label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
     select, input { padding: 0.45rem 0.6rem; border: 1px solid var(--coraza-border); border-radius: 8px; font: inherit; }
     .status { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; align-self: center; }
@@ -499,6 +556,61 @@ const CODES: CodeConfig[] = [
       border: 1px solid #bbf7d0;
       text-align: center;
     }
+    /* METRICAS Y HORAS EN VIVO POR GUARDIA (COLUMNAS FINALES) */
+    .summary-th {
+      background: #0f172a !important;
+      color: #ffffff !important;
+      font-size: 0.72rem;
+      font-weight: 800;
+      min-width: 44px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .summary-td {
+      font-weight: 700;
+      font-size: 0.8rem;
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #334155;
+    }
+    .diurno-td { color: #854d0e; background: #fefce8; }
+    .nocturno-td { color: #166534; background: #f0fdf4; }
+    .hours-td { background: #e0f2fe; color: #0369a1; }
+    .hours-over { background: #fee2e2 !important; color: #991b1b !important; }
+
+    /* BOTONERA DE NOVEDADES EN 1 CLIC (MODAL) */
+    .quick-novelty-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.65rem;
+    }
+    .quick-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #475569;
+      text-transform: uppercase;
+    }
+    .quick-btns {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.35rem;
+    }
+    .btn-q {
+      padding: 0.4rem 0.25rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.1s, filter 0.1s;
+    }
+    .btn-q:hover { transform: scale(1.03); filter: brightness(0.95); }
 
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
   `,
@@ -560,6 +672,72 @@ export class ScheduleBoard implements OnInit {
     for (const a of this.associates()) map.set(a.id, a);
     return map;
   });
+
+  readonly currentPostIndex = computed(() => {
+    return this.posts().findIndex((p) => p.id === this.postId);
+  });
+
+  readonly canPrevPost = computed(() => {
+    return this.currentPostIndex() > 0;
+  });
+
+  readonly canNextPost = computed(() => {
+    const idx = this.currentPostIndex();
+    return idx >= 0 && idx < this.posts().length - 1;
+  });
+
+  prevPost(): void {
+    const idx = this.currentPostIndex();
+    if (idx > 0) {
+      this.postId = this.posts()[idx - 1].id;
+      this.onSelectionChange();
+    }
+  }
+
+  nextPost(): void {
+    const idx = this.currentPostIndex();
+    if (idx >= 0 && idx < this.posts().length - 1) {
+      this.postId = this.posts()[idx + 1].id;
+      this.onSelectionChange();
+    }
+  }
+
+  getGuardMetrics(roleKey: string): { dias: number; turnosD: number; turnosN: number; totalHoras: number } {
+    let dias = 0;
+    let turnosD = 0;
+    let turnosN = 0;
+    let totalHoras = 0;
+
+    for (const d of this.days()) {
+      const state = this.cells().get(`${roleKey}:${d}`);
+      if (!state || !state.codigo) continue;
+      const c = state.codigo;
+      if (c === 'D') {
+        dias++;
+        turnosD++;
+        totalHoras += 12;
+      } else if (c === 'N') {
+        dias++;
+        turnosN++;
+        totalHoras += 12;
+      } else if (c === 'D8') {
+        dias++;
+        turnosD++;
+        totalHoras += 8;
+      } else if (c === 'N8') {
+        dias++;
+        turnosN++;
+        totalHoras += 8;
+      }
+    }
+
+    return { dias, turnosD, turnosN, totalHoras };
+  }
+
+  quickSelectCode(code: string): void {
+    this.editCodigo = code;
+    this.onEditCodigoChange(code);
+  }
 
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
