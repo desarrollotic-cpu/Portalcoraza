@@ -13,7 +13,7 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- ESCENARIO TRANSPARENTE EN EL BORDE INFERIOR (SIN BOTONES NI CUADROS) -->
+    <!-- ESCENARIO TRANSPARENTE EN EL BORDE INFERIOR (SIN FONDOS, SIN BORDES, SIN CAJAS) -->
     <div class="pet-stage" (click)="onStageClick($event)">
       <!-- CARNE QUE CAE AL PISO -->
       @if (meatPos() !== null) {
@@ -26,7 +26,7 @@ import { CommonModule } from '@angular/common';
         </div>
       }
 
-      <!-- COCODRILO BORDEANDO -->
+      <!-- COCODRILO PURO BORDEANDO -->
       <div
         class="pet-croc"
         [class.flip]="facingLeft()"
@@ -37,12 +37,7 @@ import { CommonModule } from '@angular/common';
         (click)="onCrocClick($event)"
         title="Cocodrilo Coraza — Haz clic para darle carne"
       >
-        <!-- GLOBO DE REACCIÓN OCASIONAL -->
-        @if (speechText()) {
-          <div class="croc-bubble">{{ speechText() }}</div>
-        }
-
-        <!-- COCODRILO VECTORIAL / PIXEL-ART -->
+        <!-- COCODRILO VECTORIAL / PIXEL-ART PURO -->
         <svg class="croc-svg" viewBox="0 0 68 36">
           <!-- COLA -->
           <path class="croc-tail" d="M 4 22 Q 10 17 18 20 Q 14 26 4 22 Z" fill="#15803d" />
@@ -75,19 +70,19 @@ import { CommonModule } from '@angular/common';
   `,
   styles: [
     `
-      /* STAGE TOTALMENTE TRANSPARENTE EN EL BORDE INFERIOR */
+      /* STAGE 100% TRANSPARENTE EN EL BORDE INFERIOR */
       .pet-stage {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100vw;
-        height: 52px;
+        height: 48px;
         pointer-events: none;
         z-index: 9998;
         overflow: hidden;
       }
 
-      /* COCODRILO */
+      /* COCODRILO LIMPIO */
       .pet-croc {
         position: absolute;
         width: 68px;
@@ -96,7 +91,7 @@ import { CommonModule } from '@angular/common';
         cursor: pointer;
         transition: transform 0.15s ease;
         user-select: none;
-        filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.22));
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
       }
 
       .pet-croc.flip {
@@ -164,41 +159,6 @@ import { CommonModule } from '@angular/common';
         0% { transform: translateY(0); }
         100% { transform: translateY(-8px); }
       }
-
-      /* GLOBO DE DIÁLOGO */
-      .croc-bubble {
-        position: absolute;
-        top: -34px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #0f172a;
-        color: #ffffff;
-        font-size: 0.72rem;
-        font-weight: 800;
-        padding: 0.2rem 0.5rem;
-        border-radius: 0.4rem;
-        white-space: nowrap;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
-        pointer-events: none;
-        animation: popBubble 0.2s ease-out;
-      }
-      .pet-croc.flip .croc-bubble {
-        transform: scaleX(-1) translateX(50%);
-      }
-      .croc-bubble::after {
-        content: '';
-        position: absolute;
-        bottom: -4px;
-        left: 50%;
-        transform: translateX(-50%);
-        border-width: 4px 4px 0 4px;
-        border-style: solid;
-        border-color: #0f172a transparent transparent transparent;
-      }
-      @keyframes popBubble {
-        0% { transform: translateX(-50%) scale(0.6); opacity: 0; }
-        100% { transform: translateX(-50%) scale(1); opacity: 1; }
-      }
     `,
   ],
 })
@@ -208,29 +168,22 @@ export class CorazaPet implements OnInit, OnDestroy {
   readonly facingLeft = signal(false);
   readonly isWalking = signal(true);
   readonly isSnapping = signal(false);
-  readonly speechText = signal<string | null>('¡Ñam! 🐊🥩');
   readonly meatPos = signal<{ x: number; y: number } | null>(null);
 
   private animTimer: any = null;
   private meatSpawnTimer: any = null;
-  private speechTimeout: any = null;
   private speed = 2.2;
 
   ngOnInit(): void {
     this.startGameLoop();
     this.startAutoMeatFeeding();
-    this.speak('¡Patrullando! 🐊🥩', 3000);
   }
 
   ngOnDestroy(): void {
     if (this.animTimer) clearInterval(this.animTimer);
     if (this.meatSpawnTimer) clearInterval(this.meatSpawnTimer);
-    if (this.speechTimeout) clearTimeout(this.speechTimeout);
   }
 
-  /**
-   * Al hacer clic en el cocodrilo o en el borde inferior, suelta carne para que corra a comer.
-   */
   onCrocClick(e: MouseEvent): void {
     e.stopPropagation();
     this.feedMeat(this.posX() + (this.facingLeft() ? -120 : 120));
@@ -245,11 +198,10 @@ export class CorazaPet implements OnInit, OnDestroy {
     const clampedX = Math.max(40, Math.min(targetX, screenW - 80));
     this.meatPos.set({ x: clampedX, y: 8 });
     this.isWalking.set(true);
-    this.speak('¡Carne a la vista! 🥩', 1500);
   }
 
   private startAutoMeatFeeding(): void {
-    // Cada 20-30 segundos suelta una carne aleatoria para que vaya a comerla
+    // Cada 20-30 segundos suelta una carne para que vaya a comerla
     this.meatSpawnTimer = setInterval(() => {
       if (this.meatPos() === null && Math.random() < 0.6) {
         const screenW = window.innerWidth;
@@ -257,14 +209,6 @@ export class CorazaPet implements OnInit, OnDestroy {
         this.feedMeat(randX);
       }
     }, 22000);
-  }
-
-  private speak(text: string, durationMs = 2000): void {
-    this.speechText.set(text);
-    if (this.speechTimeout) clearTimeout(this.speechTimeout);
-    this.speechTimeout = setTimeout(() => {
-      this.speechText.set(null);
-    }, durationMs);
   }
 
   private startGameLoop(): void {
@@ -283,7 +227,6 @@ export class CorazaPet implements OnInit, OnDestroy {
           this.meatPos.set(null);
           this.isWalking.set(false);
           this.isSnapping.set(true);
-          this.speak('¡ÑAM ÑAM! 🐊💥', 1800);
           setTimeout(() => {
             this.isSnapping.set(false);
             this.isWalking.set(true);
