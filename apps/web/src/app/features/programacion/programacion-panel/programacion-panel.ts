@@ -72,14 +72,23 @@ export interface GuardAvailabilityItem {
               <h3>📍 Turno de Hoy — Puestos de Servicio</h3>
               <span class="today-date-badge">{{ todayData()?.date || 'Hoy' }}</span>
             </div>
-            <div class="today-search">
+            <div class="today-search-filters">
               <input
                 type="text"
                 placeholder="🔍 Filtrar por puesto o vigilante..."
                 [ngModel]="searchFilter()"
-                (ngModelChange)="searchFilter.set($event)"
+                (ngModelChange)="onTodaySearchChange($event)"
                 class="inp-search"
               />
+              <div class="page-size-wrap">
+                <label>Mostrar:</label>
+                <select [ngModel]="todayPageSize()" (ngModelChange)="onTodayPageSizeChange($event)">
+                  <option [value]="20">20 puestos</option>
+                  <option [value]="50">50 puestos</option>
+                  <option [value]="100">100 puestos</option>
+                  <option [value]="-1">Todos ({{ filteredTodayPosts().length }})</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -132,7 +141,7 @@ export interface GuardAvailabilityItem {
 
             <!-- LISTA DE PUESTOS Y GUARDIAS DE HOY -->
             <div class="today-posts-grid">
-              @for (p of filteredTodayPosts(); track p.scheduleId) {
+              @for (p of paginatedTodayPosts(); track p.scheduleId) {
                 <div class="post-card" [class.uncovered]="!p.isCovered">
                   <div class="post-card__header">
                     <div>
@@ -185,6 +194,22 @@ export interface GuardAvailabilityItem {
                 </div>
               }
             </div>
+
+            <!-- PAGINACIÓN PUESTOS -->
+            @if (todayPageSize() !== -1 && todayTotalPages() > 1) {
+              <div class="pagination-bar">
+                <div class="pagination-info">
+                  Página <strong>{{ todayCurrentPage() }}</strong> de <strong>{{ todayTotalPages() }}</strong> ({{ todayPaginationText() }})
+                </div>
+                <div class="pagination-buttons">
+                  <button type="button" class="btn-page" (click)="goToTodayPage(1)" [disabled]="todayCurrentPage() === 1" title="Primera página">⏮</button>
+                  <button type="button" class="btn-page" (click)="prevTodayPage()" [disabled]="todayCurrentPage() === 1">◀ Anterior</button>
+                  <span class="page-current-pill">{{ todayCurrentPage() }} / {{ todayTotalPages() }}</span>
+                  <button type="button" class="btn-page" (click)="nextTodayPage()" [disabled]="todayCurrentPage() === todayTotalPages()">Siguiente ▶</button>
+                  <button type="button" class="btn-page" (click)="goToTodayPage(todayTotalPages())" [disabled]="todayCurrentPage() === todayTotalPages()" title="Última página">⏭</button>
+                </div>
+              </div>
+            }
           }
         </section>
       }
@@ -202,10 +227,10 @@ export interface GuardAvailabilityItem {
                 type="text"
                 placeholder="🔍 Buscar vigilante o cédula..."
                 [ngModel]="guardSearchQuery()"
-                (ngModelChange)="guardSearchQuery.set($event)"
+                (ngModelChange)="onGuardSearchChange($event)"
                 class="inp-search-guard"
               />
-              <select [ngModel]="statusFilter()" (ngModelChange)="statusFilter.set($event)" class="select-filter">
+              <select [ngModel]="statusFilter()" (ngModelChange)="onGuardStatusChange($event)" class="select-filter">
                 <option value="ALL">Todos los Estados ({{ guardsList().length }})</option>
                 <option value="DISPONIBLE">🟢 Disponibles / Libres Hoy ({{ availableCount() }})</option>
                 <option value="TURNO_DIA">☀️ De Turno Diurno</option>
@@ -213,6 +238,15 @@ export interface GuardAvailabilityItem {
                 <option value="DESCANSO">🏖️ En Descanso</option>
                 <option value="NOVEDAD">🏥 En Novedad Médica / Vacaciones</option>
               </select>
+              <div class="page-size-wrap">
+                <label>Mostrar:</label>
+                <select [ngModel]="guardPageSize()" (ngModelChange)="onGuardPageSizeChange($event)">
+                  <option [value]="20">20 guardias</option>
+                  <option [value]="50">50 guardias</option>
+                  <option [value]="100">100 guardias</option>
+                  <option [value]="-1">Todos ({{ filteredGuards().length }})</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -228,7 +262,7 @@ export interface GuardAvailabilityItem {
                 </tr>
               </thead>
               <tbody>
-                @for (g of filteredGuards(); track g.associateId) {
+                @for (g of paginatedGuards(); track g.associateId) {
                   <tr>
                     <td>
                       <div class="guard-main">
@@ -271,6 +305,22 @@ export interface GuardAvailabilityItem {
               </tbody>
             </table>
           </div>
+
+          <!-- PAGINACIÓN VIGILANTES -->
+          @if (guardPageSize() !== -1 && guardTotalPages() > 1) {
+            <div class="pagination-bar">
+              <div class="pagination-info">
+                Página <strong>{{ guardCurrentPage() }}</strong> de <strong>{{ guardTotalPages() }}</strong> ({{ guardPaginationText() }})
+              </div>
+              <div class="pagination-buttons">
+                <button type="button" class="btn-page" (click)="goToGuardPage(1)" [disabled]="guardCurrentPage() === 1" title="Primera página">⏮</button>
+                <button type="button" class="btn-page" (click)="prevGuardPage()" [disabled]="guardCurrentPage() === 1">◀ Anterior</button>
+                <span class="page-current-pill">{{ guardCurrentPage() }} / {{ guardTotalPages() }}</span>
+                <button type="button" class="btn-page" (click)="nextGuardPage()" [disabled]="guardCurrentPage() === guardTotalPages()">Siguiente ▶</button>
+                <button type="button" class="btn-page" (click)="goToGuardPage(guardTotalPages())" [disabled]="guardCurrentPage() === guardTotalPages()" title="Última página">⏭</button>
+              </div>
+            </div>
+          }
         </section>
       }
 
@@ -570,6 +620,47 @@ export interface GuardAvailabilityItem {
     .text-right { text-align: right; }
     .text-muted { color: #94a3b8; }
 
+    .today-search-filters, .avail-filters { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .page-size-wrap { display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #475569; }
+    .page-size-wrap select { padding: 0.35rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 700; }
+
+    /* PAGINATION BAR */
+    .pagination-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.65rem;
+      margin-top: 0.5rem;
+    }
+    .pagination-info { font-size: 0.82rem; color: #475569; }
+    .pagination-buttons { display: flex; align-items: center; gap: 0.35rem; }
+    .btn-page {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-page:hover:not(:disabled) { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+    .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
+    .page-current-pill {
+      background: #1e40af;
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.76rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 0.4rem;
+    }
+
     .empty-today {
       text-align: center;
       padding: 2rem 1rem;
@@ -596,6 +687,14 @@ export class ProgramacionPanel implements OnInit {
   readonly searchFilter = signal('');
   readonly guardSearchQuery = signal('');
   readonly statusFilter = signal('ALL');
+
+  // Paginación Cobertura de Puestos
+  readonly todayPageSize = signal(20);
+  readonly todayCurrentPage = signal(1);
+
+  // Paginación Disponibilidad de Vigilantes
+  readonly guardPageSize = signal(20);
+  readonly guardCurrentPage = signal(1);
 
   private readonly year: number;
   private readonly month: number;
@@ -668,6 +767,59 @@ export class ProgramacionPanel implements OnInit {
       (p.turnoNoche?.nombre && p.turnoNoche.nombre.toLowerCase().includes(q))
     );
   });
+
+  readonly todayTotalPages = computed(() => {
+    const size = this.todayPageSize();
+    if (size === -1) return 1;
+    return Math.ceil(this.filteredTodayPosts().length / size) || 1;
+  });
+
+  readonly paginatedTodayPosts = computed(() => {
+    const size = this.todayPageSize();
+    if (size === -1) return this.filteredTodayPosts();
+    const page = Math.min(Math.max(this.todayCurrentPage(), 1), this.todayTotalPages());
+    const start = (page - 1) * size;
+    return this.filteredTodayPosts().slice(start, start + size);
+  });
+
+  readonly todayPaginationText = computed(() => {
+    const total = this.filteredTodayPosts().length;
+    if (!total) return '0 puestos';
+    const size = this.todayPageSize();
+    if (size === -1) return `1 – ${total} de ${total} puestos`;
+    const page = Math.min(Math.max(this.todayCurrentPage(), 1), this.todayTotalPages());
+    const start = (page - 1) * size + 1;
+    const end = Math.min(page * size, total);
+    return `${start} – ${end} de ${total} puestos`;
+  });
+
+  onTodaySearchChange(val: string): void {
+    this.searchFilter.set(val);
+    this.todayCurrentPage.set(1);
+  }
+
+  onTodayPageSizeChange(val: number): void {
+    this.todayPageSize.set(Number(val));
+    this.todayCurrentPage.set(1);
+  }
+
+  goToTodayPage(p: number): void {
+    if (p >= 1 && p <= this.todayTotalPages()) {
+      this.todayCurrentPage.set(p);
+    }
+  }
+
+  prevTodayPage(): void {
+    if (this.todayCurrentPage() > 1) {
+      this.todayCurrentPage.update(p => p - 1);
+    }
+  }
+
+  nextTodayPage(): void {
+    if (this.todayCurrentPage() < this.todayTotalPages()) {
+      this.todayCurrentPage.update(p => p + 1);
+    }
+  }
 
   /**
    * Construye la lista unificada de todos los vigilantes cruzando
@@ -757,6 +909,64 @@ export class ProgramacionPanel implements OnInit {
       return matchQ && matchStatus;
     });
   });
+
+  readonly guardTotalPages = computed(() => {
+    const size = this.guardPageSize();
+    if (size === -1) return 1;
+    return Math.ceil(this.filteredGuards().length / size) || 1;
+  });
+
+  readonly paginatedGuards = computed(() => {
+    const size = this.guardPageSize();
+    if (size === -1) return this.filteredGuards();
+    const page = Math.min(Math.max(this.guardCurrentPage(), 1), this.guardTotalPages());
+    const start = (page - 1) * size;
+    return this.filteredGuards().slice(start, start + size);
+  });
+
+  readonly guardPaginationText = computed(() => {
+    const total = this.filteredGuards().length;
+    if (!total) return '0 vigilantes';
+    const size = this.guardPageSize();
+    if (size === -1) return `1 – ${total} de ${total} vigilantes`;
+    const page = Math.min(Math.max(this.guardCurrentPage(), 1), this.guardTotalPages());
+    const start = (page - 1) * size + 1;
+    const end = Math.min(page * size, total);
+    return `${start} – ${end} de ${total} vigilantes`;
+  });
+
+  onGuardSearchChange(val: string): void {
+    this.guardSearchQuery.set(val);
+    this.guardCurrentPage.set(1);
+  }
+
+  onGuardStatusChange(val: string): void {
+    this.statusFilter.set(val);
+    this.guardCurrentPage.set(1);
+  }
+
+  onGuardPageSizeChange(val: number): void {
+    this.guardPageSize.set(Number(val));
+    this.guardCurrentPage.set(1);
+  }
+
+  goToGuardPage(p: number): void {
+    if (p >= 1 && p <= this.guardTotalPages()) {
+      this.guardCurrentPage.set(p);
+    }
+  }
+
+  prevGuardPage(): void {
+    if (this.guardCurrentPage() > 1) {
+      this.guardCurrentPage.update(p => p - 1);
+    }
+  }
+
+  nextGuardPage(): void {
+    if (this.guardCurrentPage() < this.guardTotalPages()) {
+      this.guardCurrentPage.update(p => p + 1);
+    }
+  }
 
   ngOnInit(): void {
     this.loadOverview();
