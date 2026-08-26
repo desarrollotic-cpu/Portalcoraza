@@ -59,14 +59,15 @@ interface DashboardItem {
             <select id="filter-area" [(ngModel)]="area" name="area" (change)="loadDash()">
               <option value="">Todas las Áreas (44 Indicadores)</option>
               <option value="GH">👥 Gestión Humana</option>
-              <option value="SST">🦺 SST / Salud y Seguridad</option>
+              <option value="SISTEMAS">💻 Seguridad Electrónica & Sistemas</option>
+              <option value="SST">🦺 SST / Salud y Seguridad & PESV</option>
               <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
               <option value="COMERCIAL">🤝 Comercial / Clientes</option>
               <option value="ADMIN">💼 Administrativo / Financiero</option>
+              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
               <option value="DOTACION">📦 Dotación e Inventario</option>
               <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
               <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
-              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
             </select>
           </div>
           <div class="field">
@@ -145,7 +146,7 @@ interface DashboardItem {
               
               <!-- METADATOS -->
               <div class="card-meta">
-                <span class="meta-tag">🏢 {{ it.area }}</span>
+                <span class="meta-tag">🏢 {{ formatAreaLabel(it.area) }}</span>
                 <span class="meta-tag">📅 {{ it.periodo || '—' }} ({{ it.frecuencia }})</span>
                 <span class="meta-tag font-mono">{{ it.sentido === 'ASCENDENTE' ? '📈 Creciente' : '📉 Decreciente' }}</span>
               </div>
@@ -180,7 +181,7 @@ interface DashboardItem {
               <!-- MINI GRÁFICO HISTÓRICO (SPARKLINE DE BARRAS) -->
               @if (it.serie && it.serie.length > 0) {
                 <div class="sparkline-box">
-                  <span class="sparkline-title">Tendencia histórica ({{ it.serie.length }} períodos):</span>
+                  <span class="sparkline-title">Tendencia del período ({{ it.serie.length }} registros):</span>
                   <div class="bars-row">
                     @for (pt of it.serie; track pt.periodo) {
                       <div class="bar-col" [title]="'Período ' + pt.periodo + ': ' + formatNum(pt.resultado) + ' (Meta: ' + formatNum(pt.meta) + ')'">
@@ -194,14 +195,144 @@ interface DashboardItem {
                 </div>
               }
 
-              <!-- FOOTER DE ACCIONES -->
-              <div class="card-footer">
+              <!-- BOTONES DE ACCIÓN: VER MÁS Y CAPTURAR -->
+              <div class="card-footer-btns">
+                <button type="button" class="btn-detail" (click)="openDetail(it)">
+                  📊 Ver más / Gráfica
+                </button>
                 <button type="button" class="btn-capturar" (click)="openCaptura(it.id)">
-                  ✎ Capturar / Registrar
+                  ✎ Capturar
                 </button>
               </div>
             </article>
           }
+        </div>
+      }
+
+      <!-- MODAL DE DETALLE PROFUNDO Y GRÁFICAS AMPLIADAS -->
+      @if (detailItem(); as d) {
+        <div class="modal-backdrop" (click)="closeDetail()">
+          <div class="modal-card detail-modal" (click)="$event.stopPropagation()">
+            <header class="detail-header">
+              <div class="detail-title-wrap">
+                <span class="code-badge big">{{ d.codigo }}</span>
+                <div>
+                  <h3>{{ d.nombre }}</h3>
+                  <div class="detail-tags">
+                    <span class="meta-tag">🏢 Área: {{ formatAreaLabel(d.area) }}</span>
+                    <span class="meta-tag">📅 Frecuencia: {{ d.frecuencia }}</span>
+                    <span class="meta-tag">{{ d.sentido === 'ASCENDENTE' ? '📈 Creciente' : '📉 Decreciente' }}</span>
+                  </div>
+                </div>
+              </div>
+              <button type="button" class="btn-close" (click)="closeDetail()">✕</button>
+            </header>
+
+            <div class="detail-body">
+              <!-- KPI PRINCIPAL DESTACADO -->
+              <div class="detail-kpi-summary">
+                <div class="kpi-box">
+                  <span class="kpi-lbl">Meta Establecida</span>
+                  <span class="kpi-val">{{ formatNum(d.meta) }}</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-lbl">Último Resultado Real</span>
+                  <span class="kpi-val highlight">{{ formatNum(d.resultado) }}</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-lbl">Eficacia de Gestión</span>
+                  <span class="kpi-val pct" [attr.data-c]="d.color || 'NA'">{{ calcPct(d) }}</span>
+                </div>
+                <div class="kpi-box">
+                  <span class="kpi-lbl">Estado Semáforo</span>
+                  <span class="dot big" [attr.data-c]="d.color || 'NA'">{{ d.color || 'SIN DATO' }}</span>
+                </div>
+              </div>
+
+              <!-- GRAN GRÁFICA HISTÓRICA MES A MES -->
+              <div class="detail-chart-card">
+                <div class="chart-header">
+                  <h4>📊 Gráfica Detallada de Comportamiento & Tendencia (Año {{ anio }})</h4>
+                  <small>Comparación de Barras: Meta Planificada vs. Resultado Real Obtenido</small>
+                </div>
+
+                @if (d.serie && d.serie.length > 0) {
+                  <div class="big-chart-container">
+                    <div class="big-bars-track">
+                      @for (pt of d.serie; track pt.periodo) {
+                        <div class="big-bar-group">
+                          <div class="bars-pair">
+                            <!-- Barra Meta -->
+                            <div
+                              class="bar-pill bar-meta"
+                              [style.height.px]="calcBigBarHeight(pt.meta, d.meta)"
+                              [title]="'Meta: ' + formatNum(pt.meta)"
+                            >
+                              <span class="bar-val-tip">{{ formatNum(pt.meta) }}</span>
+                            </div>
+                            <!-- Barra Resultado -->
+                            <div
+                              class="bar-pill bar-res"
+                              [attr.data-c]="pt.color"
+                              [style.height.px]="calcBigBarHeight(pt.resultado, d.meta)"
+                              [title]="'Resultado: ' + formatNum(pt.resultado)"
+                            >
+                              <span class="bar-val-tip">{{ formatNum(pt.resultado) }}</span>
+                            </div>
+                          </div>
+                          <span class="big-period-lbl">Per. {{ pt.periodo }}</span>
+                          <span class="dot mini" [attr.data-c]="pt.color">{{ pt.color }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="chart-legend">
+                      <span class="legend-item"><span class="legend-box meta"></span> Meta Planificada</span>
+                      <span class="legend-item"><span class="legend-box verde"></span> Cumple Meta (Verde/Azul)</span>
+                      <span class="legend-item"><span class="legend-box amarillo"></span> En Riesgo (Amarillo)</span>
+                      <span class="legend-item"><span class="legend-box rojo"></span> Crítico / No Cumple (Rojo)</span>
+                    </div>
+                  </div>
+                } @else {
+                  <p class="no-chart-data">No se registran mediciones capturadas para este indicador en el año actual.</p>
+                }
+              </div>
+
+              <!-- FICHA TÉCNICA DEL INDICADOR -->
+              @if (detailFicha(); as f) {
+                <div class="ficha-card">
+                  <h4>📋 Ficha Técnica Oficial (Estándar ISO 9001 / BASC / SST)</h4>
+                  <div class="ficha-grid">
+                    <div class="ficha-field">
+                      <strong>🎯 Propósito / Definición:</strong>
+                      <p>{{ f.proposito || 'Medición del desempeño del proceso según estándares del Sistema Integrado de Gestión.' }}</p>
+                    </div>
+                    <div class="ficha-field">
+                      <strong>📐 Fórmula de Cálculo:</strong>
+                      <code>{{ f.formula || 'Fórmula estándar de gestión de calidad' }}</code>
+                    </div>
+                    <div class="ficha-field">
+                      <strong>👤 Responsable del Proceso:</strong>
+                      <p>{{ f.responsable || 'Líder del Proceso / Sistema Integrado de Gestión' }}</p>
+                    </div>
+                    <div class="ficha-field">
+                      <strong>🏷️ Subsistema Normativo:</strong>
+                      <p><span class="sys-badge">{{ f.subsistema }}</span> (ISO 9001, ISO 45001, BASC, RSE, PESV)</p>
+                    </div>
+                  </div>
+                </div>
+              }
+
+              <!-- ACCIONES DEL MODAL -->
+              <div class="detail-actions">
+                <button type="button" class="btn-primary" (click)="capturarFromDetail(d.id)">
+                  ✏️ Capturar / Actualizar Valor
+                </button>
+                <button type="button" class="btn-secondary" (click)="closeDetail()">
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       }
 
@@ -235,14 +366,15 @@ interface DashboardItem {
             <select id="cat-area" [(ngModel)]="filtroArea" name="fa" (change)="loadCatalogo()">
               <option value="">Todas las Áreas</option>
               <option value="GH">👥 Gestión Humana</option>
-              <option value="SST">🦺 SST / Salud y Seguridad</option>
+              <option value="SISTEMAS">💻 Seguridad Electrónica & Sistemas</option>
+              <option value="SST">🦺 SST / Salud y Seguridad & PESV</option>
               <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
               <option value="COMERCIAL">🤝 Comercial / Clientes</option>
               <option value="ADMIN">💼 Administrativo / Financiero</option>
+              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
               <option value="DOTACION">📦 Dotación e Inventario</option>
               <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
               <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
-              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
             </select>
           </div>
           <div class="field search-field">
@@ -269,7 +401,7 @@ interface DashboardItem {
                 <tr>
                   <td><strong class="code-badge">{{ i.codigo }}</strong></td>
                   <td><b>{{ i.nombre }}</b></td>
-                  <td><span class="meta-tag">{{ i.area }}</span></td>
+                  <td><span class="meta-tag">{{ formatAreaLabel(i.area) }}</span></td>
                   <td>{{ i.frecuencia }}</td>
                   <td>{{ i.sentido }}</td>
                   <td>
@@ -303,29 +435,26 @@ interface DashboardItem {
               <select [(ngModel)]="capturaId" name="cid" (change)="onIndicador()">
                 <option value="">-- Seleccionar Indicador --</option>
                 @for (i of catalogo(); track i.id) {
-                  <option [value]="i.id">{{ i.codigo }} — {{ i.nombre }}</option>
+                  <option [value]="i.id">{{ i.codigo }} — {{ i.nombre }} ({{ formatAreaLabel(i.area) }})</option>
                 }
               </select>
             </label>
 
             @if (sel(); as s) {
               <div class="info-banner">
-                <div><strong>Fórmula:</strong> {{ s.formula || 'No especificada' }}</div>
-                <div><strong>Frecuencia:</strong> {{ s.frecuencia }} · <strong>Sentido:</strong> {{ s.sentido }}</div>
+                <div><strong>📌 Ficha Técnica:</strong> {{ s.proposito || 'Sin propósito registrado' }}</div>
+                <div><strong>📐 Fórmula:</strong> <code>{{ s.formula || 'Sin fórmula' }}</code></div>
+                <div><strong>🏢 Área:</strong> {{ formatAreaLabel(s.area) }} | <strong>Frecuencia:</strong> {{ s.frecuencia }} | <strong>Sentido:</strong> {{ s.sentido }}</div>
               </div>
 
               <div class="grid-2col">
                 <label class="form-label">
-                  <span>Año de Gestión</span>
+                  <span>Año</span>
                   <input type="number" [(ngModel)]="anio" name="ca" />
                 </label>
                 <label class="form-label">
                   <span>Período</span>
-                  <select [(ngModel)]="periodo" name="cp">
-                    @for (p of periodosDe(s.frecuencia); track p) {
-                      <option [value]="p">{{ p }}</option>
-                    }
-                  </select>
+                  <input [(ngModel)]="periodo" name="cp" placeholder="Ej: 01, 02.. o T1, T2.." />
                 </label>
               </div>
 
@@ -382,55 +511,69 @@ interface DashboardItem {
       }
     </section>
   `,
-  styles: `
-    .page { display: grid; gap: 1.25rem; font-family: inherit; }
-    
+  styles: [
+    `
+    :host { display: block; }
+    .page {
+      padding: 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
     .head {
       display: flex;
       flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
       gap: 1rem;
-      background: #ffffff;
-      padding: 1.25rem 1.5rem;
-      border-radius: 1rem;
-      border: 1px solid #e2e8f0;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 1rem;
     }
-    .title-wrap { display: flex; align-items: center; gap: 1rem; }
-    .logo-badge { font-size: 2rem; background: #eff6ff; padding: 0.5rem 0.75rem; border-radius: 0.75rem; }
-    .head h2 { margin: 0 0 0.2rem; font-size: 1.35rem; color: #0f172a; font-weight: 800; }
-    .head p { margin: 0; color: #64748b; font-size: 0.88rem; }
+    .title-wrap { display: flex; align-items: center; gap: 0.85rem; }
+    .logo-badge {
+      font-size: 1.8rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .head h2 { margin: 0; font-size: 1.4rem; color: #1e3a8a; font-weight: 800; }
+    .head p { margin: 0.2rem 0 0; font-size: 0.85rem; color: #64748b; }
     
-    .tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .tabs { display: flex; gap: 0.4rem; }
     .tabs button {
+      background: #f1f5f9;
       border: 1px solid #cbd5e1;
-      background: #f8fafc;
-      border-radius: 0.65rem;
       padding: 0.55rem 1rem;
-      cursor: pointer;
+      border-radius: 0.55rem;
       font-weight: 700;
       font-size: 0.85rem;
       color: #334155;
-      transition: all 0.2s ease;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .tabs button:hover { background: #e2e8f0; }
     .tabs button.on {
       background: #1e3a8a;
       color: #ffffff;
       border-color: #1e3a8a;
-      box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2);
+      box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
     }
 
     .toast {
-      background: #ecfdf5;
-      color: #065f46;
-      border: 1px solid #a7f3d0;
-      border-radius: 0.75rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
       padding: 0.75rem 1rem;
-      margin: 0;
+      border-radius: 0.6rem;
       font-weight: 600;
       font-size: 0.9rem;
+      margin: 0;
     }
 
     .filter-bar {
@@ -492,22 +635,19 @@ interface DashboardItem {
     }
     .kpi-card {
       background: #ffffff;
-      border: 1px solid #e2e8f0;
       border-radius: 0.85rem;
-      padding: 1rem;
+      padding: 0.85rem 1rem;
       display: flex;
       align-items: center;
       gap: 0.85rem;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.02);
-      transition: transform 0.2s;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
-    .kpi-card:hover { transform: translateY(-2px); }
     .kpi-icon { font-size: 1.5rem; }
-    .kpi-data { flex: 1; }
-    .kpi-data small { display: block; font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .kpi-data b { font-size: 1.5rem; color: #0f172a; font-weight: 900; line-height: 1.1; display: block; margin: 0.1rem 0; }
-    
-    .mini-prog { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 0.35rem; }
+    .kpi-data { display: flex; flex-direction: column; flex: 1; }
+    .kpi-data small { font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .kpi-data b { font-size: 1.35rem; color: #0f172a; line-height: 1.1; margin: 0.15rem 0; }
+    .mini-prog { height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin-top: 0.2rem; }
     .mini-bar { height: 100%; border-radius: 2px; }
     .bg-blue { background: #3b82f6; }
     .bg-green { background: #22c55e; }
@@ -515,32 +655,25 @@ interface DashboardItem {
     .bg-red { background: #ef4444; }
     .bg-gray { background: #94a3b8; }
 
-    .kpi-card.azul { border-left: 4px solid #3b82f6; }
-    .kpi-card.verde { border-left: 4px solid #22c55e; }
-    .kpi-card.amarillo { border-left: 4px solid #eab308; }
-    .kpi-card.rojo { border-left: 4px solid #ef4444; }
-    .kpi-card.sin-dato { border-left: 4px solid #94a3b8; }
-
     .cards-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.1rem;
+      gap: 1.15rem;
     }
     .card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
-      border-radius: 0.85rem;
-      padding: 1.1rem;
+      border-radius: 0.95rem;
+      padding: 1.15rem;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
       gap: 0.75rem;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-      transition: all 0.2s ease;
+      transition: transform 0.2s, box-shadow 0.2s;
+      position: relative;
     }
     .card:hover {
-      box-shadow: 0 8px 16px -2px rgba(0,0,0,0.08);
       transform: translateY(-2px);
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
     }
     .card[data-c='AZUL'] { border-top: 4px solid #3b82f6; }
     .card[data-c='VERDE'] { border-top: 4px solid #22c55e; }
@@ -550,123 +683,96 @@ interface DashboardItem {
 
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .code-badge {
-      font-size: 0.8rem;
-      font-weight: 800;
       background: #f1f5f9;
       color: #334155;
+      font-weight: 900;
+      font-size: 0.85rem;
       padding: 0.2rem 0.6rem;
       border-radius: 0.4rem;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #cbd5e1;
+      letter-spacing: 0.05em;
     }
     .dot {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 800;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
-      background: #e2e8f0;
-      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
     }
     .dot[data-c='AZUL'] { background: #dbeafe; color: #1e40af; }
     .dot[data-c='VERDE'] { background: #dcfce7; color: #166534; }
     .dot[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
     .dot[data-c='ROJO'] { background: #fee2e2; color: #991b1b; }
     .dot[data-c='NA'] { background: #f1f5f9; color: #64748b; }
-    .dot.big { font-size: 0.95rem; padding: 0.4rem 0.9rem; }
 
     .card-title {
       margin: 0;
-      font-size: 0.98rem;
+      font-size: 1rem;
+      color: #0f172a;
       font-weight: 800;
-      color: #1e293b;
-      line-height: 1.35;
-      min-height: 2.5rem;
+      line-height: 1.3;
+      min-height: 2.6rem;
     }
 
-    .card-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .card-meta { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .meta-tag {
       font-size: 0.72rem;
       background: #f8fafc;
-      color: #64748b;
-      padding: 0.15rem 0.5rem;
+      color: #475569;
+      border: 1px solid #e2e8f0;
+      padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
-      border: 1px solid #f1f5f9;
       font-weight: 600;
     }
-    .font-mono { font-family: monospace; }
 
     .values-box {
       display: flex;
       align-items: center;
       background: #f8fafc;
-      border: 1px solid #f1f5f9;
+      border: 1px solid #e2e8f0;
       border-radius: 0.65rem;
-      padding: 0.6rem 0.75rem;
-      justify-content: space-between;
+      padding: 0.55rem 0.75rem;
+      justify-content: space-around;
     }
-    .val-col { display: flex; flex-direction: column; align-items: center; }
-    .val-col .lbl { font-size: 0.68rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
-    .val-col .val { font-size: 1rem; font-weight: 900; }
-    .val-col .meta-val { color: #475569; }
-    .val-col .res-val { color: #1e3a8a; }
+    .val-col { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .val-col .lbl { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .val-col .val { font-size: 1rem; font-weight: 900; color: #0f172a; }
     .val-col .pct-val[data-c='AZUL'] { color: #2563eb; }
     .val-col .pct-val[data-c='VERDE'] { color: #16a34a; }
-    .val-col .pct-val[data-c='AMARILLO'] { color: #d97706; }
+    .val-col .pct-val[data-c='AMARILLO'] { color: #ca8a04; }
     .val-col .pct-val[data-c='ROJO'] { color: #dc2626; }
-    .val-divider { width: 1px; height: 26px; background: #e2e8f0; }
+    .val-divider { width: 1px; height: 28px; background: #cbd5e1; }
 
-    /* BARRA DE PROGRESO */
-    .progress-container { margin: 0.1rem 0; }
-    .progress-track {
-      height: 6px;
-      background: #f1f5f9;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      border-radius: 999px;
-      transition: width 0.4s ease;
-    }
+    .progress-container { margin-top: 0.15rem; }
+    .progress-track { height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
     .progress-fill[data-c='AZUL'] { background: #3b82f6; }
     .progress-fill[data-c='VERDE'] { background: #22c55e; }
     .progress-fill[data-c='AMARILLO'] { background: #eab308; }
     .progress-fill[data-c='ROJO'] { background: #ef4444; }
-    .progress-fill[data-c='NA'] { background: #cbd5e1; }
+    .progress-fill[data-c='NA'] { background: #94a3b8; }
 
-    /* MINI GRÁFICO HISTÓRICO (SPARKLINE) */
     .sparkline-box {
-      background: #fcfcfd;
-      border: 1px solid #f1f5f9;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      background: #f8fafc;
+      padding: 0.45rem 0.65rem;
       border-radius: 0.55rem;
-      padding: 0.5rem 0.65rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
+      border: 1px dashed #cbd5e1;
     }
-    .sparkline-title { font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-    .bars-row {
-      display: flex;
-      align-items: flex-end;
-      gap: 0.35rem;
-      height: 36px;
-      padding-top: 4px;
-    }
-    .bar-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.15rem;
-      height: 100%;
-      justify-content: flex-end;
-      cursor: help;
-    }
+    .sparkline-title { font-size: 0.68rem; font-weight: 700; color: #64748b; }
+    .bars-row { display: flex; align-items: flex-end; gap: 0.35rem; height: 28px; }
+    .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
     .bar-stem {
+      flex: 1;
       width: 100%;
-      height: 24px;
       display: flex;
       align-items: flex-end;
       justify-content: center;
+      background: rgba(226, 232, 240, 0.4);
+      border-radius: 2px;
     }
     .bar-cap {
       width: 80%;
@@ -680,22 +786,238 @@ interface DashboardItem {
     .bar-cap[data-c='ROJO'] { background: #ef4444; }
     .bar-lbl { font-size: 0.65rem; color: #94a3b8; font-weight: 700; }
 
-    .card-footer { margin-top: 0.25rem; }
+    .card-footer-btns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+      margin-top: 0.25rem;
+    }
+    .btn-detail {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e3a8a;
+      border-radius: 0.55rem;
+      padding: 0.55rem;
+      font-weight: 700;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .btn-detail:hover { background: #eff6ff; border-color: #93c5fd; }
+    
     .btn-capturar {
-      width: 100%;
       border: 1px solid #bfdbfe;
       background: #eff6ff;
       color: #1d4ed8;
       border-radius: 0.55rem;
       padding: 0.55rem;
       font-weight: 700;
-      font-size: 0.85rem;
+      font-size: 0.8rem;
       cursor: pointer;
       transition: all 0.2s;
       text-align: center;
     }
     .btn-capturar:hover { background: #dbeafe; border-color: #93c5fd; }
 
+    /* MODAL DE DETALLE */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(4px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+    .detail-modal {
+      background: #ffffff;
+      width: 100%;
+      max-width: 860px;
+      max-height: 90vh;
+      border-radius: 1.25rem;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+    }
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+      border-radius: 1.25rem 1.25rem 0 0;
+    }
+    .detail-title-wrap { display: flex; gap: 1rem; align-items: center; }
+    .code-badge.big { font-size: 1.2rem; padding: 0.35rem 0.85rem; border-radius: 0.65rem; }
+    .detail-header h3 { margin: 0; font-size: 1.25rem; color: #0f172a; font-weight: 800; }
+    .detail-tags { display: flex; gap: 0.4rem; margin-top: 0.35rem; }
+    .btn-close {
+      border: none;
+      background: #e2e8f0;
+      color: #475569;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-close:hover { background: #cbd5e1; color: #0f172a; }
+
+    .detail-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+    
+    .detail-kpi-summary {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 0.85rem;
+    }
+    .kpi-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .kpi-box .kpi-lbl { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
+    .kpi-box .kpi-val { font-size: 1.35rem; font-weight: 900; color: #0f172a; }
+    .kpi-box .kpi-val.highlight { color: #1e3a8a; }
+
+    .detail-chart-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .chart-header h4 { margin: 0; font-size: 1.05rem; color: #1e3a8a; font-weight: 800; }
+    .chart-header small { color: #64748b; font-size: 0.8rem; }
+
+    .big-chart-container { display: flex; flex-direction: column; gap: 1rem; }
+    .big-bars-track {
+      display: flex;
+      align-items: flex-end;
+      gap: 1rem;
+      height: 180px;
+      padding: 1rem 0.5rem 0.5rem;
+      background: #f8fafc;
+      border-radius: 0.75rem;
+      border: 1px solid #e2e8f0;
+      overflow-x: auto;
+    }
+    .big-bar-group {
+      flex: 1;
+      min-width: 55px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100%;
+      justify-content: flex-end;
+      gap: 0.4rem;
+    }
+    .bars-pair {
+      display: flex;
+      align-items: flex-end;
+      gap: 4px;
+      height: 120px;
+      width: 100%;
+      justify-content: center;
+    }
+    .bar-pill {
+      width: 18px;
+      min-height: 8px;
+      border-radius: 4px 4px 0 0;
+      position: relative;
+      transition: height 0.3s ease;
+    }
+    .bar-pill.bar-meta { background: #94a3b8; }
+    .bar-pill.bar-res[data-c='AZUL'] { background: #3b82f6; }
+    .bar-pill.bar-res[data-c='VERDE'] { background: #22c55e; }
+    .bar-pill.bar-res[data-c='AMARILLO'] { background: #eab308; }
+    .bar-pill.bar-res[data-c='ROJO'] { background: #ef4444; }
+    .bar-val-tip {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.65rem;
+      font-weight: 800;
+      color: #334155;
+      white-space: nowrap;
+    }
+    .big-period-lbl { font-size: 0.75rem; font-weight: 800; color: #475569; }
+    .dot.mini { font-size: 0.6rem; padding: 0.1rem 0.4rem; }
+
+    .chart-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: center;
+      padding-top: 0.5rem;
+      border-top: 1px solid #f1f5f9;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #475569;
+    }
+    .legend-item { display: flex; align-items: center; gap: 0.35rem; }
+    .legend-box { width: 12px; height: 12px; border-radius: 3px; }
+    .legend-box.meta { background: #94a3b8; }
+    .legend-box.verde { background: #22c55e; }
+    .legend-box.amarillo { background: #eab308; }
+    .legend-box.rojo { background: #ef4444; }
+    .no-chart-data { text-align: center; color: #94a3b8; font-style: italic; padding: 2rem; }
+
+    .ficha-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      padding: 1.25rem;
+    }
+    .ficha-card h4 { margin: 0 0 0.85rem; font-size: 1rem; color: #0f172a; font-weight: 800; }
+    .ficha-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+    .ficha-field strong { display: block; font-size: 0.78rem; color: #475569; text-transform: uppercase; margin-bottom: 0.2rem; }
+    .ficha-field p { margin: 0; font-size: 0.88rem; color: #1e293b; line-height: 1.4; }
+    .ficha-field code { background: #e2e8f0; padding: 0.2rem 0.5rem; border-radius: 0.35rem; font-size: 0.82rem; font-weight: 700; color: #0f172a; }
+
+    .detail-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+    }
+    .btn-primary {
+      background: #1e3a8a;
+      color: #ffffff;
+      border: none;
+      border-radius: 0.55rem;
+      padding: 0.65rem 1.25rem;
+      font-weight: 800;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-primary:hover { background: #172554; }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.55rem;
+      padding: 0.65rem 1.25rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
+
+    /* TABLA CATÁLOGO */
     .table-container {
       background: #ffffff;
       border-radius: 0.85rem;
@@ -735,6 +1057,7 @@ interface DashboardItem {
     }
     .btn-action.outline { background: transparent; border: 1px solid #cbd5e1; color: #475569; }
 
+    /* MAPA ESTRATÉGICO */
     .mapa-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; }
     .perspectiva-card {
       background: #ffffff;
@@ -763,38 +1086,53 @@ interface DashboardItem {
       padding: 0.75rem;
       cursor: pointer;
       transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
     }
-    .obj-btn:hover { background: #f1f5f9; border-color: #cbd5e1; }
-    .obj-btn strong { display: block; font-size: 0.88rem; color: #1e293b; margin-bottom: 0.4rem; }
-    .obj-footer { display: flex; justify-content: space-between; font-size: 0.75rem; }
-    .sys-badge { background: #e0e7ff; color: #3730a3; padding: 0.1rem 0.4rem; border-radius: 0.3rem; font-weight: 700; }
-    .count-badge { color: #64748b; font-weight: 600; }
+    .obj-btn:hover { background: #eff6ff; border-color: #93c5fd; transform: translateX(2px); }
+    .obj-btn strong { font-size: 0.85rem; color: #1e293b; line-height: 1.3; }
+    .obj-footer { display: flex; justify-content: space-between; align-items: center; }
+    .sys-badge {
+      background: #e0e7ff;
+      color: #3730a3;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 0.1rem 0.45rem;
+      border-radius: 0.35rem;
+    }
+    .count-badge { font-size: 0.72rem; color: #64748b; font-weight: 600; }
 
+    /* FORMULARIO DE CAPTURA */
     .form-container {
-      max-width: 680px;
       background: #ffffff;
+      border-radius: 0.95rem;
       border: 1px solid #e2e8f0;
-      border-radius: 1rem;
-      padding: 1.5rem;
-      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03);
+      max-width: 720px;
+      margin: 0 auto;
+      overflow: hidden;
     }
-    .form-header h3 { margin: 0 0 0.25rem; font-size: 1.25rem; color: #0f172a; font-weight: 800; }
-    .form-header p { margin: 0 0 1.25rem; color: #64748b; font-size: 0.88rem; }
-    .form-body { display: flex; flex-direction: column; gap: 1rem; }
-    .form-label { display: flex; flex-direction: column; gap: 0.35rem; }
-    .form-label span { font-size: 0.82rem; font-weight: 700; color: #334155; }
-    .form-label input, .form-label select, .form-label textarea {
+    .form-header {
+      background: #f8fafc;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .form-header h3 { margin: 0; font-size: 1.15rem; color: #1e3a8a; font-weight: 800; }
+    .form-header p { margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem; }
+    .form-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .form-label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
+    .form-label select, .form-label input, .form-label textarea {
       font: inherit;
       border: 1px solid #cbd5e1;
-      border-radius: 0.6rem;
-      padding: 0.65rem 0.85rem;
+      border-radius: 0.55rem;
+      padding: 0.6rem 0.85rem;
       color: #0f172a;
       background: #f8fafc;
+      outline: none;
     }
-    .form-label input:focus, .form-label select:focus, .form-label textarea:focus {
+    .form-label select:focus, .form-label input:focus, .form-label textarea:focus {
       border-color: #2563eb;
       background: #ffffff;
-      outline: none;
     }
     .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .info-banner {
@@ -851,6 +1189,7 @@ interface DashboardItem {
     .hist-vals b { color: #0f172a; }
     .muted { color: #94a3b8; font-size: 0.85rem; font-style: italic; }
   `,
+  ],
 })
 export class SigHome implements OnInit {
   private readonly api = inject(SigApiService);
@@ -870,6 +1209,11 @@ export class SigHome implements OnInit {
   readonly busy = signal(false);
   readonly msg = signal('');
   readonly color = signal('');
+
+  // Detalle expandido
+  readonly detailItem = signal<DashboardItem | null>(null);
+  readonly detailFicha = signal<SigIndicador | null>(null);
+
   area = '';
   filtroArea = '';
   anio = new Date().getFullYear();
@@ -897,6 +1241,39 @@ export class SigHome implements OnInit {
     /* template keyup for q filter */
   }
 
+  openDetail(it: DashboardItem): void {
+    this.detailItem.set(it);
+    // Buscar la ficha técnica en el catálogo
+    const ficha = this.catalogo().find((c) => c.id === it.id || c.codigo === it.codigo);
+    this.detailFicha.set(ficha || null);
+  }
+
+  closeDetail(): void {
+    this.detailItem.set(null);
+    this.detailFicha.set(null);
+  }
+
+  capturarFromDetail(id: string): void {
+    this.closeDetail();
+    this.openCaptura(id);
+  }
+
+  formatAreaLabel(a: string): string {
+    const map: Record<string, string> = {
+      GH: 'Gestión Humana',
+      SISTEMAS: 'Seguridad Electrónica & Sistemas',
+      SST: 'SST & Seguridad Vial',
+      OPERACIONES: 'Operaciones y Puestos',
+      COMERCIAL: 'Comercial / Clientes',
+      ADMIN: 'Administrativo & Financiero',
+      CALIDAD: 'Calidad, BASC & Auditoría',
+      DOTACION: 'Dotación e Inventario',
+      DOCUMENTAL: 'Gestión Documental & Archivo',
+      RECEPCION: 'Recepción & Control Acceso',
+    };
+    return map[a] || a;
+  }
+
   formatNum(val: number | string | null | undefined): string {
     if (val === null || val === undefined) return '—';
     const n = Number(val);
@@ -909,18 +1286,20 @@ export class SigHome implements OnInit {
 
   calcPct(it: DashboardItem): string {
     if (it.meta === null || it.resultado === null || it.meta === 0) return '100%';
-    const pct = it.sentido === 'ASCENDENTE'
-      ? (it.resultado / it.meta) * 100
-      : (it.meta / it.resultado) * 100;
+    const pct =
+      it.sentido === 'ASCENDENTE'
+        ? (it.resultado / it.meta) * 100
+        : (it.meta / it.resultado) * 100;
     return `${Math.round(pct)}%`;
   }
 
   calcBarWidth(it: DashboardItem): number {
     if (it.meta === null || it.resultado === null) return 0;
     if (it.meta === 0) return 100;
-    const pct = it.sentido === 'ASCENDENTE'
-      ? (it.resultado / it.meta) * 100
-      : (it.meta / it.resultado) * 100;
+    const pct =
+      it.sentido === 'ASCENDENTE'
+        ? (it.resultado / it.meta) * 100
+        : (it.meta / it.resultado) * 100;
     return Math.min(100, Math.max(5, Math.round(pct)));
   }
 
@@ -928,6 +1307,12 @@ export class SigHome implements OnInit {
     if (!meta || meta === 0) return 18;
     const ratio = Math.min(1.5, Math.max(0.2, res / meta));
     return Math.round(ratio * 16);
+  }
+
+  calcBigBarHeight(val: number, metaRef: number | null): number {
+    if (!metaRef || metaRef === 0) return 40;
+    const ratio = Math.min(2.0, Math.max(0.15, val / metaRef));
+    return Math.round(ratio * 70);
   }
 
   totalEvaluados(): number {
@@ -948,26 +1333,23 @@ export class SigHome implements OnInit {
     return Math.round((this.totalCumplen() / total) * 100);
   }
 
-  pctCount(k: keyof SigDashboard['counts']): number {
-    const total = (this.dash()?.items || []).length;
+  pctCount(key: keyof NonNullable<SigDashboard['counts']>): number {
+    const total = this.totalEvaluados();
     if (total === 0) return 0;
-    const count = this.dash()?.counts?.[k] || 0;
-    return Math.round((count / total) * 100);
+    return Math.round(((this.dash()?.counts[key] || 0) / total) * 100);
   }
 
   loadDash(): void {
-    this.api.dashboard(this.area || undefined, this.anio).subscribe({
+    this.api.dashboard(this.area || undefined, Number(this.anio)).subscribe({
       next: (d) => this.dash.set(d),
-      error: () => this.msg.set('No se pudo cargar el dashboard'),
+      error: () => this.showToast('Error cargando el tablero de indicadores'),
     });
   }
 
   loadCatalogo(): void {
-    const q: Record<string, string> = {};
-    if (this.filtroArea) q['area'] = this.filtroArea;
-    this.api.indicadores(q).subscribe({
-      next: (r) => this.catalogo.set(r),
-      error: () => this.catalogo.set([]),
+    const query: Record<string, string> = this.filtroArea ? { area: this.filtroArea } : {};
+    this.api.indicadores(query).subscribe({
+      next: (arr) => this.catalogo.set(arr),
     });
   }
 
@@ -977,94 +1359,98 @@ export class SigHome implements OnInit {
     return this.catalogo().filter(
       (i) =>
         i.codigo.toLowerCase().includes(term) ||
-        i.nombre.toLowerCase().includes(term),
+        i.nombre.toLowerCase().includes(term) ||
+        i.area.toLowerCase().includes(term)
     );
   }
 
-  objetivosBy(p: string): SigObjetivo[] {
-    return this.objetivos().filter((o) => o.perspectiva === p);
+  objetivosBy(perspectiva: string): SigObjetivo[] {
+    return this.objetivos().filter((o) => o.perspectiva === perspectiva);
   }
 
-  fromMapa(objetivoId: string): void {
-    this.api.indicadores({ objetivoId }).subscribe({
-      next: (r) => {
-        this.catalogo.set(r);
-        this.filtroArea = '';
-        this.tab.set('catalogo');
+  fromMapa(objId: string): void {
+    this.tab.set('catalogo');
+    this.api.indicadores().subscribe({
+      next: (arr) => {
+        this.catalogo.set(arr.filter((i) => i.objetivoId === objId));
       },
     });
   }
 
   openCaptura(id: string): void {
-    this.capturaId = id;
     this.tab.set('captura');
+    this.capturaId = id;
     this.onIndicador();
   }
 
   onIndicador(): void {
-    const s = this.catalogo().find((i) => i.id === this.capturaId) || null;
-    this.sel.set(s);
-    this.color.set('');
-    const pers = this.periodosDe(s?.frecuencia || 'MENSUAL');
-    this.periodo = pers[0] || '01';
-    if (!s) return;
-    this.api.resultados(s.id, this.anio).subscribe({
-      next: (h) => {
-        this.hist.set(h);
-        if (h[0]) {
-          this.meta = Number(h[0].metaSnapshot);
-          this.resultado = Number(h[0].valorResultado);
-          this.color.set(h[0].colorSemaforo);
-        } else {
-          this.meta = 0;
-          this.resultado = 0;
-        }
-      },
-    });
-  }
-
-  periodosDe(f: string): string[] {
-    if (f === 'TRIMESTRAL') return ['T1', 'T2', 'T3', 'T4'];
-    if (f === 'SEMESTRAL') return ['S1', 'S2'];
-    if (f === 'ANUAL') return ['ANUAL'];
-    return ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
-  }
-
-  toggleActivo(i: SigIndicador): void {
-    this.api.patchIndicador(i.id, { activo: !i.activo }).subscribe({
-      next: () => {
-        this.msg.set(i.activo ? 'Indicador inactivado' : 'Indicador activado');
-        this.loadCatalogo();
-      },
-      error: (e) => this.msg.set(e?.error?.message || 'No se pudo actualizar'),
-    });
+    const found = this.catalogo().find((i) => i.id === this.capturaId);
+    this.sel.set(found || null);
+    if (found) {
+      this.api.resultados(found.id, Number(this.anio)).subscribe({
+        next: (h: SigResultado[]) => {
+          this.hist.set(h);
+          if (h.length > 0) {
+            const last = h[h.length - 1];
+            this.meta = Number(last.metaSnapshot);
+            this.resultado = Number(last.valorResultado);
+            this.obs = last.observaciones || '';
+            this.color.set(last.colorSemaforo);
+          } else {
+            this.meta = 0;
+            this.resultado = 0;
+            this.obs = '';
+            this.color.set('');
+          }
+        },
+      });
+    }
   }
 
   guardar(): void {
-    const s = this.sel();
-    if (!s) return;
+    if (!this.capturaId) {
+      this.showToast('Selecciona un indicador primero');
+      return;
+    }
     this.busy.set(true);
     this.api
       .capturar({
-        indicadorId: s.id,
+        indicadorId: this.capturaId,
         anio: Number(this.anio),
-        periodo: this.periodo,
+        periodo: this.periodo.trim(),
         meta: Number(this.meta),
         resultado: Number(this.resultado),
-        observaciones: this.obs,
+        observaciones: this.obs.trim() || undefined,
         seguimiento: this.seguimiento,
       })
       .subscribe({
-        next: (r) => {
+        next: () => {
           this.busy.set(false);
-          this.color.set(r.colorSemaforo);
-          this.msg.set('✅ Resultado guardado exitosamente');
+          this.showToast('✅ Resultado registrado exitosamente');
           this.onIndicador();
         },
-        error: (e) => {
+        error: () => {
           this.busy.set(false);
-          this.msg.set(e?.error?.message || 'No se pudo guardar el resultado');
+          this.showToast('❌ Error al registrar resultado');
         },
       });
+  }
+
+  toggleActivo(ind: SigIndicador): void {
+    this.api.patchIndicador(ind.id, { activo: !ind.activo }).subscribe({
+      next: (upd: SigIndicador) => {
+        this.catalogo.update((list) =>
+          list.map((item) => (item.id === upd.id ? upd : item))
+        );
+        this.showToast(
+          `Indicador ${upd.codigo} ${upd.activo ? 'activado' : 'inactivado'}`
+        );
+      },
+    });
+  }
+
+  private showToast(m: string): void {
+    this.msg.set(m);
+    setTimeout(() => this.msg.set(''), 4000);
   }
 }

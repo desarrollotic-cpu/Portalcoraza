@@ -12,6 +12,7 @@ const AREAS = [
   'GH',
   'SST',
   'OPERACIONES',
+  'SISTEMAS',
   'COMERCIAL',
   'ADMIN',
   'DOTACION',
