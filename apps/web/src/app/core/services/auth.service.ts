@@ -135,6 +135,9 @@ export class AuthService {
   getDefaultRoute(): string {
     const user = this.currentUser();
     if (!user) return '/auth/login';
+    if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
+      return '/sig';
+    }
     if (this.hasPermission('users.view') || user.role?.code === 'GERENCIA') {
       return '/dashboard';
     }
@@ -147,6 +150,7 @@ export class AuthService {
     if (this.hasPermission('sst.view')) return '/sst';
     if (this.hasPermission('posts.view')) return '/operaciones';
     if (this.hasPermission('accounting.view') || this.hasPermission('payroll.view')) return '/contabilidad';
+    if (this.hasPermission('sig.view')) return '/sig';
     return '/dashboard';
   }
 
