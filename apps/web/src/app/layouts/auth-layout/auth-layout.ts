@@ -58,14 +58,6 @@ import { Icon } from '../../shared/components/icon/icon';
             </div>
           </header>
 
-          <!-- INSIGNIA FLOTANTE EN LA PARTE INFERIOR -->
-          <div class="hero-greeting-box">
-            <div class="greeting-badge">
-              <span class="online-dot"></span>
-              ¡Hola! Soy Coco, tu guardián oficial
-            </div>
-          </div>
-
           <!-- FOOTER INFERIOR IZQUIERDO -->
           <footer class="hero-footer">
             <p>© {{ year }} Coraza Seguridad C.T.A. · Vigilancia y Talento Humano</p>
