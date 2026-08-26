@@ -67,7 +67,8 @@ const CODES: CodeConfig[] = [
               <div class="post-search-filter-row">
                 <input
                   type="text"
-                  [(ngModel)]="postSearchQuery"
+                  [ngModel]="postSearchQuery()"
+                  (ngModelChange)="postSearchQuery.set($event)"
                   placeholder="🔍 Filtrar puesto..."
                   class="inp-filter-post"
                 />
@@ -307,35 +308,36 @@ const CODES: CodeConfig[] = [
               <div class="search-input-wrap">
                 <input
                   type="text"
-                  [(ngModel)]="associateSearchQuery"
-                  placeholder="🔍 Buscar por nombre o cédula (ej: Sanchez, 1037...)"
+                  [ngModel]="associateSearchQuery()"
+                  (ngModelChange)="associateSearchQuery.set($event)"
+                  placeholder="🔍 Escribe nombre o cédula para buscar..."
                   class="inp-search-assoc"
                 />
-                @if (associateSearchQuery) {
-                  <button type="button" class="btn-clear-search" (click)="associateSearchQuery = ''">✕</button>
+                @if (associateSearchQuery()) {
+                  <button type="button" class="btn-clear-search" (click)="associateSearchQuery.set('')">✕</button>
                 }
               </div>
 
-              @if (associateSearchQuery.trim()) {
+              @if (associateSearchQuery().trim()) {
                 <div class="search-results-list">
                   <div
                     class="assoc-option"
                     [class.selected]="editAssociateId === null"
-                    (click)="editAssociateId = null; associateSearchQuery = ''"
+                    (click)="editAssociateId = null; associateSearchQuery.set('')"
                   >
                     — Sin asignar / Titular por defecto —
                   </div>
-                  @for (a of filteredAssociates().slice(0, 15); track a.id) {
+                  @for (a of filteredAssociates().slice(0, 25); track a.id) {
                     <div
                       class="assoc-option"
                       [class.selected]="editAssociateId === a.id"
-                      (click)="editAssociateId = a.id; associateSearchQuery = ''"
+                      (click)="editAssociateId = a.id; associateSearchQuery.set('')"
                     >
                       <div class="assoc-name">{{ associateName(a) }}</div>
                       <div class="assoc-cc">CC: {{ a.documentNumber }}</div>
                     </div>
                   } @empty {
-                    <div class="assoc-no-results">No se encontraron vigilantes con "{{ associateSearchQuery }}"</div>
+                    <div class="assoc-no-results">No se encontraron vigilantes con "{{ associateSearchQuery() }}"</div>
                   }
                 </div>
               }
@@ -790,8 +792,8 @@ export class ScheduleBoard implements OnInit {
   month = this.currentMonth();
   tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
   selectedTemplateId = '';
-  postSearchQuery = '';
-  associateSearchQuery = '';
+  readonly postSearchQuery = signal('');
+  readonly associateSearchQuery = signal('');
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -806,13 +808,13 @@ export class ScheduleBoard implements OnInit {
   editFin: string | null = null;
 
   readonly filteredPosts = computed(() => {
-    const q = this.postSearchQuery.trim().toLowerCase();
+    const q = this.postSearchQuery().trim().toLowerCase();
     if (!q) return this.posts();
     return this.posts().filter(p => p.name.toLowerCase().includes(q));
   });
 
   readonly filteredAssociates = computed(() => {
-    const q = this.associateSearchQuery.trim().toLowerCase();
+    const q = this.associateSearchQuery().trim().toLowerCase();
     const all = this.associates();
     if (!q) return all;
     return all.filter(a => {
@@ -1377,7 +1379,7 @@ export class ScheduleBoard implements OnInit {
     this.editCodigo = state?.codigo ?? '';
     this.editInicio = state?.inicio ?? null;
     this.editFin = state?.fin ?? null;
-    this.associateSearchQuery = '';
+    this.associateSearchQuery.set('');
     this.editing.set({ role, roleName: role.displayName || role.rol, day });
   }
 
