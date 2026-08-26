@@ -24,7 +24,7 @@ import { Icon } from '../../shared/components/icon/icon';
       <main class="auth-main-container">
         <!-- LADO IZQUIERDO: EL VIDEO OCUPA TODO EL CUADRO AZUL COMPLETO -->
         <div class="auth-hero-side">
-          <!-- VIDEO DE FONDO TOTAL EN EL CUADRO IZQUIERDO -->
+          <!-- VIDEO DE FONDO TOTAL EN EL CUADRO IZQUIERDO (FIJO SIN PIP NI MENÚ) -->
           <video
             #mascotVideo
             class="hero-full-video"
@@ -34,6 +34,10 @@ import { Icon } from '../../shared/components/icon/icon';
             loop
             playsinline
             preload="auto"
+            disablePictureInPicture
+            disableRemotePlayback
+            controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
+            (contextmenu)="$event.preventDefault()"
             (loadedmetadata)="onLoadedVideo($event)"
           ></video>
 
@@ -177,6 +181,9 @@ import { Icon } from '../../shared/components/icon/icon';
       transform: scale(1.05);
       z-index: 0;
       filter: contrast(1.08) saturate(1.15);
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
     /* DEGRADADO AZUL QUE INTEGRA EL VIDEO DE FORMA PREMIUM */
