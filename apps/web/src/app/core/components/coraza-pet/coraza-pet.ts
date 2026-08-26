@@ -13,19 +13,27 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- COCODRILO ENCAPSULADO EN LA ESQUINA DEL LOGO -->
+    <!-- PISTA CORTA DE PATRULLAJE EN LA ESQUINA DEL LOGO -->
     <div
-      class="corner-croc-wrap"
+      class="corner-croc-track"
       (click)="feedCroc($event)"
       title="Cocodrilo Guardián Coraza — Haz clic para alimentarlo"
     >
       @if (hasMeat()) {
-        <span class="mini-meat">🍖</span>
+        <span
+          class="mini-meat"
+          [style.left.px]="meatX()"
+        >
+          🍖
+        </span>
       }
 
       <div
         class="croc-body"
+        [class.flip]="facingLeft()"
+        [class.walking]="isWalking()"
         [class.snapping]="isSnapping()"
+        [style.left.px]="posX()"
       >
         <svg class="croc-svg" viewBox="0 0 68 36">
           <!-- COLA CON MOVIMIENTO -->
@@ -38,7 +46,7 @@ import { CommonModule } from '@angular/common';
           <!-- CUERPO -->
           <ellipse cx="28" cy="22" rx="16" ry="8" fill="#22c55e" />
           <path d="M 16 23 Q 28 27 40 23 Q 28 29 16 23 Z" fill="#86efac" opacity="0.7" />
-          <!-- PATAS -->
+          <!-- PATAS CAMINANDO -->
           <rect class="croc-leg leg-l" x="20" y="26" width="6" height="6" rx="2.5" fill="#15803d" />
           <rect class="croc-leg leg-r" x="34" y="26" width="6" height="6" rx="2.5" fill="#15803d" />
           <!-- MANDÍBULA SUPERIOR -->
@@ -65,65 +73,81 @@ import { CommonModule } from '@angular/common';
         margin-left: auto;
       }
 
-      .corner-croc-wrap {
+      /* PISTA CORTA EN EL HEADER DEL SIDEBAR */
+      .corner-croc-track {
         position: relative;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 52px;
-        height: 32px;
+        width: 78px;
+        height: 34px;
+        overflow: hidden;
         cursor: pointer;
         user-select: none;
-        transition: transform 0.2s ease;
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 18px;
+        padding: 0 4px;
+        transition: background 0.2s, border-color 0.2s;
       }
-      .corner-croc-wrap:hover {
-        transform: scale(1.1);
+      .corner-croc-track:hover {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.25);
       }
 
+      /* CUERPO DEL COCODRILO EN MOVIMIENTO */
       .croc-body {
-        width: 100%;
-        height: 100%;
-        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.3));
+        position: absolute;
+        top: 2px;
+        width: 48px;
+        height: 28px;
+        transition: transform 0.15s ease;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+      }
+
+      .croc-body.flip {
+        transform: scaleX(-1);
       }
 
       .croc-svg {
         width: 100%;
         height: 100%;
-        overflow: visible;
       }
 
       /* MOVIMIENTO DE COLA */
       .croc-tail {
         transform-origin: 18px 20px;
-        animation: tailWag 1.4s ease-in-out infinite alternate;
+        animation: tailWag 1s ease-in-out infinite alternate;
+      }
+      .croc-body.walking .croc-tail {
+        animation-duration: 0.35s;
       }
       @keyframes tailWag {
         0% { transform: rotate(-10deg); }
         100% { transform: rotate(14deg); }
       }
 
-      /* PATITAS */
-      .leg-l {
+      /* PATITAS PASO A PASO */
+      .croc-body.walking .leg-l {
         transform-origin: 22px 26px;
-        animation: legStep 1.4s infinite alternate;
+        animation: legStep 0.35s infinite alternate;
       }
-      .leg-r {
+      .croc-body.walking .leg-r {
         transform-origin: 36px 26px;
-        animation: legStep 1.4s infinite alternate-reverse;
+        animation: legStep 0.35s infinite alternate-reverse;
       }
       @keyframes legStep {
-        0% { transform: rotate(-10deg); }
-        100% { transform: rotate(10deg); }
+        0% { transform: rotate(-25deg); }
+        100% { transform: rotate(25deg); }
       }
 
       /* MORDISCO / SNAP AL COMER CARNE */
       .croc-body.snapping .croc-snout-top {
         transform-origin: 38px 22px;
-        animation: jawSnapTop 0.2s 3 alternate;
+        animation: jawSnapTop 0.18s 3 alternate;
       }
       .croc-body.snapping .croc-snout-bot {
         transform-origin: 40px 22px;
-        animation: jawSnapBot 0.2s 3 alternate;
+        animation: jawSnapBot 0.18s 3 alternate;
       }
       @keyframes jawSnapTop {
         0% { transform: rotate(0deg); }
@@ -134,54 +158,112 @@ import { CommonModule } from '@angular/common';
         100% { transform: rotate(25deg); }
       }
 
-      /* CARNE QUE APARECE PARA COMER */
+      /* CARNE FLOTANTE EN LA PISTA */
       .mini-meat {
         position: absolute;
-        top: -10px;
-        right: -2px;
-        font-size: 1rem;
-        animation: dropMeat 0.4s ease-out forwards;
+        top: 6px;
+        font-size: 0.95rem;
+        animation: bounceMeat 0.4s infinite alternate;
+        z-index: 2;
+        pointer-events: none;
       }
-      @keyframes dropMeat {
-        0% { transform: translateY(-12px) scale(0.5); opacity: 0; }
-        100% { transform: translateY(0) scale(1); opacity: 1; }
+      @keyframes bounceMeat {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-4px); }
       }
     `,
   ],
 })
 export class CorazaPet implements OnInit, OnDestroy {
+  readonly posX = signal(4);
+  readonly facingLeft = signal(false);
+  readonly isWalking = signal(true);
   readonly isSnapping = signal(false);
   readonly hasMeat = signal(false);
+  readonly meatX = signal(20);
 
+  private moveTimer: any = null;
   private autoFeedTimer: any = null;
+  private minX = 2;
+  private maxX = 26;
+  private speed = 1.2;
 
   ngOnInit(): void {
-    // Come carne automáticamente cada 25 segundos
-    this.autoFeedTimer = setInterval(() => {
-      this.triggerFeed();
-    }, 25000);
+    this.startWalkingLoop();
+    this.startAutoFeed();
   }
 
   ngOnDestroy(): void {
+    if (this.moveTimer) clearInterval(this.moveTimer);
     if (this.autoFeedTimer) clearInterval(this.autoFeedTimer);
   }
 
   feedCroc(e: MouseEvent): void {
     e.stopPropagation();
-    this.triggerFeed();
+    this.dropMeat(this.facingLeft() ? this.minX : this.maxX);
   }
 
-  private triggerFeed(): void {
+  private dropMeat(targetX: number): void {
     if (this.isSnapping()) return;
+    this.meatX.set(targetX);
     this.hasMeat.set(true);
-    this.isSnapping.set(true);
+    this.isWalking.set(true);
+  }
 
-    setTimeout(() => {
-      this.hasMeat.set(false);
-    }, 450);
+  private startAutoFeed(): void {
+    this.autoFeedTimer = setInterval(() => {
+      if (!this.hasMeat() && !this.isSnapping()) {
+        const randX = Math.random() > 0.5 ? this.maxX : this.minX;
+        this.dropMeat(randX);
+      }
+    }, 16000);
+  }
 
-    setTimeout(() => {
-      this.isSnapping.set(false);
-    }, 1000);
+  private startWalkingLoop(): void {
+    if (this.moveTimer) clearInterval(this.moveTimer);
+
+    this.moveTimer = setInterval(() => {
+      if (this.isSnapping()) return;
+
+      const curX = this.posX();
+      const meat = this.hasMeat();
+      const mX = this.meatX();
+
+      // 1. Si hay carne en la pista corta, va a comérsela
+      if (meat) {
+        const dx = mX - curX;
+        if (Math.abs(dx) <= 3) {
+          // Llegó a la carne: muerde y come
+          this.hasMeat.set(false);
+          this.isWalking.set(false);
+          this.isSnapping.set(true);
+          setTimeout(() => {
+            this.isSnapping.set(false);
+            this.isWalking.set(true);
+          }, 1100);
+        } else {
+          this.facingLeft.set(dx < 0);
+          this.posX.update((x) => (dx > 0 ? x + this.speed * 1.5 : x - this.speed * 1.5));
+        }
+        return;
+      }
+
+      // 2. Patrullaje corto continuo de izquierda a derecha
+      if (this.isWalking()) {
+        if (this.facingLeft()) {
+          if (curX <= this.minX) {
+            this.facingLeft.set(false);
+          } else {
+            this.posX.update((x) => Math.max(this.minX, x - this.speed));
+          }
+        } else {
+          if (curX >= this.maxX) {
+            this.facingLeft.set(true);
+          } else {
+            this.posX.update((x) => Math.min(this.maxX, x + this.speed));
+          }
+        }
+      }
+    }, 45);
   }
 }
