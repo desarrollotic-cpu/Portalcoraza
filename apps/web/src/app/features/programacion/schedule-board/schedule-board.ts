@@ -64,11 +64,19 @@ const CODES: CodeConfig[] = [
           <div class="post-nav-group">
             <label>
               Puesto
+              <div class="post-search-filter-row">
+                <input
+                  type="text"
+                  [(ngModel)]="postSearchQuery"
+                  placeholder="🔍 Filtrar puesto..."
+                  class="inp-filter-post"
+                />
+              </div>
               <div class="post-select-row">
                 <button type="button" class="btn-nav" (click)="prevPost()" [disabled]="!canPrevPost()" title="Puesto anterior">◀</button>
                 <select [(ngModel)]="postId" (ngModelChange)="onSelectionChange()" class="select-post">
                   <option value="">Seleccione puesto...</option>
-                  @for (p of posts(); track p.id) {
+                  @for (p of filteredPosts(); track p.id) {
                     <option [value]="p.id">{{ p.name }}</option>
                   }
                 </select>
@@ -285,15 +293,53 @@ const CODES: CodeConfig[] = [
             <h3>Editar celda</h3>
             <p class="modal-sub">{{ editing()!.roleName }} — Día {{ editing()!.day }}</p>
 
-            <label>
-              Asociado
-              <select [(ngModel)]="editAssociateId">
-                <option [ngValue]="null">Sin asignar</option>
-                @for (a of associates(); track a.id) {
-                  <option [ngValue]="a.id">{{ associateName(a) }}</option>
+            <div class="assoc-search-box">
+              <label class="assoc-label">
+                <span>Vigilante / Asociado</span>
+                <div class="current-assoc-badge">
+                  <span>👤 {{ selectedAssociateLabel() }}</span>
+                  @if (editAssociateId) {
+                    <button type="button" class="btn-clear-assoc" (click)="editAssociateId = null" title="Quitar asignación">✕</button>
+                  }
+                </div>
+              </label>
+
+              <div class="search-input-wrap">
+                <input
+                  type="text"
+                  [(ngModel)]="associateSearchQuery"
+                  placeholder="🔍 Buscar por nombre o cédula (ej: Sanchez, 1037...)"
+                  class="inp-search-assoc"
+                />
+                @if (associateSearchQuery) {
+                  <button type="button" class="btn-clear-search" (click)="associateSearchQuery = ''">✕</button>
                 }
-              </select>
-            </label>
+              </div>
+
+              @if (associateSearchQuery.trim()) {
+                <div class="search-results-list">
+                  <div
+                    class="assoc-option"
+                    [class.selected]="editAssociateId === null"
+                    (click)="editAssociateId = null; associateSearchQuery = ''"
+                  >
+                    — Sin asignar / Titular por defecto —
+                  </div>
+                  @for (a of filteredAssociates().slice(0, 15); track a.id) {
+                    <div
+                      class="assoc-option"
+                      [class.selected]="editAssociateId === a.id"
+                      (click)="editAssociateId = a.id; associateSearchQuery = ''"
+                    >
+                      <div class="assoc-name">{{ associateName(a) }}</div>
+                      <div class="assoc-cc">CC: {{ a.documentNumber }}</div>
+                    </div>
+                  } @empty {
+                    <div class="assoc-no-results">No se encontraron vigilantes con "{{ associateSearchQuery }}"</div>
+                  }
+                </div>
+              }
+            </div>
 
             <label>
               Código / estado
@@ -612,6 +658,116 @@ const CODES: CodeConfig[] = [
     }
     .btn-q:hover { transform: scale(1.03); filter: brightness(0.95); }
 
+    /* BUSCADOR DE ASOCIADOS EN EL MODAL */
+    .post-search-filter-row { margin-bottom: 0.25rem; }
+    .inp-filter-post {
+      padding: 0.3rem 0.5rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .assoc-search-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.65rem;
+    }
+    .assoc-label {
+      font-size: 0.75rem !important;
+      font-weight: 700;
+      color: #334155;
+    }
+    .current-assoc-badge {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 0.35rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 0.2rem;
+    }
+    .btn-clear-assoc {
+      background: none;
+      border: none;
+      color: #991b1b;
+      font-weight: 800;
+      cursor: pointer;
+      padding: 0 0.3rem;
+    }
+    .search-input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .inp-search-assoc {
+      width: 100%;
+      padding: 0.45rem 0.6rem;
+      border: 1.5px solid #3b82f6;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: #ffffff;
+      box-sizing: border-box;
+    }
+    .btn-clear-search {
+      position: absolute;
+      right: 8px;
+      background: #e2e8f0;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .search-results-list {
+      max-height: 180px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .assoc-option {
+      padding: 0.45rem 0.65rem;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+      transition: background 0.1s;
+    }
+    .assoc-option:hover {
+      background: #dbeafe;
+    }
+    .assoc-option.selected {
+      background: #bfdbfe;
+      font-weight: 800;
+    }
+    .assoc-name { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
+    .assoc-cc { font-size: 0.72rem; color: #64748b; font-weight: 600; }
+    .assoc-no-results {
+      padding: 0.65rem;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      text-align: center;
+    }
+
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
   `,
 })
@@ -634,6 +790,8 @@ export class ScheduleBoard implements OnInit {
   month = this.currentMonth();
   tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
   selectedTemplateId = '';
+  postSearchQuery = '';
+  associateSearchQuery = '';
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -646,6 +804,28 @@ export class ScheduleBoard implements OnInit {
   editCodigo = '';
   editInicio: string | null = null;
   editFin: string | null = null;
+
+  readonly filteredPosts = computed(() => {
+    const q = this.postSearchQuery.trim().toLowerCase();
+    if (!q) return this.posts();
+    return this.posts().filter(p => p.name.toLowerCase().includes(q));
+  });
+
+  readonly filteredAssociates = computed(() => {
+    const q = this.associateSearchQuery.trim().toLowerCase();
+    const all = this.associates();
+    if (!q) return all;
+    return all.filter(a => {
+      const full = `${a.firstName || ''} ${a.lastName || ''} ${a.documentNumber || ''}`.toLowerCase();
+      return full.includes(q);
+    });
+  });
+
+  readonly selectedAssociateLabel = computed(() => {
+    if (!this.editAssociateId) return 'Sin asignar / Titular por defecto';
+    const a = this.associates().find(x => x.id === this.editAssociateId);
+    return a ? `${this.associateName(a)} (CC: ${a.documentNumber})` : 'Asociado seleccionado';
+  });
 
   readonly boardAlerts = signal<BoardAlertsResponse | null>(null);
   readonly monthConflictAlerts = signal<ScheduleAlertItem[]>([]);
@@ -1197,6 +1377,7 @@ export class ScheduleBoard implements OnInit {
     this.editCodigo = state?.codigo ?? '';
     this.editInicio = state?.inicio ?? null;
     this.editFin = state?.fin ?? null;
+    this.associateSearchQuery = '';
     this.editing.set({ role, roleName: role.displayName || role.rol, day });
   }
 
