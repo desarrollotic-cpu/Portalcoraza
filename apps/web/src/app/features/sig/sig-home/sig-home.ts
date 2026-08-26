@@ -34,7 +34,7 @@ interface DashboardItem {
         <div class="title-wrap">
           <div class="logo-badge">📊</div>
           <div>
-            <h2>Indicadores · Sistema Integrado de Gestión</h2>
+            <h2>SIG-Indicadores · Sistema Integrado de Gestión</h2>
             <p>Tablero de Control Gerencial & Cuadro de Mando · Coraza Seguridad C.T.A.</p>
           </div>
         </div>

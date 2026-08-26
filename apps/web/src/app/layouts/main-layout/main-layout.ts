@@ -1119,7 +1119,7 @@ export class MainLayout implements OnDestroy {
           permission: 'minuta.view',
         },
         {
-          label: 'Indicadores',
+          label: 'SIG-Indicadores',
           route: '/sig',
           icon: LucideSparkles,
           permission: 'sig.view',
