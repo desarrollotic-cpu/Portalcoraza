@@ -62,6 +62,8 @@ function periodToDays(period: CommandPeriod): number {
 
 @Injectable()
 export class DashboardCommandCenterService {
+  private dashboardCache = new Map<string, { data: any; expires: number }>();
+
   constructor(
     private readonly hr: HrDashboardService,
     private readonly deliveries: DeliveriesService,
@@ -74,6 +76,13 @@ export class DashboardCommandCenterService {
   ) {}
 
   async build(permissions: string[], period: CommandPeriod = '7d') {
+    const cacheKey = `${[...permissions].sort().join(',')}_${period}`;
+    const nowTs = Date.now();
+    const cached = this.dashboardCache.get(cacheKey);
+    if (cached && cached.expires > nowTs) {
+      return cached.data;
+    }
+
     const has = (code: string) => permissions.includes(code);
     const now = new Date();
     const year = now.getFullYear();
@@ -129,7 +138,7 @@ export class DashboardCommandCenterService {
           if (kpi) {
             kpi.deltaPct = deltaPct;
             kpi.deltaLabel = 'vs mes anterior (rotación)';
-            kpi.sparkline = rotation.map((r) => Number(r.activeAtEnd) || 0);
+            kpi.sparkline = (rotation as Array<{ activeAtEnd: number }>).map((r) => Number(r.activeAtEnd) || 0);
           }
         }
       }
@@ -470,7 +479,7 @@ export class DashboardCommandCenterService {
     const highlights = this.buildHighlights(rankedAlerts, modules, kpis);
     const operationStatus = this.operationStatus(rankedAlerts);
 
-    return {
+    const result = {
       generatedAt: new Date().toISOString(),
       period,
       seriesDays,
@@ -482,6 +491,9 @@ export class DashboardCommandCenterService {
       modules,
       activity,
     };
+
+    this.dashboardCache.set(cacheKey, { data: result, expires: Date.now() + 20000 });
+    return result;
   }
 
   private operationStatus(alerts: CommandAlert[]) {

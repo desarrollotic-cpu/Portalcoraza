@@ -226,47 +226,84 @@ export class OverviewService {
     return { slots };
   }
 
+  private analyticsCache: { data: any; expires: number } | null = null;
+  private notifsCache: { data: any; expires: number } | null = null;
+  private voxelCache: { data: any; expires: number } | null = null;
+
   async analytics() {
-    // Secuencial a propósito (pooler Supabase session ~5).
-    const correspondencia = await this.correspondenceRepo.count();
-    const minutas = await this.minutesRepo.count();
-    const contratos = await this.contractsRepo.count();
-    const prestamosActivos = await this.loansRepo.count({
-      where: [{ status: 'ACTIVO' }, { status: 'VENCIDO' }],
-    });
-    const prestamosDevueltos = await this.loansRepo.count({ where: { status: 'DEVUELTO' } });
-    const asociados = await this.retiredRepo.count();
-    const minBreakdown = await this.minutesRepo
-      .createQueryBuilder('m')
-      .select('m.minute_type', 'tipo')
-      .addSelect('COUNT(*)', 'total')
-      .groupBy('m.minute_type')
-      .getRawMany<{ tipo: string; total: string }>();
+    const now = Date.now();
+    if (this.analyticsCache && this.analyticsCache.expires > now) {
+      return this.analyticsCache.data;
+    }
+
+    const [
+      correspondencia,
+      minutas,
+      contratos,
+      prestamosActivos,
+      prestamosDevueltos,
+      asociados,
+      minBreakdown,
+    ] = await Promise.all([
+      this.correspondenceRepo.count(),
+      this.minutesRepo.count(),
+      this.contractsRepo.count(),
+      this.loansRepo.count({
+        where: [{ status: 'ACTIVO' }, { status: 'VENCIDO' }],
+      }),
+      this.loansRepo.count({ where: { status: 'DEVUELTO' } }),
+      this.retiredRepo.count(),
+      this.minutesRepo
+        .createQueryBuilder('m')
+        .select('m.minute_type', 'tipo')
+        .addSelect('COUNT(*)', 'total')
+        .groupBy('m.minute_type')
+        .getRawMany<{ tipo: string; total: string }>(),
+    ]);
 
     const minutasBreakdown: Record<string, number> = { SERVICIO: 0, VISITANTES: 0, CORRESPONDENCIA: 0 };
     minBreakdown.forEach((r) => {
       if (r.tipo) minutasBreakdown[r.tipo.toUpperCase()] = parseInt(r.total, 10);
     });
 
-    return { correspondencia, minutas, contratos, prestamosActivos, prestamosDevueltos, asociadosRetirados: asociados, minutasBreakdown };
+    const data = { correspondencia, minutas, contratos, prestamosActivos, prestamosDevueltos, asociadosRetirados: asociados, minutasBreakdown };
+    this.analyticsCache = { data, expires: now + 25000 };
+    return data;
   }
 
   async notifications() {
+    const now = Date.now();
+    if (this.notifsCache && this.notifsCache.expires > now) {
+      return this.notifsCache.data;
+    }
+
     const alertas: Array<Record<string, unknown>> = [];
 
-    await this.loansRepo
-      .createQueryBuilder()
-      .update(Loan)
-      .set({ status: 'VENCIDO' })
-      .where('status = :a AND return_date < CURRENT_DATE', { a: 'ACTIVO' })
-      .execute();
+    const [vencidos, porVencer, pendientes, contratos] = await Promise.all([
+      this.loansRepo
+        .createQueryBuilder('l')
+        .where("l.status = 'VENCIDO' OR (l.status = 'ACTIVO' AND l.return_date < CURRENT_DATE)")
+        .orderBy('l.return_date', 'ASC')
+        .limit(20)
+        .getMany(),
+      this.loansRepo
+        .createQueryBuilder('l')
+        .where("l.status = 'ACTIVO' AND l.return_date >= CURRENT_DATE AND l.return_date <= CURRENT_DATE + INTERVAL '3 days'")
+        .limit(20)
+        .getMany(),
+      this.loansRepo
+        .createQueryBuilder('l')
+        .where("l.status = 'PENDIENTE_APROBACION'")
+        .orderBy('l.loan_date', 'DESC')
+        .limit(20)
+        .getMany(),
+      this.contractsRepo
+        .createQueryBuilder('c')
+        .where("c.status = 'VIGENTE' AND c.end_date >= CURRENT_DATE AND c.end_date <= CURRENT_DATE + INTERVAL '30 days'")
+        .limit(20)
+        .getMany(),
+    ]);
 
-    const vencidos = await this.loansRepo
-      .createQueryBuilder('l')
-      .where("l.status = 'VENCIDO'")
-      .orWhere("l.status = 'ACTIVO' AND l.return_date < CURRENT_DATE")
-      .orderBy('l.return_date', 'ASC')
-      .getMany();
     vencidos.forEach((p) =>
       alertas.push({
         tipo: 'PRESTAMO_VENCIDO', nivel: 'critico', modulo: 'prestamos', idRegistro: p.id,
@@ -275,10 +312,6 @@ export class OverviewService {
       }),
     );
 
-    const porVencer = await this.loansRepo
-      .createQueryBuilder('l')
-      .where("l.status = 'ACTIVO' AND l.return_date >= CURRENT_DATE AND l.return_date <= CURRENT_DATE + INTERVAL '3 days'")
-      .getMany();
     porVencer.forEach((p) =>
       alertas.push({
         tipo: 'PRESTAMO_POR_VENCER', nivel: 'advertencia', modulo: 'prestamos', idRegistro: p.id,
@@ -287,11 +320,6 @@ export class OverviewService {
       }),
     );
 
-    const pendientes = await this.loansRepo
-      .createQueryBuilder('l')
-      .where("l.status = 'PENDIENTE_APROBACION'")
-      .orderBy('l.loan_date', 'DESC')
-      .getMany();
     pendientes.forEach((p) =>
       alertas.push({
         tipo: 'SOLICITUD_PRESTAMO_PENDIENTE', nivel: 'advertencia', modulo: 'prestamos', idRegistro: p.id,
@@ -300,10 +328,6 @@ export class OverviewService {
       }),
     );
 
-    const contratos = await this.contractsRepo
-      .createQueryBuilder('c')
-      .where("c.status = 'VIGENTE' AND c.end_date >= CURRENT_DATE AND c.end_date <= CURRENT_DATE + INTERVAL '30 days'")
-      .getMany();
     contratos.forEach((c) =>
       alertas.push({
         tipo: 'CONTRATO_POR_VENCER', nivel: 'advertencia', modulo: 'contratos', idRegistro: c.id,
@@ -312,6 +336,8 @@ export class OverviewService {
       }),
     );
 
-    return { totalAlertas: alertas.length, alertas };
+    const data = { totalAlertas: alertas.length, alertas };
+    this.notifsCache = { data, expires: now + 25000 };
+    return data;
   }
 }

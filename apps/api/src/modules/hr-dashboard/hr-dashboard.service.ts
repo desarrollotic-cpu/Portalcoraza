@@ -253,15 +253,26 @@ export class HrDashboardService {
     });
   }
 
+  private overviewCache: { data: any; expires: number } | null = null;
+
   /** Bundle único para pintar el dashboard en un solo request. */
   async overview() {
-    // Secuencial: evita EMAXCONNSESSION del pooler Supabase al cargar el panel.
-    const counts = await this.counts();
-    const rotation = await this.monthlyRotation();
-    const demographics = await this.demographics();
-    const reasons = await this.retirementReasons();
-    const positions = await this.byPosition();
-    const workCenters = await this.byWorkCenter();
-    return { counts, rotation, demographics, retirementReasons: reasons, positions, workCenters };
+    const now = Date.now();
+    if (this.overviewCache && this.overviewCache.expires > now) {
+      return this.overviewCache.data;
+    }
+
+    const [counts, rotation, demographics, reasons, positions, workCenters] = await Promise.all([
+      this.counts(),
+      this.monthlyRotation(),
+      this.demographics(),
+      this.retirementReasons(),
+      this.byPosition(),
+      this.byWorkCenter(),
+    ]);
+
+    const data = { counts, rotation, demographics, retirementReasons: reasons, positions, workCenters };
+    this.overviewCache = { data, expires: now + 30000 };
+    return data;
   }
 }
