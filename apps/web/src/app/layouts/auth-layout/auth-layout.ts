@@ -177,8 +177,8 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 100%;
       height: 100%;
       object-fit: cover;
-      object-position: center;
-      transform: scale(1.05);
+      object-position: center 25%;
+      transform: scale(1.02) translateY(32px);
       z-index: 0;
       filter: contrast(1.08) saturate(1.15);
       pointer-events: none;
@@ -205,8 +205,8 @@ import { Icon } from '../../shared/components/icon/icon';
       position: absolute;
       inset: 0;
       background: radial-gradient(
-        circle at 50% 40%,
-        transparent 30%,
+        circle at 50% 50%,
+        transparent 35%,
         rgba(15, 23, 42, 0.35) 75%,
         rgba(15, 23, 42, 0.7) 100%
       );
@@ -215,19 +215,26 @@ import { Icon } from '../../shared/components/icon/icon';
     }
 
     .hero-header {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.75rem;
       z-index: 5;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 0.4rem 0.9rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      width: fit-content;
     }
     .logo-badge {
       background: #ffffff;
       border-radius: 50%;
-      padding: 3px;
+      padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
     }
     .hero-logo-img {
       border-radius: 50%;
