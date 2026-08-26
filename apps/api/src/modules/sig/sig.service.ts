@@ -215,6 +215,8 @@ export class SigService {
           meta: Number(r.metaSnapshot),
           resultado: Number(r.valorResultado),
           color: r.colorSemaforo,
+          observaciones: r.observaciones || null,
+          seguimiento: r.seguimiento || 'ABIERTO',
         }));
       return {
         id: i.id,
@@ -227,6 +229,8 @@ export class SigService {
         meta: last ? Number(last.metaSnapshot) : null,
         resultado: last ? Number(last.valorResultado) : null,
         periodo: last?.periodo || null,
+        observaciones: last?.observaciones || null,
+        seguimiento: last?.seguimiento || 'ABIERTO',
         serie,
       };
     });

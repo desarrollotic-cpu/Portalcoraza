@@ -53,7 +53,16 @@ export interface SigDashboard {
     meta: number | null;
     resultado: number | null;
     periodo: string | null;
-    serie: Array<{ periodo: string; meta: number; resultado: number; color: string }>;
+    observaciones: string | null;
+    seguimiento: string;
+    serie: Array<{
+      periodo: string;
+      meta: number;
+      resultado: number;
+      color: string;
+      observaciones: string | null;
+      seguimiento: string;
+    }>;
   }>;
 }
 

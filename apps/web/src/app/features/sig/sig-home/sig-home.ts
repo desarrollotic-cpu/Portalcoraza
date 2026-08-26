@@ -10,6 +10,15 @@ import {
 
 type Tab = 'dashboard' | 'mapa' | 'catalogo' | 'captura';
 
+interface SeriePoint {
+  periodo: string;
+  meta: number;
+  resultado: number;
+  color: string;
+  observaciones: string | null;
+  seguimiento: string;
+}
+
 interface DashboardItem {
   id: string;
   codigo: string;
@@ -21,7 +30,9 @@ interface DashboardItem {
   meta: number | null;
   resultado: number | null;
   periodo: string | null;
-  serie: Array<{ periodo: string; meta: number; resultado: number; color: string }>;
+  observaciones: string | null;
+  seguimiento: string;
+  serie: SeriePoint[];
 }
 
 @Component({
@@ -129,7 +140,7 @@ interface DashboardItem {
           </article>
         </div>
 
-        <!-- TARJETAS DE INDICADORES CON GRÁFICOS INTERACTIVOS -->
+        <!-- TARJETAS DE INDICADORES CON GRÁFICOS Y ANÁLISIS DE RESULTADOS -->
         <div class="cards-grid">
           @for (it of dash()?.items || []; track it.id) {
             <article class="card" [attr.data-c]="it.color || 'NA'">
@@ -192,6 +203,14 @@ interface DashboardItem {
                       </div>
                     }
                   </div>
+                </div>
+              }
+
+              <!-- ANÁLISIS DEL RESULTADO PREVIEW -->
+              @if (it.observaciones) {
+                <div class="analysis-box">
+                  <span class="analysis-lbl">📝 Análisis del Resultado:</span>
+                  <p class="analysis-txt">{{ it.observaciones }}</p>
                 </div>
               }
 
@@ -260,7 +279,12 @@ interface DashboardItem {
                   <div class="big-chart-container">
                     <div class="big-bars-track">
                       @for (pt of d.serie; track pt.periodo) {
-                        <div class="big-bar-group">
+                        <div
+                          class="big-bar-group"
+                          [class.active-bar]="selectedPeriod() === pt.periodo"
+                          (click)="selectPeriod(pt.periodo)"
+                          style="cursor: pointer;"
+                        >
                           <div class="bars-pair">
                             <!-- Barra Meta -->
                             <div
@@ -296,6 +320,80 @@ interface DashboardItem {
                   <p class="no-chart-data">No se registran mediciones capturadas para este indicador en el año actual.</p>
                 }
               </div>
+
+              <!-- SECCIÓN INTERACTIVA DE ANÁLISIS DE RESULTADOS POR PERÍODO -->
+              <div class="analysis-section-card">
+                <div class="section-title-wrap">
+                  <h4>📝 Análisis Causa-Efecto y Observaciones por Período</h4>
+                  <small>Haz clic en cualquier período para ver el análisis detallado y acciones tomadas</small>
+                </div>
+
+                @if (d.serie && d.serie.length > 0) {
+                  <div class="period-pills-row">
+                    @for (pt of d.serie; track pt.periodo) {
+                      <button
+                        type="button"
+                        class="period-pill-btn"
+                        [class.selected]="selectedPeriod() === pt.periodo"
+                        (click)="selectPeriod(pt.periodo)"
+                      >
+                        <span class="period-title">Per. {{ pt.periodo }}</span>
+                        <span class="dot mini" [attr.data-c]="pt.color">{{ pt.color }}</span>
+                      </button>
+                    }
+                  </div>
+
+                  @if (currentPeriodDetail(); as cur) {
+                    <div class="period-detail-box" [attr.data-c]="cur.color">
+                      <div class="period-detail-top">
+                        <div class="period-info">
+                          <strong>Período: {{ cur.periodo }} · Año {{ anio }}</strong>
+                          <span class="meta-tag">Meta: <b>{{ formatNum(cur.meta) }}</b> | Res: <b>{{ formatNum(cur.resultado) }}</b></span>
+                        </div>
+                        <span class="dot" [attr.data-c]="cur.color">{{ cur.color }} ({{ cur.seguimiento || 'CERRADO' }})</span>
+                      </div>
+                      
+                      <div class="obs-content">
+                        <strong>📌 Análisis de Causas y Observaciones Registradas:</strong>
+                        <p class="obs-text">{{ cur.observaciones || 'No se registraron observaciones específicas para este período.' }}</p>
+                      </div>
+                    </div>
+                  }
+                }
+              </div>
+
+              <!-- TABLA COMPLETA HISTÓRICA CON OBSERVACIONES -->
+              @if (d.serie && d.serie.length > 0) {
+                <div class="hist-table-card">
+                  <h4>📜 Historial Completo y Trazabilidad del Indicador</h4>
+                  <div class="table-scroll">
+                    <table class="detail-hist-table">
+                      <thead>
+                        <tr>
+                          <th>Período</th>
+                          <th>Meta</th>
+                          <th>Resultado</th>
+                          <th>Cumplimiento</th>
+                          <th>Estado</th>
+                          <th>Análisis / Observaciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (pt of d.serie; track pt.periodo) {
+                          <tr [class.highlight-row]="selectedPeriod() === pt.periodo">
+                            <td><strong>{{ pt.periodo }}</strong></td>
+                            <td>{{ formatNum(pt.meta) }}</td>
+                            <td><b>{{ formatNum(pt.resultado) }}</b></td>
+                            <td><span class="pct-tag" [attr.data-c]="pt.color">{{ calcPctPoint(pt, d.sentido) }}</span></td>
+                            <td><span class="dot mini" [attr.data-c]="pt.color">{{ pt.color }}</span></td>
+                            <td class="obs-cell">{{ pt.observaciones || '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
 
               <!-- FICHA TÉCNICA DEL INDICADOR -->
               @if (detailFicha(); as f) {
@@ -426,7 +524,7 @@ interface DashboardItem {
         <div class="form-container">
           <div class="form-header">
             <h3>Registro y Captura de Indicador</h3>
-            <p>Ingresa la meta y el resultado obtenido en el período correspondiente.</p>
+            <p>Ingresa la meta, resultado y análisis causa-efecto del período correspondiente.</p>
           </div>
 
           <div class="form-body">
@@ -470,8 +568,8 @@ interface DashboardItem {
               </div>
 
               <label class="form-label">
-                <span>Observaciones / Análisis del Resultado</span>
-                <textarea [(ngModel)]="obs" name="co" rows="3" placeholder="Ingresa comentarios, causas o detalles sobre el desempeño..."></textarea>
+                <span>Análisis del Resultado / Observaciones & Plan de Acción</span>
+                <textarea [(ngModel)]="obs" name="co" rows="4" placeholder="Ingresa análisis de causas, justificación del resultado y acciones tomadas..."></textarea>
               </label>
 
               <label class="form-label">
@@ -490,16 +588,21 @@ interface DashboardItem {
               }
 
               <button type="button" class="btn-save" [disabled]="busy()" (click)="guardar()">
-                💾 Guardar Resultado
+                💾 Guardar Resultado y Análisis
               </button>
 
               <div class="hist-section">
                 <h4>Historial de Capturas (Año {{ anio }})</h4>
                 @for (r of hist(); track r.id) {
                   <div class="hist-row">
-                    <span class="hist-period">📅 {{ r.anio }}-{{ r.periodo }}</span>
-                    <span class="hist-vals">Meta: <b>{{ formatNum(r.metaSnapshot) }}</b> / Res: <b>{{ formatNum(r.valorResultado) }}</b></span>
-                    <span class="dot" [attr.data-c]="r.colorSemaforo">{{ r.colorSemaforo }}</span>
+                    <div class="hist-main">
+                      <span class="hist-period">📅 {{ r.anio }}-{{ r.periodo }}</span>
+                      <span class="hist-vals">Meta: <b>{{ formatNum(r.metaSnapshot) }}</b> / Res: <b>{{ formatNum(r.valorResultado) }}</b></span>
+                      <span class="dot mini" [attr.data-c]="r.colorSemaforo">{{ r.colorSemaforo }}</span>
+                    </div>
+                    @if (r.observaciones) {
+                      <p class="hist-obs">{{ r.observaciones }}</p>
+                    }
                   </div>
                 } @empty {
                   <p class="muted">No hay registros capturados para este año.</p>
@@ -657,7 +760,7 @@ interface DashboardItem {
 
     .cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
       gap: 1.15rem;
     }
     .card {
@@ -786,11 +889,33 @@ interface DashboardItem {
     .bar-cap[data-c='ROJO'] { background: #ef4444; }
     .bar-lbl { font-size: 0.65rem; color: #94a3b8; font-weight: 700; }
 
+    /* CAJA PREVIEW ANÁLISIS EN LA CARD */
+    .analysis-box {
+      background: #f8fafc;
+      border-left: 3px solid #3b82f6;
+      padding: 0.5rem 0.65rem;
+      border-radius: 0 0.45rem 0.45rem 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .analysis-lbl { font-size: 0.68rem; font-weight: 800; color: #1e40af; }
+    .analysis-txt {
+      margin: 0;
+      font-size: 0.76rem;
+      color: #334155;
+      line-height: 1.35;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
     .card-footer-btns {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.45rem;
-      margin-top: 0.25rem;
+      margin-top: auto;
     }
     .btn-detail {
       border: 1px solid #cbd5e1;
@@ -835,7 +960,7 @@ interface DashboardItem {
     .detail-modal {
       background: #ffffff;
       width: 100%;
-      max-width: 860px;
+      max-width: 920px;
       max-height: 90vh;
       border-radius: 1.25rem;
       overflow-y: auto;
@@ -922,6 +1047,12 @@ interface DashboardItem {
       height: 100%;
       justify-content: flex-end;
       gap: 0.4rem;
+      border-radius: 0.5rem;
+      padding: 0.2rem 0;
+      transition: background 0.2s;
+    }
+    .big-bar-group:hover, .big-bar-group.active-bar {
+      background: #eff6ff;
     }
     .bars-pair {
       display: flex;
@@ -974,6 +1105,120 @@ interface DashboardItem {
     .legend-box.amarillo { background: #eab308; }
     .legend-box.rojo { background: #ef4444; }
     .no-chart-data { text-align: center; color: #94a3b8; font-style: italic; padding: 2rem; }
+
+    /* SECCIÓN DE ANÁLISIS DE RESULTADOS POR PERÍODO */
+    .analysis-section-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .section-title-wrap h4 { margin: 0; font-size: 1.05rem; color: #1e3a8a; font-weight: 800; }
+    .section-title-wrap small { color: #64748b; font-size: 0.8rem; }
+    
+    .period-pills-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .period-pill-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.55rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #334155;
+      transition: all 0.2s;
+    }
+    .period-pill-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+    .period-pill-btn.selected {
+      background: #1e3a8a;
+      color: #ffffff;
+      border-color: #1e3a8a;
+      box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);
+    }
+    .period-pill-btn.selected .period-title { color: #ffffff; }
+
+    .period-detail-box {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-left: 4px solid #3b82f6;
+      border-radius: 0.75rem;
+      padding: 1rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .period-detail-box[data-c='VERDE'] { border-left-color: #22c55e; background: #f0fdf4; }
+    .period-detail-box[data-c='AZUL'] { border-left-color: #3b82f6; background: #eff6ff; }
+    .period-detail-box[data-c='AMARILLO'] { border-left-color: #eab308; background: #fefce8; }
+    .period-detail-box[data-c='ROJO'] { border-left-color: #ef4444; background: #fef2f2; }
+
+    .period-detail-top { display: flex; justify-content: space-between; align-items: center; }
+    .period-info { display: flex; align-items: center; gap: 0.75rem; font-size: 0.9rem; }
+    .obs-content strong { display: block; font-size: 0.8rem; color: #475569; text-transform: uppercase; margin-bottom: 0.35rem; }
+    .obs-text {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #1e293b;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      background: rgba(255, 255, 255, 0.8);
+      padding: 0.75rem 1rem;
+      border-radius: 0.55rem;
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+
+    /* TABLA HISTÓRICA DETALLADA */
+    .hist-table-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.95rem;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .hist-table-card h4 { margin: 0; font-size: 1rem; color: #1e3a8a; font-weight: 800; }
+    .table-scroll { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 0.65rem; }
+    .detail-hist-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    .detail-hist-table th {
+      background: #f8fafc;
+      padding: 0.65rem 0.85rem;
+      font-weight: 700;
+      color: #475569;
+      border-bottom: 1px solid #e2e8f0;
+      text-align: left;
+    }
+    .detail-hist-table td {
+      padding: 0.65rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: #1e293b;
+      vertical-align: top;
+    }
+    .detail-hist-table tr.highlight-row td { background: #eff6ff; }
+    .pct-tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 0.15rem 0.45rem;
+      border-radius: 0.35rem;
+      background: #f1f5f9;
+    }
+    .pct-tag[data-c='AZUL'] { background: #dbeafe; color: #1e40af; }
+    .pct-tag[data-c='VERDE'] { background: #dcfce7; color: #166534; }
+    .pct-tag[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
+    .pct-tag[data-c='ROJO'] { background: #fee2e2; color: #991b1b; }
+    .obs-cell { font-size: 0.82rem; color: #334155; line-height: 1.35; max-width: 320px; white-space: pre-wrap; }
 
     .ficha-card {
       background: #f8fafc;
@@ -1178,15 +1423,25 @@ interface DashboardItem {
     .hist-section h4 { margin: 0 0 0.75rem; font-size: 0.95rem; color: #1e293b; }
     .hist-row {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.6rem 0.5rem;
+      flex-direction: column;
+      gap: 0.35rem;
+      padding: 0.75rem 0.5rem;
       border-bottom: 1px solid #f1f5f9;
       font-size: 0.85rem;
     }
+    .hist-main { display: flex; justify-content: space-between; align-items: center; }
     .hist-period { font-weight: 700; color: #334155; }
     .hist-vals { color: #64748b; }
     .hist-vals b { color: #0f172a; }
+    .hist-obs {
+      margin: 0;
+      font-size: 0.8rem;
+      color: #475569;
+      background: #f8fafc;
+      padding: 0.4rem 0.6rem;
+      border-radius: 0.35rem;
+      border-left: 2px solid #94a3b8;
+    }
     .muted { color: #94a3b8; font-size: 0.85rem; font-style: italic; }
   `,
   ],
@@ -1213,10 +1468,11 @@ export class SigHome implements OnInit {
   // Detalle expandido
   readonly detailItem = signal<DashboardItem | null>(null);
   readonly detailFicha = signal<SigIndicador | null>(null);
+  readonly selectedPeriod = signal<string>('');
 
   area = '';
   filtroArea = '';
-  anio = new Date().getFullYear();
+  anio = 2024; // Año con información completa del Excel
   q = '';
   capturaId = '';
   periodo = '01';
@@ -1243,7 +1499,12 @@ export class SigHome implements OnInit {
 
   openDetail(it: DashboardItem): void {
     this.detailItem.set(it);
-    // Buscar la ficha técnica en el catálogo
+    // Seleccionar por defecto el último período
+    if (it.serie && it.serie.length > 0) {
+      this.selectedPeriod.set(it.serie[it.serie.length - 1].periodo);
+    } else {
+      this.selectedPeriod.set(it.periodo || '');
+    }
     const ficha = this.catalogo().find((c) => c.id === it.id || c.codigo === it.codigo);
     this.detailFicha.set(ficha || null);
   }
@@ -1251,6 +1512,19 @@ export class SigHome implements OnInit {
   closeDetail(): void {
     this.detailItem.set(null);
     this.detailFicha.set(null);
+    this.selectedPeriod.set('');
+  }
+
+  selectPeriod(p: string): void {
+    this.selectedPeriod.set(p);
+  }
+
+  currentPeriodDetail(): SeriePoint | null {
+    const item = this.detailItem();
+    if (!item || !item.serie) return null;
+    const p = this.selectedPeriod();
+    const found = item.serie.find((s) => s.periodo === p);
+    return found || item.serie[item.serie.length - 1] || null;
   }
 
   capturarFromDetail(id: string): void {
@@ -1290,6 +1564,15 @@ export class SigHome implements OnInit {
       it.sentido === 'ASCENDENTE'
         ? (it.resultado / it.meta) * 100
         : (it.meta / it.resultado) * 100;
+    return `${Math.round(pct)}%`;
+  }
+
+  calcPctPoint(pt: SeriePoint, sentido: string): string {
+    if (pt.meta === null || pt.resultado === null || pt.meta === 0) return '100%';
+    const pct =
+      sentido === 'ASCENDENTE'
+        ? (pt.resultado / pt.meta) * 100
+        : (pt.meta / pt.resultado) * 100;
     return `${Math.round(pct)}%`;
   }
 
@@ -1426,7 +1709,7 @@ export class SigHome implements OnInit {
       .subscribe({
         next: () => {
           this.busy.set(false);
-          this.showToast('✅ Resultado registrado exitosamente');
+          this.showToast('✅ Resultado y análisis registrados exitosamente');
           this.onIndicador();
         },
         error: () => {
