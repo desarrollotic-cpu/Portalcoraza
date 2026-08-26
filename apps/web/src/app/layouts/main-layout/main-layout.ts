@@ -92,6 +92,10 @@ interface NavGroup {
               <span class="brand-name">Portal Coraza</span>
               <span class="brand-tag">Coraza Seguridad C.T.A.</span>
             </div>
+          </div>
+
+          <!-- LÍNEA BLANCA VISIBLE CON COCODRILO PATRULLANDO ENCIMA -->
+          <div class="sidebar-line-stage">
             <app-coraza-pet />
           </div>
 
@@ -355,9 +359,15 @@ interface NavGroup {
       display: flex;
       align-items: center;
       gap: 0.7rem;
-      padding: 0.5rem 0.35rem 1.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.5rem 0.35rem 0.6rem;
+      margin-bottom: 0;
+    }
+    .sidebar-line-stage {
+      position: relative;
+      width: 100%;
+      height: 24px;
       margin-bottom: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
     }
     .brand-mark {
       width: 40px;

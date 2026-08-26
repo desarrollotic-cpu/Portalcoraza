@@ -13,13 +13,13 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- PISTA SOBRE LA LÍNEA BLANCA DEL SIDEBAR -->
+    <!-- PISTA SOBRE LA LÍNEA BLANCA -->
     <div
       class="croc-line-track"
       (click)="feedCroc($event)"
       title="Cocodrilo Guardián Coraza — Haz clic para alimentarlo"
     >
-      <!-- CARNE QUE CAE SOBRE LA LÍNEA BLANCA -->
+      <!-- CARNE QUE CAE SOBRE LA LÍNEA -->
       @if (hasMeat()) {
         <span
           class="mini-meat"
@@ -70,17 +70,16 @@ import { CommonModule } from '@angular/common';
   styles: [
     `
       :host {
+        display: block;
         position: absolute;
-        bottom: -16px;
+        bottom: 0;
         left: 0;
         width: 100%;
-        height: 34px;
+        height: 26px;
         pointer-events: none;
-        overflow: visible;
-        z-index: 10;
+        z-index: 15;
       }
 
-      /* PISTA 100% TRANSPARENTE DIRECTAMENTE SOBRE LA LÍNEA BLANCA */
       .croc-line-track {
         position: relative;
         width: 100%;
@@ -90,14 +89,14 @@ import { CommonModule } from '@angular/common';
         user-select: none;
       }
 
-      /* COCODRILO LIMPIO Y SUAVE CAMINANDO */
+      /* COCODRILO PISANDO EXACTAMENTE LA LÍNEA */
       .croc-body {
         position: absolute;
-        bottom: 0;
+        bottom: -2px;
         width: 48px;
-        height: 28px;
+        height: 26px;
         transition: transform 0.15s ease;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+        filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
       }
 
       .croc-body.flip {
@@ -123,7 +122,7 @@ import { CommonModule } from '@angular/common';
         100% { transform: rotate(14deg); }
       }
 
-      /* PATITAS PASO A PASO SOBRE LA LÍNEA */
+      /* PATITAS PASO A PASO */
       .croc-body.walking .leg-l {
         transform-origin: 22px 26px;
         animation: legStep 0.35s infinite alternate;
@@ -158,10 +157,10 @@ import { CommonModule } from '@angular/common';
       /* CARNE QUE CAE SOBRE LA LÍNEA */
       .mini-meat {
         position: absolute;
-        bottom: 8px;
+        bottom: 6px;
         font-size: 1rem;
         animation: bounceMeat 0.4s infinite alternate;
-        z-index: 2;
+        z-index: 20;
         pointer-events: none;
       }
       @keyframes bounceMeat {
@@ -177,12 +176,12 @@ export class CorazaPet implements OnInit, OnDestroy {
   readonly isWalking = signal(true);
   readonly isSnapping = signal(false);
   readonly hasMeat = signal(false);
-  readonly meatX = signal(120);
+  readonly meatX = signal(110);
 
   private moveTimer: any = null;
   private autoFeedTimer: any = null;
   private minX = 4;
-  private maxX = 185; // Recorre toda la línea blanca del sidebar (260px de ancho)
+  private maxX = 180;
   private speed = 1.3;
 
   ngOnInit(): void {
@@ -230,7 +229,6 @@ export class CorazaPet implements OnInit, OnDestroy {
       if (meat) {
         const dx = mX - curX;
         if (Math.abs(dx) <= 4) {
-          // Llegó a la carne: come y hace mordisco
           this.hasMeat.set(false);
           this.isWalking.set(false);
           this.isSnapping.set(true);
@@ -245,7 +243,7 @@ export class CorazaPet implements OnInit, OnDestroy {
         return;
       }
 
-      // 2. Patrullaje continuo sobre la línea blanca de izquierda a derecha
+      // 2. Patrullaje sobre la línea
       if (this.isWalking()) {
         if (this.facingLeft()) {
           if (curX <= this.minX) {
