@@ -1,4 +1,10 @@
-import { Component, inject } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  ViewChild,
+  inject,
+} from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { LucideMoon, LucideSun } from '@lucide/angular';
 import { ThemeService } from '../../core/services/theme.service';
@@ -9,82 +15,70 @@ import { Icon } from '../../shared/components/icon/icon';
   imports: [RouterOutlet, Icon],
   template: `
     <div class="auth-shell">
-      <!-- PANEL IZQUIERDO: CÁPSULA GIGANTE DE CONTENCIÓN DE LA MASCOTA -->
-      <aside class="auth-brand" aria-hidden="true">
-        <!-- VIDEO GIGANTE EN BUCLE DE FONDO DE LA MASCOTA ATRAPADA -->
-        <div class="containment-chamber">
-          <video
-            class="mascot-full-video"
-            src="/videos/mascota-coraza.mp4"
-            autoplay
-            muted
-            loop
-            playsinline
-            disablePictureInPicture
-          ></video>
-          
-          <!-- EFECTO CRISTAL / CÁPSULA HOLOGRÁFICA DE CONTENCIÓN -->
-          <div class="chamber-glass-overlay"></div>
-          <div class="chamber-scanline"></div>
-          <div class="chamber-grid"></div>
-
-          <!-- PUNTOS LÁSER Y SELLO DE SEGURIDAD -->
-          <div class="containment-hud top-hud">
-            <span class="hud-tag">
-              <span class="pulse-red"></span>
-              CÁPSULA DE CONTENCIÓN · SEGURIDAD CORAZA
-            </span>
-            <span class="hud-code">SEC-SYS // 2027</span>
-          </div>
-
-          <div class="containment-hud bottom-hud">
-            <span class="hud-tag">
-              <span class="pulse-green"></span>
-              ENTIDAD EN CUSTODIA · COCO GUARDIÁN
-            </span>
-            <span class="hud-code">ESTADO: EN MOVIMIENTO</span>
-          </div>
+      <!-- PANEL IZQUIERDO: ESCENARIO GIGANTE DE LA MASCOTA -->
+      <aside class="auth-brand">
+        <!-- MALLA Y EFECTOS DE FONDO -->
+        <div class="brand-mesh"></div>
+        <div class="brand-orbs">
+          <span class="orb orb-1"></span>
+          <span class="orb orb-2"></span>
         </div>
 
-        <!-- CONTENIDO SUPERPUESTO CON CRISTAL TRANSLÚCIDO -->
-        <div class="brand-content">
-          <div class="glass-hero-card">
-            <div class="brand-logo">
+        <div class="mascot-stage">
+          <!-- CÁPSULA GIGANTE DE VIDEO DE LA MASCOTA -->
+          <div class="video-capsule">
+            <video
+              #mascotVideo
+              class="mascot-player"
+              src="/videos/mascota-coraza.mp4"
+              autoplay
+              [muted]="true"
+              loop
+              playsinline
+              preload="auto"
+              (loadedmetadata)="onLoadedVideo($event)"
+            ></video>
+
+            <!-- LUZ HOLOGRÁFICA / RAYO DE ESCANEO -->
+            <div class="scan-light"></div>
+
+            <!-- HUDS DE SEGURIDAD EN LA CÁPSULA -->
+            <div class="hud-bar top">
+              <span class="hud-badge live">
+                <span class="pulse-dot green"></span>
+                GUARDIÁN OFICIAL EN VIVO
+              </span>
+              <span class="hud-badge tech">CORAZA // SEC-2027</span>
+            </div>
+
+            <div class="hud-bar bottom">
+              <div class="hud-mascot-info">
+                <strong class="mascot-name">🐊 COCO</strong>
+                <span class="mascot-role">Mascota de Bienvenida Coraza</span>
+              </div>
+              <span class="hud-badge status">MODO VIGILANCIA</span>
+            </div>
+          </div>
+
+          <!-- ENCABEZADO Y TEXTO DEL PORTAL -->
+          <div class="brand-info-card">
+            <div class="brand-logo-row">
               <img
                 class="logo-img"
                 src="/brand/logo-coraza-cta.png"
-                width="84"
-                height="84"
+                width="64"
+                height="64"
                 alt="Coraza Seguridad C.T.A."
               />
               <div class="brand-titles">
-                <span class="brand-text">Portal Coraza</span>
+                <h1 class="brand-text">Portal Coraza</h1>
                 <span class="brand-sub">Coraza Seguridad C.T.A.</span>
               </div>
             </div>
 
-            <div class="brand-copy">
-              <h2>Portal operativo <br />para tu equipo de seguridad.</h2>
-              <p>
-                Recursos Humanos, dotación, programación, documental y recepción
-                en una sola plataforma integrada.
-              </p>
-            </div>
-
-            <ul class="brand-highlights">
-              <li>
-                <span class="dot"></span>
-                Gestión centralizada del personal
-              </li>
-              <li>
-                <span class="dot"></span>
-                Control de dotación con firma digital
-              </li>
-              <li>
-                <span class="dot"></span>
-                Programación mensual por puesto
-              </li>
-            </ul>
+            <p class="brand-desc">
+              Portal operativo y centro de inteligencia para tu equipo de seguridad, talento humano y operaciones.
+            </p>
           </div>
         </div>
       </aside>
@@ -119,253 +113,224 @@ import { Icon } from '../../shared/components/icon/icon';
     .auth-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1.1fr minmax(420px, 0.9fr);
+      grid-template-columns: 1.15fr minmax(420px, 0.85fr);
       background: var(--bg-page);
     }
 
-    /* CONTENCIÓN GIGANTE DE LA MASCOTA */
     .auth-brand {
       position: relative;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 3rem 2rem;
-      background: #090d16;
+      padding: 2.5rem 2rem;
+      background: #090e1a;
+      color: #ffffff;
     }
 
-    .containment-chamber {
+    .brand-mesh {
       position: absolute;
       inset: 0;
+      background: radial-gradient(circle at 30% 20%, #1e1b4b 0%, #030712 100%);
+      opacity: 0.95;
+    }
+
+    .brand-orbs {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+    }
+    .orb-1 {
+      width: 420px;
+      height: 420px;
+      background: radial-gradient(circle, #3b82f6 0%, transparent 70%);
+      top: -100px;
+      left: -100px;
+      opacity: 0.45;
+    }
+    .orb-2 {
+      width: 380px;
+      height: 380px;
+      background: radial-gradient(circle, #8b5cf6 0%, transparent 70%);
+      bottom: -80px;
+      right: -80px;
+      opacity: 0.35;
+    }
+
+    .mascot-stage {
+      position: relative;
+      z-index: 10;
       width: 100%;
-      height: 100%;
-      overflow: hidden;
-      z-index: 0;
-      background: radial-gradient(circle at center, #1e1b4b 0%, #030712 100%);
+      max-width: 580px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
     }
 
-    /* VIDEO A PANTALLA COMPLETA GIGANTE */
-    .mascot-full-video {
-      position: absolute;
-      inset: 0;
+    /* CÁPSULA GIGANTE DE VIDEO */
+    .video-capsule {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      border-radius: 1.75rem;
+      overflow: hidden;
+      background: #000000;
+      border: 2px solid rgba(59, 130, 246, 0.4);
+      box-shadow:
+        0 25px 50px -12px rgba(0, 0, 0, 0.7),
+        0 0 30px rgba(59, 130, 246, 0.25),
+        inset 0 0 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* REPRODUCTOR DE VIDEO A TODO TAMAÑO */
+    .mascot-player {
+      display: block;
       width: 100%;
       height: 100%;
       object-fit: cover;
-      opacity: 0.9;
-      transform: scale(1.05);
-      filter: saturate(1.15) contrast(1.08) brightness(0.85);
+      transform: scale(1.02);
+      filter: contrast(1.05) saturate(1.1);
     }
 
-    /* EFECTO CRISTAL / REFLEJO DE CÁPSULA */
-    .chamber-glass-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        135deg,
-        rgba(37, 99, 235, 0.35) 0%,
-        rgba(15, 23, 42, 0.45) 50%,
-        rgba(147, 51, 234, 0.35) 100%
-      );
-      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(59, 130, 246, 0.3);
-      pointer-events: none;
-    }
-
-    /* LÍNEA DE ESCANEO LÁSER */
-    .chamber-scanline {
+    /* RAYO DE ESCANEO LÁSER */
+    .scan-light {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.8), transparent);
-      box-shadow: 0 0 15px rgba(56, 189, 248, 0.9);
-      animation: scanLaser 4s ease-in-out infinite alternate;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, transparent);
+      box-shadow: 0 0 12px #38bdf8;
+      animation: scanCycle 3.5s ease-in-out infinite alternate;
       pointer-events: none;
+      z-index: 5;
     }
-    @keyframes scanLaser {
-      0% { top: 2%; opacity: 0.3; }
+    @keyframes scanCycle {
+      0% { top: 0%; opacity: 0.2; }
       50% { opacity: 0.9; }
-      100% { top: 98%; opacity: 0.3; }
+      100% { top: 99%; opacity: 0.2; }
     }
 
-    /* CUADRÍCULA HOLOGRÁFICA */
-    .chamber-grid {
+    /* HUDS DECORATIVOS DENTRO DE LA CÁPSULA */
+    .hud-bar {
       position: absolute;
-      inset: 0;
-      background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-                        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-      background-size: 32px 32px;
-      pointer-events: none;
-      opacity: 0.6;
-    }
-
-    /* HUD DE CONTENCIÓN */
-    .containment-hud {
-      position: absolute;
-      left: 1.5rem;
-      right: 1.5rem;
+      left: 1rem;
+      right: 1rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      z-index: 2;
+      z-index: 6;
       pointer-events: none;
-      font-family: monospace;
     }
-    .top-hud { top: 1.25rem; }
-    .bottom-hud { bottom: 1.25rem; }
-
-    .hud-tag {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+    .hud-bar.top { top: 1rem; }
+    .hud-bar.bottom {
+      bottom: 1rem;
       background: rgba(15, 23, 42, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.85rem;
+      padding: 0.6rem 1rem;
+    }
+
+    .hud-badge {
       font-size: 0.72rem;
       font-weight: 800;
-      letter-spacing: 0.08em;
-      color: #e2e8f0;
+      padding: 0.3rem 0.65rem;
+      border-radius: 999px;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
     }
-    .hud-code {
-      font-size: 0.72rem;
-      color: rgba(255, 255, 255, 0.6);
-      font-weight: 700;
-      letter-spacing: 0.1em;
+    .hud-badge.live {
+      background: rgba(15, 23, 42, 0.85);
+      color: #86efac;
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      backdrop-filter: blur(8px);
+    }
+    .hud-badge.tech {
+      background: rgba(15, 23, 42, 0.7);
+      color: #94a3b8;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-family: monospace;
+    }
+    .hud-badge.status {
+      background: rgba(30, 58, 138, 0.6);
+      color: #93c5fd;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      font-size: 0.68rem;
     }
 
-    .pulse-red {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: #ef4444;
-      box-shadow: 0 0 8px #ef4444;
-      animation: blinkRed 1s infinite alternate;
-    }
-    @keyframes blinkRed {
-      0% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
+    .hud-mascot-info { display: flex; flex-direction: column; }
+    .mascot-name { font-size: 0.95rem; color: #ffffff; font-weight: 900; }
+    .mascot-role { font-size: 0.72rem; color: #94a3b8; font-weight: 600; }
 
-    .pulse-green {
+    .pulse-dot.green {
       width: 7px;
       height: 7px;
       border-radius: 50%;
       background: #22c55e;
       box-shadow: 0 0 8px #22c55e;
-      animation: blinkGreen 1.2s infinite alternate;
+      animation: pulseAnim 1.2s infinite alternate;
     }
-    @keyframes blinkGreen {
+    @keyframes pulseAnim {
       0% { opacity: 0.4; }
       100% { opacity: 1; }
     }
 
-    /* CONTENIDO DEL PORTAL SUPERPUESTO */
-    .brand-content {
-      position: relative;
-      z-index: 10;
-      max-width: 520px;
-      width: 100%;
-    }
-
-    .glass-hero-card {
+    /* TARJETA DE INFORMACIÓN DEBAJO DEL VIDEO */
+    .brand-info-card {
       background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.22);
-      border-radius: 1.5rem;
-      padding: 2.25rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
-      display: flex;
-      flex-direction: column;
-      gap: 1.75rem;
-    }
-
-    .brand-logo {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .logo-img {
-      width: 84px;
-      height: 84px;
-      object-fit: contain;
-      border-radius: 50%;
-      background: #fff;
-      box-shadow:
-        0 12px 30px rgba(0, 0, 0, 0.4),
-        0 0 0 3px rgba(255, 255, 255, 0.4);
-      flex-shrink: 0;
-    }
-
-    .brand-titles {
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-
-    .brand-text {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: 1.8rem;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-    }
-
-    .brand-sub {
-      font-size: 0.82rem;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.85);
-    }
-
-    .brand-copy h2 {
-      font-family: var(--font-display);
-      font-size: clamp(1.5rem, 2.5vw, 2.1rem);
-      font-weight: 800;
-      line-height: 1.2;
-      margin: 0 0 0.75rem;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-    }
-    .brand-copy p {
-      margin: 0;
-      font-size: 0.95rem;
-      line-height: 1.6;
-      color: rgba(255, 255, 255, 0.82);
-    }
-
-    .brand-highlights {
-      list-style: none;
-      margin: 0;
-      padding: 0;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1.25rem;
+      padding: 1.25rem 1.5rem;
       display: flex;
       flex-direction: column;
       gap: 0.65rem;
     }
-    .brand-highlights li {
+
+    .brand-logo-row {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.9);
+      gap: 0.85rem;
     }
-    .brand-highlights .dot {
-      width: 8px;
-      height: 8px;
+    .logo-img {
+      width: 52px;
+      height: 52px;
+      object-fit: contain;
       border-radius: 50%;
-      background: #38bdf8;
-      box-shadow: 0 0 10px #38bdf8;
-      flex-shrink: 0;
+      background: #ffffff;
+      padding: 2px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+    .brand-titles { display: flex; flex-direction: column; }
+    .brand-text {
+      margin: 0;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1.1;
+    }
+    .brand-sub {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .brand-desc {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.4;
     }
 
     /* SECCIÓN DERECHA DEL LOGIN */
@@ -420,15 +385,46 @@ import { Icon } from '../../shared/components/icon/icon';
       .auth-shell {
         grid-template-columns: 1fr;
       }
-      .auth-brand {
-        min-height: 480px;
+      .video-capsule {
+        height: 260px;
       }
     }
   `,
 })
-export class AuthLayout {
+export class AuthLayout implements AfterViewInit {
   readonly theme = inject(ThemeService);
   readonly year = new Date().getFullYear();
   readonly sunIcon = LucideSun;
   readonly moonIcon = LucideMoon;
+
+  @ViewChild('mascotVideo') videoRef!: ElementRef<HTMLVideoElement>;
+
+  ngAfterViewInit(): void {
+    this.playVideo();
+  }
+
+  onLoadedVideo(e: Event): void {
+    const video = e.target as HTMLVideoElement;
+    if (video) {
+      video.muted = true;
+      video.play().catch(() => {});
+    }
+  }
+
+  private playVideo(): void {
+    if (this.videoRef?.nativeElement) {
+      const v = this.videoRef.nativeElement;
+      v.muted = true;
+      v.play().catch(() => {
+        // En caso de bloqueo estricto del navegador, inicia con cualquier clic en la pantalla
+        const playOnInteraction = () => {
+          v.play().catch(() => {});
+          window.removeEventListener('click', playOnInteraction);
+          window.removeEventListener('touchstart', playOnInteraction);
+        };
+        window.addEventListener('click', playOnInteraction, { once: true });
+        window.addEventListener('touchstart', playOnInteraction, { once: true });
+      });
+    }
+  }
 }
