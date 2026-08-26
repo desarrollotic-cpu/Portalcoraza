@@ -13,12 +13,13 @@ import { CommonModule } from '@angular/common';
   imports: [CommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <!-- PISTA CORTA DE PATRULLAJE EN LA ESQUINA DEL LOGO -->
+    <!-- PISTA SOBRE LA LÍNEA BLANCA DEL SIDEBAR -->
     <div
-      class="corner-croc-track"
+      class="croc-line-track"
       (click)="feedCroc($event)"
       title="Cocodrilo Guardián Coraza — Haz clic para alimentarlo"
     >
+      <!-- CARNE QUE CAE SOBRE LA LÍNEA BLANCA -->
       @if (hasMeat()) {
         <span
           class="mini-meat"
@@ -28,6 +29,7 @@ import { CommonModule } from '@angular/common';
         </span>
       }
 
+      <!-- COCODRILO CAMINANDO SOBRE LA LÍNEA -->
       <div
         class="croc-body"
         [class.flip]="facingLeft()"
@@ -46,9 +48,9 @@ import { CommonModule } from '@angular/common';
           <!-- CUERPO -->
           <ellipse cx="28" cy="22" rx="16" ry="8" fill="#22c55e" />
           <path d="M 16 23 Q 28 27 40 23 Q 28 29 16 23 Z" fill="#86efac" opacity="0.7" />
-          <!-- PATAS CAMINANDO -->
-          <rect class="croc-leg leg-l" x="20" y="26" width="6" height="6" rx="2.5" fill="#15803d" />
-          <rect class="croc-leg leg-r" x="34" y="26" width="6" height="6" rx="2.5" fill="#15803d" />
+          <!-- PATAS QUE PISAN LA LÍNEA BLANCA -->
+          <rect class="croc-leg leg-l" x="20" y="26" width="6" height="7" rx="2.5" fill="#15803d" />
+          <rect class="croc-leg leg-r" x="34" y="26" width="6" height="7" rx="2.5" fill="#15803d" />
           <!-- MANDÍBULA SUPERIOR -->
           <path class="croc-snout-top" d="M 38 16 L 60 17 Q 64 20 60 22 L 38 22 Z" fill="#22c55e" />
           <!-- MANDÍBULA INFERIOR -->
@@ -68,40 +70,34 @@ import { CommonModule } from '@angular/common';
   styles: [
     `
       :host {
-        display: inline-flex;
-        align-items: center;
-        margin-left: auto;
+        position: absolute;
+        bottom: -16px;
+        left: 0;
+        width: 100%;
+        height: 34px;
+        pointer-events: none;
+        overflow: visible;
+        z-index: 10;
       }
 
-      /* PISTA CORTA EN EL HEADER DEL SIDEBAR */
-      .corner-croc-track {
+      /* PISTA 100% TRANSPARENTE DIRECTAMENTE SOBRE LA LÍNEA BLANCA */
+      .croc-line-track {
         position: relative;
-        width: 78px;
-        height: 34px;
-        overflow: hidden;
+        width: 100%;
+        height: 100%;
+        pointer-events: auto;
         cursor: pointer;
         user-select: none;
-        display: flex;
-        align-items: center;
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        border-radius: 18px;
-        padding: 0 4px;
-        transition: background 0.2s, border-color 0.2s;
-      }
-      .corner-croc-track:hover {
-        background: rgba(255, 255, 255, 0.12);
-        border-color: rgba(255, 255, 255, 0.25);
       }
 
-      /* CUERPO DEL COCODRILO EN MOVIMIENTO */
+      /* COCODRILO LIMPIO Y SUAVE CAMINANDO */
       .croc-body {
         position: absolute;
-        top: 2px;
+        bottom: 0;
         width: 48px;
         height: 28px;
         transition: transform 0.15s ease;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
       }
 
       .croc-body.flip {
@@ -111,6 +107,7 @@ import { CommonModule } from '@angular/common';
       .croc-svg {
         width: 100%;
         height: 100%;
+        overflow: visible;
       }
 
       /* MOVIMIENTO DE COLA */
@@ -126,7 +123,7 @@ import { CommonModule } from '@angular/common';
         100% { transform: rotate(14deg); }
       }
 
-      /* PATITAS PASO A PASO */
+      /* PATITAS PASO A PASO SOBRE LA LÍNEA */
       .croc-body.walking .leg-l {
         transform-origin: 22px 26px;
         animation: legStep 0.35s infinite alternate;
@@ -158,11 +155,11 @@ import { CommonModule } from '@angular/common';
         100% { transform: rotate(25deg); }
       }
 
-      /* CARNE FLOTANTE EN LA PISTA */
+      /* CARNE QUE CAE SOBRE LA LÍNEA */
       .mini-meat {
         position: absolute;
-        top: 6px;
-        font-size: 0.95rem;
+        bottom: 8px;
+        font-size: 1rem;
         animation: bounceMeat 0.4s infinite alternate;
         z-index: 2;
         pointer-events: none;
@@ -175,18 +172,18 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class CorazaPet implements OnInit, OnDestroy {
-  readonly posX = signal(4);
+  readonly posX = signal(10);
   readonly facingLeft = signal(false);
   readonly isWalking = signal(true);
   readonly isSnapping = signal(false);
   readonly hasMeat = signal(false);
-  readonly meatX = signal(20);
+  readonly meatX = signal(120);
 
   private moveTimer: any = null;
   private autoFeedTimer: any = null;
-  private minX = 2;
-  private maxX = 26;
-  private speed = 1.2;
+  private minX = 4;
+  private maxX = 185; // Recorre toda la línea blanca del sidebar (260px de ancho)
+  private speed = 1.3;
 
   ngOnInit(): void {
     this.startWalkingLoop();
@@ -200,7 +197,7 @@ export class CorazaPet implements OnInit, OnDestroy {
 
   feedCroc(e: MouseEvent): void {
     e.stopPropagation();
-    this.dropMeat(this.facingLeft() ? this.minX : this.maxX);
+    this.dropMeat(this.facingLeft() ? this.minX + 20 : this.maxX - 20);
   }
 
   private dropMeat(targetX: number): void {
@@ -213,10 +210,10 @@ export class CorazaPet implements OnInit, OnDestroy {
   private startAutoFeed(): void {
     this.autoFeedTimer = setInterval(() => {
       if (!this.hasMeat() && !this.isSnapping()) {
-        const randX = Math.random() > 0.5 ? this.maxX : this.minX;
+        const randX = Math.floor(Math.random() * (this.maxX - this.minX - 30)) + this.minX + 15;
         this.dropMeat(randX);
       }
-    }, 16000);
+    }, 18000);
   }
 
   private startWalkingLoop(): void {
@@ -229,11 +226,11 @@ export class CorazaPet implements OnInit, OnDestroy {
       const meat = this.hasMeat();
       const mX = this.meatX();
 
-      // 1. Si hay carne en la pista corta, va a comérsela
+      // 1. Si hay carne sobre la línea, va hacia ella
       if (meat) {
         const dx = mX - curX;
-        if (Math.abs(dx) <= 3) {
-          // Llegó a la carne: muerde y come
+        if (Math.abs(dx) <= 4) {
+          // Llegó a la carne: come y hace mordisco
           this.hasMeat.set(false);
           this.isWalking.set(false);
           this.isSnapping.set(true);
@@ -243,12 +240,12 @@ export class CorazaPet implements OnInit, OnDestroy {
           }, 1100);
         } else {
           this.facingLeft.set(dx < 0);
-          this.posX.update((x) => (dx > 0 ? x + this.speed * 1.5 : x - this.speed * 1.5));
+          this.posX.update((x) => (dx > 0 ? x + this.speed * 1.6 : x - this.speed * 1.6));
         }
         return;
       }
 
-      // 2. Patrullaje corto continuo de izquierda a derecha
+      // 2. Patrullaje continuo sobre la línea blanca de izquierda a derecha
       if (this.isWalking()) {
         if (this.facingLeft()) {
           if (curX <= this.minX) {
