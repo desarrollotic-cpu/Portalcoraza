@@ -32,6 +32,23 @@ import { Icon } from '../../shared/components/icon/icon';
             </div>
           </div>
 
+          <!-- VIDEO OFICIAL DE LA MASCOTA EN SILENCIO (LOGIN) -->
+          <div class="brand-video-card">
+            <video
+              class="mascot-video"
+              src="/videos/mascota-coraza.mp4"
+              autoplay
+              muted
+              loop
+              playsinline
+              disablePictureInPicture
+            ></video>
+            <div class="video-overlay-badge">
+              <span class="pulse-dot"></span>
+              Coco · Guardián Oficial Coraza
+            </div>
+          </div>
+
           <div class="brand-copy">
             <h2>Portal operativo <br />para tu equipo de seguridad.</h2>
             <p>
@@ -174,6 +191,56 @@ import { Icon } from '../../shared/components/icon/icon';
       display: flex;
       flex-direction: column;
       gap: 0.2rem;
+    }
+
+    .brand-video-card {
+      position: relative;
+      max-width: 460px;
+      width: 100%;
+      border-radius: 1.25rem;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow:
+        0 20px 40px -10px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+    }
+    .mascot-video {
+      display: block;
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+    }
+    .video-overlay-badge {
+      position: absolute;
+      bottom: 0.75rem;
+      left: 0.75rem;
+      background: rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: pulseGreen 1.5s infinite;
+    }
+    @keyframes pulseGreen {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
     }
 
     .brand-text {
