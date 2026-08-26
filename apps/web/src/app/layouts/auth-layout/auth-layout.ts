@@ -9,71 +9,87 @@ import { Icon } from '../../shared/components/icon/icon';
   imports: [RouterOutlet, Icon],
   template: `
     <div class="auth-shell">
+      <!-- PANEL IZQUIERDO: CÁPSULA GIGANTE DE CONTENCIÓN DE LA MASCOTA -->
       <aside class="auth-brand" aria-hidden="true">
-        <div class="brand-mesh"></div>
-        <div class="brand-orbs">
-          <span class="orb orb-1"></span>
-          <span class="orb orb-2"></span>
-          <span class="orb orb-3"></span>
+        <!-- VIDEO GIGANTE EN BUCLE DE FONDO DE LA MASCOTA ATRAPADA -->
+        <div class="containment-chamber">
+          <video
+            class="mascot-full-video"
+            src="/videos/mascota-coraza.mp4"
+            autoplay
+            muted
+            loop
+            playsinline
+            disablePictureInPicture
+          ></video>
+          
+          <!-- EFECTO CRISTAL / CÁPSULA HOLOGRÁFICA DE CONTENCIÓN -->
+          <div class="chamber-glass-overlay"></div>
+          <div class="chamber-scanline"></div>
+          <div class="chamber-grid"></div>
+
+          <!-- PUNTOS LÁSER Y SELLO DE SEGURIDAD -->
+          <div class="containment-hud top-hud">
+            <span class="hud-tag">
+              <span class="pulse-red"></span>
+              CÁPSULA DE CONTENCIÓN · SEGURIDAD CORAZA
+            </span>
+            <span class="hud-code">SEC-SYS // 2027</span>
+          </div>
+
+          <div class="containment-hud bottom-hud">
+            <span class="hud-tag">
+              <span class="pulse-green"></span>
+              ENTIDAD EN CUSTODIA · COCO GUARDIÁN
+            </span>
+            <span class="hud-code">ESTADO: EN MOVIMIENTO</span>
+          </div>
         </div>
 
+        <!-- CONTENIDO SUPERPUESTO CON CRISTAL TRANSLÚCIDO -->
         <div class="brand-content">
-          <div class="brand-logo">
-            <img
-              class="logo-img"
-              src="/brand/logo-coraza-cta.png"
-              width="112"
-              height="112"
-              alt="Coraza Seguridad C.T.A. — Cooperativa de Vigilancia y Seguridad Privada"
-            />
-            <div class="brand-titles">
-              <span class="brand-text">Portal Coraza</span>
-              <span class="brand-sub">Coraza Seguridad C.T.A.</span>
+          <div class="glass-hero-card">
+            <div class="brand-logo">
+              <img
+                class="logo-img"
+                src="/brand/logo-coraza-cta.png"
+                width="84"
+                height="84"
+                alt="Coraza Seguridad C.T.A."
+              />
+              <div class="brand-titles">
+                <span class="brand-text">Portal Coraza</span>
+                <span class="brand-sub">Coraza Seguridad C.T.A.</span>
+              </div>
             </div>
-          </div>
 
-          <!-- VIDEO OFICIAL DE LA MASCOTA EN SILENCIO (LOGIN) -->
-          <div class="brand-video-card">
-            <video
-              class="mascot-video"
-              src="/videos/mascota-coraza.mp4"
-              autoplay
-              muted
-              loop
-              playsinline
-              disablePictureInPicture
-            ></video>
-            <div class="video-overlay-badge">
-              <span class="pulse-dot"></span>
-              Coco · Guardián Oficial Coraza
+            <div class="brand-copy">
+              <h2>Portal operativo <br />para tu equipo de seguridad.</h2>
+              <p>
+                Recursos Humanos, dotación, programación, documental y recepción
+                en una sola plataforma integrada.
+              </p>
             </div>
-          </div>
 
-          <div class="brand-copy">
-            <h2>Portal operativo <br />para tu equipo de seguridad.</h2>
-            <p>
-              Recursos Humanos, dotación, programación, documental y recepción
-              en una sola plataforma integrada.
-            </p>
+            <ul class="brand-highlights">
+              <li>
+                <span class="dot"></span>
+                Gestión centralizada del personal
+              </li>
+              <li>
+                <span class="dot"></span>
+                Control de dotación con firma digital
+              </li>
+              <li>
+                <span class="dot"></span>
+                Programación mensual por puesto
+              </li>
+            </ul>
           </div>
-
-          <ul class="brand-highlights">
-            <li>
-              <span class="dot"></span>
-              Gestión centralizada del personal
-            </li>
-            <li>
-              <span class="dot"></span>
-              Control de dotación con firma digital
-            </li>
-            <li>
-              <span class="dot"></span>
-              Programación mensual por puesto
-            </li>
-          </ul>
         </div>
       </aside>
 
+      <!-- PANEL DERECHO: FORMULARIO DE LOGIN -->
       <section class="auth-left">
         <div class="auth-card">
           <button
@@ -103,70 +119,168 @@ import { Icon } from '../../shared/components/icon/icon';
     .auth-shell {
       min-height: 100vh;
       display: grid;
-      grid-template-columns: 1.05fr minmax(420px, 0.95fr);
+      grid-template-columns: 1.1fr minmax(420px, 0.9fr);
       background: var(--bg-page);
     }
 
+    /* CONTENCIÓN GIGANTE DE LA MASCOTA */
     .auth-brand {
       position: relative;
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 3rem;
-      color: var(--text-on-primary);
-      background: var(--gradient-hero-mesh);
+      padding: 3rem 2rem;
+      background: #090d16;
     }
 
-    .brand-mesh {
+    .containment-chamber {
       position: absolute;
       inset: 0;
-      background: var(--gradient-hero-mesh);
-      opacity: 1;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+      background: radial-gradient(circle at center, #1e1b4b 0%, #030712 100%);
     }
 
-    .brand-orbs {
+    /* VIDEO A PANTALLA COMPLETA GIGANTE */
+    .mascot-full-video {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.9;
+      transform: scale(1.05);
+      filter: saturate(1.15) contrast(1.08) brightness(0.85);
+    }
+
+    /* EFECTO CRISTAL / REFLEJO DE CÁPSULA */
+    .chamber-glass-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        135deg,
+        rgba(37, 99, 235, 0.35) 0%,
+        rgba(15, 23, 42, 0.45) 50%,
+        rgba(147, 51, 234, 0.35) 100%
+      );
+      box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8), inset 0 0 40px rgba(59, 130, 246, 0.3);
       pointer-events: none;
     }
-    .orb {
+
+    /* LÍNEA DE ESCANEO LÁSER */
+    .chamber-scanline {
       position: absolute;
-      border-radius: 50%;
-      filter: blur(60px);
-      opacity: 0.6;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.8), transparent);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.9);
+      animation: scanLaser 4s ease-in-out infinite alternate;
+      pointer-events: none;
     }
-    .orb-1 {
-      width: 380px;
-      height: 380px;
-      background: radial-gradient(circle, #a855f7 0%, transparent 70%);
-      top: -80px;
-      left: -80px;
-    }
-    .orb-2 {
-      width: 320px;
-      height: 320px;
-      background: radial-gradient(circle, #22d3ee 0%, transparent 70%);
-      bottom: -60px;
-      right: -60px;
-      opacity: 0.5;
-    }
-    .orb-3 {
-      width: 260px;
-      height: 260px;
-      background: radial-gradient(circle, #ec4899 0%, transparent 70%);
-      top: 40%;
-      left: 30%;
-      opacity: 0.35;
+    @keyframes scanLaser {
+      0% { top: 2%; opacity: 0.3; }
+      50% { opacity: 0.9; }
+      100% { top: 98%; opacity: 0.3; }
     }
 
+    /* CUADRÍCULA HOLOGRÁFICA */
+    .chamber-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    /* HUD DE CONTENCIÓN */
+    .containment-hud {
+      position: absolute;
+      left: 1.5rem;
+      right: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+      pointer-events: none;
+      font-family: monospace;
+    }
+    .top-hud { top: 1.25rem; }
+    .bottom-hud { bottom: 1.25rem; }
+
+    .hud-tag {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(15, 23, 42, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: #e2e8f0;
+      text-transform: uppercase;
+    }
+    .hud-code {
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+    }
+
+    .pulse-red {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+      animation: blinkRed 1s infinite alternate;
+    }
+    @keyframes blinkRed {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .pulse-green {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: blinkGreen 1.2s infinite alternate;
+    }
+    @keyframes blinkGreen {
+      0% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    /* CONTENIDO DEL PORTAL SUPERPUESTO */
     .brand-content {
       position: relative;
-      z-index: 1;
+      z-index: 10;
       max-width: 520px;
+      width: 100%;
+    }
+
+    .glass-hero-card {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 1.5rem;
+      padding: 2.25rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
       display: flex;
       flex-direction: column;
-      gap: 2.5rem;
+      gap: 1.75rem;
     }
 
     .brand-logo {
@@ -176,14 +290,14 @@ import { Icon } from '../../shared/components/icon/icon';
     }
 
     .logo-img {
-      width: 112px;
-      height: 112px;
+      width: 84px;
+      height: 84px;
       object-fit: contain;
       border-radius: 50%;
       background: #fff;
       box-shadow:
-        0 16px 40px rgba(15, 23, 42, 0.35),
-        0 0 0 4px rgba(255, 255, 255, 0.35);
+        0 12px 30px rgba(0, 0, 0, 0.4),
+        0 0 0 3px rgba(255, 255, 255, 0.4);
       flex-shrink: 0;
     }
 
@@ -193,91 +307,40 @@ import { Icon } from '../../shared/components/icon/icon';
       gap: 0.2rem;
     }
 
-    .brand-video-card {
-      position: relative;
-      max-width: 460px;
-      width: 100%;
-      border-radius: 1.25rem;
-      overflow: hidden;
-      background: rgba(15, 23, 42, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      box-shadow:
-        0 20px 40px -10px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-    }
-    .mascot-video {
-      display: block;
-      width: 100%;
-      height: 220px;
-      object-fit: cover;
-    }
-    .video-overlay-badge {
-      position: absolute;
-      bottom: 0.75rem;
-      left: 0.75rem;
-      background: rgba(15, 23, 42, 0.8);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      padding: 0.35rem 0.75rem;
-      border-radius: 999px;
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: #ffffff;
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
-      animation: pulseGreen 1.5s infinite;
-    }
-    @keyframes pulseGreen {
-      0% { transform: scale(0.95); opacity: 0.8; }
-      50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.95); opacity: 0.8; }
-    }
-
     .brand-text {
       margin: 0;
       font-family: var(--font-display);
       font-size: 1.8rem;
       font-weight: 800;
       letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #fff 0%, #ddd6fe 100%);
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
     }
 
     .brand-sub {
-      font-size: 0.85rem;
-      font-weight: 600;
-      letter-spacing: 0.04em;
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.78);
+      color: rgba(255, 255, 255, 0.85);
     }
 
     .brand-copy h2 {
       font-family: var(--font-display);
-      font-size: clamp(1.75rem, 3vw, 2.5rem);
-      font-weight: 700;
-      line-height: 1.15;
-      margin: 0 0 1rem;
-      color: #fff;
+      font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin: 0 0 0.75rem;
+      color: #ffffff;
       letter-spacing: -0.02em;
     }
     .brand-copy p {
       margin: 0;
-      font-size: 1rem;
+      font-size: 0.95rem;
       line-height: 1.6;
-      color: rgba(255, 255, 255, 0.78);
-      max-width: 460px;
+      color: rgba(255, 255, 255, 0.82);
     }
 
     .brand-highlights {
@@ -286,100 +349,86 @@ import { Icon } from '../../shared/components/icon/icon';
       padding: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
+      gap: 0.65rem;
     }
     .brand-highlights li {
       display: flex;
       align-items: center;
-      gap: 0.85rem;
+      gap: 0.75rem;
+      font-size: 0.88rem;
+      font-weight: 600;
       color: rgba(255, 255, 255, 0.9);
-      font-size: 0.95rem;
     }
     .brand-highlights .dot {
       width: 8px;
       height: 8px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #22d3ee, #a855f7);
-      box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+      flex-shrink: 0;
     }
 
+    /* SECCIÓN DERECHA DEL LOGIN */
     .auth-left {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 3rem 2.5rem;
+      padding: 2.5rem 1.5rem;
       background: var(--bg-page);
-      background-image: var(--gradient-page);
-      background-attachment: fixed;
-      position: relative;
-      gap: 1.5rem;
     }
 
     .auth-card {
+      position: relative;
       width: 100%;
       max-width: 440px;
-      padding: 3rem 2.5rem;
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-xl);
-      color: var(--text-primary);
-      position: relative;
     }
 
     .auth-theme-toggle {
       position: absolute;
       top: 1rem;
       right: 1rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      z-index: 5;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      border-radius: 50%;
       width: 36px;
       height: 36px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: var(--surface-2);
-      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .auth-theme-toggle:hover {
+      background: var(--bg-hover);
       color: var(--text-primary);
-      border-color: var(--border-strong);
     }
 
     .auth-footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      font-size: 0.8rem;
-      color: var(--text-muted);
     }
-    .dot-sep {
-      color: var(--neutral-300);
-    }
+    .dot-sep { opacity: 0.5; }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 960px) {
       .auth-shell {
         grid-template-columns: 1fr;
       }
       .auth-brand {
-        display: none;
-      }
-      .auth-left {
-        padding: 2rem 1.25rem;
-      }
-      .auth-card {
-        padding: 2.25rem 1.75rem;
+        min-height: 480px;
       }
     }
   `,
 })
 export class AuthLayout {
-  readonly year = new Date().getFullYear();
-  readonly moonIcon = LucideMoon;
-  readonly sunIcon = LucideSun;
   readonly theme = inject(ThemeService);
+  readonly year = new Date().getFullYear();
+  readonly sunIcon = LucideSun;
+  readonly moonIcon = LucideMoon;
 }
