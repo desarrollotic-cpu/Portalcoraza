@@ -8,7 +8,17 @@ import {
   MinLength,
 } from 'class-validator';
 
-const AREAS = ['GH', 'SST', 'COMERCIAL', 'OPERACIONES', 'ADMIN'] as const;
+const AREAS = [
+  'GH',
+  'SST',
+  'OPERACIONES',
+  'COMERCIAL',
+  'ADMIN',
+  'DOTACION',
+  'DOCUMENTAL',
+  'RECEPCION',
+  'CALIDAD',
+] as const;
 const FREC = ['MENSUAL', 'TRIMESTRAL', 'SEMESTRAL', 'ANUAL'] as const;
 const SENTIDO = ['ASCENDENTE', 'DESCENDENTE'] as const;
 

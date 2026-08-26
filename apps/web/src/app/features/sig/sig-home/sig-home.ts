@@ -57,11 +57,16 @@ interface DashboardItem {
           <div class="field">
             <label for="filter-area">Área Estratégica</label>
             <select id="filter-area" [(ngModel)]="area" name="area" (change)="loadDash()">
-              <option value="">Todas las Áreas</option>
+              <option value="">Todas las Áreas (44 Indicadores)</option>
               <option value="GH">👥 Gestión Humana</option>
+              <option value="SST">🦺 SST / Salud y Seguridad</option>
+              <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
               <option value="COMERCIAL">🤝 Comercial / Clientes</option>
-              <option value="OPERACIONES">🛡️ Operaciones</option>
               <option value="ADMIN">💼 Administrativo / Financiero</option>
+              <option value="DOTACION">📦 Dotación e Inventario</option>
+              <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
+              <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
+              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
             </select>
           </div>
           <div class="field">
@@ -229,10 +234,15 @@ interface DashboardItem {
             <label for="cat-area">Filtrar por Área</label>
             <select id="cat-area" [(ngModel)]="filtroArea" name="fa" (change)="loadCatalogo()">
               <option value="">Todas las Áreas</option>
-              <option value="GH">Gestión Humana</option>
-              <option value="COMERCIAL">Comercial</option>
-              <option value="OPERACIONES">Operaciones</option>
-              <option value="ADMIN">Administrativo</option>
+              <option value="GH">👥 Gestión Humana</option>
+              <option value="SST">🦺 SST / Salud y Seguridad</option>
+              <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
+              <option value="COMERCIAL">🤝 Comercial / Clientes</option>
+              <option value="ADMIN">💼 Administrativo / Financiero</option>
+              <option value="DOTACION">📦 Dotación e Inventario</option>
+              <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
+              <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
+              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
             </select>
           </div>
           <div class="field search-field">
