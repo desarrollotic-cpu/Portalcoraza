@@ -58,6 +58,8 @@ interface NavItem {
   externalUrl?: string;
 }
 
+import { CorazaPet } from '../../core/components/coraza-pet/coraza-pet';
+
 interface NavGroup {
   label: string;
   items: NavItem[];
@@ -65,7 +67,7 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule, CorazaPet],
   template: `
     <div class="layout" [class.nav-open]="mobileNavOpen()">
       @if (mobileNavOpen()) {
@@ -90,6 +92,7 @@ interface NavGroup {
               <span class="brand-name">Portal Coraza</span>
               <span class="brand-tag">Coraza Seguridad C.T.A.</span>
             </div>
+            <app-coraza-pet />
           </div>
 
           <nav class="nav">
