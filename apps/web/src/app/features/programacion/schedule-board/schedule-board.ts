@@ -64,23 +64,37 @@ const CODES: CodeConfig[] = [
           <div class="post-nav-group">
             <label>
               Puesto
-              <div class="post-search-filter-row">
-                <input
-                  type="text"
-                  [ngModel]="postSearchQuery()"
-                  (ngModelChange)="postSearchQuery.set($event)"
-                  placeholder="🔍 Filtrar puesto..."
-                  class="inp-filter-post"
-                />
-              </div>
               <div class="post-select-row">
                 <button type="button" class="btn-nav" (click)="prevPost()" [disabled]="!canPrevPost()" title="Puesto anterior">◀</button>
-                <select [(ngModel)]="postId" (ngModelChange)="onSelectionChange()" class="select-post">
-                  <option value="">Seleccione puesto...</option>
-                  @for (p of filteredPosts(); track p.id) {
-                    <option [value]="p.id">{{ p.name }}</option>
+                <div class="post-autocomplete-wrap">
+                  <input
+                    type="text"
+                    [value]="selectedPostName()"
+                    (input)="onPostSearchInput($event)"
+                    (focus)="postDropdownOpen.set(true)"
+                    placeholder="🔍 Escribe nombre de puesto (ej: 808, Navarra, Interclub...)"
+                    class="inp-post-combobox"
+                  />
+                  @if (postSearchQuery()) {
+                    <button type="button" class="btn-clear-post-search" (click)="clearPostSearch()">✕</button>
                   }
-                </select>
+                  @if (postDropdownOpen()) {
+                    <div class="dropdown-backdrop" (click)="postDropdownOpen.set(false)"></div>
+                    <div class="post-dropdown-panel" (click)="$event.stopPropagation()">
+                      @for (p of filteredPosts().slice(0, 35); track p.id) {
+                        <div
+                          class="post-dropdown-item"
+                          [class.selected]="p.id === postId"
+                          (click)="selectPost(p)"
+                        >
+                          <strong>{{ p.name }}</strong>
+                        </div>
+                      } @empty {
+                        <div class="post-dropdown-empty">No se encontraron puestos con "{{ postSearchQuery() }}"</div>
+                      }
+                    </div>
+                  }
+                </div>
                 <button type="button" class="btn-nav" (click)="nextPost()" [disabled]="!canNextPost()" title="Puesto siguiente">▶</button>
               </div>
             </label>
@@ -660,15 +674,89 @@ const CODES: CodeConfig[] = [
     }
     .btn-q:hover { transform: scale(1.03); filter: brightness(0.95); }
 
-    /* BUSCADOR DE ASOCIADOS EN EL MODAL */
-    .post-search-filter-row { margin-bottom: 0.25rem; }
-    .inp-filter-post {
-      padding: 0.3rem 0.5rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 0.78rem;
+    /* BUSCADOR AUTOCOMPLETE DE PUESTOS */
+    .post-autocomplete-wrap {
+      position: relative;
+      min-width: 320px;
+      flex: 1;
+    }
+    .inp-post-combobox {
       width: 100%;
+      padding: 0.45rem 2rem 0.45rem 0.75rem;
+      border: 1.5px solid #2563eb;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      background: #ffffff;
+      color: #0f172a;
       box-sizing: border-box;
+      cursor: text;
+    }
+    .inp-post-combobox:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+    }
+    .btn-clear-post-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #e2e8f0;
+      border: none;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      font-size: 0.7rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 95;
+    }
+    .dropdown-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: transparent;
+    }
+    .post-dropdown-panel {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      margin-top: 4px;
+      max-height: 280px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1.5px solid #2563eb;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+      z-index: 100;
+      display: flex;
+      flex-direction: column;
+    }
+    .post-dropdown-item {
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid #f1f5f9;
+      cursor: pointer;
+      font-size: 0.84rem;
+      color: #0f172a;
+      transition: background 0.1s;
+    }
+    .post-dropdown-item:hover {
+      background: #eff6ff;
+      color: #1e40af;
+    }
+    .post-dropdown-item.selected {
+      background: #dbeafe;
+      color: #1e3a8a;
+      font-weight: 800;
+    }
+    .post-dropdown-empty {
+      padding: 1rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: #64748b;
     }
 
     .assoc-search-box {
@@ -794,6 +882,31 @@ export class ScheduleBoard implements OnInit {
   selectedTemplateId = '';
   readonly postSearchQuery = signal('');
   readonly associateSearchQuery = signal('');
+  readonly postDropdownOpen = signal(false);
+
+  readonly selectedPostName = computed(() => {
+    if (this.postSearchQuery()) return this.postSearchQuery();
+    const p = this.posts().find(x => x.id === this.postId);
+    return p ? p.name : '';
+  });
+
+  onPostSearchInput(event: Event): void {
+    const val = (event.target as HTMLInputElement).value;
+    this.postSearchQuery.set(val);
+    this.postDropdownOpen.set(true);
+  }
+
+  selectPost(p: { id: string; name: string }): void {
+    this.postId = p.id;
+    this.postSearchQuery.set('');
+    this.postDropdownOpen.set(false);
+    this.onSelectionChange();
+  }
+
+  clearPostSearch(): void {
+    this.postSearchQuery.set('');
+    this.postDropdownOpen.set(false);
+  }
 
   readonly loading = signal(false);
   readonly saving = signal(false);
