@@ -8,6 +8,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import { Brackets, Repository } from 'typeorm';
+import {
+  getMembreteHuellaBuffer,
+  getMembreteIsoBuffer,
+  getMembreteLogoBuffer,
+} from './membrete-assets';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -482,26 +487,19 @@ export class AssociatesService {
       // Franja superior azul corporativa
       doc.rect(0, 0, 612, 10).fill('#1d4ed8');
 
-      // Logo Oficial Coraza
-      const logoPaths = [
-        path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image1.png'),
-        path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'membrete', 'image1.png'),
-        path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'logo-coraza-cta.png'),
-      ];
-      let logoFound = false;
-      for (const lp of logoPaths) {
-        if (fs.existsSync(lp)) {
-          doc.image(lp, 55, 22, { width: 52, height: 52 });
-          logoFound = true;
-          break;
-        }
+      // Logo Oficial Coraza en Memoria (100% garantizado en cualquier servidor)
+      try {
+        const logoBuf = getMembreteLogoBuffer();
+        doc.image(logoBuf, 55, 18, { width: 54, height: 54 });
+      } catch (e) {
+        console.error('Error rendering logo buffer:', e);
       }
 
-      const headerTextX = logoFound ? 115 : 55;
+      const headerTextX = 118;
 
       // Encabezado Corporativo Oficial 2025
-      doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CORAZA SEGURIDAD C.T.A.', headerTextX, 24);
-      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#1d4ed8').text('La Seguridad un Compromiso de Todos', headerTextX, 40);
+      doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CORAZA SEGURIDAD C.T.A.', headerTextX, 22);
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#1d4ed8').text('La Seguridad un Compromiso de Todos', headerTextX, 39);
       doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011', headerTextX, 52);
 
       doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 82).lineTo(557, 82).stroke();
@@ -563,15 +561,14 @@ export class AssociatesService {
       doc.fontSize(8.5).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 55, sigY + 18);
       doc.text('PBX: (604) 4447929 · Medellín, Colombia', 55, sigY + 28);
 
-      // Sellos de certificación oficiales
-      const isoPath = path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image3.png');
-      const fenalcoPath = path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image8.png');
-
-      if (fs.existsSync(isoPath)) {
-        doc.image(isoPath, 420, sigY - 5, { height: 36 });
-      }
-      if (fs.existsSync(fenalcoPath)) {
-        doc.image(fenalcoPath, 490, sigY - 2, { height: 32 });
+      // Sellos de certificación oficiales en Memoria
+      try {
+        const isoBuf = getMembreteIsoBuffer();
+        const huellaBuf = getMembreteHuellaBuffer();
+        doc.image(isoBuf, 410, sigY - 6, { height: 38 });
+        doc.image(huellaBuf, 485, sigY - 2, { height: 32 });
+      } catch (e) {
+        console.error('Error rendering footer seals:', e);
       }
 
       // Pie de Página Membrete Oficial 2025
