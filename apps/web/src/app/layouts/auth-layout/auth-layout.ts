@@ -1,8 +1,5 @@
 import {
-  AfterViewInit,
   Component,
-  ElementRef,
-  ViewChild,
   inject,
 } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
@@ -22,37 +19,16 @@ import { Icon } from '../../shared/components/icon/icon';
 
       <!-- CONTENEDOR PRINCIPAL FLOTANTE ESTILO TARJETA PREMIUM -->
       <main class="auth-main-container">
-        <!-- LADO IZQUIERDO: EL VIDEO OCUPA TODO EL CUADRO AZUL COMPLETO -->
+        <!-- LADO IZQUIERDO: HERO CORPORATIVO ELEGANTE (SIN VIDEO, MÁXIMA VELOCIDAD) -->
         <div class="auth-hero-side">
-          <!-- VIDEO DE FONDO TOTAL EN EL CUADRO IZQUIERDO (FIJO SIN PIP NI MENÚ) -->
-          <video
-            #mascotVideo
-            class="hero-full-video"
-            src="/videos/mascota-coraza.mp4"
-            autoplay
-            [muted]="true"
-            loop
-            playsinline
-            preload="auto"
-            disablePictureInPicture
-            disableRemotePlayback
-            controlsList="nodownload nofullscreen noremoteplayback noplaybackrate"
-            (contextmenu)="$event.preventDefault()"
-            (loadedmetadata)="onLoadedVideo($event)"
-          ></video>
-
-          <!-- CAPAS DE INTEGRACIÓN Y DEGRADADO CORPORATIVO -->
-          <div class="video-blue-gradient"></div>
-          <div class="video-ambient-vignette"></div>
-
           <!-- CABECERA SUPERIOR IZQUIERDA -->
           <header class="hero-header">
             <div class="logo-badge">
               <img
                 class="hero-logo-img"
                 src="/brand/logo-coraza-cta.png"
-                width="40"
-                height="40"
+                width="44"
+                height="44"
                 alt="Logo Coraza"
               />
             </div>
@@ -62,9 +38,39 @@ import { Icon } from '../../shared/components/icon/icon';
             </div>
           </header>
 
+          <!-- CUERPO PRINCIPAL HERO -->
+          <div class="hero-main-content">
+            <div class="hero-shield-wrap">
+              <img
+                src="/brand/logo-coraza-cta.png"
+                class="hero-large-logo"
+                alt="Escudo Coraza"
+              />
+            </div>
+            <h2 class="hero-headline">La Seguridad, un Compromiso de Todos</h2>
+            <p class="hero-tagline">
+              Plataforma integral de gestión operativa, talento humano, programación de turnos y seguridad privada.
+            </p>
+
+            <div class="hero-feature-pills">
+              <div class="pill-item">
+                <span class="pill-icon">🛡️</span>
+                <span>Operaciones & Turnos 24/7</span>
+              </div>
+              <div class="pill-item">
+                <span class="pill-icon">👥</span>
+                <span>Gestión Humana & Certificados</span>
+              </div>
+              <div class="pill-item">
+                <span class="pill-icon">📋</span>
+                <span>Minutas & Recepción Digital</span>
+              </div>
+            </div>
+          </div>
+
           <!-- FOOTER INFERIOR IZQUIERDO -->
           <footer class="hero-footer">
-            <p>© {{ year }} Coraza Seguridad C.T.A. · Vigilancia y Talento Humano</p>
+            <p>© {{ year }} Coraza Seguridad C.T.A. · Vigilado SuperVigilancia Res. 6889</p>
           </footer>
         </div>
 
@@ -101,7 +107,7 @@ import { Icon } from '../../shared/components/icon/icon';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #1b2032;
+      background: #0f172a;
       padding: 1.5rem;
       position: relative;
       overflow: hidden;
@@ -115,8 +121,9 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 48vw;
       height: 48vw;
       border-radius: 50%;
-      background: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
-      opacity: 0.85;
+      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      opacity: 0.45;
+      filter: blur(60px);
       pointer-events: none;
     }
     .bg-shape-2 {
@@ -126,9 +133,9 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 52vw;
       height: 52vw;
       border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
-      opacity: 0.4;
-      filter: blur(50px);
+      background: linear-gradient(135deg, #1d4ed8 0%, #047857 100%);
+      opacity: 0.35;
+      filter: blur(70px);
       pointer-events: none;
     }
     .bg-shape-3 {
@@ -138,7 +145,7 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 25vw;
       height: 25vw;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, transparent 70%);
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
       filter: blur(60px);
       pointer-events: none;
     }
@@ -148,70 +155,26 @@ import { Icon } from '../../shared/components/icon/icon';
       position: relative;
       z-index: 10;
       width: 100%;
-      max-width: 1080px;
-      min-height: 590px;
+      max-width: 1060px;
+      min-height: 580px;
       display: grid;
-      grid-template-columns: 1.18fr 0.92fr;
-      border-radius: 2.25rem;
+      grid-template-columns: 1.15fr 0.95fr;
+      border-radius: 2rem;
       overflow: hidden;
-      box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.1);
+      box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
       background: var(--bg-surface, #ffffff);
     }
 
-    /* LADO IZQUIERDO: EL VIDEO LLENA TODO EL CUADRO */
+    /* LADO IZQUIERDO: HERO CORPORATIVO */
     .auth-hero-side {
       position: relative;
-      padding: 2.25rem 2.5rem;
+      padding: 2.5rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       color: #ffffff;
+      background: linear-gradient(145deg, #1e3a8a 0%, #1e40af 50%, #0f172a 100%);
       overflow: hidden;
-      background: #1d4ed8;
-    }
-
-    /* VIDEO DE FONDO A TODO TAMAÑO EN EL CUADRO IZQUIERDO */
-    .hero-full-video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center 25%;
-      transform: scale(1.02) translateY(32px);
-      z-index: 0;
-      filter: contrast(1.08) saturate(1.15);
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    /* DEGRADADO AZUL QUE INTEGRA EL VIDEO DE FORMA PREMIUM */
-    .video-blue-gradient {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        145deg,
-        rgba(37, 99, 235, 0.35) 0%,
-        rgba(29, 78, 216, 0.2) 40%,
-        rgba(30, 58, 138, 0.6) 100%
-      );
-      mix-blend-mode: multiply;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .video-ambient-vignette {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(
-        circle at 50% 50%,
-        transparent 35%,
-        rgba(15, 23, 42, 0.35) 75%,
-        rgba(15, 23, 42, 0.7) 100%
-      );
-      pointer-events: none;
-      z-index: 1;
     }
 
     .hero-header {
@@ -219,10 +182,10 @@ import { Icon } from '../../shared/components/icon/icon';
       align-items: center;
       gap: 0.75rem;
       z-index: 5;
-      background: rgba(15, 23, 42, 0.55);
+      background: rgba(255, 255, 255, 0.12);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
-      padding: 0.4rem 0.9rem;
+      padding: 0.45rem 1rem;
       border-radius: 999px;
       border: 1px solid rgba(255, 255, 255, 0.2);
       width: fit-content;
@@ -245,58 +208,77 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
     }
     .hero-brand-name {
-      font-size: 1.35rem;
+      font-size: 1.25rem;
       font-weight: 800;
       letter-spacing: -0.02em;
       color: #ffffff;
       line-height: 1.15;
-      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
     }
     .hero-brand-sub {
       font-size: 0.75rem;
       font-weight: 700;
-      color: rgba(255, 255, 255, 0.9);
+      color: #93c5fd;
       letter-spacing: 0.04em;
       text-transform: uppercase;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
 
-    .hero-greeting-box {
-      z-index: 5;
+    /* CUERPO PRINCIPAL DEL HERO */
+    .hero-main-content {
+      margin: auto 0;
       display: flex;
-      justify-content: center;
-      margin: auto 0 1rem 0;
+      flex-direction: column;
+      gap: 1rem;
+      z-index: 2;
+    }
+    .hero-shield-wrap {
+      display: flex;
+      margin-bottom: 0.25rem;
+    }
+    .hero-large-logo {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: #ffffff;
+      padding: 3px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    .hero-headline {
+      font-size: 1.65rem;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #ffffff;
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+    .hero-tagline {
+      font-size: 0.92rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+      margin: 0;
+      max-width: 440px;
     }
 
-    /* INSIGNIA DE SALUDO */
-    .greeting-badge {
+    .hero-feature-pills {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      margin-top: 0.75rem;
+    }
+    .pill-item {
       display: inline-flex;
       align-items: center;
-      gap: 0.55rem;
-      background: rgba(15, 23, 42, 0.65);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      padding: 0.6rem 1.4rem;
-      border-radius: 999px;
-      font-size: 0.95rem;
-      font-weight: 700;
-      color: #ffffff;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+      gap: 0.65rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 0.65rem;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #f1f5f9;
+      width: fit-content;
     }
-
-    .online-dot {
-      width: 9px;
-      height: 9px;
-      border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 10px #22c55e;
-      animation: pulseDot 1.5s infinite;
-    }
-    @keyframes pulseDot {
-      0% { transform: scale(0.9); opacity: 0.7; }
-      50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.9); opacity: 0.7; }
+    .pill-icon {
+      font-size: 1rem;
     }
 
     .hero-footer {
@@ -304,10 +286,9 @@ import { Icon } from '../../shared/components/icon/icon';
     }
     .hero-footer p {
       margin: 0;
-      font-size: 0.78rem;
-      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.75rem;
+      color: #94a3b8;
       font-weight: 500;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     }
 
     /* LADO DERECHO: FORMULARIO */
@@ -358,7 +339,11 @@ import { Icon } from '../../shared/components/icon/icon';
         grid-template-columns: 1fr;
       }
       .auth-hero-side {
-        min-height: 280px;
+        min-height: 240px;
+        padding: 1.75rem;
+      }
+      .hero-feature-pills {
+        display: none;
       }
       .auth-form-side {
         padding: 2rem 1.5rem;
@@ -366,39 +351,10 @@ import { Icon } from '../../shared/components/icon/icon';
     }
   `,
 })
-export class AuthLayout implements AfterViewInit {
+export class AuthLayout {
   readonly theme = inject(ThemeService);
   readonly year = new Date().getFullYear();
   readonly sunIcon = LucideSun;
   readonly moonIcon = LucideMoon;
-
-  @ViewChild('mascotVideo') videoRef!: ElementRef<HTMLVideoElement>;
-
-  ngAfterViewInit(): void {
-    this.startVideo();
-  }
-
-  onLoadedVideo(e: Event): void {
-    const video = e.target as HTMLVideoElement;
-    if (video) {
-      video.muted = true;
-      video.play().catch(() => {});
-    }
-  }
-
-  private startVideo(): void {
-    if (this.videoRef?.nativeElement) {
-      const v = this.videoRef.nativeElement;
-      v.muted = true;
-      v.play().catch(() => {
-        const trigger = () => {
-          v.play().catch(() => {});
-          window.removeEventListener('click', trigger);
-          window.removeEventListener('touchstart', trigger);
-        };
-        window.addEventListener('click', trigger, { once: true });
-        window.addEventListener('touchstart', trigger, { once: true });
-      });
-    }
-  }
 }
+
