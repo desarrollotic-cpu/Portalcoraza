@@ -801,7 +801,15 @@ export class MonthlySchedulingService {
    * Bundle de KPIs del mes para el panel de Programación.
    * Agregaciones SQL (no baja la matriz completa). Secuencial (pooler session).
    */
+  private async catalogPostCounts() {
+    const postsRepo = this.dataSource.getRepository(Post);
+    const total = await postsRepo.count();
+    const active = await postsRepo.count({ where: { status: PostStatus.ACTIVO } });
+    return { total, active, inactive: total - active };
+  }
+
   async overview(year: number, month: number) {
+    const catalog = await this.catalogPostCounts();
     const postsInMonth = await this.schedulesRepo.count({ where: { year, month } });
 
     const assignedCells = await this.assignmentsRepo
@@ -878,6 +886,7 @@ export class MonthlySchedulingService {
     return {
       year,
       month,
+      catalog,
       kpis: {
         postsInMonth,
         postsCovered,

@@ -724,14 +724,18 @@ export class ProgramacionPanel implements OnInit {
     const k = this.data()?.kpis;
     const totalGuardias = this.guardsList().length;
     const disponibles = this.availableCount();
-    const puestosTotal = this.todayData()?.summary.totalPosts ?? (k?.postsInMonth ?? 180);
+    const puestosTotal =
+      this.data()?.catalog?.total ??
+      this.todayData()?.summary.totalPosts ??
+      k?.postsInMonth ??
+      0;
 
     return [
       {
-        label: 'Puestos Operativos',
+        label: 'Total puestos',
         value: puestosTotal,
-        hint: `${this.todayData()?.summary.coveredPosts ?? 0} cubiertos hoy`,
-        link: '/programacion/cuadro',
+        hint: `${this.data()?.catalog?.active ?? '—'} activos · ${k?.postsInMonth ?? 0} con cuadro del mes`,
+        link: '/operaciones/puestos',
       },
       {
         label: 'Vigilantes Activos',

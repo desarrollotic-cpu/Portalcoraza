@@ -46,9 +46,19 @@ describe('MonthlySchedulingService.overview', () => {
     ]);
     jest.spyOn(service, 'listTemplates').mockResolvedValue([{}, {}] as never);
 
+    (service as unknown as { dataSource: { getRepository: jest.Mock } }).dataSource = {
+      getRepository: jest.fn().mockReturnValue({
+        count: jest
+          .fn()
+          .mockResolvedValueOnce(299)
+          .mockResolvedValueOnce(250),
+      }),
+    };
+
     const result = await service.overview(2026, 8);
 
     expect(listSpy).not.toHaveBeenCalled();
+    expect(result.catalog).toEqual({ total: 299, active: 250, inactive: 49 });
     expect(result.kpis.postsInMonth).toBe(2);
     expect(result.kpis.assignedCells).toBe(3);
     expect(result.kpis.conflicts).toBe(1);

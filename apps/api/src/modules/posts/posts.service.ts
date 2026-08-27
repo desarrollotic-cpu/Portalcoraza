@@ -23,6 +23,15 @@ export class PostsService {
     return this.postsRepo.find({ order: { name: 'ASC' } });
   }
 
+  /** Conteo canónico del catálogo operativo (misma base que Operaciones → Puestos). */
+  async countSummary() {
+    const total = await this.postsRepo.count();
+    const active = await this.postsRepo.count({
+      where: { status: PostStatus.ACTIVO },
+    });
+    return { total, active, inactive: total - active };
+  }
+
   /**
    * Mantiene el puesto de Programación alineado con un centro de trabajo RRHH.
    * Si no existe, lo crea; si existe (por work_center_id o código), lo actualiza.

@@ -6,6 +6,7 @@ import { HrDashboardService } from '../hr-dashboard/hr-dashboard.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { ReceptionService } from '../reception/reception.service';
 import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
+import { PostsService } from '../posts/posts.service';
 import { UsersService } from '../users/users.service';
 
 export type AlertTone = 'critical' | 'warning' | 'info';
@@ -73,6 +74,7 @@ export class DashboardCommandCenterService {
     private readonly documental: OverviewService,
     private readonly users: UsersService,
     private readonly audit: AuditService,
+    private readonly posts: PostsService,
   ) {}
 
   async build(permissions: string[], period: CommandPeriod = '7d') {
@@ -328,15 +330,28 @@ export class DashboardCommandCenterService {
       }
     }
 
+    if (has('posts.view')) {
+      const catalog = await this.posts.countSummary();
+      modules['operaciones'] = { kpis: catalog };
+    }
+
     if (has('scheduling.view')) {
       const prog = await this.scheduling.overview(year, month);
       const todaySnap = await this.scheduling.getTodaySnapshot();
       modules['programacion'] = { ...prog, today: todaySnap };
       const { postsInMonth, postsCovered, postsUncovered, conflicts } = prog.kpis;
+      const catalog = modules['operaciones'] as { kpis: { total: number; active: number } } | undefined;
+      const catalogTotal = catalog?.kpis?.total ?? prog.catalog?.total ?? postsInMonth;
 
       kpis.push({
+        id: 'ops-posts-total',
+        label: 'Total puestos (catálogo)',
+        value: catalogTotal,
+        route: '/operaciones/puestos',
+      });
+      kpis.push({
         id: 'prog-posts',
-        label: 'Puestos programados',
+        label: 'Puestos con cuadro del mes',
         value: postsInMonth,
         route: '/programacion',
       });

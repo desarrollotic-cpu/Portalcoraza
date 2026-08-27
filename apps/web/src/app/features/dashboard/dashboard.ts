@@ -75,9 +75,9 @@ type PeriodKey = CommandPeriod;
               <small class="bubble-sub">100% al día</small>
             </div>
             <div class="stat-bubble">
-              <span class="bubble-lbl">Puestos Activos</span>
-              <b class="bubble-val">{{ programacion()?.kpis?.postsInMonth || 2 }}</b>
-              <small class="bubble-sub">Operación 24/7</small>
+              <span class="bubble-lbl">Total puestos</span>
+              <b class="bubble-val">{{ postsTotal() }}</b>
+              <small class="bubble-sub">{{ postsActive() }} activos</small>
             </div>
           </div>
         </div>
@@ -123,8 +123,8 @@ type PeriodKey = CommandPeriod;
             </div>
             <div class="core-card-body">
               <span class="core-title">Puestos de Vigilancia</span>
-              <b class="core-number">{{ programacion()?.kpis?.postsInMonth || 2 }}</b>
-              <small class="core-subtext">Puestos bajo cobertura operativa mensual</small>
+              <b class="core-number">{{ postsTotal() }}</b>
+              <small class="core-subtext">Catálogo operativo · {{ postsActive() }} activos · {{ programacion()?.kpis?.postsInMonth ?? 0 }} con cuadro del mes</small>
             </div>
             <a routerLink="/programacion" class="core-link">Ver Cuadro de Turnos →</a>
           </article>
@@ -337,8 +337,12 @@ type PeriodKey = CommandPeriod;
                 </div>
               </div>
               <div class="mini-stats">
+                <div class="stat-pill highlight-stat">
+                  <span>Total catálogo</span>
+                  <strong>{{ postsTotal() }}</strong>
+                </div>
                 <div class="stat-pill">
-                  <span>Programados</span>
+                  <span>Con cuadro del mes</span>
                   <strong>{{ prog.kpis.postsInMonth }}</strong>
                 </div>
                 <div class="stat-pill">
@@ -709,7 +713,20 @@ export class Dashboard implements OnInit {
   readonly recepcion = computed(() => this.data()?.modules?.['recepcion'] as any);
   readonly dotacion = computed(() => this.data()?.modules?.['dotacion'] as any);
   readonly programacion = computed(() => this.data()?.modules?.['programacion'] as any);
+  readonly operaciones = computed(() => this.data()?.modules?.['operaciones'] as any);
   readonly documental = computed(() => this.data()?.modules?.['documental'] as any);
+
+  readonly postsTotal = computed(() => {
+    const ops = this.operaciones()?.kpis?.total;
+    const cat = this.programacion()?.catalog?.total;
+    return ops ?? cat ?? 0;
+  });
+
+  readonly postsActive = computed(() => {
+    const ops = this.operaciones()?.kpis?.active;
+    const cat = this.programacion()?.catalog?.active;
+    return ops ?? cat ?? 0;
+  });
 
   ngOnInit(): void {
     this.reload();

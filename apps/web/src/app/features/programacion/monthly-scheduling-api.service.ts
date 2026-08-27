@@ -73,6 +73,11 @@ export interface ScheduleConflict {
 export interface ProgramacionOverview {
   year: number;
   month: number;
+  catalog: {
+    total: number;
+    active: number;
+    inactive: number;
+  };
   kpis: {
     postsInMonth: number;
     postsCovered: number;

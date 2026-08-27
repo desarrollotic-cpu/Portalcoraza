@@ -27,6 +27,12 @@ export class PostsController {
     return this.postsService.findAll();
   }
 
+  @Get('stats/summary')
+  @RequirePermissions('posts.view')
+  statsSummary() {
+    return this.postsService.countSummary();
+  }
+
   @Get(':id')
   @RequirePermissions('posts.view')
   findOne(@Param('id') id: string) {
