@@ -74,6 +74,11 @@ export class SigController {
     return this.sig.capturar(user, dto);
   }
 
+  @Post('auto-calcular')
+  autoCalcular(@CurrentUser() user: JwtPayload, @Body('anio') anio?: number) {
+    return this.sig.autoCalcular(anio ? Number(anio) : undefined, user);
+  }
+
   @Get('dashboard')
   dashboard(@Query('area') area?: string, @Query('anio') anio?: string) {
     return this.sig.dashboard(area, anio ? Number(anio) : undefined);

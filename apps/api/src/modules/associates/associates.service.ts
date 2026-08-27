@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import PDFDocument = require('pdfkit');
 import { Brackets, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -455,6 +456,88 @@ export class AssociatesService {
       order: { retirementDate: 'DESC' },
     });
     return row?.retirementDate ?? null;
+  }
+
+  async generateCertificatePdf(id: string, user: JwtPayload): Promise<Buffer> {
+    const assoc = await this.findOne(id, user);
+    if (!assoc) throw new NotFoundException('Asociado no encontrado');
+
+    const fullName = (assoc as any).fullName || `${assoc.firstName || ''} ${assoc.firstLastName || ''}`.trim();
+    const docNum = assoc.documentNumber || '—';
+    const cargo = (assoc as any).jobPosition?.name || 'Vigilante / Operativo';
+    const centro = (assoc as any).workCenter?.name || 'Sede Principal';
+    const fechaIngreso = assoc.hireDate ? new Date(assoc.hireDate).toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const estado = assoc.status === AssociateStatus.ACTIVO ? 'ACTIVO(A)' : 'RETIRADO(A)';
+    const fechaExpedicion = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    return new Promise<Buffer>((resolve, reject) => {
+      const doc = new PDFDocument({ size: 'LETTER', margins: { top: 50, bottom: 50, left: 60, right: 60 } });
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', (err: Error) => reject(err));
+
+      // Encabezado Corporativo
+      doc.rect(0, 0, 612, 12).fill('#1d4ed8');
+      doc.moveDown(1.5);
+      
+      doc.fillColor('#0f172a').fontSize(16).font('Helvetica-Bold').text('CORAZA SEGURIDAD C.T.A.', { align: 'center' });
+      doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('COOPERATIVA DE TRABAJO ASOCIADO DE SEGURIDAD PRIVADA', { align: 'center' });
+      doc.text('NIT: 811.026.837-1 · Personería Jurídica y Licencia SuperVigilancia Res. No. 202112000', { align: 'center' });
+      doc.moveDown(2);
+
+      // Título
+      doc.rect(60, doc.y, 492, 28).fill('#f1f5f9');
+      doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('EL DEPARTAMENTO DE GESTIÓN HUMANA Y TALENTO', 60, doc.y - 20, { align: 'center' });
+      doc.moveDown(1.5);
+      
+      doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CERTIFICA:', { align: 'center' });
+      doc.moveDown(1.5);
+
+      // Cuerpo del Certificado
+      doc.fontSize(11).font('Helvetica').fillColor('#334155').lineGap(6);
+      doc.text(
+        `Que el(la) señor(a) ${fullName.toUpperCase()}, identificado(a) con Cédula de Ciudadanía No. ${docNum}, se encuentra vinculado(a) a nuestra cooperativa en calidad de ASOCIADO(A) TRABAJADOR(A) desde el ${fechaIngreso}, desempeñando actualmente las funciones correspondientes al cargo de:`
+      );
+      doc.moveDown(0.5);
+
+      // Cuadro de Detalles
+      const boxY = doc.y;
+      doc.rect(60, boxY, 492, 70).fillAndStroke('#f8fafc', '#cbd5e1');
+      doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold');
+      doc.text(`• CARGO / ESPECIALIDAD:`, 80, boxY + 12);
+      doc.font('Helvetica').fillColor('#1e293b').text(`${cargo.toUpperCase()}`, 240, boxY + 12);
+
+      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• CENTRO DE ASIGNACIÓN:`, 80, boxY + 30);
+      doc.font('Helvetica').fillColor('#1e293b').text(`${centro.toUpperCase()}`, 240, boxY + 30);
+
+      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• ESTADO OPERATIVO:`, 80, boxY + 48);
+      doc.font('Helvetica').fillColor(estado.includes('ACTIVO') ? '#047857' : '#b91c1c').text(`${estado}`, 240, boxY + 48);
+
+      doc.y = boxY + 85;
+      doc.moveDown(1);
+      doc.fillColor('#334155').fontSize(11).font('Helvetica').text(
+        `Durante el tiempo de su vinculación, ha demostrado un estricto cumplimiento de los deberes cooperativos, principios de lealtad, disciplina y estándares de seguridad privada exigidos por la legislación colombiana y la Superintendencia de Vigilancia y Seguridad Privada.`
+      );
+      doc.moveDown(1);
+      doc.text(
+        `El presente certificado se expide a solicitud de la parte interesada en la ciudad de Medellín, a los ${fechaExpedicion}.`
+      );
+      doc.moveDown(3);
+
+      // Firma Autorizada
+      const sigY = doc.y;
+      doc.strokeColor('#94a3b8').lineWidth(1).moveTo(60, sigY).lineTo(260, sigY).stroke();
+      doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('GESTIÓN HUMANA Y BIENESTAR', 60, sigY + 6);
+      doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 60, sigY + 18);
+      doc.text('PBX: (604) 444-0000 · Medellín, Colombia', 60, sigY + 30);
+
+      // Pie de Página
+      doc.rect(0, 780, 612, 12).fill('#1d4ed8');
+      doc.fontSize(7.5).font('Helvetica').fillColor('#94a3b8').text('Documento oficial generado automáticamente por Portal Coraza · Validez con firma institucional', 60, 765, { align: 'center' });
+
+      doc.end();
+    });
   }
 
   private async latestRetirementDates(

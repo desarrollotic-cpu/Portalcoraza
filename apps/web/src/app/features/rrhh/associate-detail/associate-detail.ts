@@ -76,6 +76,15 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
             </div>
           </div>
           <div class="hr-profile-hero__actions">
+            <button
+              type="button"
+              class="hr-hero-btn hr-hero-btn--light"
+              (click)="downloadCertificate(a)"
+              [disabled]="downloadingCert()"
+              title="Descargar Certificado Laboral Oficial en PDF"
+            >
+              📄 {{ downloadingCert() ? 'Generando...' : 'Certificado Laboral PDF' }}
+            </button>
             @if (auth.hasPermission('associates.edit') && a.status !== 'RETIRADO') {
               <a [routerLink]="['/rrhh/asociados', a.id, 'editar']" class="hr-hero-btn hr-hero-btn--light">Editar</a>
             }
@@ -496,11 +505,34 @@ export class AssociateDetail implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly uploading = signal(false);
+  readonly downloadingCert = signal(false);
   readonly tab = signal<TabId>('personal');
 
   selectedFile: File | null = null;
   uploadKind: AssociateDocumentKind = 'CERTIFICADO_CURSO';
   uploadExpiration: string = '';
+
+  downloadCertificate(a: Associate): void {
+    if (!a?.id || this.downloadingCert()) return;
+    this.downloadingCert.set(true);
+    this.api.downloadCertificatePdf(a.id).subscribe({
+      next: (blob) => {
+        this.downloadingCert.set(false);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const name = (a.fullName || `${a.firstName}_${a.firstLastName}`).replace(/\s+/g, '_');
+        link.download = `Certificado_Laboral_${name}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.toast.success('Certificado generado exitosamente');
+      },
+      error: () => {
+        this.downloadingCert.set(false);
+        this.toast.error('No se pudo generar el certificado laboral en PDF');
+      },
+    });
+  }
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');

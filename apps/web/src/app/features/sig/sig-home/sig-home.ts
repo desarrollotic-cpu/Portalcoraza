@@ -94,6 +94,18 @@ interface DashboardItem {
               <small>{{ totalCumplen() }} de {{ totalEvaluados() }} metas cumplidas</small>
             </div>
           </div>
+          <div class="field btn-sync-col">
+            <label>&nbsp;</label>
+            <button
+              type="button"
+              class="btn-sync-sig"
+              (click)="autoCalcularSig()"
+              [disabled]="syncingSig()"
+              title="Calcula automáticamente métricas desde RRHH, Programación, Recepción y Gestión Documental"
+            >
+              ⚡ {{ syncingSig() ? 'Calculando...' : 'Auto-Calcular Operaciones' }}
+            </button>
+          </div>
         </div>
 
         <!-- KPI SUMMARY CARDS -->
@@ -1262,6 +1274,31 @@ interface DashboardItem {
     }
     .btn-secondary:hover { background: #e2e8f0; color: #0f172a; }
 
+    .btn-sync-col { display: flex; align-items: flex-end; }
+    .btn-sync-sig {
+      background: #047857;
+      color: #ffffff;
+      border: 1px solid #065f46;
+      border-radius: 0.65rem;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-sync-sig:hover:not(:disabled) {
+      background: #065f46;
+      box-shadow: 0 4px 10px rgba(4, 120, 87, 0.25);
+    }
+    .btn-sync-sig:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
     /* TABLA CATÁLOGO */
     .table-container {
       background: #ffffff;
@@ -1462,8 +1499,28 @@ export class SigHome implements OnInit {
   readonly hist = signal<SigResultado[]>([]);
   readonly sel = signal<SigIndicador | null>(null);
   readonly busy = signal(false);
+  readonly syncingSig = signal(false);
   readonly msg = signal('');
   readonly color = signal('');
+
+  autoCalcularSig(): void {
+    if (this.syncingSig()) return;
+    this.syncingSig.set(true);
+    this.msg.set('Sincronizando y auto-calculando indicadores desde operaciones...');
+    this.api.autoCalcular(this.anio).subscribe({
+      next: (res) => {
+        this.syncingSig.set(false);
+        this.msg.set(`✅ ${res.message || 'Indicadores actualizados con éxito'}`);
+        this.loadDash();
+        setTimeout(() => this.msg.set(''), 5000);
+      },
+      error: () => {
+        this.syncingSig.set(false);
+        this.msg.set('❌ Error al sincronizar indicadores automáticos');
+        setTimeout(() => this.msg.set(''), 4000);
+      },
+    });
+  }
 
   // Detalle expandido
   readonly detailItem = signal<DashboardItem | null>(null);

@@ -115,4 +115,8 @@ export class SigApiService {
     if (anio) params = params.set('anio', String(anio));
     return this.http.get<SigDashboard>(`${this.base}/dashboard`, { params });
   }
+
+  autoCalcular(anio?: number): Observable<{ success: boolean; message: string; updatedCount: number }> {
+    return this.http.post<{ success: boolean; message: string; updatedCount: number }>(`${this.base}/auto-calcular`, { anio });
+  }
 }

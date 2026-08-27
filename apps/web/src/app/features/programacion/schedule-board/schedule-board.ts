@@ -211,6 +211,54 @@ const CODES: CodeConfig[] = [
           <button type="button" class="sm" (click)="addRole()">+ Agregar rol</button>
         </div>
 
+        <!-- BARRA DE AUTO-LLENADO INTELIGENTE DE TURNOS -->
+        <div class="quick-pattern-bar">
+          <div class="qpb-header">
+            <span class="qpb-title">⚡ Auto-Llenado Inteligente por Patrón (1 Clic):</span>
+            <span class="qpb-hint">Llena el mes completo automáticamente evitando digitación manual celda por celda</span>
+          </div>
+          <div class="qpb-controls">
+            <label class="qpb-field">
+              Rol a llenar:
+              <select #patternRoleSelect>
+                <option value="ALL">★ Todos los roles</option>
+                @for (r of personal(); track r.rol) {
+                  <option [value]="r.rol">{{ r.displayName || r.rol }}</option>
+                }
+              </select>
+            </label>
+            <label class="qpb-field">
+              Patrón de Rotación:
+              <select #patternCodeSelect>
+                <option value="2x2x2">Patrón 2x2x2 (2D, 2N, 2DR)</option>
+                <option value="2x2x2_N">Patrón 2x2x2 Invertido (2N, 2D, 2DR)</option>
+                <option value="6x1_D">Patrón 6x1 Diurno (6D, 1DR)</option>
+                <option value="6x1_N">Patrón 6x1 Nocturno (6N, 1DR)</option>
+                <option value="4x2">Patrón 4x2 (4D, 2DR)</option>
+                <option value="D_ALL">12h Diurno Continuo (D todos los días)</option>
+                <option value="N_ALL">12h Nocturno Continuo (N todos los días)</option>
+                <option value="D8_L_V">5x2 Oficina Lunes a Viernes 8h (D8)</option>
+              </select>
+            </label>
+            <label class="qpb-field">
+              Desde el día:
+              <select #patternStartDaySelect>
+                @for (day of days(); track day) {
+                  <option [value]="day">Día {{ day }}</option>
+                }
+              </select>
+            </label>
+            <button
+              type="button"
+              class="btn-apply-pattern"
+              (click)="applyCustomPattern(patternRoleSelect.value, patternCodeSelect.value, +patternStartDaySelect.value)"
+              [disabled]="saving() || !personal().length"
+            >
+              ⚡ Poblar Mes Automáticamente
+            </button>
+          </div>
+        </div>
+
         <div class="matrix-wrap">
           <table class="matrix">
             <thead>
@@ -858,6 +906,71 @@ const CODES: CodeConfig[] = [
       text-align: center;
     }
 
+    .quick-pattern-bar {
+      margin-bottom: 1rem;
+      padding: 0.85rem 1.15rem;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .qpb-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .qpb-title {
+      font-size: 0.9rem;
+      font-weight: 800;
+      color: #0f172a;
+    }
+    .qpb-hint {
+      font-size: 0.78rem;
+      color: #64748b;
+    }
+    .qpb-controls {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .qpb-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+    }
+    .qpb-field select {
+      padding: 0.4rem 0.6rem;
+      border: 1.5px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      background: #ffffff;
+    }
+    .btn-apply-pattern {
+      background: #2563eb;
+      color: #ffffff;
+      border: 1px solid #1d4ed8;
+      border-radius: 6px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: background 0.15s;
+    }
+    .btn-apply-pattern:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
   `,
 })
@@ -1189,6 +1302,57 @@ export class ScheduleBoard implements OnInit {
         this.error.set('No se pudo aplicar la plantilla');
       },
     });
+  }
+
+  applyCustomPattern(targetRole: string, patternKey: string, startDay: number = 1): void {
+    const rolesToFill = targetRole === 'ALL' 
+      ? this.personal() 
+      : this.personal().filter(r => r.rol === targetRole);
+    
+    if (rolesToFill.length === 0) return;
+
+    let sequence: string[] = ['D', 'D', 'N', 'N', 'DR', 'DR'];
+    if (patternKey === '2x2x2') sequence = ['D', 'D', 'N', 'N', 'DR', 'DR'];
+    else if (patternKey === '2x2x2_N') sequence = ['N', 'N', 'D', 'D', 'DR', 'DR'];
+    else if (patternKey === '6x1_D') sequence = ['D', 'D', 'D', 'D', 'D', 'D', 'DR'];
+    else if (patternKey === '6x1_N') sequence = ['N', 'N', 'N', 'N', 'N', 'N', 'DR'];
+    else if (patternKey === '4x2') sequence = ['D', 'D', 'D', 'D', 'DR', 'DR'];
+    else if (patternKey === 'D_ALL') sequence = ['D'];
+    else if (patternKey === 'N_ALL') sequence = ['N'];
+
+    const days = this.days();
+    const map = new Map(this.cells());
+
+    rolesToFill.forEach((role, rIdx) => {
+      const roleOffset = targetRole === 'ALL' ? (rIdx * 2) % sequence.length : 0;
+      
+      days.forEach((d) => {
+        if (d < startDay) return;
+        
+        let codeStr = 'D';
+        if (patternKey === 'D8_L_V') {
+          const isWknd = this.isSunday(d) || this.isSaturday(d);
+          codeStr = isWknd ? 'DR' : 'D8';
+        } else {
+          const seqIdx = (d - startDay + roleOffset) % sequence.length;
+          codeStr = sequence[seqIdx];
+        }
+
+        const cfg = CODES.find(c => c.codigo === codeStr) || CODES[0];
+        const key = `${role.rol}:${d}`;
+        map.set(key, {
+          associateId: role.associateId,
+          jornada: cfg.jornada,
+          codigo: cfg.codigo,
+          turno: cfg.turno,
+          inicio: cfg.inicio,
+          fin: cfg.fin,
+        });
+      });
+    });
+
+    this.cells.set(map);
+    this.dirty.set(true);
   }
 
   save(): void {

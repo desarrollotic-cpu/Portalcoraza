@@ -76,7 +76,12 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
                     <div class="meta">Autorizó: {{ v.authorizedBy }}</div>
                   }
                 </td>
-                <td>{{ v.entryAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <div>{{ v.entryAt | date: 'dd/MM/yyyy HH:mm' }}</div>
+                  <div class="stay-badge" [class.warn]="isLongStay(v.entryAt)">
+                    ⏱️ {{ permanenceTime(v.entryAt) }}
+                  </div>
+                </td>
                 <td>
                   {{ transportLabel(v.transportMeans) }}
                   @if (v.travelTimeMinutes !== null) {
@@ -205,16 +210,48 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       white-space: nowrap;
     }
     .btn-sm:disabled { opacity: 0.6; cursor: not-allowed; }
-    .empty { color: var(--text-secondary); }
+    .empty { text-align: center; color: var(--neutral-600); padding: 2rem; }
     .error { color: var(--coraza-error); }
     .updating {
       margin: 0;
       font-size: 0.85rem;
       color: var(--text-secondary);
     }
+    .stay-badge {
+      display: inline-block;
+      margin-top: 0.25rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    .stay-badge.warn {
+      background: #fffbeb;
+      color: #92400e;
+      border-color: #fde68a;
+    }
   `,
 })
 export class ReceptionInside implements OnInit {
+  permanenceTime(entryAt: string): string {
+    if (!entryAt) return '';
+    const diffMs = Date.now() - new Date(entryAt).getTime();
+    if (diffMs < 0) return '0 min';
+    const mins = Math.floor(diffMs / 60000);
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    if (hrs === 0) return `${mins} min`;
+    return `${hrs}h ${remMins}m`;
+  }
+
+  isLongStay(entryAt: string): boolean {
+    if (!entryAt) return false;
+    const diffMs = Date.now() - new Date(entryAt).getTime();
+    return diffMs > 3 * 3600 * 1000; // Más de 3 horas
+  }
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
   private readonly toast = inject(ToastService);
