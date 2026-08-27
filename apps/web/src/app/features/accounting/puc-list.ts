@@ -16,13 +16,13 @@ import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
         </div>
         <div class="tab-buttons">
           <button class="nav-pill" [class.active]="activeTab() === 'payroll'" (click)="activeTab.set('payroll')">
-            💼 Nómina & Colillas
+             Nómina & Colillas
           </button>
           <button class="nav-pill" [class.active]="activeTab() === 'entries'" (click)="activeTab.set('entries')">
-            📑 Comprobantes Contables
+             Comprobantes Contables
           </button>
           <button class="nav-pill" [class.active]="activeTab() === 'puc'" (click)="activeTab.set('puc')">
-            🌳 Catálogo PUC
+             Catálogo PUC
           </button>
         </div>
       </header>
@@ -105,7 +105,7 @@ import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
                     <td><strong>{{ acc.name }}</strong></td>
                     <td><span class="badge-type">{{ acc.type }}</span></td>
                     <td>Nivel {{ acc.level }}</td>
-                    <td><span [class.text-success]="acc.allowsMovement" [class.text-muted]="!acc.allowsMovement">{{ acc.allowsMovement ? '✓ SI (Auxiliar)' : '— NO (Mayor)' }}</span></td>
+                    <td><span [class.text-success]="acc.allowsMovement" [class.text-muted]="!acc.allowsMovement">{{ acc.allowsMovement ? ' SI (Auxiliar)' : '— NO (Mayor)' }}</span></td>
                   </tr>
                 }
               </tbody>

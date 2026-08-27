@@ -90,7 +90,7 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
       align-items: center;
       padding: 0.5rem 0.9rem;
       border-radius: 999px;
-      background: var(--primary, #2563eb);
+      background: var(--primary, #0369a1);
       color: #fff;
       text-decoration: none;
       font-size: 0.85rem;

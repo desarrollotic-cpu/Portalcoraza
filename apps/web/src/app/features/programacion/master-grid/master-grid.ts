@@ -104,7 +104,7 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
                     <div class="day-dow">{{ dayOfWeekLetter(d) }}</div>
                     <div class="day-num">{{ d }}</div>
                     @if (isHoliday(d)) {
-                      <span class="hol-star" [title]="holidayName(d)">★</span>
+                      <span class="hol-star" [title]="holidayName(d)"></span>
                     }
                   </th>
                 }
@@ -145,7 +145,7 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
 
         <div class="calendar-indicators">
           <span class="ind-pill ind-sun">
-            <span class="ind-box sun-bg">D / ★</span>
+            <span class="ind-box sun-bg">D / </span>
             <strong>Domingos y Festivos de Colombia</strong>
           </span>
           <span class="ind-pill ind-sat">
@@ -298,13 +298,13 @@ import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holida
     .st-publicado { background: #dcfce7; color: #166534; }
     .st-anulado { background: #fee2e2; color: #991b1b; }
     .cell { font-weight: 700; }
-    .c-d { background: #d1e7dd; color: #0f5132; }
-    .c-n { background: #cfe2ff; color: #084298; }
-    .c-d8 { background: #b7e4c7; color: #1b4332; }
-    .c-n8 { background: #9ec5fe; color: #052c65; }
-    .c-dr { background: #e9ecef; color: #495057; }
-    .c-nr { background: #ced4da; color: #212529; }
-    .c-mix { background: #f3e8ff; color: #6b21a8; }
+    .c-d { background: #eef2f6; color: #334155; }
+    .c-n { background: #e8eef5; color: #1e293b; }
+    .c-d8 { background: #e2e8f0; color: #334155; }
+    .c-n8 { background: #dbe4ef; color: #0f172a; }
+    .c-dr { background: #f1f5f9; color: #64748b; }
+    .c-nr { background: #e2e8f0; color: #475569; }
+    .c-mix { background: #f8fafc; color: #475569; border: 1px dashed #cbd5e1; }
     .c-empty { color: #94a3b8; }
     .legend { display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
     .badge { font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; }

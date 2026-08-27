@@ -43,7 +43,7 @@ interface DashboardItem {
       <!-- HEADER CON RESUMEN EJECUTIVO -->
       <header class="head">
         <div class="title-wrap">
-          <div class="logo-badge">📊</div>
+          <div class="logo-badge" aria-hidden="true">SIG</div>
           <div>
             <h2>SIG-Indicadores · Sistema Integrado de Gestión</h2>
             <p>Tablero de Control Gerencial & Cuadro de Mando · Coraza Seguridad C.T.A.</p>
@@ -52,7 +52,7 @@ interface DashboardItem {
         <nav class="tabs">
           @for (t of tabs; track t.id) {
             <button type="button" [class.on]="tab() === t.id" (click)="go(t.id)">
-              {{ t.icon }} {{ t.label }}
+              {{ t.label }}
             </button>
           }
         </nav>
@@ -69,16 +69,16 @@ interface DashboardItem {
             <label for="filter-area">Área Estratégica</label>
             <select id="filter-area" [(ngModel)]="area" name="area" (change)="loadDash()">
               <option value="">Todas las Áreas (44 Indicadores)</option>
-              <option value="GH">👥 Gestión Humana</option>
-              <option value="SISTEMAS">💻 Seguridad Electrónica & Sistemas</option>
-              <option value="SST">🦺 SST / Salud y Seguridad & PESV</option>
-              <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
-              <option value="COMERCIAL">🤝 Comercial / Clientes</option>
-              <option value="ADMIN">💼 Administrativo / Financiero</option>
-              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
-              <option value="DOTACION">📦 Dotación e Inventario</option>
-              <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
-              <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
+              <option value="GH"> Gestión Humana</option>
+              <option value="SISTEMAS"> Seguridad Electrónica & Sistemas</option>
+              <option value="SST"> SST / Salud y Seguridad & PESV</option>
+              <option value="OPERACIONES"> Operaciones y Puestos</option>
+              <option value="COMERCIAL"> Comercial / Clientes</option>
+              <option value="ADMIN"> Administrativo / Financiero</option>
+              <option value="CALIDAD"> Calidad, BASC & Auditoría</option>
+              <option value="DOTACION"> Dotación e Inventario</option>
+              <option value="DOCUMENTAL"> Gestión Documental & Archivo</option>
+              <option value="RECEPCION"> Recepción & Control de Acceso</option>
             </select>
           </div>
           <div class="field">
@@ -103,7 +103,7 @@ interface DashboardItem {
               [disabled]="syncingSig()"
               title="Calcula automáticamente métricas desde RRHH, Programación, Recepción y Gestión Documental"
             >
-              ⚡ {{ syncingSig() ? 'Calculando...' : 'Auto-Calcular Operaciones' }}
+               {{ syncingSig() ? 'Calculando...' : 'Auto-Calcular Operaciones' }}
             </button>
           </div>
         </div>
@@ -111,7 +111,7 @@ interface DashboardItem {
         <!-- KPI SUMMARY CARDS -->
         <div class="kpis">
           <article class="kpi-card azul">
-            <div class="kpi-icon">💎</div>
+            <div class="kpi-icon" aria-hidden="true"></div>
             <div class="kpi-data">
               <small>Sobresaliente (Azul)</small>
               <b>{{ dash()?.counts?.AZUL || 0 }}</b>
@@ -119,7 +119,7 @@ interface DashboardItem {
             </div>
           </article>
           <article class="kpi-card verde">
-            <div class="kpi-icon">🟢</div>
+            <div class="kpi-icon" aria-hidden="true"></div>
             <div class="kpi-data">
               <small>Cumple Meta (Verde)</small>
               <b>{{ dash()?.counts?.VERDE || 0 }}</b>
@@ -127,7 +127,7 @@ interface DashboardItem {
             </div>
           </article>
           <article class="kpi-card amarillo">
-            <div class="kpi-icon">🟡</div>
+            <div class="kpi-icon" aria-hidden="true"></div>
             <div class="kpi-data">
               <small>En Riesgo (Amarillo)</small>
               <b>{{ dash()?.counts?.AMARILLO || 0 }}</b>
@@ -135,7 +135,7 @@ interface DashboardItem {
             </div>
           </article>
           <article class="kpi-card rojo">
-            <div class="kpi-icon">🔴</div>
+            <div class="kpi-icon" aria-hidden="true"></div>
             <div class="kpi-data">
               <small>Crítico (Rojo)</small>
               <b>{{ dash()?.counts?.ROJO || 0 }}</b>
@@ -143,7 +143,7 @@ interface DashboardItem {
             </div>
           </article>
           <article class="kpi-card sin-dato">
-            <div class="kpi-icon">⚪</div>
+            <div class="kpi-icon" aria-hidden="true"></div>
             <div class="kpi-data">
               <small>Sin Dato</small>
               <b>{{ dash()?.counts?.SIN_DATO || 0 }}</b>
@@ -169,9 +169,9 @@ interface DashboardItem {
               
               <!-- METADATOS -->
               <div class="card-meta">
-                <span class="meta-tag">🏢 {{ formatAreaLabel(it.area) }}</span>
-                <span class="meta-tag">📅 {{ it.periodo || '—' }} ({{ it.frecuencia }})</span>
-                <span class="meta-tag font-mono">{{ it.sentido === 'ASCENDENTE' ? '📈 Creciente' : '📉 Decreciente' }}</span>
+                <span class="meta-tag"> {{ formatAreaLabel(it.area) }}</span>
+                <span class="meta-tag"> {{ it.periodo || '—' }} ({{ it.frecuencia }})</span>
+                <span class="meta-tag font-mono">{{ it.sentido === 'ASCENDENTE' ? ' Creciente' : ' Decreciente' }}</span>
               </div>
 
               <!-- CAJA DE VALORES -->
@@ -221,7 +221,7 @@ interface DashboardItem {
               <!-- ANÁLISIS DEL RESULTADO PREVIEW -->
               @if (it.observaciones) {
                 <div class="analysis-box">
-                  <span class="analysis-lbl">📝 Análisis del Resultado:</span>
+                  <span class="analysis-lbl"> Análisis del Resultado:</span>
                   <p class="analysis-txt">{{ it.observaciones }}</p>
                 </div>
               }
@@ -229,10 +229,10 @@ interface DashboardItem {
               <!-- BOTONES DE ACCIÓN: VER MÁS Y CAPTURAR -->
               <div class="card-footer-btns">
                 <button type="button" class="btn-detail" (click)="openDetail(it)">
-                  📊 Ver más / Gráfica
+                   Ver más / Gráfica
                 </button>
                 <button type="button" class="btn-capturar" (click)="openCaptura(it.id)">
-                  ✎ Capturar
+                   Capturar
                 </button>
               </div>
             </article>
@@ -250,13 +250,13 @@ interface DashboardItem {
                 <div>
                   <h3>{{ d.nombre }}</h3>
                   <div class="detail-tags">
-                    <span class="meta-tag">🏢 Área: {{ formatAreaLabel(d.area) }}</span>
-                    <span class="meta-tag">📅 Frecuencia: {{ d.frecuencia }}</span>
-                    <span class="meta-tag">{{ d.sentido === 'ASCENDENTE' ? '📈 Creciente' : '📉 Decreciente' }}</span>
+                    <span class="meta-tag"> Área: {{ formatAreaLabel(d.area) }}</span>
+                    <span class="meta-tag"> Frecuencia: {{ d.frecuencia }}</span>
+                    <span class="meta-tag">{{ d.sentido === 'ASCENDENTE' ? ' Creciente' : ' Decreciente' }}</span>
                   </div>
                 </div>
               </div>
-              <button type="button" class="btn-close" (click)="closeDetail()">✕</button>
+              <button type="button" class="btn-close" (click)="closeDetail()"></button>
             </header>
 
             <div class="detail-body">
@@ -283,7 +283,7 @@ interface DashboardItem {
               <!-- GRAN GRÁFICA HISTÓRICA MES A MES -->
               <div class="detail-chart-card">
                 <div class="chart-header">
-                  <h4>📊 Gráfica Detallada de Comportamiento & Tendencia (Año {{ anio }})</h4>
+                  <h4> Gráfica Detallada de Comportamiento & Tendencia (Año {{ anio }})</h4>
                   <small>Comparación de Barras: Meta Planificada vs. Resultado Real Obtenido</small>
                 </div>
 
@@ -336,7 +336,7 @@ interface DashboardItem {
               <!-- SECCIÓN INTERACTIVA DE ANÁLISIS DE RESULTADOS POR PERÍODO -->
               <div class="analysis-section-card">
                 <div class="section-title-wrap">
-                  <h4>📝 Análisis Causa-Efecto y Observaciones por Período</h4>
+                  <h4> Análisis Causa-Efecto y Observaciones por Período</h4>
                   <small>Haz clic en cualquier período para ver el análisis detallado y acciones tomadas</small>
                 </div>
 
@@ -366,7 +366,7 @@ interface DashboardItem {
                       </div>
                       
                       <div class="obs-content">
-                        <strong>📌 Análisis de Causas y Observaciones Registradas:</strong>
+                        <strong> Análisis de Causas y Observaciones Registradas:</strong>
                         <p class="obs-text">{{ cur.observaciones || 'No se registraron observaciones específicas para este período.' }}</p>
                       </div>
                     </div>
@@ -377,7 +377,7 @@ interface DashboardItem {
               <!-- TABLA COMPLETA HISTÓRICA CON OBSERVACIONES -->
               @if (d.serie && d.serie.length > 0) {
                 <div class="hist-table-card">
-                  <h4>📜 Historial Completo y Trazabilidad del Indicador</h4>
+                  <h4> Historial Completo y Trazabilidad del Indicador</h4>
                   <div class="table-scroll">
                     <table class="detail-hist-table">
                       <thead>
@@ -410,22 +410,22 @@ interface DashboardItem {
               <!-- FICHA TÉCNICA DEL INDICADOR -->
               @if (detailFicha(); as f) {
                 <div class="ficha-card">
-                  <h4>📋 Ficha Técnica Oficial (Estándar ISO 9001 / BASC / SST)</h4>
+                  <h4> Ficha Técnica Oficial (Estándar ISO 9001 / BASC / SST)</h4>
                   <div class="ficha-grid">
                     <div class="ficha-field">
-                      <strong>🎯 Propósito / Definición:</strong>
+                      <strong> Propósito / Definición:</strong>
                       <p>{{ f.proposito || 'Medición del desempeño del proceso según estándares del Sistema Integrado de Gestión.' }}</p>
                     </div>
                     <div class="ficha-field">
-                      <strong>📐 Fórmula de Cálculo:</strong>
+                      <strong> Fórmula de Cálculo:</strong>
                       <code>{{ f.formula || 'Fórmula estándar de gestión de calidad' }}</code>
                     </div>
                     <div class="ficha-field">
-                      <strong>👤 Responsable del Proceso:</strong>
+                      <strong> Responsable del Proceso:</strong>
                       <p>{{ f.responsable || 'Líder del Proceso / Sistema Integrado de Gestión' }}</p>
                     </div>
                     <div class="ficha-field">
-                      <strong>🏷️ Subsistema Normativo:</strong>
+                      <strong> Subsistema Normativo:</strong>
                       <p><span class="sys-badge">{{ f.subsistema }}</span> (ISO 9001, ISO 45001, BASC, RSE, PESV)</p>
                     </div>
                   </div>
@@ -435,7 +435,7 @@ interface DashboardItem {
               <!-- ACCIONES DEL MODAL -->
               <div class="detail-actions">
                 <button type="button" class="btn-primary" (click)="capturarFromDetail(d.id)">
-                  ✏️ Capturar / Actualizar Valor
+                   Capturar / Actualizar Valor
                 </button>
                 <button type="button" class="btn-secondary" (click)="closeDetail()">
                   Cerrar
@@ -475,16 +475,16 @@ interface DashboardItem {
             <label for="cat-area">Filtrar por Área</label>
             <select id="cat-area" [(ngModel)]="filtroArea" name="fa" (change)="loadCatalogo()">
               <option value="">Todas las Áreas</option>
-              <option value="GH">👥 Gestión Humana</option>
-              <option value="SISTEMAS">💻 Seguridad Electrónica & Sistemas</option>
-              <option value="SST">🦺 SST / Salud y Seguridad & PESV</option>
-              <option value="OPERACIONES">🛡️ Operaciones y Puestos</option>
-              <option value="COMERCIAL">🤝 Comercial / Clientes</option>
-              <option value="ADMIN">💼 Administrativo / Financiero</option>
-              <option value="CALIDAD">🔍 Calidad, BASC & Auditoría</option>
-              <option value="DOTACION">📦 Dotación e Inventario</option>
-              <option value="DOCUMENTAL">📁 Gestión Documental & Archivo</option>
-              <option value="RECEPCION">🏢 Recepción & Control de Acceso</option>
+              <option value="GH"> Gestión Humana</option>
+              <option value="SISTEMAS"> Seguridad Electrónica & Sistemas</option>
+              <option value="SST"> SST / Salud y Seguridad & PESV</option>
+              <option value="OPERACIONES"> Operaciones y Puestos</option>
+              <option value="COMERCIAL"> Comercial / Clientes</option>
+              <option value="ADMIN"> Administrativo / Financiero</option>
+              <option value="CALIDAD"> Calidad, BASC & Auditoría</option>
+              <option value="DOTACION"> Dotación e Inventario</option>
+              <option value="DOCUMENTAL"> Gestión Documental & Archivo</option>
+              <option value="RECEPCION"> Recepción & Control de Acceso</option>
             </select>
           </div>
           <div class="field search-field">
@@ -552,9 +552,9 @@ interface DashboardItem {
 
             @if (sel(); as s) {
               <div class="info-banner">
-                <div><strong>📌 Ficha Técnica:</strong> {{ s.proposito || 'Sin propósito registrado' }}</div>
-                <div><strong>📐 Fórmula:</strong> <code>{{ s.formula || 'Sin fórmula' }}</code></div>
-                <div><strong>🏢 Área:</strong> {{ formatAreaLabel(s.area) }} | <strong>Frecuencia:</strong> {{ s.frecuencia }} | <strong>Sentido:</strong> {{ s.sentido }}</div>
+                <div><strong> Ficha Técnica:</strong> {{ s.proposito || 'Sin propósito registrado' }}</div>
+                <div><strong> Fórmula:</strong> <code>{{ s.formula || 'Sin fórmula' }}</code></div>
+                <div><strong> Área:</strong> {{ formatAreaLabel(s.area) }} | <strong>Frecuencia:</strong> {{ s.frecuencia }} | <strong>Sentido:</strong> {{ s.sentido }}</div>
               </div>
 
               <div class="grid-2col">
@@ -600,7 +600,7 @@ interface DashboardItem {
               }
 
               <button type="button" class="btn-save" [disabled]="busy()" (click)="guardar()">
-                💾 Guardar Resultado y Análisis
+                 Guardar Resultado y Análisis
               </button>
 
               <div class="hist-section">
@@ -608,7 +608,7 @@ interface DashboardItem {
                 @for (r of hist(); track r.id) {
                   <div class="hist-row">
                     <div class="hist-main">
-                      <span class="hist-period">📅 {{ r.anio }}-{{ r.periodo }}</span>
+                      <span class="hist-period"> {{ r.anio }}-{{ r.periodo }}</span>
                       <span class="hist-vals">Meta: <b>{{ formatNum(r.metaSnapshot) }}</b> / Res: <b>{{ formatNum(r.valorResultado) }}</b></span>
                       <span class="dot mini" [attr.data-c]="r.colorSemaforo">{{ r.colorSemaforo }}</span>
                     </div>
@@ -649,7 +649,7 @@ interface DashboardItem {
     .title-wrap { display: flex; align-items: center; gap: 0.85rem; }
     .logo-badge {
       font-size: 1.8rem;
-      background: #eff6ff;
+      background: #f0f9ff;
       border: 1px solid #bfdbfe;
       width: 52px;
       height: 52px;
@@ -658,7 +658,7 @@ interface DashboardItem {
       align-items: center;
       justify-content: center;
     }
-    .head h2 { margin: 0; font-size: 1.4rem; color: #1e3a8a; font-weight: 800; }
+    .head h2 { margin: 0; font-size: 1.4rem; color: #0c4a6e; font-weight: 800; }
     .head p { margin: 0.2rem 0 0; font-size: 0.85rem; color: #64748b; }
     
     .tabs { display: flex; gap: 0.4rem; }
@@ -674,9 +674,9 @@ interface DashboardItem {
       transition: all 0.2s;
     }
     .tabs button.on {
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
-      border-color: #1e3a8a;
+      border-color: #0c4a6e;
       box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
     }
 
@@ -714,7 +714,7 @@ interface DashboardItem {
       font-size: 0.9rem;
       outline: none;
     }
-    .field select:focus, .field input:focus { border-color: #2563eb; background: #ffffff; }
+    .field select:focus, .field input:focus { border-color: #0369a1; background: #ffffff; }
     .search-field { flex: 1; min-width: 250px; }
 
     .global-kpi-pill {
@@ -815,7 +815,7 @@ interface DashboardItem {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    .dot[data-c='AZUL'] { background: #dbeafe; color: #1e40af; }
+    .dot[data-c='AZUL'] { background: #e0f2fe; color: #0369a1; }
     .dot[data-c='VERDE'] { background: #dcfce7; color: #166534; }
     .dot[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
     .dot[data-c='ROJO'] { background: #fee2e2; color: #991b1b; }
@@ -853,7 +853,7 @@ interface DashboardItem {
     .val-col { display: flex; flex-direction: column; align-items: center; text-align: center; }
     .val-col .lbl { font-size: 0.68rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
     .val-col .val { font-size: 1rem; font-weight: 900; color: #0f172a; }
-    .val-col .pct-val[data-c='AZUL'] { color: #2563eb; }
+    .val-col .pct-val[data-c='AZUL'] { color: #0369a1; }
     .val-col .pct-val[data-c='VERDE'] { color: #16a34a; }
     .val-col .pct-val[data-c='AMARILLO'] { color: #ca8a04; }
     .val-col .pct-val[data-c='ROJO'] { color: #dc2626; }
@@ -911,7 +911,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 0.2rem;
     }
-    .analysis-lbl { font-size: 0.68rem; font-weight: 800; color: #1e40af; }
+    .analysis-lbl { font-size: 0.68rem; font-weight: 800; color: #0369a1; }
     .analysis-txt {
       margin: 0;
       font-size: 0.76rem;
@@ -932,7 +932,7 @@ interface DashboardItem {
     .btn-detail {
       border: 1px solid #cbd5e1;
       background: #ffffff;
-      color: #1e3a8a;
+      color: #0c4a6e;
       border-radius: 0.55rem;
       padding: 0.55rem;
       font-weight: 700;
@@ -941,12 +941,12 @@ interface DashboardItem {
       transition: all 0.2s;
       text-align: center;
     }
-    .btn-detail:hover { background: #eff6ff; border-color: #93c5fd; }
+    .btn-detail:hover { background: #f0f9ff; border-color: #93c5fd; }
     
     .btn-capturar {
       border: 1px solid #bfdbfe;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: #f0f9ff;
+      color: #0369a1;
       border-radius: 0.55rem;
       padding: 0.55rem;
       font-weight: 700;
@@ -955,7 +955,7 @@ interface DashboardItem {
       transition: all 0.2s;
       text-align: center;
     }
-    .btn-capturar:hover { background: #dbeafe; border-color: #93c5fd; }
+    .btn-capturar:hover { background: #e0f2fe; border-color: #93c5fd; }
 
     /* MODAL DE DETALLE */
     .modal-backdrop {
@@ -1024,7 +1024,7 @@ interface DashboardItem {
     }
     .kpi-box .kpi-lbl { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
     .kpi-box .kpi-val { font-size: 1.35rem; font-weight: 900; color: #0f172a; }
-    .kpi-box .kpi-val.highlight { color: #1e3a8a; }
+    .kpi-box .kpi-val.highlight { color: #0c4a6e; }
 
     .detail-chart-card {
       background: #ffffff;
@@ -1035,7 +1035,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 1rem;
     }
-    .chart-header h4 { margin: 0; font-size: 1.05rem; color: #1e3a8a; font-weight: 800; }
+    .chart-header h4 { margin: 0; font-size: 1.05rem; color: #0c4a6e; font-weight: 800; }
     .chart-header small { color: #64748b; font-size: 0.8rem; }
 
     .big-chart-container { display: flex; flex-direction: column; gap: 1rem; }
@@ -1064,7 +1064,7 @@ interface DashboardItem {
       transition: background 0.2s;
     }
     .big-bar-group:hover, .big-bar-group.active-bar {
-      background: #eff6ff;
+      background: #f0f9ff;
     }
     .bars-pair {
       display: flex;
@@ -1128,7 +1128,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 1rem;
     }
-    .section-title-wrap h4 { margin: 0; font-size: 1.05rem; color: #1e3a8a; font-weight: 800; }
+    .section-title-wrap h4 { margin: 0; font-size: 1.05rem; color: #0c4a6e; font-weight: 800; }
     .section-title-wrap small { color: #64748b; font-size: 0.8rem; }
     
     .period-pills-row {
@@ -1152,11 +1152,11 @@ interface DashboardItem {
       color: #334155;
       transition: all 0.2s;
     }
-    .period-pill-btn:hover { background: #eff6ff; border-color: #93c5fd; }
+    .period-pill-btn:hover { background: #f0f9ff; border-color: #93c5fd; }
     .period-pill-btn.selected {
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
-      border-color: #1e3a8a;
+      border-color: #0c4a6e;
       box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);
     }
     .period-pill-btn.selected .period-title { color: #ffffff; }
@@ -1172,7 +1172,7 @@ interface DashboardItem {
       gap: 0.75rem;
     }
     .period-detail-box[data-c='VERDE'] { border-left-color: #22c55e; background: #f0fdf4; }
-    .period-detail-box[data-c='AZUL'] { border-left-color: #3b82f6; background: #eff6ff; }
+    .period-detail-box[data-c='AZUL'] { border-left-color: #3b82f6; background: #f0f9ff; }
     .period-detail-box[data-c='AMARILLO'] { border-left-color: #eab308; background: #fefce8; }
     .period-detail-box[data-c='ROJO'] { border-left-color: #ef4444; background: #fef2f2; }
 
@@ -1201,7 +1201,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 0.75rem;
     }
-    .hist-table-card h4 { margin: 0; font-size: 1rem; color: #1e3a8a; font-weight: 800; }
+    .hist-table-card h4 { margin: 0; font-size: 1rem; color: #0c4a6e; font-weight: 800; }
     .table-scroll { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 0.65rem; }
     .detail-hist-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     .detail-hist-table th {
@@ -1218,7 +1218,7 @@ interface DashboardItem {
       color: #1e293b;
       vertical-align: top;
     }
-    .detail-hist-table tr.highlight-row td { background: #eff6ff; }
+    .detail-hist-table tr.highlight-row td { background: #f0f9ff; }
     .pct-tag {
       font-size: 0.75rem;
       font-weight: 800;
@@ -1226,7 +1226,7 @@ interface DashboardItem {
       border-radius: 0.35rem;
       background: #f1f5f9;
     }
-    .pct-tag[data-c='AZUL'] { background: #dbeafe; color: #1e40af; }
+    .pct-tag[data-c='AZUL'] { background: #e0f2fe; color: #0369a1; }
     .pct-tag[data-c='VERDE'] { background: #dcfce7; color: #166534; }
     .pct-tag[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
     .pct-tag[data-c='ROJO'] { background: #fee2e2; color: #991b1b; }
@@ -1252,7 +1252,7 @@ interface DashboardItem {
       border-top: 1px solid #e2e8f0;
     }
     .btn-primary {
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
       border: none;
       border-radius: 0.55rem;
@@ -1261,7 +1261,7 @@ interface DashboardItem {
       font-size: 0.9rem;
       cursor: pointer;
     }
-    .btn-primary:hover { background: #172554; }
+    .btn-primary:hover { background: #075985; }
     .btn-secondary {
       background: #f1f5f9;
       color: #475569;
@@ -1328,8 +1328,8 @@ interface DashboardItem {
     .status-pill.active { background: #dcfce7; color: #166534; }
     .btn-action {
       border: none;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: #f0f9ff;
+      color: #0369a1;
       border-radius: 0.4rem;
       padding: 0.35rem 0.65rem;
       font-weight: 700;
@@ -1353,9 +1353,9 @@ interface DashboardItem {
     .perspectiva-header h3 {
       margin: 0;
       font-size: 1.05rem;
-      color: #1e3a8a;
+      color: #0c4a6e;
       font-weight: 800;
-      border-bottom: 2px solid #eff6ff;
+      border-bottom: 2px solid #f0f9ff;
       padding-bottom: 0.5rem;
     }
     .obj-list { display: flex; flex-direction: column; gap: 0.6rem; }
@@ -1372,7 +1372,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 0.45rem;
     }
-    .obj-btn:hover { background: #eff6ff; border-color: #93c5fd; transform: translateX(2px); }
+    .obj-btn:hover { background: #f0f9ff; border-color: #93c5fd; transform: translateX(2px); }
     .obj-btn strong { font-size: 0.85rem; color: #1e293b; line-height: 1.3; }
     .obj-footer { display: flex; justify-content: space-between; align-items: center; }
     .sys-badge {
@@ -1399,7 +1399,7 @@ interface DashboardItem {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid #e2e8f0;
     }
-    .form-header h3 { margin: 0; font-size: 1.15rem; color: #1e3a8a; font-weight: 800; }
+    .form-header h3 { margin: 0; font-size: 1.15rem; color: #0c4a6e; font-weight: 800; }
     .form-header p { margin: 0.25rem 0 0; color: #64748b; font-size: 0.85rem; }
     .form-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
     .form-label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
@@ -1413,17 +1413,17 @@ interface DashboardItem {
       outline: none;
     }
     .form-label select:focus, .form-label input:focus, .form-label textarea:focus {
-      border-color: #2563eb;
+      border-color: #0369a1;
       background: #ffffff;
     }
     .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     .info-banner {
-      background: #eff6ff;
+      background: #f0f9ff;
       border: 1px solid #bfdbfe;
       border-radius: 0.65rem;
       padding: 0.75rem 1rem;
       font-size: 0.85rem;
-      color: #1e40af;
+      color: #0369a1;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
@@ -1440,7 +1440,7 @@ interface DashboardItem {
     }
     .btn-save {
       border: none;
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
       border-radius: 0.65rem;
       padding: 0.85rem 1.25rem;
@@ -1449,7 +1449,7 @@ interface DashboardItem {
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-save:hover { background: #172554; }
+    .btn-save:hover { background: #075985; }
     .btn-save:disabled { background: #94a3b8; cursor: not-allowed; }
 
     .hist-section {
@@ -1485,11 +1485,11 @@ interface DashboardItem {
 })
 export class SigHome implements OnInit {
   private readonly api = inject(SigApiService);
-  readonly tabs: Array<{ id: Tab; label: string; icon: string }> = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-    { id: 'mapa', label: 'Mapa Estratégico', icon: '🗺️' },
-    { id: 'catalogo', label: 'Catálogo CMI', icon: '📋' },
-    { id: 'captura', label: 'Captura / Registro', icon: '✏️' },
+  readonly tabs: Array<{ id: Tab; label: string }> = [
+    { id: 'dashboard', label: 'Dashboard' },
+    { id: 'mapa', label: 'Mapa Estratégico' },
+    { id: 'catalogo', label: 'Catálogo CMI' },
+    { id: 'captura', label: 'Captura / Registro' },
   ];
   readonly perspectivas = ['FINANZAS', 'CLIENTES', 'PROCESOS', 'APRENDIZAJE'];
   readonly tab = signal<Tab>('dashboard');
@@ -1510,13 +1510,13 @@ export class SigHome implements OnInit {
     this.api.autoCalcular(this.anio).subscribe({
       next: (res) => {
         this.syncingSig.set(false);
-        this.msg.set(`✅ ${res.message || 'Indicadores actualizados con éxito'}`);
+        this.msg.set(` ${res.message || 'Indicadores actualizados con éxito'}`);
         this.loadDash();
         setTimeout(() => this.msg.set(''), 5000);
       },
       error: () => {
         this.syncingSig.set(false);
-        this.msg.set('❌ Error al sincronizar indicadores automáticos');
+        this.msg.set(' Error al sincronizar indicadores automáticos');
         setTimeout(() => this.msg.set(''), 4000);
       },
     });
@@ -1766,12 +1766,12 @@ export class SigHome implements OnInit {
       .subscribe({
         next: () => {
           this.busy.set(false);
-          this.showToast('✅ Resultado y análisis registrados exitosamente');
+          this.showToast(' Resultado y análisis registrados exitosamente');
           this.onIndicador();
         },
         error: () => {
           this.busy.set(false);
-          this.showToast('❌ Error al registrar resultado');
+          this.showToast(' Error al registrar resultado');
         },
       });
   }

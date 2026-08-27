@@ -29,37 +29,37 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label>
           Tipo de Persona *
           <select [(ngModel)]="model.personType" name="personType" required>
-            <option value="ASOCIADO">👥 Asociado CTA</option>
-            <option value="EMPLEADO">👔 Empleado / Administrativo</option>
-            <option value="CONTRATISTA">🛠️ Contratista / Externo</option>
+            <option value="ASOCIADO"> Asociado CTA</option>
+            <option value="EMPLEADO"> Empleado / Administrativo</option>
+            <option value="CONTRATISTA"> Contratista / Externo</option>
           </select>
         </label>
         <label>
           Motivo de Retiro / Baja *
           <select [(ngModel)]="model.retirementReason" name="retirementReason" required>
             <option value="">-- Seleccionar Motivo de Retiro * --</option>
-            <option value="Retiro Voluntario">🚪 Retiro Voluntario</option>
-            <option value="Terminación de Convenio / Contrato">📄 Terminación de Convenio / Contrato</option>
-            <option value="Pensión / Jubilación">👴 Pensión / Jubilación</option>
-            <option value="Mutuo Acuerdo">🤝 Mutuo Acuerdo</option>
-            <option value="Fallecimiento">🕊️ Fallecimiento</option>
-            <option value="Justa Causa / Sancionatorio">⚖️ Justa Causa / Sancionatorio</option>
-            <option value="Otro">📁 Otro Motivo</option>
+            <option value="Retiro Voluntario"> Retiro Voluntario</option>
+            <option value="Terminación de Convenio / Contrato"> Terminación de Convenio / Contrato</option>
+            <option value="Pensión / Jubilación"> Pensión / Jubilación</option>
+            <option value="Mutuo Acuerdo"> Mutuo Acuerdo</option>
+            <option value="Fallecimiento"> Fallecimiento</option>
+            <option value="Justa Causa / Sancionatorio"> Justa Causa / Sancionatorio</option>
+            <option value="Otro"> Otro Motivo</option>
           </select>
         </label>
         <label>
           Ubicación en Archivo (Voxelsera) *
           <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
             <option value="">-- Selecciona una casilla obligatoria * --</option>
-            <option value="VOXEL_B1">🤝 Estante B — Casilla B1 (Asociados Retirados)</option>
-            <option value="VOXEL_B2">🤝 Estante B — Casilla B2 (Asociados Retirados)</option>
-            <option value="VOXEL_B3">🤝 Estante B — Casilla B3 (Asociados Retirados)</option>
-            <option value="VOXEL_B4">🤝 Estante B — Casilla B4 (Asociados Retirados)</option>
-            <option value="VOXEL_B5">🤝 Estante B — Casilla B5 (Asociados Retirados)</option>
-            <option value="VOXEL_B6">🤝 Estante B — Casilla B6 (Asociados Retirados)</option>
-            <option value="VOXEL_B7">🤝 Estante B — Casilla B7 (Asociados Retirados)</option>
-            <option value="VOXEL_B8">🤝 Estante B — Casilla B8 (Asociados Retirados)</option>
-            <option value="VOXEL_B9">🤝 Estante B — Casilla B9 (Asociados Retirados)</option>
+            <option value="VOXEL_B1"> Estante B — Casilla B1 (Asociados Retirados)</option>
+            <option value="VOXEL_B2"> Estante B — Casilla B2 (Asociados Retirados)</option>
+            <option value="VOXEL_B3"> Estante B — Casilla B3 (Asociados Retirados)</option>
+            <option value="VOXEL_B4"> Estante B — Casilla B4 (Asociados Retirados)</option>
+            <option value="VOXEL_B5"> Estante B — Casilla B5 (Asociados Retirados)</option>
+            <option value="VOXEL_B6"> Estante B — Casilla B6 (Asociados Retirados)</option>
+            <option value="VOXEL_B7"> Estante B — Casilla B7 (Asociados Retirados)</option>
+            <option value="VOXEL_B8"> Estante B — Casilla B8 (Asociados Retirados)</option>
+            <option value="VOXEL_B9"> Estante B — Casilla B9 (Asociados Retirados)</option>
           </select>
         </label>
         <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Observaciones de paz y salvo, liquidación..."></textarea></label>
@@ -164,7 +164,7 @@ export class RetiredPersonnelScreen implements OnInit {
       !this.model.retirementReason ||
       !this.model.voxelsera
     ) {
-      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Nombre, Cédula, Fecha de Retiro, Tipo, Motivo y Ubicación en Estante.');
+      this.error.set(' Debes completar todos los campos obligatorios (*): Nombre, Cédula, Fecha de Retiro, Tipo, Motivo y Ubicación en Estante.');
       return;
     }
 

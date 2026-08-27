@@ -9,7 +9,7 @@ import { DocumentalApiService } from '../documental-api.service';
     <div class="public-page">
       <div class="card-container">
         <header class="header">
-          <div class="logo-box">🛡️</div>
+          <div class="logo-box" aria-hidden="true">C</div>
           <div class="header-text">
             <h2>CORAZA SEGURIDAD C.T.A.</h2>
             <h3>Sistema de Gestión Documental · Solicitud de Préstamo</h3>
@@ -19,7 +19,7 @@ import { DocumentalApiService } from '../documental-api.service';
 
         @if (successId()) {
           <div class="success-box">
-            <div class="check-circle">✅</div>
+            <div class="check-circle" aria-hidden="true">OK</div>
             <h4>¡Solicitud Radicada Exitosamente!</h4>
             <p class="radicado">Radicado: <strong>{{ successId() }}</strong></p>
             <p class="info-text">
@@ -71,13 +71,13 @@ import { DocumentalApiService } from '../documental-api.service';
                 <span class="label-text">Departamento / Área Solicitante *</span>
                 <select [(ngModel)]="model.departamento" name="departamento" required>
                   <option value="">-- Seleccionar Área --</option>
-                  <option value="OPERACIONES">🛡️ Operaciones / Vigilancia</option>
-                  <option value="GESTION_HUMANA">👥 Gestión Humana / RRHH</option>
-                  <option value="ADMINISTRATIVO">💼 Administrativo y Financiero</option>
-                  <option value="COMERCIAL">🤝 Comercial</option>
-                  <option value="SST">🦺 Seguridad y Salud (SST)</option>
-                  <option value="GERENCIA">👔 Gerencia General</option>
-                  <option value="OTRO">📁 Otra Dependencia</option>
+                  <option value="OPERACIONES">Operaciones / Vigilancia</option>
+                  <option value="GESTION_HUMANA">Gestión Humana / RRHH</option>
+                  <option value="ADMINISTRATIVO">Administrativo y Financiero</option>
+                  <option value="COMERCIAL">Comercial</option>
+                  <option value="SST">Seguridad y Salud (SST)</option>
+                  <option value="GERENCIA">Gerencia General</option>
+                  <option value="OTRO">Otra Dependencia</option>
                 </select>
               </label>
 
@@ -113,7 +113,7 @@ import { DocumentalApiService } from '../documental-api.service';
                   placeholder="Ej: funcionario@corazaseguridadcta.com o correo personal"
                 />
                 <span style="font-size:0.72rem;color:#64748b;margin-top:2px">
-                  ✉️ Te llegará un recordatorio oficial desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha de devolución.
+                   Te llegará un recordatorio oficial desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha de devolución.
                 </span>
               </label>
 
@@ -130,7 +130,7 @@ import { DocumentalApiService } from '../documental-api.service';
 
             <div class="form-actions">
               <button type="submit" class="btn-submit" [disabled]="submitting()">
-                {{ submitting() ? 'Radicando...' : '📤 Radicar Solicitud de Préstamo' }}
+                {{ submitting() ? 'Radicando...' : ' Radicar Solicitud de Préstamo' }}
               </button>
             </div>
           </form>
@@ -145,7 +145,7 @@ import { DocumentalApiService } from '../documental-api.service';
   styles: `
     .public-page {
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -164,7 +164,7 @@ import { DocumentalApiService } from '../documental-api.service';
     }
 
     .header {
-      background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
       color: #ffffff;
       padding: 1.75rem 2rem;
       display: flex;
@@ -207,7 +207,7 @@ import { DocumentalApiService } from '../documental-api.service';
       transition: all 0.2s;
     }
     input:focus, select:focus, textarea:focus {
-      border-color: #2563eb;
+      border-color: #0369a1;
       background: #ffffff;
       outline: none;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
@@ -216,7 +216,7 @@ import { DocumentalApiService } from '../documental-api.service';
     .form-actions { margin-top: 1.25rem; }
     .btn-submit {
       width: 100%;
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
       border: none;
       border-radius: 0.65rem;
@@ -226,7 +226,7 @@ import { DocumentalApiService } from '../documental-api.service';
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-submit:hover { background: #172554; }
+    .btn-submit:hover { background: #075985; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
 
     .error-banner {
@@ -249,7 +249,7 @@ import { DocumentalApiService } from '../documental-api.service';
     }
     .check-circle { font-size: 3rem; margin-bottom: 0.5rem; }
     .success-box h4 { margin: 0; font-size: 1.4rem; color: #0f172a; font-weight: 800; }
-    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #1e40af; }
+    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #0369a1; }
     .info-text { font-size: 0.9rem; color: #475569; margin: 0.25rem 0 1.25rem; }
     .badge-pending {
       background: #fef3c7;
@@ -273,7 +273,7 @@ import { DocumentalApiService } from '../documental-api.service';
     .steps-box ol { margin: 0; padding-left: 1.25rem; font-size: 0.82rem; color: #475569; display: flex; flex-direction: column; gap: 0.4rem; }
 
     .btn-primary {
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
       border: none;
       border-radius: 0.65rem;

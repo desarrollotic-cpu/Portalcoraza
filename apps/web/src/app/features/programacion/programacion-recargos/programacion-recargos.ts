@@ -27,7 +27,7 @@ import {
             <input type="month" [(ngModel)]="monthStr" (ngModelChange)="load()" />
           </label>
           <button type="button" class="btn-primary" (click)="exportExcel()" [disabled]="!filteredRows().length">
-            📊 Exportar a Excel Oficial (.xlsx)
+             Exportar a Excel Oficial (.xlsx)
           </button>
         </div>
       </header>
@@ -67,27 +67,14 @@ import {
         </div>
 
         <!-- SEARCH AND FILTERS -->
-        <!-- SEARCH AND FILTERS -->
         <div class="filter-bar">
           <input
             type="text"
-            placeholder="🔍 Buscar por nombre, cédula o puesto..."
-            [ngModel]="searchQuery()"
-            (ngModelChange)="onSearchChange($event)"
+            placeholder="Buscar por nombre, cédula o puesto..."
+            [(ngModel)]="searchQuery"
             class="search-inp"
           />
-          <div class="filter-right">
-            <span class="count-text">Mostrando {{ paginationRangeText() }}</span>
-            <div class="page-size-selector">
-              <label>Por pág:</label>
-              <select [ngModel]="pageSize()" (ngModelChange)="onPageSizeChange($event)">
-                <option [value]="20">20</option>
-                <option [value]="50">50</option>
-                <option [value]="100">100</option>
-                <option [value]="-1">Todos</option>
-              </select>
-            </div>
-          </div>
+          <span class="count-text">Mostrando {{ filteredRows().length }} asociado(s)</span>
         </div>
 
         <!-- RECARGOS TABLE -->
@@ -109,7 +96,7 @@ import {
               </tr>
             </thead>
             <tbody>
-              @for (row of paginatedRows(); track row.associateId) {
+              @for (row of filteredRows(); track row.associateId) {
                 <tr>
                   <td><code>{{ row.cedula }}</code></td>
                   <td><strong>{{ row.nombre }}</strong></td>
@@ -134,22 +121,6 @@ import {
             </tbody>
           </table>
         </div>
-
-        <!-- PAGINACIÓN -->
-        @if (pageSize() !== -1 && totalPages() > 1) {
-          <div class="pagination-bar">
-            <div class="pagination-info">
-              Página <strong>{{ currentPage() }}</strong> de <strong>{{ totalPages() }}</strong> ({{ paginationRangeText() }})
-            </div>
-            <div class="pagination-buttons">
-              <button type="button" class="btn-page" (click)="goToPage(1)" [disabled]="currentPage() === 1" title="Primera página">⏮</button>
-              <button type="button" class="btn-page" (click)="prevPage()" [disabled]="currentPage() === 1">◀ Anterior</button>
-              <span class="page-current-pill">{{ currentPage() }} / {{ totalPages() }}</span>
-              <button type="button" class="btn-page" (click)="nextPage()" [disabled]="currentPage() === totalPages()">Siguiente ▶</button>
-              <button type="button" class="btn-page" (click)="goToPage(totalPages())" [disabled]="currentPage() === totalPages()" title="Última página">⏭</button>
-            </div>
-          </div>
-        }
       }
     </section>
   `,
@@ -201,7 +172,7 @@ import {
       flex-direction: column;
       gap: 0.25rem;
     }
-    .kpi-card.highlight { background: #eff6ff; border-color: #bfdbfe; }
+    .kpi-card.highlight { background: #f0f9ff; border-color: #bfdbfe; }
     .kpi-card.accent { background: #faf5ff; border-color: #e9d5ff; }
     .kpi-card.warn { background: #fffbeb; border-color: #fde68a; }
     .kpi-card.holiday { background: #fef2f2; border-color: #fecaca; }
@@ -224,46 +195,7 @@ import {
       font-size: 0.85rem;
       min-width: 280px;
     }
-    .filter-right { display: flex; align-items: center; gap: 1rem; }
-    .page-size-selector { display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #475569; }
-    .page-size-selector select { padding: 0.3rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 700; }
-
-    /* PAGINATION BAR */
-    .pagination-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      padding: 0.75rem 1rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.65rem;
-      margin-top: 0.5rem;
-    }
-    .pagination-info { font-size: 0.82rem; color: #475569; }
-    .pagination-buttons { display: flex; align-items: center; gap: 0.35rem; }
-    .btn-page {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      color: #0f172a;
-      padding: 0.35rem 0.65rem;
-      border-radius: 0.4rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .btn-page:hover:not(:disabled) { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
-    .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
-    .page-current-pill {
-      background: #1e40af;
-      color: #ffffff;
-      font-weight: 800;
-      font-size: 0.76rem;
-      padding: 0.35rem 0.65rem;
-      border-radius: 0.4rem;
-    }
+    .count-text { font-size: 0.82rem; color: #64748b; }
 
     /* TABLE */
     .table-wrap {
@@ -286,7 +218,7 @@ import {
     .dom { color: #b91c1c; font-weight: 700; }
 
     .empty-cell { text-align: center; padding: 2.5rem 1rem; color: #64748b; }
-    .empty-cell a { color: #2563eb; font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
+    .empty-cell a { color: #0369a1; font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
     .loading-state, .error-msg { text-align: center; padding: 2rem; font-size: 0.9rem; color: #64748b; }
     .error-msg { color: #b91c1c; }
   `,
@@ -299,9 +231,7 @@ export class ProgramacionRecargos implements OnInit {
   readonly data = signal<PayrollRecargosResponse | null>(null);
 
   monthStr = '';
-  readonly searchQuery = signal('');
-  readonly pageSize = signal(20);
-  readonly currentPage = signal(1);
+  searchQuery = '';
 
   ngOnInit(): void {
     const now = new Date();
@@ -332,7 +262,7 @@ export class ProgramacionRecargos implements OnInit {
 
   readonly filteredRows = computed(() => {
     const associates = this.data()?.associates || [];
-    const q = this.searchQuery().trim().toLowerCase();
+    const q = this.searchQuery.trim().toLowerCase();
     if (!q) return associates;
     return associates.filter(
       (a) =>
@@ -341,59 +271,6 @@ export class ProgramacionRecargos implements OnInit {
         a.puestos.toLowerCase().includes(q),
     );
   });
-
-  readonly totalPages = computed(() => {
-    const size = this.pageSize();
-    if (size === -1) return 1;
-    return Math.ceil(this.filteredRows().length / size) || 1;
-  });
-
-  readonly paginatedRows = computed(() => {
-    const size = this.pageSize();
-    if (size === -1) return this.filteredRows();
-    const page = Math.min(Math.max(this.currentPage(), 1), this.totalPages());
-    const start = (page - 1) * size;
-    return this.filteredRows().slice(start, start + size);
-  });
-
-  readonly paginationRangeText = computed(() => {
-    const total = this.filteredRows().length;
-    if (!total) return '0 asociados';
-    const size = this.pageSize();
-    if (size === -1) return `1 – ${total} de ${total} asociados`;
-    const page = Math.min(Math.max(this.currentPage(), 1), this.totalPages());
-    const start = (page - 1) * size + 1;
-    const end = Math.min(page * size, total);
-    return `${start} – ${end} de ${total} asociados`;
-  });
-
-  onSearchChange(val: string): void {
-    this.searchQuery.set(val);
-    this.currentPage.set(1);
-  }
-
-  onPageSizeChange(val: number): void {
-    this.pageSize.set(Number(val));
-    this.currentPage.set(1);
-  }
-
-  goToPage(p: number): void {
-    if (p >= 1 && p <= this.totalPages()) {
-      this.currentPage.set(p);
-    }
-  }
-
-  prevPage(): void {
-    if (this.currentPage() > 1) {
-      this.currentPage.update(p => p - 1);
-    }
-  }
-
-  nextPage(): void {
-    if (this.currentPage() < this.totalPages()) {
-      this.currentPage.update(p => p + 1);
-    }
-  }
 
   exportExcel(): void {
     const rows = this.filteredRows();

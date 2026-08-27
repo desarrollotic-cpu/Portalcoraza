@@ -27,15 +27,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           Tipo de Contrato *
           <select [(ngModel)]="model.contractType" name="contractType" required>
             <option value="">-- Seleccionar Tipo de Contrato * --</option>
-            <option value="VIGILANCIA FIJA">🛡️ Vigilancia Fija y Control de Acceso</option>
-            <option value="VIGILANCIA MOVIL">🚓 Vigilancia Móvil / Patrullaje</option>
-            <option value="ESCOLTA">👤 Escolta a Personas y Mercancías</option>
-            <option value="SEGURIDAD ELECTRONICA">📹 Seguridad Electrónica y CCTV</option>
-            <option value="CONSULTORIA">📋 Consultoría y Asesoría en Seguridad</option>
-            <option value="CONVENIO CTA">👥 Convenio de Trabajo Asociado (CTA)</option>
-            <option value="ARRENDAMIENTO">🏢 Arrendamiento / Inmueble</option>
-            <option value="PROVEEDOR">📦 Proveedor / Suministros</option>
-            <option value="OTRO">📁 Otro Contrato</option>
+            <option value="VIGILANCIA FIJA"> Vigilancia Fija y Control de Acceso</option>
+            <option value="VIGILANCIA MOVIL"> Vigilancia Móvil / Patrullaje</option>
+            <option value="ESCOLTA"> Escolta a Personas y Mercancías</option>
+            <option value="SEGURIDAD ELECTRONICA"> Seguridad Electrónica y CCTV</option>
+            <option value="CONSULTORIA"> Consultoría y Asesoría en Seguridad</option>
+            <option value="CONVENIO CTA"> Convenio de Trabajo Asociado (CTA)</option>
+            <option value="ARRENDAMIENTO"> Arrendamiento / Inmueble</option>
+            <option value="PROVEEDOR"> Proveedor / Suministros</option>
+            <option value="OTRO"> Otro Contrato</option>
           </select>
         </label>
         <label>Número de Contrato (Opcional / Auto)<input [(ngModel)]="model.contractNumber" name="contractNumber" [placeholder]="suggested()" /></label>
@@ -49,15 +49,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           Ubicación en Archivo (Voxelsera) *
           <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
             <option value="">-- Selecciona una casilla obligatoria * --</option>
-            <option value="VOXEL_C1">📑 Estante C — Casilla C1 (Contratos)</option>
-            <option value="VOXEL_C2">📑 Estante C — Casilla C2 (Contratos)</option>
-            <option value="VOXEL_C3">📑 Estante C — Casilla C3 (Contratos)</option>
-            <option value="VOXEL_C4">📑 Estante C — Casilla C4 (Contratos)</option>
-            <option value="VOXEL_C5">📑 Estante C — Casilla C5 (Contratos)</option>
-            <option value="VOXEL_C6">📑 Estante C — Casilla C6 (Contratos)</option>
-            <option value="VOXEL_C7">📑 Estante C — Casilla C7 (Contratos)</option>
-            <option value="VOXEL_C8">📑 Estante C — Casilla C8 (Contratos)</option>
-            <option value="VOXEL_C9">📑 Estante C — Casilla C9 (Contratos)</option>
+            <option value="VOXEL_C1"> Estante C — Casilla C1 (Contratos)</option>
+            <option value="VOXEL_C2"> Estante C — Casilla C2 (Contratos)</option>
+            <option value="VOXEL_C3"> Estante C — Casilla C3 (Contratos)</option>
+            <option value="VOXEL_C4"> Estante C — Casilla C4 (Contratos)</option>
+            <option value="VOXEL_C5"> Estante C — Casilla C5 (Contratos)</option>
+            <option value="VOXEL_C6"> Estante C — Casilla C6 (Contratos)</option>
+            <option value="VOXEL_C7"> Estante C — Casilla C7 (Contratos)</option>
+            <option value="VOXEL_C8"> Estante C — Casilla C8 (Contratos)</option>
+            <option value="VOXEL_C9"> Estante C — Casilla C9 (Contratos)</option>
           </select>
         </label>
         <label class="full">Objeto del Contrato (Opcional)<textarea [(ngModel)]="model.contractObject" name="contractObject" rows="2" placeholder="Descripción del servicio contratado..."></textarea></label>
@@ -171,7 +171,7 @@ export class ContractsScreen implements OnInit {
       !this.model.endDate ||
       !this.model.voxelsera
     ) {
-      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Tipo, Cliente/Parte B, NIT/Cédula, Fecha Inicio, Fecha Terminación y Ubicación en Estante.');
+      this.error.set(' Debes completar todos los campos obligatorios (*): Tipo, Cliente/Parte B, NIT/Cédula, Fecha Inicio, Fecha Terminación y Ubicación en Estante.');
       return;
     }
 

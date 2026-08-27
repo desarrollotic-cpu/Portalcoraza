@@ -54,15 +54,12 @@ import { Icon } from '../../shared/components/icon/icon';
 
             <div class="hero-feature-pills">
               <div class="pill-item">
-                <span class="pill-icon">🛡️</span>
                 <span>Operaciones & Turnos 24/7</span>
               </div>
               <div class="pill-item">
-                <span class="pill-icon">👥</span>
                 <span>Gestión Humana & Certificados</span>
               </div>
               <div class="pill-item">
-                <span class="pill-icon">📋</span>
                 <span>Minutas & Recepción Digital</span>
               </div>
             </div>
@@ -121,7 +118,7 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 48vw;
       height: 48vw;
       border-radius: 50%;
-      background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
       opacity: 0.45;
       filter: blur(60px);
       pointer-events: none;
@@ -173,7 +170,7 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
       justify-content: space-between;
       color: #ffffff;
-      background: linear-gradient(145deg, #1e3a8a 0%, #1e40af 50%, #0f172a 100%);
+      background: linear-gradient(145deg, #0c4a6e 0%, #0369a1 50%, #0f172a 100%);
       overflow: hidden;
     }
 

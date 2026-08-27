@@ -302,7 +302,7 @@ const PRINT_CSS = `
   .carpeta-orig-right {
     width: 80px;
     border: 2px solid #0284c7;
-    background: #eff6ff;
+    background: #f0f9ff;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -347,7 +347,7 @@ export function printRotulo(item: RotuloItem): void {
   const html = `
     <div class="print-banner">
       <span>CORAZA SEGURIDAD C.T.A. — RÓTULO OFICIAL DE ARCHIVO</span>
-      <span>✂️ Recorte por la línea punteada</span>
+      <span> Recorte por la línea punteada</span>
     </div>
     <div class="print-grid">
       ${stripHtml(item)}
@@ -371,7 +371,7 @@ export function printQueue(clearAfter = false): void {
   const html = `
     <div class="print-banner">
       <span>CORAZA SEGURIDAD C.T.A. — LOTE DE TIRAS (${items.length} Rótulos)</span>
-      <span>✂️ Recorte por las líneas punteadas · Ahorro de Papel</span>
+      <span> Recorte por las líneas punteadas · Ahorro de Papel</span>
     </div>
     <div class="print-grid">
       ${items.map(stripHtml).join('')}
@@ -390,7 +390,7 @@ export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): v
   const html = `
     <div class="print-banner">
       <span>CORAZA SEGURIDAD C.T.A. — REIMPRESIÓN DE LOTE (${items.length} Rótulos)</span>
-      <span>✂️ Recorte por las líneas punteadas</span>
+      <span> Recorte por las líneas punteadas</span>
     </div>
     <div class="print-grid">
       ${items.map(stripHtml).join('')}

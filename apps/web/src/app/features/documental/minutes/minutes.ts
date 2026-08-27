@@ -28,9 +28,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label>
           Tipo de Minuta *
           <select [(ngModel)]="model.minuteType" name="minuteType" required>
-            <option value="SERVICIO">⚙️ SERVICIO — Minuta de Puesto de Vigilancia</option>
-            <option value="VISITANTES">📋 VISITANTES — Control de Ingreso y Accesos</option>
-            <option value="CORRESPONDENCIA">📧 CORRESPONDENCIA — Paquetería y Sobres</option>
+            <option value="SERVICIO"> SERVICIO — Minuta de Puesto de Vigilancia</option>
+            <option value="VISITANTES"> VISITANTES — Control de Ingreso y Accesos</option>
+            <option value="CORRESPONDENCIA"> CORRESPONDENCIA — Paquetería y Sobres</option>
           </select>
         </label>
         <label>Nombre del Puesto de Vigilancia *<input [(ngModel)]="model.postName" name="postName" required placeholder="Ej: Puesto Central, Torre Norte, Shangrila..." /></label>
@@ -40,15 +40,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           Ubicación en Archivo (Voxelsera) *
           <select [(ngModel)]="model.voxelsera" name="voxelsera" required>
             <option value="">-- Selecciona una casilla obligatoria * --</option>
-            <option value="VOXEL_A1">📋 Estante A — Casilla A1 (Minutas)</option>
-            <option value="VOXEL_A2">📋 Estante A — Casilla A2 (Minutas)</option>
-            <option value="VOXEL_A3">📋 Estante A — Casilla A3 (Minutas)</option>
-            <option value="VOXEL_A4">📋 Estante A — Casilla A4 (Minutas)</option>
-            <option value="VOXEL_A5">📋 Estante A — Casilla A5 (Minutas)</option>
-            <option value="VOXEL_A6">📋 Estante A — Casilla A6 (Minutas)</option>
-            <option value="VOXEL_A7">📋 Estante A — Casilla A7 (Minutas)</option>
-            <option value="VOXEL_A8">📋 Estante A — Casilla A8 (Minutas)</option>
-            <option value="VOXEL_A9">📋 Estante A — Casilla A9 (Minutas)</option>
+            <option value="VOXEL_A1"> Estante A — Casilla A1 (Minutas)</option>
+            <option value="VOXEL_A2"> Estante A — Casilla A2 (Minutas)</option>
+            <option value="VOXEL_A3"> Estante A — Casilla A3 (Minutas)</option>
+            <option value="VOXEL_A4"> Estante A — Casilla A4 (Minutas)</option>
+            <option value="VOXEL_A5"> Estante A — Casilla A5 (Minutas)</option>
+            <option value="VOXEL_A6"> Estante A — Casilla A6 (Minutas)</option>
+            <option value="VOXEL_A7"> Estante A — Casilla A7 (Minutas)</option>
+            <option value="VOXEL_A8"> Estante A — Casilla A8 (Minutas)</option>
+            <option value="VOXEL_A9"> Estante A — Casilla A9 (Minutas)</option>
           </select>
         </label>
         <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
@@ -160,7 +160,7 @@ export class MinutesScreen implements OnInit {
       !this.model.closeDate ||
       !this.model.voxelsera
     ) {
-      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Tipo, Puesto, Fecha Inicio, Fecha Cierre y Ubicación en Estante.');
+      this.error.set(' Debes completar todos los campos obligatorios (*): Tipo, Puesto, Fecha Inicio, Fecha Cierre y Ubicación en Estante.');
       return;
     }
 

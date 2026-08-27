@@ -144,8 +144,12 @@ export interface EstanteInfo {
               >
                 <div class="slot-badge">
                   <strong>{{ slot.slotId.replace('VOXEL_', '') }}</strong>
-                  <span class="slot-status-icon">
-                    @if (slot.count > 0) { 📦 } @else { 🟢 }
+                  <span class="slot-status-icon" aria-hidden="true">
+                    @if (slot.count > 0) {
+                      ●
+                    } @else {
+                      ○
+                    }
                   </span>
                 </div>
                 <div class="slot-info">
@@ -270,7 +274,7 @@ export interface EstanteInfo {
       gap: 0.4rem;
     }
     .estante-summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(0,0,0,0.06); }
-    .estante-summary-card.active { border-color: #2563eb; background: #f8fafc; }
+    .estante-summary-card.active { border-color: #0369a1; background: #f8fafc; }
     
     .estante-head { display: flex; justify-content: space-between; align-items: center; }
     .estante-tag { color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
@@ -299,10 +303,10 @@ export interface EstanteInfo {
       border-bottom: 3px solid transparent;
       margin-bottom: -0.25rem;
     }
-    .shelf-tab-btn:hover { color: #1e40af; background: #f1f5f9; }
-    .shelf-tab-btn.active { color: #1e40af; border-bottom-color: #2563eb; background: #eff6ff; }
+    .shelf-tab-btn:hover { color: #0369a1; background: #f1f5f9; }
+    .shelf-tab-btn.active { color: #0369a1; border-bottom-color: #0369a1; background: #f0f9ff; }
     .badge-count { background: #cbd5e1; color: #334155; font-size: 0.72rem; padding: 0.1rem 0.4rem; border-radius: 1rem; font-weight: 800; }
-    .shelf-tab-btn.active .badge-count { background: #2563eb; color: #ffffff; }
+    .shelf-tab-btn.active .badge-count { background: #0369a1; color: #ffffff; }
 
     /* MATRIZ 3x3 */
     .matrix-container {
@@ -315,7 +319,7 @@ export interface EstanteInfo {
       gap: 1.25rem;
     }
     .matrix-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .matrix-title { display: flex; align-items: center; gap: 0.75rem; color: #1e40af; }
+    .matrix-title { display: flex; align-items: center; gap: 0.75rem; color: #0369a1; }
     .matrix-title h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; }
     .matrix-title p { margin: 0.1rem 0 0; font-size: 0.78rem; color: #64748b; }
 
@@ -346,16 +350,16 @@ export interface EstanteInfo {
     }
     .slot-card:hover {
       border-color: #93c5fd;
-      background: #eff6ff;
+      background: #f0f9ff;
       transform: translateY(-2px);
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.06);
     }
     .slot-card.has-items { border-color: #bfdbfe; background: #ffffff; }
-    .slot-card.is-selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .slot-card.is-selected { border-color: #0369a1; background: #f0f9ff; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
     .slot-card.is-highlighted { border-color: #f59e0b; background: #fffbeb; animation: pulse 1.5s infinite; }
 
     .slot-badge { display: flex; justify-content: space-between; align-items: center; }
-    .slot-badge strong { font-size: 1.1rem; font-weight: 900; color: #1e3a8a; }
+    .slot-badge strong { font-size: 1.1rem; font-weight: 900; color: #0c4a6e; }
     .slot-count { font-size: 0.84rem; font-weight: 800; color: #0f172a; }
     .slot-sub { font-size: 0.74rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot-action-indicator {
@@ -367,7 +371,7 @@ export interface EstanteInfo {
       border-top: 1px dashed #e2e8f0;
       font-size: 0.72rem;
       font-weight: 700;
-      color: #2563eb;
+      color: #0369a1;
     }
 
     /* DRAWER MODAL */
@@ -397,7 +401,7 @@ export interface EstanteInfo {
       justify-content: space-between;
       align-items: center;
     }
-    .drawer-tag { background: #eff6ff; color: #1d4ed8; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .drawer-tag { background: #f0f9ff; color: #0369a1; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
     .drawer-title-box h4 { margin: 0.2rem 0 0; font-size: 1rem; font-weight: 800; color: #0f172a; }
     .drawer-title-box p { margin: 0; font-size: 0.75rem; color: #64748b; }
     .btn-close { background: transparent; border: none; color: #94a3b8; cursor: pointer; }
@@ -421,7 +425,7 @@ export interface EstanteInfo {
     .item-content { flex: 1; min-width: 0; }
     .item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
     .item-mod-badge { background: #e2e8f0; color: #334155; font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 0.25rem; }
-    .item-code-text { font-size: 0.76rem; color: #2563eb; font-weight: 800; }
+    .item-code-text { font-size: 0.76rem; color: #0369a1; font-weight: 800; }
     .item-title { margin: 0; font-size: 0.84rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
 
     .drawer-footer { padding: 1rem 1.5rem; border-top: 1px solid #f1f5f9; background: #f8fafc; display: flex; justify-content: flex-end; }
@@ -464,7 +468,7 @@ export class VoxelseraScreen implements OnInit {
       nombre: 'Estante A — Minutas de Vigilancia',
       subtitulo: 'Libros de servicio, control de visitantes y correspondencia',
       modulo: 'MINUTAS',
-      color: '#2563eb',
+      color: '#0369a1',
       icon: 'FileText',
     },
     {
@@ -567,11 +571,11 @@ export class VoxelseraScreen implements OnInit {
 
   getItemEmoji(modulo: string): string {
     switch (modulo) {
-      case 'MINUTAS': return '📋';
-      case 'ASOCIADOS RETIRADOS': return '🤝';
-      case 'CONTRATOS': return '📑';
-      case 'CORRESPONDENCIA': return '✉️';
-      default: return '📁';
+      case 'MINUTAS': return 'MN';
+      case 'ASOCIADOS RETIRADOS': return 'AR';
+      case 'CONTRATOS': return 'CT';
+      case 'CORRESPONDENCIA': return 'CR';
+      default: return 'DC';
     }
   }
 

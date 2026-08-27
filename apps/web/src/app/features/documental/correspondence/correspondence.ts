@@ -28,17 +28,17 @@ export interface TrdOption {
 }
 
 export const DEPARTAMENTOS_CORAZA: DepartmentOption[] = [
-  { code: 'GE', name: '👔 GE — Gerencia General', trdPrefix: '100' },
-  { code: 'GH', name: '👥 GH — Gestión Humana / RRHH', trdPrefix: '200' },
-  { code: 'AF', name: '💼 AF — Administrativo y Financiero', trdPrefix: '300' },
-  { code: 'CP', name: '📦 CP — Compras y Suministros', trdPrefix: '310' },
-  { code: 'CM', name: '🤝 CM — Comercial y Mercadeo', trdPrefix: '320' },
-  { code: 'OP', name: '🛡️ OP — Operaciones / Vigilancia', trdPrefix: '400' },
-  { code: 'SE', name: '📹 SE — Seguridad Electrónica', trdPrefix: '410' },
-  { code: 'SP', name: '🏍️ SP — Supervisión y Control', trdPrefix: '420' },
-  { code: 'DJ', name: '⚖️ DJ — Jurídico y Legal', trdPrefix: '500' },
-  { code: 'CE', name: '🏢 CE — Cliente Externo', trdPrefix: '900' },
-  { code: 'AS', name: '👥 AS — Asociados CTA', trdPrefix: '910' },
+  { code: 'GE', name: 'GE — Gerencia General', trdPrefix: '100' },
+  { code: 'GH', name: 'GH — Gestión Humana / RRHH', trdPrefix: '200' },
+  { code: 'AF', name: 'AF — Administrativo y Financiero', trdPrefix: '300' },
+  { code: 'CP', name: 'CP — Compras y Suministros', trdPrefix: '310' },
+  { code: 'CM', name: 'CM — Comercial y Mercadeo', trdPrefix: '320' },
+  { code: 'OP', name: 'OP — Operaciones / Vigilancia', trdPrefix: '400' },
+  { code: 'SE', name: 'SE — Seguridad Electrónica', trdPrefix: '410' },
+  { code: 'SP', name: 'SP — Supervisión y Control', trdPrefix: '420' },
+  { code: 'DJ', name: 'DJ — Jurídico y Legal', trdPrefix: '500' },
+  { code: 'CE', name: 'CE — Cliente Externo', trdPrefix: '900' },
+  { code: 'AS', name: 'AS — Asociados CTA', trdPrefix: '910' },
 ];
 
 export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
@@ -225,10 +225,10 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
             <label class="form-group">
               <span class="label-title">Medio de Recepción / Envío *</span>
               <select [(ngModel)]="model.medium" name="medium" required class="inp-select">
-                <option value="FISICO">📦 Físico (Papel / Ventanilla)</option>
-                <option value="DIGITAL">💻 Digital (Portal / Archivo)</option>
-                <option value="EMAIL">📧 Correo Electrónico</option>
-                <option value="MENSAJERIA">🛵 Mensajería Especializada</option>
+                <option value="FISICO">Físico (Papel / Ventanilla)</option>
+                <option value="DIGITAL">Digital (Portal / Archivo)</option>
+                <option value="EMAIL">Correo Electrónico</option>
+                <option value="MENSAJERIA">Mensajería Especializada</option>
               </select>
             </label>
 
@@ -236,16 +236,16 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
             <label class="form-group">
               <span class="label-title">Tipo de Documento *</span>
               <select [(ngModel)]="model.documentType" name="documentType" required class="inp-select">
-                <option value="OFICIO">📄 Oficio</option>
-                <option value="MEMORANDO">📝 Memorando</option>
-                <option value="CIRCULAR">📢 Circular</option>
-                <option value="CARTA">✉️ Carta</option>
-                <option value="ACTA">📋 Acta de Reunión</option>
-                <option value="SOLICITUD">📑 Solicitud / Petición</option>
-                <option value="INFORME">📊 Informe de Gestión</option>
-                <option value="CERTIFICADO">📜 Certificado / Paz y Salvo</option>
-                <option value="DERECHO_PETICION">⚖️ Derecho de Petición</option>
-                <option value="OTRO">📁 Otro Documento</option>
+                <option value="OFICIO">Oficio</option>
+                <option value="MEMORANDO">Memorando</option>
+                <option value="CIRCULAR">Circular</option>
+                <option value="CARTA">Carta</option>
+                <option value="ACTA">Acta de Reunión</option>
+                <option value="SOLICITUD">Solicitud / Petición</option>
+                <option value="INFORME">Informe de Gestión</option>
+                <option value="CERTIFICADO">Certificado / Paz y Salvo</option>
+                <option value="DERECHO_PETICION">Derecho de Petición</option>
+                <option value="OTRO">Otro Documento</option>
               </select>
             </label>
 
@@ -254,10 +254,10 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
               <span class="label-title">Estado de Gestión *</span>
               <select [(ngModel)]="model.status" name="status" required class="inp-select">
                 <option value="PENDIENTE">⏳ PENDIENTE — En espera de proceso</option>
-                <option value="ENVIADO">📤 ENVIADO — Despachado al destino</option>
-                <option value="RECIBIDO">📥 RECIBIDO — Confirmado en destino</option>
-                <option value="ENTREGADO">✅ ENTREGADO — Firmado y recibido</option>
-                <option value="DEVUELTO">🔄 DEVUELTO — Regresado al origen</option>
+                <option value="ENVIADO">ENVIADO — Despachado al destino</option>
+                <option value="RECIBIDO">RECIBIDO — Confirmado en destino</option>
+                <option value="ENTREGADO">ENTREGADO — Firmado y recibido</option>
+                <option value="DEVUELTO">DEVUELTO — Regresado al origen</option>
               </select>
             </label>
 
@@ -266,15 +266,15 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
               <span class="label-title">Ubicación Física en Archivo (Voxelsera) *</span>
               <select [(ngModel)]="model.voxelsera" name="voxelsera" required class="inp-select">
                 <option value="">-- Seleccionar Casilla en Estante D * --</option>
-                <option value="VOXEL_D1">📁 Estante D — Casilla D1 (Correspondencia)</option>
-                <option value="VOXEL_D2">📁 Estante D — Casilla D2 (Correspondencia)</option>
-                <option value="VOXEL_D3">📁 Estante D — Casilla D3 (Correspondencia)</option>
-                <option value="VOXEL_D4">📁 Estante D — Casilla D4 (Correspondencia)</option>
-                <option value="VOXEL_D5">📁 Estante D — Casilla D5 (Correspondencia)</option>
-                <option value="VOXEL_D6">📁 Estante D — Casilla D6 (Correspondencia)</option>
-                <option value="VOXEL_D7">📁 Estante D — Casilla D7 (Correspondencia)</option>
-                <option value="VOXEL_D8">📁 Estante D — Casilla D8 (Correspondencia)</option>
-                <option value="VOXEL_D9">📁 Estante D — Casilla D9 (Correspondencia)</option>
+                <option value="VOXEL_D1">Estante D — Casilla D1 (Correspondencia)</option>
+                <option value="VOXEL_D2">Estante D — Casilla D2 (Correspondencia)</option>
+                <option value="VOXEL_D3">Estante D — Casilla D3 (Correspondencia)</option>
+                <option value="VOXEL_D4">Estante D — Casilla D4 (Correspondencia)</option>
+                <option value="VOXEL_D5">Estante D — Casilla D5 (Correspondencia)</option>
+                <option value="VOXEL_D6">Estante D — Casilla D6 (Correspondencia)</option>
+                <option value="VOXEL_D7">Estante D — Casilla D7 (Correspondencia)</option>
+                <option value="VOXEL_D8">Estante D — Casilla D8 (Correspondencia)</option>
+                <option value="VOXEL_D9">Estante D — Casilla D9 (Correspondencia)</option>
               </select>
             </label>
 
@@ -306,7 +306,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
           <div class="actions">
             <button type="submit" class="btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Radicando...' : '💾 Radicar Documento Oficial' }}
+              {{ saving() ? 'Radicando...' : ' Radicar Documento Oficial' }}
             </button>
             <button type="button" class="btn-ghost" (click)="toggle()">Cancelar</button>
             @if (error()) { <span class="error">{{ error() }}</span> }
@@ -329,21 +329,21 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
             </div>
           </div>
           <div class="guide-item env">
-            <span class="guide-emoji">📤</span>
+            <span class="guide-emoji"></span>
             <div>
               <strong>ENVIADO</strong>
               <p>Despachado al destinatario, pendiente confirmación.</p>
             </div>
           </div>
           <div class="guide-item rec">
-            <span class="guide-emoji">📥</span>
+            <span class="guide-emoji"></span>
             <div>
               <strong>RECIBIDO</strong>
               <p>Confirmado y recibido por el destinatario en su oficina.</p>
             </div>
           </div>
           <div class="guide-item ent">
-            <span class="guide-emoji">✅</span>
+            <span class="guide-emoji"></span>
             <div>
               <strong>ENTREGADO</strong>
               <p>Firmado y cerrado formalmente en el archivo.</p>
@@ -374,7 +374,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                   <td>
                     <strong class="radicado-text">{{ r.documentCode ?? '—' }}</strong>
                     @if (r.voxelsera) {
-                      <div class="voxel-tag">📍 {{ r.voxelsera }}</div>
+                      <div class="voxel-tag"> {{ r.voxelsera }}</div>
                     }
                   </td>
                   <td>
@@ -433,7 +433,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: #1e40af;
+      color: #0369a1;
       font-size: 0.95rem;
       margin-bottom: 0.25rem;
     }
@@ -459,17 +459,17 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       transition: all 0.15s;
     }
     .inp-select:focus, .inp-text:focus {
-      border-color: #2563eb;
+      border-color: #0369a1;
       background: #ffffff;
       outline: none;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
-    .inp-select.highlight { border-color: #93c5fd; background: #eff6ff; font-weight: 600; color: #1e40af; }
+    .inp-select.highlight { border-color: #93c5fd; background: #f0f9ff; font-weight: 600; color: #0369a1; }
     .inp-radicado {
       font: inherit;
       font-weight: 800;
-      color: #1d4ed8;
-      background: #eff6ff;
+      color: #0369a1;
+      background: #f0f9ff;
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
       padding: 0.6rem 0.8rem;
@@ -517,7 +517,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
     /* TABLE */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
-    .radicado-text { color: #1e40af; font-size: 0.88rem; }
+    .radicado-text { color: #0369a1; font-size: 0.88rem; }
     .voxel-tag { font-size: 0.72rem; color: #64748b; margin-top: 0.15rem; }
     .dept-badge { background: #f1f5f9; color: #334155; font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
     .arrow-sep { color: #94a3b8; margin: 0 0.25rem; font-size: 0.75rem; }
@@ -654,7 +654,7 @@ export class CorrespondenceScreen implements OnInit {
       !this.model.subject?.trim() ||
       !this.model.voxelsera
     ) {
-      this.error.set('⚠️ Debes completar todos los campos obligatorios (*): Dependencia Origen, Destinatario, Tipo Documento, Asunto y Ubicación en Estante.');
+      this.error.set(' Debes completar todos los campos obligatorios (*): Dependencia Origen, Destinatario, Tipo Documento, Asunto y Ubicación en Estante.');
       return;
     }
     this.saving.set(true);

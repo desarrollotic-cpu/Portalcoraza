@@ -85,7 +85,7 @@ import type { JobPosition } from '../../services/hr.types';
                   }
                 </td>
                 <td>{{ p.refreshFrequencyYears }} año(s)</td>
-                <td>{{ p.isActive ? '✓' : '—' }}</td>
+                <td>{{ p.isActive ? '' : '—' }}</td>
                 <td>
                   @if (auth.hasPermission('job_positions.edit')) {
                     <button type="button" class="hr-btn-link" (click)="edit(p)">Editar</button>

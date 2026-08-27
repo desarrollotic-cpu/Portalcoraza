@@ -172,7 +172,7 @@ import { DOC_STYLES } from '../documental.styles';
                     <span>{{ l.returnDate ?? '—' }}</span>
                     @if (l.overdueNotifiedAt) {
                       <div class="notif-badge" title="Notificación de vencimiento enviada">
-                        ✉️ Notificado
+                         Notificado
                       </div>
                     }
                   </td>
@@ -213,7 +213,7 @@ import { DOC_STYLES } from '../documental.styles';
                             </button>
                           }
                           <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
-                            📥 Devolver
+                             Devolver
                           </button>
                         </div>
                       } @else {
@@ -279,7 +279,7 @@ import { DOC_STYLES } from '../documental.styles';
           <div class="qr-modal-footer">
             <button type="button" class="btn-ghost" (click)="closeQrModal()">Cerrar</button>
             <button type="button" class="btn-primary" (click)="printQrSheet()">
-              🖨️ Imprimir Cartel / Ficha QR
+               Imprimir Cartel / Ficha QR
             </button>
           </div>
         </div>
@@ -296,8 +296,8 @@ import { DOC_STYLES } from '../documental.styles';
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: #f0f9ff;
+      color: #0369a1;
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
       padding: 0.45rem 0.85rem;
@@ -306,7 +306,7 @@ import { DOC_STYLES } from '../documental.styles';
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-qr-share:hover { background: #dbeafe; }
+    .btn-qr-share:hover { background: #e0f2fe; }
 
     /* BANNER ENLACE PÚBLICO */
     .public-link-banner {
@@ -400,9 +400,9 @@ import { DOC_STYLES } from '../documental.styles';
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
     .row-pending { background: #fffdf5; }
     .row-vencido { background: #fff5f5; }
-    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #2563eb; font-weight: 600; margin-top: 0.15rem; }
+    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #0369a1; font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
-    .doc-code-tag { font-size: 0.72rem; color: #2563eb; font-weight: 700; }
+    .doc-code-tag { font-size: 0.72rem; color: #0369a1; font-weight: 700; }
     .notif-badge { font-size: 0.68rem; color: #b45309; background: #fef3c7; padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
     
     .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
@@ -436,8 +436,8 @@ import { DOC_STYLES } from '../documental.styles';
     .btn-act-reject:hover { background: #fee2e2; }
     
     .btn-notify-email {
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: #f0f9ff;
+      color: #0369a1;
       border: 1px solid #bfdbfe;
       border-radius: 0.35rem;
       padding: 0.25rem 0.55rem;
@@ -448,7 +448,7 @@ import { DOC_STYLES } from '../documental.styles';
       align-items: center;
       gap: 0.25rem;
     }
-    .btn-notify-email:hover { background: #dbeafe; }
+    .btn-notify-email:hover { background: #e0f2fe; }
 
     .btn-return { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.35rem; font-weight: 700; }
 
@@ -481,7 +481,7 @@ import { DOC_STYLES } from '../documental.styles';
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid #f1f5f9;
     }
-    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #1e3a8a; }
+    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #0c4a6e; }
     .qr-title-box h4 { margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; }
     .qr-title-box p { margin: 0.1rem 0 0; font-size: 0.75rem; color: #64748b; }
     .btn-close { background: transparent; border: none; color: #94a3b8; cursor: pointer; }
@@ -503,13 +503,13 @@ import { DOC_STYLES } from '../documental.styles';
     .qr-corp-header span { font-size: 0.75rem; color: #64748b; }
     .qr-image-wrap { margin: 1rem 0; padding: 0.5rem; background: #ffffff; border-radius: 0.5rem; }
     .qr-code-img { width: 180px; height: 180px; display: block; }
-    .qr-instructions strong { display: block; font-size: 0.85rem; color: #1e3a8a; margin-bottom: 0.25rem; }
+    .qr-instructions strong { display: block; font-size: 0.85rem; color: #0c4a6e; margin-bottom: 0.25rem; }
     .qr-instructions p { margin: 0; font-size: 0.76rem; color: #475569; line-height: 1.35; max-width: 280px; }
 
     .link-copy-box { display: flex; gap: 0.4rem; width: 100%; }
     .link-copy-box input { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.65rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; background: #f8fafc; }
     .btn-copy {
-      background: #1e3a8a;
+      background: #0c4a6e;
       color: #ffffff;
       border: none;
       border-radius: 0.4rem;
@@ -521,7 +521,7 @@ import { DOC_STYLES } from '../documental.styles';
       align-items: center;
       gap: 0.3rem;
     }
-    .btn-copy:hover { background: #172554; }
+    .btn-copy:hover { background: #075985; }
 
     .qr-modal-footer {
       display: flex;
@@ -626,15 +626,15 @@ export class LoansScreen implements OnInit {
             * { box-sizing: border-box; font-family: system-ui, sans-serif; }
             body { padding: 40px; text-align: center; color: #0f172a; }
             .card {
-              max-width: 500px; margin: 0 auto; border: 3px solid #1e3a8a;
+              max-width: 500px; margin: 0 auto; border: 3px solid #0c4a6e;
               border-radius: 20px; padding: 30px;
             }
-            h1 { font-size: 22px; color: #1e3a8a; margin: 0; }
+            h1 { font-size: 22px; color: #0c4a6e; margin: 0; }
             h2 { font-size: 16px; color: #475569; margin: 5px 0 20px; font-weight: normal; }
             img { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
-            .inst { font-size: 14px; font-weight: bold; color: #1e3a8a; margin-top: 15px; }
+            .inst { font-size: 14px; font-weight: bold; color: #0c4a6e; margin-top: 15px; }
             .desc { font-size: 12px; color: #64748b; margin-top: 5px; }
-            .url { font-size: 11px; color: #2563eb; margin-top: 15px; word-break: break-all; }
+            .url { font-size: 11px; color: #0369a1; margin-top: 15px; word-break: break-all; }
             @media print { body { padding: 0; } }
           </style>
         </head>
@@ -710,7 +710,7 @@ export class LoansScreen implements OnInit {
     if (!l.email) return;
     this.api.sendLoanReminder(l.id).subscribe({
       next: (res) => {
-        this.emailStatusMsg.set(`📧 Correo de recordatorio enviado a ${l.email} desde Documental@corazaseguridadcta.com`);
+        this.emailStatusMsg.set(` Correo de recordatorio enviado a ${l.email} desde Documental@corazaseguridadcta.com`);
         this.load();
         setTimeout(() => this.emailStatusMsg.set(null), 5000);
       },

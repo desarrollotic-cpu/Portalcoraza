@@ -96,7 +96,7 @@ export class LibraryScreen implements OnInit {
   readonly formType = signal<'folder' | 'file' | null>(null);
   readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
 
-  folder = { name: '', color: '#2563eb' };
+  folder = { name: '', color: '#0369a1' };
   file = { name: '', category: '', version: '1.0', folderId: '', url: '' };
 
   ngOnInit(): void {
@@ -130,7 +130,7 @@ export class LibraryScreen implements OnInit {
   saveFolder(): void {
     this.api.createFolder({ name: this.folder.name, color: this.folder.color }).subscribe({
       next: () => {
-        this.folder = { name: '', color: '#2563eb' };
+        this.folder = { name: '', color: '#0369a1' };
         this.formType.set(null);
         this.load();
       },

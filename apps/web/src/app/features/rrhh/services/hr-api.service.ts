@@ -52,10 +52,6 @@ export class HrApiService {
     return this.http.get<Associate>(`${this.api}/associates/${id}`);
   }
 
-  downloadCertificatePdf(id: string): Observable<Blob> {
-    return this.http.get(`${this.api}/associates/${id}/pdf-certificate`, { responseType: 'blob' });
-  }
-
   getAssociateHistory(id: string): Observable<AssociateHistoryEntry[]> {
     return this.http.get<AssociateHistoryEntry[]>(`${this.api}/associates/${id}/history`);
   }

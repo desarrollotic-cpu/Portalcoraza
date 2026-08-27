@@ -116,7 +116,7 @@ const SURVEY_QUESTIONS: { key: keyof Retirement; label: string }[] = [
                         class="hr-survey-star"
                         [class.on]="valueOf(q.key) >= i"
                         (click)="setSurvey(q.key, i)"
-                      >★</button>
+                      ></button>
                     }
                     <span class="hr-survey-value">{{ valueOf(q.key) }}/5</span>
                   </div>

@@ -47,6 +47,9 @@ import { Icon } from '../icon/icon';
       max-width: 380px;
       pointer-events: none;
     }
+    @media (prefers-reduced-motion: reduce) {
+      .toast { animation: none; }
+    }
     .toast {
       display: grid;
       grid-template-columns: auto 1fr auto;
@@ -87,7 +90,7 @@ import { Icon } from '../icon/icon';
       background: transparent; border: none; cursor: pointer;
       color: var(--text-muted);
       display: inline-flex; align-items: center; justify-content: center;
-      width: 24px; height: 24px; border-radius: 6px;
+      width: 44px; height: 44px; border-radius: 6px;
     }
     .dismiss:hover { background: var(--surface-2); color: var(--text-primary); }
   `,

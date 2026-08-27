@@ -24,22 +24,22 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
           <div class="period-card" [class.active]="selectedPeriod()?.id === p.id" (click)="selectPeriod(p)">
             <div class="card-top">
               <span class="status-pill" [class.st-liquidado]="p.status === 'LIQUIDADO'" [class.st-borrador]="p.status === 'BORRADOR'">
-                {{ p.status === 'LIQUIDADO' ? '🟢 LIQUIDADO' : '🟡 BORRADOR' }}
+                {{ p.status === 'LIQUIDADO' ? ' LIQUIDADO' : ' BORRADOR' }}
               </span>
             </div>
             <h4>{{ p.periodName }}</h4>
             <div class="period-dates">
-              📅 {{ p.startDate | date: 'mediumDate' }} — {{ p.endDate | date: 'mediumDate' }}
+               {{ p.startDate | date: 'mediumDate' }} — {{ p.endDate | date: 'mediumDate' }}
             </div>
 
             <div class="card-actions" (click)="$event.stopPropagation()">
               <button class="btn-action" [class.btn-selected]="selectedPeriod()?.id === p.id" (click)="selectPeriod(p)">
-                👁️ Ver Colillas
+                 Ver Colillas
               </button>
 
               @if (p.status === 'BORRADOR') {
                 <button class="btn-action btn-calc" (click)="calculate(p.id)" [disabled]="calculating()">
-                  {{ calculating() ? 'Calculando...' : '⚡ Liquidar Nómina' }}
+                  {{ calculating() ? 'Calculando...' : ' Liquidar Nómina' }}
                 </button>
               }
             </div>
@@ -62,7 +62,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
             <div style="display:flex; align-items:center; gap:0.5rem;">
               @if (slips().length > 0) {
                 <button class="btn-export-excel" (click)="exportConsolidatedExcel()">
-                  📊 Exportar Consolidado (.xls)
+                   Exportar Consolidado (.xls)
                 </button>
               }
               <span class="count-badge">{{ slips().length }} Colilla(s) Generada(s)</span>
@@ -99,14 +99,14 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
                     <td class="td-num text-primary"><strong>{{ s.netPay | currency: 'COP': 'symbol-narrow': '1.0-0' }}</strong></td>
                     <td class="td-center">
                       <button class="btn-slip" (click)="viewSlipModal(s)">
-                        📄 Ver Colilla
+                         Ver Colilla
                       </button>
                     </td>
                   </tr>
                 } @empty {
                   <tr>
                     <td colspan="10" class="text-center empty-msg">
-                      Este periodo está en borrador. Haga clic en <strong>"⚡ Liquidar Nómina"</strong> para calcular automáticamente los salarios y recargos desde la programación.
+                      Este periodo está en borrador. Haga clic en <strong>" Liquidar Nómina"</strong> para calcular automáticamente los salarios y recargos desde la programación.
                     </td>
                   </tr>
                 }
@@ -150,7 +150,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
         <div class="modal-backdrop">
           <div class="modal-card slip-modal">
             <div class="slip-header">
-              <h2>🛡️ CORAZA SEGURIDAD C.T.A.</h2>
+              <h2>CORAZA SEGURIDAD C.T.A.</h2>
               <p class="slip-sub">NIT: 811.021.524-8 · COMPROBANTE INDIVIDUAL DE PAGO DE NÓMINA</p>
             </div>
             <div class="slip-meta-grid">
@@ -188,7 +188,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
             </div>
             <div class="modal-actions">
               <button class="btn-cancel" (click)="activeSlip.set(null)">Cerrar</button>
-              <button class="btn-save" (click)="printSlip()">🖨️ Imprimir Colilla</button>
+              <button class="btn-save" (click)="printSlip()">Imprimir Colilla</button>
             </div>
           </div>
         </div>
@@ -247,7 +247,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .highlight-rec { color: #0f766e; font-weight: 600; }
     .text-success { color: #16a34a; font-weight: 700; }
     .text-danger { color: #dc2626; font-weight: 600; }
-    .text-primary { color: #1e40af; font-weight: 700; }
+    .text-primary { color: #0369a1; font-weight: 700; }
     .btn-slip {
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
       border: 1px solid #cbd5e1; background: #f8fafc; color: #0f766e; cursor: pointer;

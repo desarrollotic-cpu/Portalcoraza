@@ -362,7 +362,7 @@ export interface GuardAvailabilityItem {
       gap: 0.5rem;
     }
     .btn-primary {
-      background: #1e40af;
+      background: #0369a1;
       color: #fff;
       padding: 0.5rem 0.95rem;
       border-radius: 0.5rem;
@@ -407,11 +407,11 @@ export interface GuardAvailabilityItem {
       border-radius: 0.5rem 0.5rem 0 0;
       transition: all 0.15s;
     }
-    .tab-btn:hover { color: #1e40af; background: #f8fafc; }
+    .tab-btn:hover { color: #0369a1; background: #f8fafc; }
     .tab-btn.active {
-      color: #1e40af;
-      border-bottom: 3px solid #1e40af;
-      background: #eff6ff;
+      color: #0369a1;
+      border-bottom: 3px solid #0369a1;
+      background: #f0f9ff;
     }
 
     /* TODAY WIDGET */
@@ -459,8 +459,8 @@ export interface GuardAvailabilityItem {
     }
     .avail-sub { margin: 0.15rem 0 0; font-size: 0.82rem; color: #64748b; }
     .today-date-badge {
-      background: #eff6ff;
-      color: #1e40af;
+      background: #f0f9ff;
+      color: #0369a1;
       font-size: 0.75rem;
       font-weight: 800;
       padding: 0.15rem 0.5rem;
@@ -492,7 +492,7 @@ export interface GuardAvailabilityItem {
     }
     .sum-item.diurno { background: #fefce8; border-color: #fef08a; }
     .sum-item.nocturno { background: #f0fdf4; border-color: #bbf7d0; }
-    .sum-item.covered { background: #eff6ff; border-color: #bfdbfe; }
+    .sum-item.covered { background: #f0f9ff; border-color: #bfdbfe; }
     .sum-item.descansos { background: #faf5ff; border-color: #e9d5ff; }
     .sum-item.disponibles { background: #ecfdf5; border-color: #6ee7b7; }
     .sum-icon { font-size: 1.3rem; }
@@ -525,7 +525,7 @@ export interface GuardAvailabilityItem {
       border-bottom: 1px solid #f1f5f9;
       padding-bottom: 0.4rem;
     }
-    .post-code { color: #2563eb; font-size: 0.82rem; margin-right: 0.3rem; }
+    .post-code { color: #0369a1; font-size: 0.82rem; margin-right: 0.3rem; }
     .post-name { font-size: 0.86rem; color: #0f172a; }
     .badge-status {
       font-size: 0.7rem;
@@ -604,12 +604,12 @@ export interface GuardAvailabilityItem {
     .st-descanso { background: #f1f5f9; color: #475569; }
     .st-novedad { background: #fee2e2; color: #991b1b; }
 
-    .puesto-highlight { color: #1e40af; font-size: 0.84rem; }
+    .puesto-highlight { color: #0369a1; font-size: 0.84rem; }
     .free-text { color: #15803d; font-weight: 700; font-size: 0.78rem; }
     .puesto-chip {
       display: inline-block;
-      background: #eff6ff;
-      color: #1e40af;
+      background: #f0f9ff;
+      color: #0369a1;
       border: 1px solid #bfdbfe;
       padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
@@ -650,10 +650,10 @@ export interface GuardAvailabilityItem {
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-page:hover:not(:disabled) { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+    .btn-page:hover:not(:disabled) { background: #f0f9ff; border-color: #0369a1; color: #0369a1; }
     .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
     .page-current-pill {
-      background: #1e40af;
+      background: #0369a1;
       color: #ffffff;
       font-weight: 800;
       font-size: 0.76rem;
@@ -667,7 +667,7 @@ export interface GuardAvailabilityItem {
       background: #f8fafc;
       border-radius: 0.75rem;
     }
-    .btn-link { color: #2563eb; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
+    .btn-link { color: #0369a1; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
     .loading-text { font-size: 0.85rem; color: #64748b; text-align: center; padding: 1.5rem; }
 
     .prog-panel__chart { max-width: 720px; }

@@ -5,12 +5,21 @@ import { Component, input, output } from '@angular/core';
  */
 @Component({
   selector: 'app-confirm-dialog',
+  host: {
+    '(document:keydown.escape)': 'onEscape()',
+  },
   template: `
     @if (open()) {
       <div class="backdrop" (click)="onBackdrop()">
-        <div class="panel" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+        <div
+          class="panel"
+          role="dialog"
+          aria-modal="true"
+          [attr.aria-labelledby]="titleId"
+          (click)="$event.stopPropagation()"
+        >
           <header class="panel-header">
-            <h3>{{ title() }}</h3>
+            <h3 [id]="titleId">{{ title() }}</h3>
             <button type="button" class="close" (click)="cancelled.emit()" aria-label="Cerrar">×</button>
           </header>
           <div class="panel-body">
@@ -74,6 +83,8 @@ import { Component, input, output } from '@angular/core';
       line-height: 1;
       cursor: pointer;
       color: var(--coraza-text-muted, #64748b);
+      width: 44px;
+      height: 44px;
     }
     .panel-body {
       padding: 1.15rem 1.2rem 1.25rem;
@@ -107,6 +118,7 @@ import { Component, input, output } from '@angular/core';
       font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
+      min-height: 44px;
     }
     .btn-ghost {
       border: 1px solid var(--coraza-border, #e2e8f0);
@@ -143,9 +155,16 @@ export class ConfirmDialog {
 
   readonly confirmed = output<void>();
   readonly cancelled = output<void>();
+  readonly titleId = 'confirm-dialog-title';
 
   onBackdrop(): void {
     if (this.closeOnBackdrop() && !this.busy()) {
+      this.cancelled.emit();
+    }
+  }
+
+  onEscape(): void {
+    if (this.open() && !this.busy()) {
       this.cancelled.emit();
     }
   }

@@ -101,13 +101,13 @@ import {
             @if (activeTab() === 'current') {
               @if (queueItems().length === 0) {
                 <div class="empty-queue">
-                  <div class="empty-icon">📄</div>
+                  <div class="empty-icon" aria-hidden="true">—</div>
                   <strong>La cola de impresión está vacía</strong>
-                  <p>Cada vez que registres una Minuta, Contrato o Asociado (o pulses el botón "🏷️ Rótulo" en cualquier tabla), se guardará aquí automáticamente para imprimir en lote.</p>
+                  <p>Cada vez que registres una Minuta, Contrato o Asociado (o pulses el botón "Rótulo" en cualquier tabla), se guardará aquí automáticamente para imprimir en lote.</p>
                   <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
                     <button type="button" class="btn-goto-history" (click)="loadRecentMinutes()" [disabled]="loadingRecent()">
                       <app-icon [icon]="icons.Refresh" [size]="14" [strokeWidth]="2" />
-                      {{ loadingRecent() ? 'Cargando...' : '📥 Cargar Minutas Registradas a la Cola' }}
+                      {{ loadingRecent() ? 'Cargando...' : 'Cargar minutas registradas a la cola' }}
                     </button>
                     @if (batchesHistory().length > 0) {
                       <button type="button" class="btn-goto-history" (click)="activeTab.set('history')">
@@ -134,7 +134,7 @@ import {
                         <strong class="item-code">#{{ it.codigo }}</strong>
                         <span class="item-title">{{ it.titulo }}</span>
                         @if (it.slotFisico) {
-                          <span class="item-slot">📍 {{ it.slotFisico }}</span>
+                          <span class="item-slot">{{ it.slotFisico }}</span>
                         }
                       </div>
                       <button type="button" class="btn-remove" (click)="removeItem(idx)" title="Quitar de la cola">
@@ -148,7 +148,7 @@ import {
               <!-- HISTORIAL DE LOTES IMPRESOS PARA REIMPRIMIR -->
               @if (batchesHistory().length === 0) {
                 <div class="empty-queue">
-                  <div class="empty-icon">🕒</div>
+                  <div class="empty-icon" aria-hidden="true">—</div>
                   <strong>No hay lotes previos en el historial</strong>
                   <p>Cuando imprimas tu primer lote de rótulos, quedará guardado aquí automáticamente para que puedas reimprimirlo cuando quieras.</p>
                 </div>
@@ -159,8 +159,8 @@ import {
                       <div class="history-card-head">
                         <div class="history-card-title">
                           <span class="history-badge">Lote #{{ batch.id.replace('lote_', '') }}</span>
-                          <span class="history-date">📅 {{ batch.fecha }}</span>
-                          <span class="history-count">📄 {{ batch.cantidad }} rótulos</span>
+                          <span class="history-date">{{ batch.fecha }}</span>
+                          <span class="history-count">{{ batch.cantidad }} rótulos</span>
                         </div>
                         <div class="history-actions">
                           <button
@@ -220,8 +220,8 @@ import {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: #eff6ff;
-      color: #1d4ed8;
+      background: #f0f9ff;
+      color: #0369a1;
       border: 1px solid #bfdbfe;
       border-radius: 0.65rem;
       padding: 0.45rem 0.85rem;
@@ -232,7 +232,7 @@ import {
       box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
     .queue-topbar-btn:hover {
-      background: #dbeafe;
+      background: #e0f2fe;
       border-color: #93c5fd;
       transform: translateY(-1px);
     }
@@ -248,7 +248,7 @@ import {
       text-align: center;
     }
     .queue-badge.has-items {
-      background: #2563eb;
+      background: #0369a1;
       box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
     }
 
@@ -292,8 +292,8 @@ import {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: #eff6ff;
-      color: #2563eb;
+      background: #f0f9ff;
+      color: #0369a1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -336,8 +336,8 @@ import {
     }
     .tab-btn:hover { color: #0f172a; }
     .tab-btn.active {
-      color: #2563eb;
-      border-bottom-color: #2563eb;
+      color: #0369a1;
+      border-bottom-color: #0369a1;
       background: #ffffff;
     }
 
@@ -367,14 +367,14 @@ import {
       gap: 0.4rem;
       background: #ffffff;
       border: 1px solid #bfdbfe;
-      color: #2563eb;
+      color: #0369a1;
       padding: 0.45rem 0.85rem;
       border-radius: 0.5rem;
       font-size: 0.8rem;
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-goto-history:hover { background: #eff6ff; }
+    .btn-goto-history:hover { background: #f0f9ff; }
 
     .queue-status-bar {
       display: flex;
@@ -419,10 +419,10 @@ import {
       background: #e2e8f0;
       color: #475569;
     }
-    .item-badge[data-mod='MINUTAS'] { background: #dbeafe; color: #1e40af; }
+    .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
     .item-badge[data-mod='CONTRATOS'] { background: #e0e7ff; color: #3730a3; }
     .item-badge[data-mod='PERSONAL'] { background: #fef3c7; color: #92400e; }
-    .item-code { color: #2563eb; font-size: 0.92rem; }
+    .item-code { color: #0369a1; font-size: 0.92rem; }
     .item-title { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
     .item-slot { font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
     
@@ -460,13 +460,13 @@ import {
     .history-card-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
     .history-badge { font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #334155; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
     .history-date { font-size: 0.78rem; color: #64748b; font-weight: 600; }
-    .history-count { font-size: 0.78rem; font-weight: 700; color: #2563eb; }
+    .history-count { font-size: 0.78rem; font-weight: 700; color: #0369a1; }
     .history-actions { display: flex; align-items: center; gap: 0.4rem; }
     .btn-reprint {
       display: inline-flex;
       align-items: center;
       gap: 0.35rem;
-      background: #1e40af;
+      background: var(--primary-600);
       color: #ffffff;
       border: none;
       border-radius: 0.45rem;
@@ -475,7 +475,7 @@ import {
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-reprint:hover { background: #1e3a8a; }
+    .btn-reprint:hover { background: var(--primary-700, #075985); }
     .btn-restore {
       display: inline-flex;
       align-items: center;
@@ -499,7 +499,7 @@ import {
       border-radius: 0.35rem;
       color: #334155;
     }
-    .history-chip strong { color: #2563eb; }
+    .history-chip strong { color: #0369a1; }
 
     .modal-footer {
       display: flex;
@@ -523,7 +523,7 @@ import {
     
     .btn-print-all {
       border: none;
-      background: #1e3a8a;
+      background: var(--primary-600, #0369a1);
       color: #ffffff;
       border-radius: 0.55rem;
       padding: 0.55rem 1.25rem;
@@ -535,7 +535,7 @@ import {
       gap: 0.45rem;
       transition: background 0.2s;
     }
-    .btn-print-all:hover { background: #172554; }
+    .btn-print-all:hover { background: var(--primary-700, #075985); }
     .btn-print-all:disabled { background: #94a3b8; cursor: not-allowed; }
   `,
 })

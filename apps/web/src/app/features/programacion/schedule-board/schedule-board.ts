@@ -72,11 +72,11 @@ const CODES: CodeConfig[] = [
                     [value]="selectedPostName()"
                     (input)="onPostSearchInput($event)"
                     (focus)="postDropdownOpen.set(true)"
-                    placeholder="🔍 Escribe nombre de puesto (ej: 808, Navarra, Interclub...)"
+                    placeholder=" Escribe nombre de puesto (ej: 808, Navarra, Interclub...)"
                     class="inp-post-combobox"
                   />
                   @if (postSearchQuery()) {
-                    <button type="button" class="btn-clear-post-search" (click)="clearPostSearch()">✕</button>
+                    <button type="button" class="btn-clear-post-search" (click)="clearPostSearch()"></button>
                   }
                   @if (postDropdownOpen()) {
                     <div class="dropdown-backdrop" (click)="postDropdownOpen.set(false)"></div>
@@ -124,7 +124,7 @@ const CODES: CodeConfig[] = [
 
       @if (error()) {
         <div class="banner error-banner" style="background:#fee2e2; border:1px solid #fca5a5; color:#991b1b; padding:0.65rem 1rem; border-radius:8px; margin-bottom:1rem; display:flex; justify-content:space-between; align-items:center;">
-          <span>⚠️ {{ error() }}</span>
+          <span> {{ error() }}</span>
           <button type="button" class="ghost" style="padding:0.25rem 0.6rem; font-size:0.75rem;" (click)="onSelectionChange()">Reintentar</button>
         </div>
       }
@@ -171,7 +171,7 @@ const CODES: CodeConfig[] = [
           </button>
           @if (schedule()!.status !== 'publicado') {
             <button type="button" class="success" (click)="setStatus('publicado')" [disabled]="saving() || dirty()">
-              📢 Publicar Malla Oficial
+               Publicar Malla Oficial
             </button>
           } @else {
             <button type="button" (click)="setStatus('borrador')" [disabled]="saving()">
@@ -179,7 +179,7 @@ const CODES: CodeConfig[] = [
             </button>
           }
           <button type="button" class="btn-print" (click)="printPlanillaCartelera()" [disabled]="saving()">
-            🖨️ Imprimir Planilla Cartelera
+             Imprimir Planilla Cartelera
           </button>
           @if (dirty()) {
             <span class="hint warn">Hay cambios sin guardar</span>
@@ -204,7 +204,7 @@ const CODES: CodeConfig[] = [
                     <option [ngValue]="a.id">{{ associateName(a) }}</option>
                   }
                 </select>
-                <button type="button" class="danger sm" (click)="removeRole(i)">✕</button>
+                <button type="button" class="danger sm" (click)="removeRole(i)"></button>
               </div>
             }
           </div>
@@ -214,14 +214,14 @@ const CODES: CodeConfig[] = [
         <!-- BARRA DE AUTO-LLENADO INTELIGENTE DE TURNOS -->
         <div class="quick-pattern-bar">
           <div class="qpb-header">
-            <span class="qpb-title">⚡ Auto-Llenado Inteligente por Patrón (1 Clic):</span>
+            <span class="qpb-title"> Auto-Llenado Inteligente por Patrón (1 Clic):</span>
             <span class="qpb-hint">Llena el mes completo automáticamente evitando digitación manual celda por celda</span>
           </div>
           <div class="qpb-controls">
             <label class="qpb-field">
               Rol a llenar:
               <select #patternRoleSelect>
-                <option value="ALL">★ Todos los roles</option>
+                <option value="ALL"> Todos los roles</option>
                 @for (r of personal(); track r.rol) {
                   <option [value]="r.rol">{{ r.displayName || r.rol }}</option>
                 }
@@ -254,7 +254,7 @@ const CODES: CodeConfig[] = [
               (click)="applyCustomPattern(patternRoleSelect.value, patternCodeSelect.value, +patternStartDaySelect.value)"
               [disabled]="saving() || !personal().length"
             >
-              ⚡ Poblar Mes Automáticamente
+               Poblar Mes Automáticamente
             </button>
           </div>
         </div>
@@ -274,7 +274,7 @@ const CODES: CodeConfig[] = [
                     <div class="day-dow">{{ dayOfWeekLetter(day) }}</div>
                     <div class="day-num">{{ day }}</div>
                     @if (isHoliday(day)) {
-                      <span class="hol-star" [title]="holidayName(day)">★</span>
+                      <span class="hol-star" [title]="holidayName(day)"></span>
                     }
                   </th>
                 }
@@ -322,7 +322,7 @@ const CODES: CodeConfig[] = [
 
         <div class="calendar-indicators">
           <span class="ind-pill ind-sun">
-            <span class="ind-box sun-bg">D / ★</span>
+            <span class="ind-box sun-bg">D / </span>
             <strong>Domingos y Festivos de Colombia</strong>
           </span>
           <span class="ind-pill ind-sat">
@@ -360,9 +360,9 @@ const CODES: CodeConfig[] = [
               <label class="assoc-label">
                 <span>Vigilante / Asociado</span>
                 <div class="current-assoc-badge">
-                  <span>👤 {{ selectedAssociateLabel() }}</span>
+                  <span> {{ selectedAssociateLabel() }}</span>
                   @if (editAssociateId) {
-                    <button type="button" class="btn-clear-assoc" (click)="editAssociateId = null" title="Quitar asignación">✕</button>
+                    <button type="button" class="btn-clear-assoc" (click)="editAssociateId = null" title="Quitar asignación"></button>
                   }
                 </div>
               </label>
@@ -372,11 +372,11 @@ const CODES: CodeConfig[] = [
                   type="text"
                   [ngModel]="associateSearchQuery()"
                   (ngModelChange)="associateSearchQuery.set($event)"
-                  placeholder="🔍 Escribe nombre o cédula para buscar..."
+                  placeholder=" Escribe nombre o cédula para buscar..."
                   class="inp-search-assoc"
                 />
                 @if (associateSearchQuery()) {
-                  <button type="button" class="btn-clear-search" (click)="associateSearchQuery.set('')">✕</button>
+                  <button type="button" class="btn-clear-search" (click)="associateSearchQuery.set('')"></button>
                 }
               </div>
 
@@ -417,16 +417,16 @@ const CODES: CodeConfig[] = [
 
             <!-- BOTONERA DE ACCESO RÁPIDO Y NOVEDADES EN 1 CLIC -->
             <div class="quick-novelty-bar">
-              <span class="quick-label">⚡ Acceso Rápido / Novedad (1 Clic):</span>
+              <span class="quick-label"> Acceso Rápido / Novedad (1 Clic):</span>
               <div class="quick-btns">
-                <button type="button" class="btn-q c-d" (click)="quickSelectCode('D')">☀️ D (12h)</button>
-                <button type="button" class="btn-q c-n" (click)="quickSelectCode('N')">🌙 N (12h)</button>
-                <button type="button" class="btn-q c-d8" (click)="quickSelectCode('D8')">☀️ D8 (8h)</button>
-                <button type="button" class="btn-q c-n8" (click)="quickSelectCode('N8')">🌙 N8 (8h)</button>
-                <button type="button" class="btn-q c-dr" (click)="quickSelectCode('DR')">🧘 Descanso</button>
-                <button type="button" class="btn-q c-vac" (click)="quickSelectCode('VAC')">🏖️ Vacaciones</button>
-                <button type="button" class="btn-q c-in" (click)="quickSelectCode('IN')">🏥 Incapacidad</button>
-                <button type="button" class="btn-q c-lc" (click)="quickSelectCode('LC')">📝 Licencia</button>
+                <button type="button" class="btn-q c-d" (click)="quickSelectCode('D')"> D (12h)</button>
+                <button type="button" class="btn-q c-n" (click)="quickSelectCode('N')"> N (12h)</button>
+                <button type="button" class="btn-q c-d8" (click)="quickSelectCode('D8')"> D8 (8h)</button>
+                <button type="button" class="btn-q c-n8" (click)="quickSelectCode('N8')"> N8 (8h)</button>
+                <button type="button" class="btn-q c-dr" (click)="quickSelectCode('DR')"> Descanso</button>
+                <button type="button" class="btn-q c-vac" (click)="quickSelectCode('VAC')"> Vacaciones</button>
+                <button type="button" class="btn-q c-in" (click)="quickSelectCode('IN')"> Incapacidad</button>
+                <button type="button" class="btn-q c-lc" (click)="quickSelectCode('LC')"> Licencia</button>
               </div>
             </div>
 
@@ -445,7 +445,7 @@ const CODES: CodeConfig[] = [
                 </div>
                 @if (calculatedHoursText()) {
                   <div class="hours-badge">
-                    ⏱️ {{ calculatedHoursText() }}
+                    ⏱ {{ calculatedHoursText() }}
                   </div>
                 }
               </div>
@@ -731,7 +731,7 @@ const CODES: CodeConfig[] = [
     .inp-post-combobox {
       width: 100%;
       padding: 0.45rem 2rem 0.45rem 0.75rem;
-      border: 1.5px solid #2563eb;
+      border: 1.5px solid #0369a1;
       border-radius: 6px;
       font-weight: 700;
       font-size: 0.85rem;
@@ -776,7 +776,7 @@ const CODES: CodeConfig[] = [
       max-height: 280px;
       overflow-y: auto;
       background: #ffffff;
-      border: 1.5px solid #2563eb;
+      border: 1.5px solid #0369a1;
       border-radius: 8px;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
       z-index: 100;
@@ -792,12 +792,12 @@ const CODES: CodeConfig[] = [
       transition: background 0.1s;
     }
     .post-dropdown-item:hover {
-      background: #eff6ff;
-      color: #1e40af;
+      background: #f0f9ff;
+      color: #0369a1;
     }
     .post-dropdown-item.selected {
-      background: #dbeafe;
-      color: #1e3a8a;
+      background: #e0f2fe;
+      color: #0c4a6e;
       font-weight: 800;
     }
     .post-dropdown-empty {
@@ -825,9 +825,9 @@ const CODES: CodeConfig[] = [
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: #eff6ff;
+      background: #f0f9ff;
       border: 1px solid #bfdbfe;
-      color: #1e40af;
+      color: #0369a1;
       padding: 0.35rem 0.6rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -891,7 +891,7 @@ const CODES: CodeConfig[] = [
       transition: background 0.1s;
     }
     .assoc-option:hover {
-      background: #dbeafe;
+      background: #e0f2fe;
     }
     .assoc-option.selected {
       background: #bfdbfe;
@@ -954,9 +954,9 @@ const CODES: CodeConfig[] = [
       background: #ffffff;
     }
     .btn-apply-pattern {
-      background: #2563eb;
+      background: #0369a1;
       color: #ffffff;
-      border: 1px solid #1d4ed8;
+      border: 1px solid #0369a1;
       border-radius: 6px;
       padding: 0.45rem 0.9rem;
       font-size: 0.85rem;
@@ -968,7 +968,7 @@ const CODES: CodeConfig[] = [
       transition: background 0.15s;
     }
     .btn-apply-pattern:hover:not(:disabled) {
-      background: #1d4ed8;
+      background: #0369a1;
     }
 
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
@@ -1536,7 +1536,7 @@ export class ScheduleBoard implements OnInit {
           .brand-title { font-size: 15px; font-weight: bold; color: #0f172a; margin: 0; }
           .brand-sub { font-size: 8.5px; color: #475569; margin: 2px 0 0; }
           .meta-box { border: 1px solid #0f172a; padding: 4px 8px; border-radius: 4px; text-align: right; background: #f8fafc; }
-          .meta-box h3 { margin: 0; font-size: 11px; color: #1e40af; }
+          .meta-box h3 { margin: 0; font-size: 11px; color: #0369a1; }
           .meta-box p { margin: 2px 0 0; font-size: 9px; }
           .post-bar { display: flex; justify-content: space-between; background: #0f172a; color: #ffffff; padding: 4px 8px; font-size: 10px; border-radius: 3px; margin-bottom: 6px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
@@ -1545,27 +1545,27 @@ export class ScheduleBoard implements OnInit {
           .conv-box { display: inline-block; width: 14px; height: 12px; text-align: center; line-height: 12px; font-weight: bold; border-radius: 2px; font-size: 8px; }
           .signatures { display: flex; justify-content: space-around; margin-top: 20px; }
           .sign-box { width: 200px; text-align: center; border-top: 1px solid #0f172a; padding-top: 4px; font-size: 9px; }
-          .membrete-footer { margin-top: 24px; border-top: 2px solid #1d4ed8; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
+          .membrete-footer { margin-top: 24px; border-top: 2px solid #0369a1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
           .footer-col { display: flex; align-items: center; gap: 4px; }
         </style>
       </head>
       <body>
-        <div class="header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #1d4ed8; padding-bottom:8px; margin-bottom:8px;">
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #0369a1; padding-bottom:8px; margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:12px;">
             <img src="/brand/logo-coraza-cta.png" style="width:48px; height:48px; border-radius:50%;" alt="Logo Coraza" onerror="this.style.display='none'">
             <div>
               <h1 style="font-size:15px; font-weight:800; color:#0f172a; margin:0; letter-spacing:0.5px;">CORAZA SEGURIDAD C.T.A.</h1>
-              <p style="font-size:8.5px; color:#1d4ed8; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
+              <p style="font-size:8.5px; color:#0369a1; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
               <p style="font-size:7.8px; color:#64748b; margin:0;">NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011</p>
             </div>
           </div>
-          <div class="meta-box" style="border:1.5px solid #1d4ed8; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
-            <h3 style="margin:0; font-size:11px; color:#1d4ed8; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
+          <div class="meta-box" style="border:1.5px solid #0369a1; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
+            <h3 style="margin:0; font-size:11px; color:#0369a1; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
             <p style="margin:2px 0 0; font-size:9.5px; font-weight:700; color:#0f172a;">Periodo: ${monthLabel}</p>
           </div>
         </div>
 
-        <div class="post-bar" style="background:#1d4ed8;">
+        <div class="post-bar" style="background:#0369a1;">
           <span><strong>PUESTO DE SERVICIO:</strong> ${post.name}</span>
           <span><strong>ESTADO:</strong> OFICIAL / CARTELERA</span>
           <span><strong>FECHA EMISIÓN:</strong> ${new Date().toLocaleDateString('es-CO')}</span>
@@ -1608,12 +1608,12 @@ export class ScheduleBoard implements OnInit {
           </div>
         </div>
 
-        <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #1d4ed8; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
+        <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #0369a1; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
           <div style="display:flex; gap:12px; align-items:center;">
-            <div class="footer-col"><strong>📧 Correo:</strong> info@corazaseguridadcta.com</div>
-            <div class="footer-col"><strong>🌐 Web:</strong> www.corazaseguridadcta.com</div>
-            <div class="footer-col"><strong>📞 PBX:</strong> (604) 4447929</div>
-            <div class="footer-col"><strong>📍 Ubicación:</strong> Medellín - Colombia</div>
+            <div class="footer-col"><strong> Correo:</strong> info@corazaseguridadcta.com</div>
+            <div class="footer-col"><strong> Web:</strong> www.corazaseguridadcta.com</div>
+            <div class="footer-col"><strong> PBX:</strong> (604) 4447929</div>
+            <div class="footer-col"><strong> Ubicación:</strong> Medellín - Colombia</div>
           </div>
           <div style="display:flex; gap:8px; align-items:center;">
             <img src="/brand/membrete/image3.png" style="height:24px;" alt="ISO 9001" onerror="this.style.display='none'">

@@ -152,6 +152,10 @@
   padding: 0;
   box-shadow: none;
 }
+.hr-search:focus-within {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-500) 18%, transparent);
+}
 
 .hr-chips {
   display: flex;

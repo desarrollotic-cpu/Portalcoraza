@@ -25,6 +25,8 @@ import { ChangeDetectionStrategy, Component, Type, computed, input } from '@angu
   `,
   host: {
     '[style.--icon-size.px]': 'size()',
+    // Decorative by default: parent control/text carries the name.
+    '[attr.aria-hidden]': 'true',
   },
 })
 export class Icon {

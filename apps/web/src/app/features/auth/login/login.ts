@@ -54,13 +54,18 @@ import { Icon } from '../../../shared/components/icon/icon';
           <app-icon class="input-icon" [icon]="icons.Mail" [size]="18" [strokeWidth]="1.8" />
           <input
             id="email"
-            type="text"
+            type="email"
             inputmode="email"
             formControlName="email"
             autocomplete="username"
             placeholder="usuario@corazaseguridadcta.com"
+            [attr.aria-invalid]="form.controls.email.invalid && form.controls.email.touched"
+            [attr.aria-describedby]="form.controls.email.invalid && form.controls.email.touched ? 'email-error' : null"
           />
         </div>
+        @if (form.controls.email.invalid && form.controls.email.touched) {
+          <p id="email-error" class="field-error">Introduce un correo válido.</p>
+        }
       </div>
 
       <div class="field">
@@ -92,7 +97,7 @@ import { Icon } from '../../../shared/components/icon/icon';
       <button
         type="submit"
         class="submit-btn"
-        [disabled]="form.invalid || loading()"
+        [disabled]="loading()"
       >
         @if (loading()) {
           <span class="spinner"></span>
@@ -104,7 +109,7 @@ import { Icon } from '../../../shared/components/icon/icon';
       </button>
 
       <p class="foot-note">
-        ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el admin y no
+        ¿Olvidaste tu clave? Pide al administrador que la restablezca. Si eres el administrador y no
         recuerdas la tuya,
         <button type="button" class="linkish" (click)="showRecover.set(!showRecover())">
           recupera el acceso aquí
@@ -117,8 +122,8 @@ import { Icon } from '../../../shared/components/icon/icon';
         <div class="recover-box">
           <h2>Recuperar administrador</h2>
           <p>
-            Usa la clave de recuperación del servidor (<code>ADMIN_RECOVERY_SECRET</code>) o el
-            comando <code>npm run reset:admin-password</code>.
+            Usa la clave de recuperación configurada en el servidor. Si no la tienes, pide al equipo
+            técnico que restablezca el acceso.
           </p>
           @if (recoverError()) {
             <div class="alert" role="alert">
@@ -172,12 +177,12 @@ import { Icon } from '../../../shared/components/icon/icon';
     .logo-block {
       display: flex;
       justify-content: center;
-      margin-bottom: 1.15rem;
+      margin-bottom: 0.75rem;
     }
 
     .login-logo {
-      width: 88px;
-      height: 88px;
+      width: 64px;
+      height: 64px;
       object-fit: contain;
       border-radius: 50%;
       background: #fff;
@@ -185,27 +190,33 @@ import { Icon } from '../../../shared/components/icon/icon';
       border: 1px solid var(--border);
     }
 
+    @media (min-width: 1025px) {
+      .logo-block {
+        display: none;
+      }
+    }
+
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      padding: 0.3rem 0.7rem;
+      padding: 0.25rem 0.6rem;
       background: var(--primary-50);
       color: var(--primary-700);
       border: 1px solid var(--primary-100);
       border-radius: 999px;
-      font-size: 0.72rem;
+      font-size: 0.7rem;
       font-weight: 600;
       letter-spacing: 0.02em;
       text-transform: uppercase;
       align-self: flex-start;
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.75rem;
     }
 
     h1 {
-      margin: 0 0 0.4rem;
+      margin: 0 0 0.3rem;
       font-family: var(--font-display);
-      font-size: 1.85rem;
+      font-size: 1.45rem;
       font-weight: 700;
       color: var(--text-primary);
       letter-spacing: -0.02em;
@@ -213,23 +224,23 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .subtitle {
-      margin: 0 0 1.85rem;
+      margin: 0 0 1rem;
       color: var(--text-secondary);
-      font-size: 0.95rem;
-      line-height: 1.5;
+      font-size: 0.88rem;
+      line-height: 1.45;
     }
 
     .alert {
       display: flex;
       align-items: center;
       gap: 0.55rem;
-      padding: 0.65rem 0.85rem;
-      margin: 0 0 1.25rem;
+      padding: 0.55rem 0.75rem;
+      margin: 0 0 0.85rem;
       background: var(--error-bg);
       border: 1px solid rgba(239, 68, 68, 0.2);
       border-radius: var(--radius-sm);
       color: var(--error-dark);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
     }
 
     .alert-dot {
@@ -241,7 +252,12 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .field {
-      margin-bottom: 1.2rem;
+      margin-bottom: 0.85rem;
+    }
+    .field-error {
+      margin: 0.4rem 0 0;
+      font-size: 0.8rem;
+      color: var(--error-600);
     }
 
     label {
@@ -290,10 +306,11 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .input-wrap input:focus {
-      outline: none;
+      outline: 2px solid var(--border-focus);
+      outline-offset: 1px;
       border-color: var(--primary-500);
       background: #fff;
-      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-500) 18%, transparent);
     }
 
     .input-wrap:focus-within .input-icon {
@@ -324,13 +341,13 @@ import { Icon } from '../../../shared/components/icon/icon';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.55rem;
+      gap: 0.5rem;
       width: 100%;
-      margin-top: 0.5rem;
-      padding: 0.95rem 1.5rem;
+      margin-top: 0.35rem;
+      padding: 0.75rem 1.25rem;
       border: none;
       border-radius: var(--radius-sm);
-      font-size: 0.95rem;
+      font-size: 0.92rem;
       font-weight: 600;
       letter-spacing: 0.01em;
       cursor: pointer;
@@ -348,7 +365,7 @@ import { Icon } from '../../../shared/components/icon/icon';
     .submit-btn:hover:not(:disabled) {
       background-position: 100% 100%;
       transform: translateY(-1px);
-      box-shadow: 0 16px 32px rgba(99, 102, 241, 0.35);
+      box-shadow: var(--shadow-glow);
     }
 
     .submit-btn:active:not(:disabled) {
@@ -377,9 +394,9 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .foot-note {
-      margin: 1.5rem 0 0;
+      margin: 0.85rem 0 0;
       text-align: center;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       color: var(--text-muted);
     }
 
@@ -395,11 +412,13 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .recover-box {
-      margin-top: 1.25rem;
-      padding: 1rem;
-      border: 1px solid color-mix(in srgb, var(--primary) 20%, #e2e8f0);
+      margin-top: 0.85rem;
+      padding: 0.85rem;
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, var(--border));
       border-radius: 12px;
-      background: color-mix(in srgb, var(--primary-50, #eef2ff) 70%, #fff);
+      background: color-mix(in srgb, var(--primary-50) 70%, var(--surface));
+      max-height: 40dvh;
+      overflow-y: auto;
     }
     .recover-box h2 {
       margin: 0 0 0.35rem;
@@ -453,7 +472,7 @@ export class Login {
   };
 
   readonly form = this.fb.nonNullable.group({
-    email: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(6)]],
   });
 
@@ -463,7 +482,11 @@ export class Login {
   });
 
   submit(): void {
-    if (this.form.invalid) return;
+    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      this.error.set('Revisa el correo y la contraseña.');
+      return;
+    }
     this.loading.set(true);
     this.error.set(null);
     const { email, password } = this.form.getRawValue();
@@ -514,7 +537,7 @@ export class Login {
       return 'No se pudo iniciar sesión. Intenta de nuevo.';
     }
     if (err.status === 0) {
-      return 'No hay conexión con la API (http://localhost:3000). Abre la web en http://localhost:4200';
+      return 'No hay conexión con el servidor. Intenta de nuevo en unos segundos.';
     }
     if (err.status === 401) {
       return 'Credenciales inválidas o usuario inactivo';

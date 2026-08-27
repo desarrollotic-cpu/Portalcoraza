@@ -331,18 +331,18 @@ export interface ModuleNavItem {
       height: 6px;
       border-radius: 999px;
       background: var(--primary-500);
-      box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6);
+      box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-600) 60%, transparent);
       animation: pulse 1.8s ease-out infinite;
     }
     @keyframes pulse {
       0% {
-        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.6);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-600) 60%, transparent);
       }
       70% {
-        box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--primary-600) 0%, transparent);
       }
       100% {
-        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary-600) 0%, transparent);
       }
     }
     .module-brand p {
