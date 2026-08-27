@@ -1608,11 +1608,17 @@ export class ScheduleBoard implements OnInit {
           </div>
         </div>
 
-        <div class="membrete-footer">
-          <div class="footer-col"><strong>📧 Correo:</strong> info@corazaseguridadcta.com</div>
-          <div class="footer-col"><strong>🌐 Web:</strong> www.corazaseguridadcta.com</div>
-          <div class="footer-col"><strong>📞 PBX:</strong> (604) 4447929</div>
-          <div class="footer-col"><strong>📍 Ubicación:</strong> Medellín - Colombia</div>
+        <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #1d4ed8; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div class="footer-col"><strong>📧 Correo:</strong> info@corazaseguridadcta.com</div>
+            <div class="footer-col"><strong>🌐 Web:</strong> www.corazaseguridadcta.com</div>
+            <div class="footer-col"><strong>📞 PBX:</strong> (604) 4447929</div>
+            <div class="footer-col"><strong>📍 Ubicación:</strong> Medellín - Colombia</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <img src="/brand/membrete/image3.png" style="height:24px;" alt="ISO 9001" onerror="this.style.display='none'">
+            <img src="/brand/membrete/image8.png" style="height:20px;" alt="Huella de Carbono" onerror="this.style.display='none'">
+          </div>
         </div>
 
         <script>

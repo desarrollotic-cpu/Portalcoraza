@@ -563,6 +563,17 @@ export class AssociatesService {
       doc.fontSize(8.5).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 55, sigY + 18);
       doc.text('PBX: (604) 4447929 · Medellín, Colombia', 55, sigY + 28);
 
+      // Sellos de certificación oficiales
+      const isoPath = path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image3.png');
+      const fenalcoPath = path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image8.png');
+
+      if (fs.existsSync(isoPath)) {
+        doc.image(isoPath, 420, sigY - 5, { height: 36 });
+      }
+      if (fs.existsSync(fenalcoPath)) {
+        doc.image(fenalcoPath, 490, sigY - 2, { height: 32 });
+      }
+
       // Pie de Página Membrete Oficial 2025
       doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 735).lineTo(557, 735).stroke();
       doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('📧 info@corazaseguridadcta.com   |   🌐 www.corazaseguridadcta.com   |   📞 PBX: (604) 4447929   |   📍 Medellín - Colombia', 55, 742, { align: 'center' });
