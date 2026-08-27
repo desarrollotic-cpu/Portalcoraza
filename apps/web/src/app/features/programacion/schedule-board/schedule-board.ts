@@ -1543,23 +1543,29 @@ export class ScheduleBoard implements OnInit {
           .convenciones { display: flex; gap: 10px; font-size: 8.5px; margin-bottom: 14px; background: #f1f5f9; padding: 4px 8px; border-radius: 3px; }
           .conv-item { display: flex; align-items: center; gap: 3px; }
           .conv-box { display: inline-block; width: 14px; height: 12px; text-align: center; line-height: 12px; font-weight: bold; border-radius: 2px; font-size: 8px; }
-          .signatures { display: flex; justify-content: space-around; margin-top: 28px; }
+          .signatures { display: flex; justify-content: space-around; margin-top: 20px; }
           .sign-box { width: 200px; text-align: center; border-top: 1px solid #0f172a; padding-top: 4px; font-size: 9px; }
+          .membrete-footer { margin-top: 24px; border-top: 2px solid #1d4ed8; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
+          .footer-col { display: flex; align-items: center; gap: 4px; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div>
-            <h1 class="brand-title">🛡️ CORAZA SEGURIDAD C.T.A.</h1>
-            <p class="brand-sub">NIT: 811.021.524-8 · Licencia SuperVigilancia Resol. No. 0002848 · PBX: (604) 448 2027</p>
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #1d4ed8; padding-bottom:8px; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="/brand/logo-coraza-cta.png" style="width:48px; height:48px; border-radius:50%;" alt="Logo Coraza" onerror="this.style.display='none'">
+            <div>
+              <h1 style="font-size:15px; font-weight:800; color:#0f172a; margin:0; letter-spacing:0.5px;">CORAZA SEGURIDAD C.T.A.</h1>
+              <p style="font-size:8.5px; color:#1d4ed8; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
+              <p style="font-size:7.8px; color:#64748b; margin:0;">NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011</p>
+            </div>
           </div>
-          <div class="meta-box">
-            <h3>PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
-            <p><strong>Periodo:</strong> ${monthLabel}</p>
+          <div class="meta-box" style="border:1.5px solid #1d4ed8; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
+            <h3 style="margin:0; font-size:11px; color:#1d4ed8; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
+            <p style="margin:2px 0 0; font-size:9.5px; font-weight:700; color:#0f172a;">Periodo: ${monthLabel}</p>
           </div>
         </div>
 
-        <div class="post-bar">
+        <div class="post-bar" style="background:#1d4ed8;">
           <span><strong>PUESTO DE SERVICIO:</strong> ${post.name}</span>
           <span><strong>ESTADO:</strong> OFICIAL / CARTELERA</span>
           <span><strong>FECHA EMISIÓN:</strong> ${new Date().toLocaleDateString('es-CO')}</span>
@@ -1600,6 +1606,13 @@ export class ScheduleBoard implements OnInit {
             <strong>ADMINISTRADOR / CLIENTE</strong><br>
             <span>Visto Bueno de Recepción</span>
           </div>
+        </div>
+
+        <div class="membrete-footer">
+          <div class="footer-col"><strong>📧 Correo:</strong> info@corazaseguridadcta.com</div>
+          <div class="footer-col"><strong>🌐 Web:</strong> www.corazaseguridadcta.com</div>
+          <div class="footer-col"><strong>📞 PBX:</strong> (604) 4447929</div>
+          <div class="footer-col"><strong>📍 Ubicación:</strong> Medellín - Colombia</div>
         </div>
 
         <script>

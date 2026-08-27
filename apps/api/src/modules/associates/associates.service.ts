@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import { Brackets, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
@@ -471,70 +473,100 @@ export class AssociatesService {
     const fechaExpedicion = new Date().toLocaleDateString('es-CO', { year: 'numeric', month: 'long', day: 'numeric' });
 
     return new Promise<Buffer>((resolve, reject) => {
-      const doc = new PDFDocument({ size: 'LETTER', margins: { top: 50, bottom: 50, left: 60, right: 60 } });
+      const doc = new PDFDocument({ size: 'LETTER', margins: { top: 40, bottom: 40, left: 55, right: 55 } });
       const chunks: Buffer[] = [];
       doc.on('data', (chunk: Buffer) => chunks.push(chunk));
       doc.on('end', () => resolve(Buffer.concat(chunks)));
       doc.on('error', (err: Error) => reject(err));
 
-      // Encabezado Corporativo
-      doc.rect(0, 0, 612, 12).fill('#1d4ed8');
-      doc.moveDown(1.5);
-      
-      doc.fillColor('#0f172a').fontSize(16).font('Helvetica-Bold').text('CORAZA SEGURIDAD C.T.A.', { align: 'center' });
-      doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('COOPERATIVA DE TRABAJO ASOCIADO DE SEGURIDAD PRIVADA', { align: 'center' });
-      doc.text('NIT: 811.026.837-1 · Personería Jurídica y Licencia SuperVigilancia Res. No. 202112000', { align: 'center' });
-      doc.moveDown(2);
+      // Franja superior azul corporativa
+      doc.rect(0, 0, 612, 10).fill('#1d4ed8');
+
+      // Logo Oficial Coraza
+      const logoPaths = [
+        path.join(process.cwd(), 'apps', 'api', 'assets', 'membrete', 'image1.png'),
+        path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'membrete', 'image1.png'),
+        path.join(process.cwd(), 'apps', 'web', 'public', 'brand', 'logo-coraza-cta.png'),
+      ];
+      let logoFound = false;
+      for (const lp of logoPaths) {
+        if (fs.existsSync(lp)) {
+          doc.image(lp, 55, 22, { width: 52, height: 52 });
+          logoFound = true;
+          break;
+        }
+      }
+
+      const headerTextX = logoFound ? 115 : 55;
+
+      // Encabezado Corporativo Oficial 2025
+      doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CORAZA SEGURIDAD C.T.A.', headerTextX, 24);
+      doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#1d4ed8').text('La Seguridad un Compromiso de Todos', headerTextX, 40);
+      doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011', headerTextX, 52);
+
+      doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 82).lineTo(557, 82).stroke();
+      doc.y = 98;
+      doc.moveDown(1);
 
       // Título
-      doc.rect(60, doc.y, 492, 28).fill('#f1f5f9');
-      doc.fillColor('#1e293b').fontSize(12).font('Helvetica-Bold').text('EL DEPARTAMENTO DE GESTIÓN HUMANA Y TALENTO', 60, doc.y - 20, { align: 'center' });
+      doc.rect(55, doc.y, 502, 24).fill('#f1f5f9');
+      doc.fillColor('#1e293b').fontSize(10.5).font('Helvetica-Bold').text('EL DEPARTAMENTO DE GESTIÓN HUMANA Y BIENESTAR LABORAL', 55, doc.y - 17, { align: 'center' });
       doc.moveDown(1.5);
       
-      doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CERTIFICA:', { align: 'center' });
-      doc.moveDown(1.5);
+      doc.fillColor('#0f172a').fontSize(13).font('Helvetica-Bold').text('CERTIFICA:', { align: 'center' });
+      doc.moveDown(1.2);
 
       // Cuerpo del Certificado
-      doc.fontSize(11).font('Helvetica').fillColor('#334155').lineGap(6);
+      doc.fontSize(10.5).font('Helvetica').fillColor('#334155').lineGap(5);
       doc.text(
-        `Que el(la) señor(a) ${fullName.toUpperCase()}, identificado(a) con Cédula de Ciudadanía No. ${docNum}, se encuentra vinculado(a) a nuestra cooperativa en calidad de ASOCIADO(A) TRABAJADOR(A) desde el ${fechaIngreso}, desempeñando actualmente las funciones correspondientes al cargo de:`
+        `Que el(la) señor(a) ${fullName.toUpperCase()}, identificado(a) con Cédula de Ciudadanía No. ${docNum}, se encuentra vinculado(a) a nuestra cooperativa en calidad de ASOCIADO(A) TRABAJADOR(A) desde el ${fechaIngreso}, desempeñando actualmente las funciones correspondientes al cargo de:`,
+        55,
+        doc.y,
+        { align: 'justify', width: 502 }
       );
-      doc.moveDown(0.5);
+      doc.moveDown(0.8);
 
       // Cuadro de Detalles
       const boxY = doc.y;
-      doc.rect(60, boxY, 492, 70).fillAndStroke('#f8fafc', '#cbd5e1');
-      doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold');
-      doc.text(`• CARGO / ESPECIALIDAD:`, 80, boxY + 12);
-      doc.font('Helvetica').fillColor('#1e293b').text(`${cargo.toUpperCase()}`, 240, boxY + 12);
+      doc.rect(55, boxY, 502, 70).fillAndStroke('#f8fafc', '#cbd5e1');
+      doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica-Bold');
+      doc.text(`• CARGO / ESPECIALIDAD:`, 75, boxY + 12);
+      doc.font('Helvetica').fillColor('#1e293b').text(`${cargo.toUpperCase()}`, 235, boxY + 12);
 
-      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• CENTRO DE ASIGNACIÓN:`, 80, boxY + 30);
-      doc.font('Helvetica').fillColor('#1e293b').text(`${centro.toUpperCase()}`, 240, boxY + 30);
+      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• CENTRO DE ASIGNACIÓN:`, 75, boxY + 30);
+      doc.font('Helvetica').fillColor('#1e293b').text(`${centro.toUpperCase()}`, 235, boxY + 30);
 
-      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• ESTADO OPERATIVO:`, 80, boxY + 48);
-      doc.font('Helvetica').fillColor(estado.includes('ACTIVO') ? '#047857' : '#b91c1c').text(`${estado}`, 240, boxY + 48);
+      doc.font('Helvetica-Bold').fillColor('#0f172a').text(`• ESTADO OPERATIVO:`, 75, boxY + 48);
+      doc.font('Helvetica').fillColor(estado.includes('ACTIVO') ? '#047857' : '#b91c1c').text(`${estado}`, 235, boxY + 48);
 
-      doc.y = boxY + 85;
+      doc.y = boxY + 84;
       doc.moveDown(1);
-      doc.fillColor('#334155').fontSize(11).font('Helvetica').text(
-        `Durante el tiempo de su vinculación, ha demostrado un estricto cumplimiento de los deberes cooperativos, principios de lealtad, disciplina y estándares de seguridad privada exigidos por la legislación colombiana y la Superintendencia de Vigilancia y Seguridad Privada.`
+      doc.fillColor('#334155').fontSize(10.5).font('Helvetica').text(
+        `Durante el tiempo de su vinculación, ha demostrado un estricto cumplimiento de los deberes cooperativos, principios de lealtad, disciplina y estándares de seguridad privada exigidos por la legislación colombiana y la Superintendencia de Vigilancia y Seguridad Privada.`,
+        55,
+        doc.y,
+        { align: 'justify', width: 502 }
       );
       doc.moveDown(1);
       doc.text(
-        `El presente certificado se expide a solicitud de la parte interesada en la ciudad de Medellín, a los ${fechaExpedicion}.`
+        `El presente certificado se expide a solicitud de la parte interesada en la ciudad de Medellín, a los ${fechaExpedicion}.`,
+        55,
+        doc.y,
+        { align: 'justify', width: 502 }
       );
       doc.moveDown(3);
 
       // Firma Autorizada
       const sigY = doc.y;
-      doc.strokeColor('#94a3b8').lineWidth(1).moveTo(60, sigY).lineTo(260, sigY).stroke();
-      doc.fillColor('#0f172a').fontSize(10).font('Helvetica-Bold').text('GESTIÓN HUMANA Y BIENESTAR', 60, sigY + 6);
-      doc.fontSize(9).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 60, sigY + 18);
-      doc.text('PBX: (604) 444-0000 · Medellín, Colombia', 60, sigY + 30);
+      doc.strokeColor('#94a3b8').lineWidth(1).moveTo(55, sigY).lineTo(250, sigY).stroke();
+      doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica-Bold').text('GESTIÓN HUMANA Y BIENESTAR', 55, sigY + 6);
+      doc.fontSize(8.5).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 55, sigY + 18);
+      doc.text('PBX: (604) 4447929 · Medellín, Colombia', 55, sigY + 28);
 
-      // Pie de Página
-      doc.rect(0, 780, 612, 12).fill('#1d4ed8');
-      doc.fontSize(7.5).font('Helvetica').fillColor('#94a3b8').text('Documento oficial generado automáticamente por Portal Coraza · Validez con firma institucional', 60, 765, { align: 'center' });
+      // Pie de Página Membrete Oficial 2025
+      doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 735).lineTo(557, 735).stroke();
+      doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('📧 info@corazaseguridadcta.com   |   🌐 www.corazaseguridadcta.com   |   📞 PBX: (604) 4447929   |   📍 Medellín - Colombia', 55, 742, { align: 'center' });
+      doc.rect(0, 782, 612, 10).fill('#1d4ed8');
 
       doc.end();
     });
