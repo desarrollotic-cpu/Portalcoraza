@@ -9,9 +9,12 @@ import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import { Brackets, Repository } from 'typeorm';
 import {
+  getMembreteBascBuffer,
   getMembreteHuellaBuffer,
-  getMembreteIsoBuffer,
+  getMembreteIso45001Buffer,
+  getMembreteIso9001Buffer,
   getMembreteLogoBuffer,
+  getMembreteRespSocialBuffer,
 } from './membrete-assets';
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -561,19 +564,21 @@ export class AssociatesService {
       doc.fontSize(8.5).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 55, sigY + 18);
       doc.text('PBX: (604) 4447929 · Medellín, Colombia', 55, sigY + 28);
 
-      // Sellos de certificación oficiales en Memoria
+      // 5 Sellos de certificación oficiales en el pie de página exactamente como en la plantilla
+      const footerSealsY = 692;
       try {
-        const isoBuf = getMembreteIsoBuffer();
-        const huellaBuf = getMembreteHuellaBuffer();
-        doc.image(isoBuf, 410, sigY - 6, { height: 38 });
-        doc.image(huellaBuf, 485, sigY - 2, { height: 32 });
+        doc.image(getMembreteIso9001Buffer(), 55, footerSealsY, { height: 32 });
+        doc.image(getMembreteIso45001Buffer(), 150, footerSealsY, { height: 32 });
+        doc.image(getMembreteHuellaBuffer(), 245, footerSealsY + 2, { height: 28 });
+        doc.image(getMembreteRespSocialBuffer(), 390, footerSealsY, { height: 32 });
+        doc.image(getMembreteBascBuffer(), 480, footerSealsY - 2, { height: 36 });
       } catch (e) {
         console.error('Error rendering footer seals:', e);
       }
 
-      // Pie de Página Membrete Oficial 2025
+      // Pie de Página Membrete Oficial 2025 (Texto limpio sin caracteres especiales)
       doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 735).lineTo(557, 735).stroke();
-      doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('📧 info@corazaseguridadcta.com   |   🌐 www.corazaseguridadcta.com   |   📞 PBX: (604) 4447929   |   📍 Medellín - Colombia', 55, 742, { align: 'center' });
+      doc.fontSize(8).font('Helvetica').fillColor('#475569').text('info@corazaseguridadcta.com   |   www.corazaseguridadcta.com   |   PBX: (604) 4447929   |   Medellín - Colombia', 55, 742, { align: 'center' });
       doc.rect(0, 782, 612, 10).fill('#1d4ed8');
 
       doc.end();

@@ -2,9 +2,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument = require('pdfkit');
 import {
+  getMembreteBascBuffer,
   getMembreteHuellaBuffer,
-  getMembreteIsoBuffer,
+  getMembreteIso45001Buffer,
+  getMembreteIso9001Buffer,
   getMembreteLogoBuffer,
+  getMembreteRespSocialBuffer,
 } from '../src/modules/associates/membrete-assets';
 
 const doc = new PDFDocument({ size: 'LETTER', margins: { top: 40, bottom: 40, left: 55, right: 55 } });
@@ -26,8 +29,8 @@ doc.fillColor('#0f172a').fontSize(14).font('Helvetica-Bold').text('CORAZA SEGURI
 doc.fontSize(8.5).font('Helvetica-Bold').fillColor('#1d4ed8').text('La Seguridad un Compromiso de Todos', headerTextX, 39);
 doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011', headerTextX, 52);
 
-doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 82).lineTo(557, 82).stroke();
-doc.y = 98;
+doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 80).lineTo(557, 80).stroke();
+doc.y = 96;
 doc.moveDown(1);
 
 // Título
@@ -74,7 +77,7 @@ doc.text(
   doc.y,
   { align: 'justify', width: 502 }
 );
-doc.moveDown(3);
+doc.moveDown(2.5);
 
 // Firma Autorizada
 const sigY = doc.y;
@@ -83,19 +86,25 @@ doc.fillColor('#0f172a').fontSize(9.5).font('Helvetica-Bold').text('GESTIÓN HUM
 doc.fontSize(8.5).font('Helvetica').fillColor('#64748b').text('Coraza Seguridad C.T.A.', 55, sigY + 18);
 doc.text('PBX: (604) 4447929 · Medellín, Colombia', 55, sigY + 28);
 
-// Sellos de certificación oficiales en Memoria
-const isoBuf = getMembreteIsoBuffer();
-const huellaBuf = getMembreteHuellaBuffer();
-doc.image(isoBuf, 410, sigY - 6, { height: 38 });
-doc.image(huellaBuf, 485, sigY - 2, { height: 32 });
+// 5 Sellos de certificación oficiales en el pie de página exactamente como en la plantilla
+const footerSealsY = 692;
+try {
+  doc.image(getMembreteIso9001Buffer(), 55, footerSealsY, { height: 32 });
+  doc.image(getMembreteIso45001Buffer(), 150, footerSealsY, { height: 32 });
+  doc.image(getMembreteHuellaBuffer(), 245, footerSealsY + 2, { height: 28 });
+  doc.image(getMembreteRespSocialBuffer(), 390, footerSealsY, { height: 32 });
+  doc.image(getMembreteBascBuffer(), 480, footerSealsY - 2, { height: 36 });
+} catch (e) {
+  console.error('Error rendering footer seals:', e);
+}
 
-// Pie de Página Membrete Oficial 2025
+// Pie de Página Membrete Oficial 2025 (Texto limpio sin emojis corruptos)
 doc.strokeColor('#1d4ed8').lineWidth(1.5).moveTo(55, 735).lineTo(557, 735).stroke();
-doc.fontSize(7.5).font('Helvetica').fillColor('#64748b').text('📧 info@corazaseguridadcta.com   |   🌐 www.corazaseguridadcta.com   |   📞 PBX: (604) 4447929   |   📍 Medellín - Colombia', 55, 742, { align: 'center' });
+doc.fontSize(8).font('Helvetica').fillColor('#475569').text('info@corazaseguridadcta.com   |   www.corazaseguridadcta.com   |   PBX: (604) 4447929   |   Medellín - Colombia', 55, 742, { align: 'center' });
 doc.rect(0, 782, 612, 10).fill('#1d4ed8');
 
 doc.end();
 
 stream.on('finish', () => {
-  console.log('Test PDF generated successfully! File size:', fs.statSync(outPdf).size, 'bytes');
+  console.log('Updated test PDF generated successfully! Size:', fs.statSync(outPdf).size, 'bytes');
 });
