@@ -18,11 +18,5 @@
   },
   "engines": {
     "node": ">=20"
-  },
-  "dependencies": {
-    "compression": "^1.8.1"
-  },
-  "devDependencies": {
-    "@types/compression": "^1.8.1"
   }
 }

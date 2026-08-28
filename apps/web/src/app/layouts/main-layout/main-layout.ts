@@ -58,8 +58,6 @@ interface NavItem {
   externalUrl?: string;
 }
 
-import { CorazaPet } from '../../core/components/coraza-pet/coraza-pet';
-
 interface NavGroup {
   label: string;
   items: NavItem[];
@@ -67,7 +65,7 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule, CorazaPet],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
   template: `
     <div class="layout" [class.nav-open]="mobileNavOpen()">
       @if (mobileNavOpen()) {
@@ -92,11 +90,6 @@ interface NavGroup {
               <span class="brand-name">Portal Coraza</span>
               <span class="brand-tag">Coraza Seguridad C.T.A.</span>
             </div>
-          </div>
-
-          <!-- LÍNEA BLANCA VISIBLE CON COCODRILO PATRULLANDO ENCIMA -->
-          <div class="sidebar-line-stage">
-            <app-coraza-pet />
           </div>
 
           <nav class="nav">
@@ -360,14 +353,7 @@ interface NavGroup {
       align-items: center;
       gap: 0.7rem;
       padding: 0.5rem 0.35rem 0.6rem;
-      margin-bottom: 0;
-    }
-    .sidebar-line-stage {
-      position: relative;
-      width: 100%;
-      height: 24px;
       margin-bottom: 1rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.25);
     }
     .brand-mark {
       width: 40px;
