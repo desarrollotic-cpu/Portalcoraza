@@ -15,7 +15,12 @@ export const permissionGuard: CanActivateFn = (route) => {
         ? requiredPermissions.every((p) => auth.hasPermission(p))
         : requiredPermissions.some((p) => auth.hasPermission(p));
     if (allowed) return true;
-    return router.createUrlTree([auth.getDefaultRoute()]);
+    const fallback = auth.getDefaultRoute();
+    const target = router.parseUrl(fallback);
+    if (target.toString() === router.url) {
+      return router.createUrlTree(['/sin-acceso']);
+    }
+    return router.createUrlTree([fallback]);
   }
 
   if (!requiredPermission) {
@@ -26,5 +31,10 @@ export const permissionGuard: CanActivateFn = (route) => {
     return true;
   }
 
-  return router.createUrlTree([auth.getDefaultRoute()]);
+  const fallback = auth.getDefaultRoute();
+  const target = router.parseUrl(fallback);
+  if (target.toString() === router.url) {
+    return router.createUrlTree(['/sin-acceso']);
+  }
+  return router.createUrlTree([fallback]);
 };

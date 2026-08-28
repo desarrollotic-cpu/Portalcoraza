@@ -36,6 +36,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'sin-acceso',
+        loadComponent: () =>
+          import('./features/auth/sin-acceso/sin-acceso').then((m) => m.SinAcceso),
+      },
+      {
         path: 'nomina',
         canActivate: [permissionGuard],
         data: { permission: 'payroll.view' },

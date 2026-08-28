@@ -92,9 +92,11 @@ export class AuthService {
 
   logout(): void {
     const refreshToken = localStorage.getItem(REFRESH_KEY);
-    this.http
-      .post(`${environment.apiUrl}/auth/logout`, { refreshToken })
-      .subscribe({ complete: () => this.clearSession() });
+    if (refreshToken) {
+      this.http
+        .post(`${environment.apiUrl}/auth/logout`, { refreshToken })
+        .subscribe({ error: () => undefined });
+    }
     this.clearSession();
   }
 
@@ -149,9 +151,10 @@ export class AuthService {
     if (this.hasPermission('minuta.view')) return '/minutas';
     if (this.hasPermission('sst.view')) return '/sst';
     if (this.hasPermission('posts.view')) return '/operaciones';
-    if (this.hasPermission('accounting.view') || this.hasPermission('payroll.view')) return '/contabilidad';
+    if (this.hasPermission('accounting.view')) return '/contabilidad';
+    if (this.hasPermission('payroll.view')) return '/nomina';
     if (this.hasPermission('sig.view')) return '/sig';
-    return '/dashboard';
+    return '/sin-acceso';
   }
 
   private clearSession(): void {
