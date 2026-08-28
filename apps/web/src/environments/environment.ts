@@ -11,4 +11,5 @@ export const environment = {
     gestionHumana: 'https://gestion-humana-2qop.onrender.com',
     programacion: 'https://freidercao-spec.github.io/APP-CONTABILIDAD/',
   },
+  minutaWebUrl: 'http://localhost:4201',
 };

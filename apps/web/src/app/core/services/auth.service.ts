@@ -137,6 +137,9 @@ export class AuthService {
   getDefaultRoute(): string {
     const user = this.currentUser();
     if (!user) return '/auth/login';
+    if (user.role?.code === 'PUESTO') {
+      return environment.minutaWebUrl;
+    }
     if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
       return '/sig';
     }

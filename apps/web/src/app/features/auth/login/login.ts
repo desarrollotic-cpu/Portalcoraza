@@ -494,7 +494,12 @@ export class Login {
     this.auth.login(email, password).subscribe({
       next: () => {
         this.loading.set(false);
-        this.router.navigateByUrl(this.auth.getDefaultRoute());
+        const route = this.auth.getDefaultRoute();
+        if (route.startsWith('http://') || route.startsWith('https://')) {
+          window.location.href = route;
+          return;
+        }
+        this.router.navigateByUrl(route);
       },
       error: (err: unknown) => {
         this.loading.set(false);
