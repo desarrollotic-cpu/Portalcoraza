@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as nodemailer from 'nodemailer';
 
 export interface OverdueLoanNotice {
   id: string;
@@ -12,13 +13,47 @@ export interface OverdueLoanNotice {
 @Injectable()
 export class DocumentalMailService {
   private readonly logger = new Logger(DocumentalMailService.name);
-  readonly senderEmail = 'Documental@corazaseguridadcta.com';
+  readonly senderEmail = 'documental@corazaseguridadcta.com';
+  private transporter: nodemailer.Transporter | null = null;
+
+  constructor() {
+    this.initTransporter();
+  }
+
+  private initTransporter(): void {
+    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+    const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
+    const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
+    const smtpSecure = process.env.SMTP_SECURE !== 'false';
+
+    try {
+      this.transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        pool: true,
+        maxConnections: 5,
+        maxMessages: 100,
+        auth: {
+          user: smtpUser.trim(),
+          pass: smtpPass.trim(),
+        },
+      });
+
+      this.logger.log(`📧 [SMTP POOL INICIADO] Configurado para ${smtpUser} vía ${smtpHost}:${smtpPort}`);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`❌ Error inicializando pool SMTP: ${errorMsg}`);
+    }
+  }
 
   /**
    * Envía correo de notificación de vencimiento al solicitante desde Documental@corazaseguridadcta.com.
    */
   async sendOverdueReminder(notice: OverdueLoanNotice): Promise<boolean> {
-    if (!notice.email || !notice.email.includes('@')) {
+    const targetEmail = notice.email?.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes('@')) {
       this.logger.warn(`Préstamo ${notice.id} no tiene un correo válido (${notice.email}).`);
       return false;
     }
@@ -26,44 +61,7 @@ export class DocumentalMailService {
     const subject = `⚠️ [URGENTE] Recordatorio de Devolución de Expediente — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildOverdueEmailTemplate(notice);
 
-    this.logger.log(`📧 [EMAIL ENVIADO] De: ${this.senderEmail} -> Para: ${notice.email} | Asunto: ${subject}`);
-    this.logger.debug(`Detalle del préstamo vencido: Documento="${notice.document}", Solicitante="${notice.requester}", Vencimiento="${notice.returnDate}"`);
-
-    // Envío por transporte SMTP con Google Workspace oficial
-    try {
-      const nodemailer = await import('nodemailer').catch(() => null);
-      if (nodemailer) {
-        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-        const smtpPort = Number(process.env.SMTP_PORT) || 465;
-        const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
-        const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
-        const smtpSecure = process.env.SMTP_SECURE !== 'false';
-
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        });
-
-        await transporter.sendMail({
-          from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-          to: notice.email,
-          subject,
-          html: htmlBody,
-        });
-        this.logger.log(`✅ Correo entregado exitosamente a ${notice.email}`);
-        return true;
-      }
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`No se pudo despachar por SMTP directo (${errorMsg}).`);
-    }
-
-    return true;
+    return this.dispatchMail(targetEmail, subject, htmlBody);
   }
 
   /**
@@ -78,7 +76,8 @@ export class DocumentalMailService {
     returnDate?: string;
     department?: string;
   }): Promise<boolean> {
-    if (!notice.email || !notice.email.includes('@')) {
+    const targetEmail = notice.email?.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes('@')) {
       this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de aprobación.`);
       return false;
     }
@@ -86,7 +85,7 @@ export class DocumentalMailService {
     const subject = `✅ [APROBADO] Solicitud de Préstamo de Expediente — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildApprovalEmailTemplate(notice);
 
-    return this.dispatchMail(notice.email, subject, htmlBody);
+    return this.dispatchMail(targetEmail, subject, htmlBody);
   }
 
   /**
@@ -100,7 +99,8 @@ export class DocumentalMailService {
     motivoRechazo: string;
     department?: string;
   }): Promise<boolean> {
-    if (!notice.email || !notice.email.includes('@')) {
+    const targetEmail = notice.email?.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes('@')) {
       this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de rechazo.`);
       return false;
     }
@@ -108,38 +108,55 @@ export class DocumentalMailService {
     const subject = `❌ [NOTIFICACIÓN] Respuesta a Solicitud de Préstamo — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildRejectionEmailTemplate(notice);
 
-    return this.dispatchMail(notice.email, subject, htmlBody);
+    return this.dispatchMail(targetEmail, subject, htmlBody);
   }
 
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
+    const cleanTo = to.trim().toLowerCase();
+
+    // Reintento con pool o fallback
+    if (!this.transporter) {
+      this.initTransporter();
+    }
+
     try {
-      const nodemailer = await import('nodemailer').catch(() => null);
-      if (nodemailer) {
-        const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-        const smtpPort = Number(process.env.SMTP_PORT) || 465;
-        const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
-        const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
-        const smtpSecure = process.env.SMTP_SECURE !== 'false';
-
-        const transporter = nodemailer.createTransport({
-          host: smtpHost,
-          port: smtpPort,
-          secure: smtpSecure,
-          auth: { user: smtpUser, pass: smtpPass },
-        });
-
-        await transporter.sendMail({
+      if (this.transporter) {
+        const info = await this.transporter.sendMail({
           from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-          to,
+          to: cleanTo,
           subject,
           html: htmlBody,
         });
-        this.logger.log(`✅ Correo entregado exitosamente a ${to} [${subject}]`);
+        this.logger.log(`✅ [CORREO DESPACHADO EXITOSAMENTE] Para: ${cleanTo} | ID: ${info.messageId} | Asunto: ${subject}`);
         return true;
       }
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`No se pudo despachar por SMTP (${errorMsg}).`);
+      this.logger.warn(`⚠️ Error con pool principal SMTP (${errorMsg}). Intentando fallback directo...`);
+
+      // Fallback transporte directo 587
+      try {
+        const fallbackTransporter = nodemailer.createTransport({
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: (process.env.SMTP_USER || 'documental@corazaseguridadcta.com').trim(),
+            pass: (process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn').trim(),
+          },
+        });
+        const info = await fallbackTransporter.sendMail({
+          from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
+          to: cleanTo,
+          subject,
+          html: htmlBody,
+        });
+        this.logger.log(`✅ [FALLBACK SMTP EXITOSO] Para: ${cleanTo} | ID: ${info.messageId}`);
+        return true;
+      } catch (fallbackErr: unknown) {
+        const fbMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
+        this.logger.error(`❌ Error fatal despachando correo a ${cleanTo}: ${fbMsg}`);
+      }
     }
     return false;
   }
