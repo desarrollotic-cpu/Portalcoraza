@@ -121,6 +121,7 @@ export interface Loan {
   documentCode: string | null;
   loanDate: string | null;
   returnDate: string | null;
+  realReturnDate?: string | null;
   status: string;
   observations: string | null;
   email: string | null;
