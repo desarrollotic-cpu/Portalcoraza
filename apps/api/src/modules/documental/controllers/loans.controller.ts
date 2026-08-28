@@ -46,6 +46,16 @@ export class LoansController {
     return this.service.returnLoan(id, user.sub);
   }
 
+  @Get('test-email-direct')
+  async testEmailDirect() {
+    try {
+      const res = await this.service.testDirectEmail();
+      return { success: true, detail: res };
+    } catch (err: any) {
+      return { success: false, error: err.message, stack: err.stack };
+    }
+  }
+
   @Post(':id/send-reminder')
   @RequirePermissions('documental.manage')
   sendReminder(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

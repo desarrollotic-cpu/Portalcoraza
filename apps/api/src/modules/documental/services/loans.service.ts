@@ -250,4 +250,16 @@ export class LoansService {
 
     return { success, message: `Correo de recordatorio enviado a ${loan.email}` };
   }
+
+  async testDirectEmail() {
+    return this.mailService.sendLoanApprovalEmail({
+      id: 'test-direct-id',
+      requester: 'Jhon Fredy Direct Test',
+      email: 'documental@corazaseguridadcta.com',
+      document: 'Expediente Test Directo #001',
+      loanDate: new Date().toISOString().slice(0, 10),
+      returnDate: '2026-08-31',
+      department: 'Gestion Documental',
+    });
+  }
 }
