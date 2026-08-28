@@ -13,6 +13,9 @@ export class SstClient {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ type: 'text' })
   nombre!: string;
 

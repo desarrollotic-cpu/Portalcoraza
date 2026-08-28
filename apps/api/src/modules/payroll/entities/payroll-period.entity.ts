@@ -12,6 +12,9 @@ export class PayrollPeriod {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'period_name', length: 100 })
   periodName!: string;
 

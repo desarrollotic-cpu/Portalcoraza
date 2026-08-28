@@ -10,7 +10,10 @@ export class SigSistema {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'text', unique: true })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @Column({ type: 'text' })
   nombre!: string;
 
   @CreateDateColumn({ name: 'created_at' })
@@ -21,6 +24,9 @@ export class SigSistema {
 export class SigObjetivo {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'sistema_id', type: 'uuid' })
   sistemaId!: string;
@@ -43,7 +49,10 @@ export class SigIndicador {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'text', unique: true })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @Column({ type: 'text' })
   codigo!: string;
 
   @Column({ type: 'text' })
@@ -84,6 +93,9 @@ export class SigIndicador {
 export class SigResultado {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'indicador_id', type: 'uuid' })
   indicadorId!: string;

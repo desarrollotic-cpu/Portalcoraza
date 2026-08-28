@@ -10,6 +10,9 @@ export class MinutaVisitante {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'fecha_registro', type: 'timestamptz' })
   fechaRegistro!: Date;
 
@@ -61,6 +64,9 @@ export class MinutaCorrespondencia {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'fecha_registro', type: 'timestamptz' })
   fechaRegistro!: Date;
 
@@ -111,6 +117,9 @@ export class MinutaCorrespondencia {
 export class MinutaContratista {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ name: 'fecha_registro', type: 'timestamptz' })
   fechaRegistro!: Date;
@@ -166,6 +175,9 @@ export class MinutaDomiciliario {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'fecha_registro', type: 'timestamptz' })
   fechaRegistro!: Date;
 
@@ -220,6 +232,9 @@ export class MinutaIncidente {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'fecha_registro', type: 'timestamptz' })
   fechaRegistro!: Date;
 
@@ -271,6 +286,9 @@ export class MinutaServicio {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ type: 'text' })
   fecha!: string;
 
@@ -306,6 +324,9 @@ export class MinutaServicio {
 export class MinutaEntregaPuesto {
   @PrimaryColumn({ type: 'varchar', length: 20 })
   id!: string;
+
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
 
   @Column({ type: 'text' })
   fecha!: string;

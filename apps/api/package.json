@@ -34,6 +34,7 @@
     "db:verify-multi-tenant": "ts-node scripts/verify-multi-tenant.ts",
     "db:smoke-multi-tenant": "ts-node scripts/smoke-multi-tenant.ts",
     "db:apply-multi-tenant-rls": "ts-node scripts/apply-multi-tenant-rls.ts",
+    "db:apply-multi-tenant-post040": "ts-node scripts/apply-multi-tenant-post040.ts",
     "db:verify-rls": "ts-node scripts/verify-rls.ts",
     "db:drop-residential": "ts-node scripts/apply-drop-residential.ts",
     "db:keepalive": "ts-node scripts/keepalive-db.ts",

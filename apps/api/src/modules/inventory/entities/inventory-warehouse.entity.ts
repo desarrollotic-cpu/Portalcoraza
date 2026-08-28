@@ -10,7 +10,10 @@ export class InventoryWarehouse {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ unique: true, length: 20 })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @Column({ length: 20 })
   code!: string;
 
   @Column({ length: 80 })

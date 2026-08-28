@@ -27,6 +27,9 @@ export class SstInspection {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'workplace_id', type: 'uuid' })
   workplaceId!: string;
 

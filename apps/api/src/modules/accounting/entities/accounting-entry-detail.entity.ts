@@ -14,6 +14,9 @@ export class AccountingEntryDetail {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'entry_id', type: 'uuid' })
   entryId!: string;
 

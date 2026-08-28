@@ -12,7 +12,10 @@ export class AccountingEntry {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ name: 'entry_number', unique: true, length: 30 })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @Column({ name: 'entry_number', length: 30 })
   entryNumber!: string;
 
   @Column({ name: 'entry_date', type: 'date' })

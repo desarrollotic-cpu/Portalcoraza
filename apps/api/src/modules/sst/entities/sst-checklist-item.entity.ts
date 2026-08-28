@@ -5,7 +5,10 @@ export class SstChecklistItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'int', unique: true })
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
+  @Column({ type: 'int' })
   codigo!: number;
 
   @Column({ type: 'text' })

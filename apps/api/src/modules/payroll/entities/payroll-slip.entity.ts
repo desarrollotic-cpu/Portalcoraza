@@ -16,6 +16,9 @@ export class PayrollSlip {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'period_id', type: 'uuid' })
   periodId!: string;
 

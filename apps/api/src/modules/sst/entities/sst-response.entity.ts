@@ -30,6 +30,9 @@ export class SstResponse {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'inspection_id', type: 'uuid' })
   inspectionId!: string;
 

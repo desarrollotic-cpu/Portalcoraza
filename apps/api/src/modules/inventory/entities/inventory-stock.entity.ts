@@ -16,6 +16,9 @@ export class InventoryStock {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ name: 'variant_id', type: 'uuid' })
   variantId!: string;
 

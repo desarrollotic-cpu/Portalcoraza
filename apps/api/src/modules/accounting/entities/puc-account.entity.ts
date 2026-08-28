@@ -5,6 +5,9 @@ export class PucAccount {
   @PrimaryColumn({ length: 10 })
   code!: string;
 
+  @Column({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string;
+
   @Column({ length: 150 })
   name!: string;
 
