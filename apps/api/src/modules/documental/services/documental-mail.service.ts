@@ -59,7 +59,7 @@ export class DocumentalMailService {
       return false;
     }
 
-    const subject = `⚠️ [URGENTE] Recordatorio de Devolución de Expediente — Coraza Seguridad C.T.A.`;
+    const subject = `Recordatorio de Devolución de Expediente: ${notice.document} — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildOverdueEmailTemplate(notice);
 
     return this.dispatchMail(targetEmail, subject, htmlBody);
@@ -83,7 +83,7 @@ export class DocumentalMailService {
       return false;
     }
 
-    const subject = `✅ [APROBADO] Solicitud de Préstamo de Expediente — Coraza Seguridad C.T.A.`;
+    const subject = `Aprobación de Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildApprovalEmailTemplate(notice);
 
     return this.dispatchMail(targetEmail, subject, htmlBody);
@@ -106,7 +106,7 @@ export class DocumentalMailService {
       return false;
     }
 
-    const subject = `❌ [NOTIFICACIÓN] Respuesta a Solicitud de Préstamo — Coraza Seguridad C.T.A.`;
+    const subject = `Respuesta a Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
     const htmlBody = this.buildRejectionEmailTemplate(notice);
 
     return this.dispatchMail(targetEmail, subject, htmlBody);
