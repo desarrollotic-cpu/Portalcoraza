@@ -24,7 +24,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
           <div class="period-card" [class.active]="selectedPeriod()?.id === p.id" (click)="selectPeriod(p)">
             <div class="card-top">
               <span class="status-pill" [class.st-liquidado]="p.status === 'LIQUIDADO'" [class.st-borrador]="p.status === 'BORRADOR'">
-                {{ p.status === 'LIQUIDADO' ? ' LIQUIDADO' : ' BORRADOR' }}
+                {{ p.status === 'LIQUIDADO' ? 'LIQUIDADO' : 'BORRADOR' }}
               </span>
             </div>
             <h4>{{ p.periodName }}</h4>
@@ -39,7 +39,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
 
               @if (p.status === 'BORRADOR') {
                 <button class="btn-action btn-calc" (click)="calculate(p.id)" [disabled]="calculating()">
-                  {{ calculating() ? 'Calculando...' : ' Liquidar Nómina' }}
+                  {{ calculating() ? 'Calculando...' : 'Liquidar Nómina' }}
                 </button>
               }
             </div>

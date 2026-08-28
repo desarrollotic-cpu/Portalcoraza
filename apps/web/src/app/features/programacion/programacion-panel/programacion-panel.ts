@@ -33,7 +33,7 @@ export interface GuardAvailabilityItem {
         </div>
         <div class="head-actions">
           <a routerLink="/programacion/cuadro" class="btn-primary">📋 Cuadro de Turnos</a>
-          <a routerLink="/programacion/recargos" class="btn-secondary">💰 Liquidación y Recargos</a>
+          <a routerLink="/programacion/recargos" class="btn-secondary">Liquidación y Recargos</a>
         </div>
       </header>
 
@@ -149,7 +149,7 @@ export interface GuardAvailabilityItem {
                       <strong class="post-name">{{ p.post.name }}</strong>
                     </div>
                     <span class="badge-status" [class.ok]="p.isCovered" [class.warn]="!p.isCovered">
-                      {{ p.isCovered ? '✅ Cubierto' : '⚠️ Incompleto' }}
+                      {{ p.isCovered ? 'Cubierto' : 'Incompleto' }}
                     </span>
                   </div>
 

@@ -31,19 +31,25 @@ export class ProgramacionLayout {
       icon: LucideLayoutDashboard,
     },
     {
+      label: 'Matriz de Turnos',
+      route: '/programacion/matriz',
+      permission: 'scheduling.view',
+      icon: LucideLayoutGrid,
+    },
+    {
       label: 'Cuadro de Turnos',
       route: '/programacion/cuadro',
       permission: 'scheduling.view',
       icon: LucideCalendarClock,
     },
     {
-      label: '⚠️ Control de Alertas',
+      label: 'Control de Alertas',
       route: '/programacion/alertas',
       permission: 'scheduling.view',
       icon: LucideAlertTriangle,
     },
     {
-      label: '💰 Liquidación y Recargos (Excel)',
+      label: 'Liquidación y Recargos',
       route: '/programacion/recargos',
       permission: 'scheduling.view',
       icon: LucideCalculator,
