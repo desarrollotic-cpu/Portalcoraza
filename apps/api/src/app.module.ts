@@ -82,7 +82,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     InventoryModule,
     DeliveriesModule,
     SchedulingModule,
-    QueuesModule,
+    QueuesModule.register(),
     DocumentalModule,
     NotificationsModule,
     PostsModule,

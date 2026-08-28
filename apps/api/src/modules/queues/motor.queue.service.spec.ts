@@ -1,4 +1,4 @@
-import { motorDedupeKey } from './motor.queue.service';
+import { motorDedupeKey } from './motor.constants';
 
 describe('motorDedupeKey', () => {
   it('incluye tenant año mes ciclo', () => {

@@ -1,37 +1,24 @@
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { runWithTenantContext } from '../../common/tenant/run-with-tenant';
-import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { motorDedupeKey, MOTOR_GLOBAL_JOB_NAME, MOTOR_GLOBAL_QUEUE } from './motor.constants';
 import {
   MotorCiclo,
+  MotorGlobalJobData,
+  MotorGlobalJobResult,
+  MotorGlobalProgress,
   MotorJobStatusDto,
 } from './motor.types';
 
-export function motorDedupeKey(
-  tenantId: string,
-  year: number,
-  month: number,
-  tipoCiclo: string,
-): string {
-  return `motor_${tenantId}_${year}_${month}_${tipoCiclo}`;
-}
-
-interface InMemoryJob {
-  jobId: string;
-  tenantId: string;
-  status: 'queued' | 'active' | 'completed' | 'failed';
-  progress: { processed: number; total: number; ok: number; failed: number } | null;
-  result: any | null;
-  failedReason: string | null;
-}
-
 @Injectable()
 export class MotorQueueService {
-  private readonly jobs = new Map<string, InMemoryJob>();
-
-  constructor(private readonly schedulingService: MonthlySchedulingService) {}
+  constructor(
+    @InjectQueue(MOTOR_GLOBAL_QUEUE) private readonly queue: Queue<MotorGlobalJobData>,
+  ) {}
 
   async enqueue(input: {
     tenantId: string;
@@ -49,59 +36,87 @@ export class MotorQueueService {
       tipoCiclo,
     );
 
-    const job: InMemoryJob = {
-      jobId,
-      tenantId: input.tenantId,
-      status: 'active',
-      progress: { processed: 0, total: 0, ok: 0, failed: 0 },
-      result: null,
-      failedReason: null,
-    };
-    this.jobs.set(jobId, job);
+    const existing = await this.queue.getJob(jobId);
+    if (existing) {
+      const state = await existing.getState();
+      if (state === 'active' || state === 'waiting' || state === 'delayed') {
+        throw new ConflictException({
+          message: 'Ya hay un motor global en cola o en ejecución para este mes',
+          jobId,
+          status: state,
+        });
+      }
+      await existing.remove();
+    }
 
-    setImmediate(() => {
-      void runWithTenantContext(input.tenantId, async () => {
-        try {
-          const results = await this.schedulingService.generateMotorGlobal(
-            {
-              year: input.year,
-              month: input.month,
-              tipoCiclo,
-              createMissing: Boolean(input.createMissing),
-            },
-            input.userId,
-            (prog) => {
-              job.progress = prog;
-            },
-          );
-          job.status = 'completed';
-          job.result = { ok: true, results };
-        } catch (err: any) {
-          job.status = 'failed';
-          job.failedReason = err?.message || 'Error en motor global';
-        }
-      });
+    const data: MotorGlobalJobData = {
+      tenantId: input.tenantId,
+      year: input.year,
+      month: input.month,
+      tipoCiclo,
+      createMissing: Boolean(input.createMissing),
+      userId: input.userId,
+      requestedAt: new Date().toISOString(),
+    };
+
+    await this.queue.add(MOTOR_GLOBAL_JOB_NAME, data, {
+      jobId,
+      removeOnComplete: { age: 3600, count: 50 },
+      removeOnFail: { age: 86400, count: 100 },
     });
 
     return { jobId, status: 'queued' };
   }
 
-  async getStatus(
-    jobId: string,
-    tenantId: string,
-  ): Promise<MotorJobStatusDto> {
-    const job = this.jobs.get(jobId);
-    if (!job || job.tenantId !== tenantId) {
+  async getStatus(jobId: string, tenantId: string): Promise<MotorJobStatusDto> {
+    const job = await this.queue.getJob(jobId);
+    if (!job || job.data.tenantId !== tenantId) {
       throw new NotFoundException('Job no encontrado');
+    }
+
+    const state = await job.getState();
+    const progress = normalizeProgress(job.progress);
+    let status: MotorJobStatusDto['status'] = 'unknown';
+    if (
+      state === 'waiting' ||
+      state === 'delayed' ||
+      state === 'prioritized' ||
+      state === 'waiting-children'
+    ) {
+      status = 'queued';
+    } else if (state === 'active') {
+      status = 'active';
+    } else if (state === 'completed') {
+      status = 'completed';
+    } else if (state === 'failed') {
+      status = 'failed';
     }
 
     return {
       jobId,
-      status: job.status,
-      progress: job.progress,
-      result: job.result,
-      failedReason: job.failedReason,
+      status,
+      progress,
+      result: (job.returnvalue as MotorGlobalJobResult | null) ?? null,
+      failedReason: job.failedReason ?? null,
     };
   }
 }
 
+function normalizeProgress(raw: unknown): MotorGlobalProgress | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const p = raw as Partial<MotorGlobalProgress>;
+  if (
+    typeof p.processed !== 'number' ||
+    typeof p.total !== 'number' ||
+    typeof p.ok !== 'number' ||
+    typeof p.failed !== 'number'
+  ) {
+    return null;
+  }
+  return {
+    processed: p.processed,
+    total: p.total,
+    ok: p.ok,
+    failed: p.failed,
+  };
+}
