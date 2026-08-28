@@ -347,6 +347,17 @@ import { DOC_STYLES } from '../documental.styles';
                 <span>Aceptar y Devolver</span>
               }
             </button>
+            @if (cm.loan.email) {
+              <button
+                type="button"
+                class="btn-gmail-direct"
+                (click)="openGmailDirect(cm.loan, cm.type, cm.reason)"
+                title="Abre la ventana de redacción en tu Gmail listo para enviar y quedar en tu carpeta de Enviados"
+              >
+                <app-icon [icon]="icons.Mail" [size]="15" [strokeWidth]="2" />
+                <span>Abrir en Gmail (Enviados)</span>
+              </button>
+            }
           </div>
         </div>
       </div>
@@ -894,6 +905,25 @@ import { DOC_STYLES } from '../documental.styles';
     .btn-accept-notify:hover { background: #0369a1; }
     .btn-accept-return { background: #0c4a6e; }
     .btn-accept-return:hover { background: #075985; }
+    .btn-gmail-direct {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: 1px solid #ea4335;
+      background: #fef2f2;
+      border-radius: 0.55rem;
+      padding: 0.55rem 1rem;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #b91c1c;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-gmail-direct:hover {
+      background: #fee2e2;
+      border-color: #dc2626;
+      color: #991b1b;
+    }
 
     /* MODAL QR */
     .modal-backdrop {
@@ -1142,6 +1172,36 @@ export class LoansScreen implements OnInit {
           this.load();
         },
       });
+    }
+  }
+
+  openGmailDirect(loan: Loan, type: 'approve' | 'reject' | 'notify' | 'return', reason?: string): void {
+    if (!loan.email) return;
+
+    let subject = '';
+    let body = '';
+
+    if (type === 'approve') {
+      subject = `✅ Notificación de Préstamo de Expediente #${loan.documentCode || loan.document || 'Oficial'} — Coraza Seguridad C.T.A.`;
+      body = `Cordial saludo, ${loan.requester || ''}.\n\nSe le informa que su solicitud de préstamo para el expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" ha sido APROBADA y autorizada por la administración de Gestión Documental.\n\nFecha de Préstamo: ${loan.loanDate ? String(loan.loanDate).slice(0, 10) : new Date().toISOString().slice(0, 10)}\nFecha Límite de Devolución: ${loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada'}\n\nPor favor acérquese al archivo físico para la recepción del material documental.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+    } else if (type === 'reject') {
+      subject = `❌ Respuesta a Solicitud de Préstamo #${loan.documentCode || loan.document || 'Oficial'} — Coraza Seguridad C.T.A.`;
+      body = `Cordial saludo, ${loan.requester || ''}.\n\nSe le notifica que su solicitud de préstamo para el expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" NO PUDO SER APROBADA en este momento.\n\nMotivo del Rechazo: ${reason || 'Documento no disponible temporalmente o en consulta por auditoría interna'}.\n\nPara mayor información o radicación formal, favor comunicarse con el área de Gestión Documental.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+    } else if (type === 'notify') {
+      subject = `⚠️ Recordatorio de Devolución de Expediente — Coraza Seguridad C.T.A.`;
+      body = `Cordial saludo, ${loan.requester || ''}.\n\nLe recordamos comedidamente que el préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" se encuentra pendiente de devolución física en el archivo central.\n\nFecha de Devolución Programada: ${loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Vencida'}\n\nFavor realizar la entrega física para el cierre formal del acta de préstamo.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+    } else {
+      subject = `📋 Acta de Devolución de Expediente — Coraza Seguridad C.T.A.`;
+      body = `Cordial saludo, ${loan.requester || ''}.\n\nSe confirma la recepción física y cierre formal del préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}".\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+    }
+
+    const encTo = encodeURIComponent(loan.email.trim());
+    const encSub = encodeURIComponent(subject);
+    const encBody = encodeURIComponent(body);
+
+    const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encTo}&su=${encSub}&body=${encBody}`;
+    if (typeof window !== 'undefined') {
+      window.open(gmailUrl, '_blank');
     }
   }
 
