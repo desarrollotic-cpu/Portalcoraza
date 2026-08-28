@@ -21,6 +21,14 @@ const GLOBALS = [
   'organizations',
 ];
 
+const POST040_RLS_SAMPLES = [
+  'payroll_periods',
+  'minuta_visitantes',
+  'sst_clients',
+  'sig_sistemas',
+  'accounting_entries',
+];
+
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('Falta DATABASE_URL');
@@ -85,6 +93,24 @@ async function main() {
       failures.push('posts no tiene FORCE ROW LEVEL SECURITY');
     } else {
       console.log('✓ posts FORCE RLS activo');
+    }
+
+    for (const table of POST040_RLS_SAMPLES) {
+      const r = await client.query(
+        `SELECT c.relrowsecurity AS rls, c.relforcerowsecurity AS force
+         FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname = 'public' AND c.relname = $1`,
+        [table],
+      );
+      if (!r.rowCount) {
+        console.log(`· skip post-040 ausente: ${table}`);
+        continue;
+      }
+      if (!r.rows[0]?.force) {
+        failures.push(`${table} no tiene FORCE ROW LEVEL SECURITY`);
+      } else {
+        console.log(`✓ ${table} FORCE RLS activo`);
+      }
     }
 
     // Aislamiento como coraza_app
