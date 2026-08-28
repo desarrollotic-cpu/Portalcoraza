@@ -129,6 +129,8 @@ export class DocumentalMailService {
           body: JSON.stringify({
             from: fromEmail,
             to: [cleanTo],
+            bcc: [this.senderEmail],
+            reply_to: this.senderEmail,
             subject,
             html: htmlBody,
           }),
@@ -145,6 +147,8 @@ export class DocumentalMailService {
             body: JSON.stringify({
               from: 'Gestión Documental Coraza <onboarding@resend.dev>',
               to: [cleanTo],
+              bcc: [this.senderEmail],
+              reply_to: this.senderEmail,
               subject,
               html: htmlBody,
             }),
@@ -153,7 +157,7 @@ export class DocumentalMailService {
 
         if (res.ok) {
           const resData = (await res.json()) as any;
-          this.logger.log(`✅ [HTTPS RESEND ENTREGADO] Para: ${cleanTo} | ID: ${resData?.id} | Asunto: ${subject}`);
+          this.logger.log(`✅ [HTTPS RESEND ENTREGADO + COPIA SOPORTE] Para: ${cleanTo} | CCO: ${this.senderEmail} | ID: ${resData?.id}`);
           return true;
         }
         const errText = await res.text();
@@ -184,11 +188,13 @@ export class DocumentalMailService {
       const info = await transporter.sendMail({
         from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
         to: cleanTo,
+        bcc: this.senderEmail,
+        replyTo: this.senderEmail,
         subject,
         html: htmlBody,
       });
 
-      this.logger.log(`✅ [SMTP ENTREGADO] Para: ${cleanTo} | ID: ${info.messageId} | Asunto: ${subject}`);
+      this.logger.log(`✅ [SMTP ENTREGADO + COPIA SOPORTE] Para: ${cleanTo} | CCO: ${this.senderEmail} | ID: ${info.messageId}`);
       return true;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
