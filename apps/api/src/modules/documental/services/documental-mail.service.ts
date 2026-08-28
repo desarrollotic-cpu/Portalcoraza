@@ -22,16 +22,17 @@ export class DocumentalMailService {
 
   private initTransporter(): void {
     const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = Number(process.env.SMTP_PORT) || 465;
+    const smtpPort = Number(process.env.SMTP_PORT) || 587;
     const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
     const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
-    const smtpSecure = process.env.SMTP_SECURE !== 'false';
+    const isExplicitSsl = process.env.SMTP_SECURE === 'true' && smtpPort === 465;
 
     try {
       this.transporter = nodemailer.createTransport({
         host: smtpHost,
         port: smtpPort,
-        secure: smtpSecure,
+        secure: isExplicitSsl,
+        requireTLS: !isExplicitSsl,
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
@@ -41,7 +42,7 @@ export class DocumentalMailService {
         },
       });
 
-      this.logger.log(`📧 [SMTP POOL INICIADO] Configurado para ${smtpUser} vía ${smtpHost}:${smtpPort}`);
+      this.logger.log(`📧 [SMTP INICIADO] Conectado a ${smtpUser} vía ${smtpHost}:${smtpPort} (TLS: ${!isExplicitSsl})`);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`❌ Error inicializando pool SMTP: ${errorMsg}`);
