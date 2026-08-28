@@ -199,6 +199,13 @@ import { DOC_STYLES } from '../documental.styles';
                             Rechazar
                           </button>
                         </div>
+                      } @else if (l.status === 'RECHAZADO') {
+                        <div class="btn-group-right">
+                          <button type="button" class="btn-act-approve" (click)="approve(l)" title="Reconsiderar y Aprobar Solicitud">
+                            <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
+                            Aprobar / Confirmar
+                          </button>
+                        </div>
                       } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
                         <div class="btn-group-right">
                           @if (l.email) {
@@ -212,6 +219,10 @@ import { DOC_STYLES } from '../documental.styles';
                               <span>Notificar</span>
                             </button>
                           }
+                          <button type="button" class="btn-act-reject" (click)="reject(l)" title="Rechazar o Anular Préstamo">
+                            <app-icon [icon]="icons.X" [size]="13" [strokeWidth]="2.5" />
+                            Rechazar
+                          </button>
                           <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
                              Devolver
                           </button>
@@ -694,12 +705,37 @@ export class LoansScreen implements OnInit {
   }
 
   approve(l: Loan): void {
-    this.api.approveLoan(l.id).subscribe({ next: () => this.load() });
+    this.api.approveLoan(l.id).subscribe({
+      next: () => {
+        if (l.email) {
+          this.emailStatusMsg.set(`✅ Solicitud Aprobada / Confirmada. Correo enviado a ${l.email}`);
+          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+        }
+        this.load();
+      },
+      error: () => {
+        this.emailStatusMsg.set('❌ Error al aprobar la solicitud.');
+        setTimeout(() => this.emailStatusMsg.set(null), 4000);
+      }
+    });
   }
 
   reject(l: Loan): void {
-    const motivo = window.prompt('Motivo de rechazo de la solicitud:') ?? '';
-    this.api.rejectLoan(l.id, motivo).subscribe({ next: () => this.load() });
+    const motivo = window.prompt('Ingresa el motivo de rechazo que se notificará al solicitante por correo:', 'Expediente en consulta física / No disponible');
+    if (motivo === null) return; // Cancelado por el usuario
+    this.api.rejectLoan(l.id, motivo).subscribe({
+      next: () => {
+        if (l.email) {
+          this.emailStatusMsg.set(`❌ Solicitud Rechazada. Notificación del motivo enviada a ${l.email}`);
+          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+        }
+        this.load();
+      },
+      error: () => {
+        this.emailStatusMsg.set('❌ Error al rechazar la solicitud.');
+        setTimeout(() => this.emailStatusMsg.set(null), 4000);
+      }
+    });
   }
 
   ret(l: Loan): void {

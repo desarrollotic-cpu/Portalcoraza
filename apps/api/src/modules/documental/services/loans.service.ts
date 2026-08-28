@@ -110,12 +110,26 @@ export class LoansService {
 
   async approve(id: string, userId: string) {
     const loan = await this.setStatus(id);
-    if (loan.status !== 'PENDIENTE_APROBACION') {
-      throw new BadRequestException(`Solo se aprueban solicitudes pendientes (estado actual: ${loan.status})`);
+    if (loan.status !== 'PENDIENTE_APROBACION' && loan.status !== 'RECHAZADO') {
+      throw new BadRequestException(`Solo se aprueban o reconsideran solicitudes pendientes o rechazadas (estado actual: ${loan.status})`);
     }
     loan.status = 'ACTIVO';
     loan.loanDate = new Date().toISOString().slice(0, 10);
     const saved = await this.repo.save(loan);
+
+    // Enviar correo formal de confirmación de aprobación al solicitante
+    if (saved.email) {
+      this.mailService.sendLoanApprovalEmail({
+        id: saved.id,
+        requester: saved.requester,
+        email: saved.email,
+        document: saved.document || saved.documentCode || 'Expediente Documental',
+        loanDate: saved.loanDate || new Date().toISOString().slice(0, 10),
+        returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
+        department: saved.department || undefined,
+      }).catch(() => {});
+    }
+
     await this.audit.log({
       userId,
       module: 'documental',
@@ -128,12 +142,26 @@ export class LoansService {
 
   async reject(id: string, motivo: string | undefined, userId: string) {
     const loan = await this.setStatus(id);
-    if (loan.status !== 'PENDIENTE_APROBACION') {
-      throw new BadRequestException(`Solo se rechazan solicitudes pendientes (estado actual: ${loan.status})`);
+    if (loan.status !== 'PENDIENTE_APROBACION' && loan.status !== 'ACTIVO') {
+      throw new BadRequestException(`Solo se rechazan solicitudes pendientes o activas (estado actual: ${loan.status})`);
     }
+    const motivoFinal = motivo?.trim() || 'No cumple con los requisitos o expediente no disponible temporalmente';
     loan.status = 'RECHAZADO';
-    loan.observations = `${loan.observations ?? ''} | RECHAZADO: ${motivo ?? 'No especificado'}`;
+    loan.observations = `${loan.observations ? loan.observations + ' | ' : ''}RECHAZADO: ${motivoFinal}`;
     const saved = await this.repo.save(loan);
+
+    // Enviar correo formal de rechazo con el motivo al solicitante
+    if (saved.email) {
+      this.mailService.sendLoanRejectionEmail({
+        id: saved.id,
+        requester: saved.requester,
+        email: saved.email,
+        document: saved.document || saved.documentCode || 'Expediente Documental',
+        motivoRechazo: motivoFinal,
+        department: saved.department || undefined,
+      }).catch(() => {});
+    }
+
     await this.audit.log({
       userId,
       module: 'documental',
