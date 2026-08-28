@@ -1,17 +1,20 @@
 import * as dns from 'dns';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import compression = require('compression');
 import { AppModule } from './app.module';
 import { patchTypeOrmTenantFilter } from './common/tenant/patch-typeorm-tenant';
 
 // Render y otros hosts IPv4-only: priorizar IPv4 al resolver Supabase direct/pooler
 dns.setDefaultResultOrder('ipv4first');
-// restart: 2026-08-20T16:41
 
 async function bootstrap() {
   patchTypeOrmTenantFilter();
 
   const app = await NestFactory.create(AppModule);
+
+  // Compresión gzip/deflate de respuestas JSON (-85% en tamaño de transferencia)
+  app.use(compression());
 
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
