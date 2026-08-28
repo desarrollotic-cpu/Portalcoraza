@@ -115,6 +115,38 @@ export class DocumentalMailService {
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     const cleanTo = to.trim().toLowerCase();
 
+    // 1. Despacho prioritario vía HTTPS REST API (Puerto 443 - Inmune a bloqueos de red en Render Cloud)
+    const resendKey = process.env.RESEND_API_KEY?.trim();
+    if (resendKey) {
+      try {
+        const fromEmail = process.env.MAIL_FROM || 'Gestión Documental Coraza <onboarding@resend.dev>';
+        const res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: fromEmail,
+            to: [cleanTo],
+            subject,
+            html: htmlBody,
+          }),
+        });
+
+        if (res.ok) {
+          const resData = (await res.json()) as any;
+          this.logger.log(`✅ [HTTPS RESEND ENTREGADO] Para: ${cleanTo} | ID: ${resData?.id} | Asunto: ${subject}`);
+          return true;
+        }
+        const errText = await res.text();
+        this.logger.warn(`⚠️ Respuesta Resend HTTP (${res.status}): ${errText}`);
+      } catch (httpErr: any) {
+        this.logger.warn(`⚠️ Error en despacho HTTPS Resend: ${httpErr.message}`);
+      }
+    }
+
+    // 2. Fallback secundario a transporte SMTP tradicional
     try {
       const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
       const smtpPort = Number(process.env.SMTP_PORT) || 465;
@@ -139,7 +171,7 @@ export class DocumentalMailService {
         html: htmlBody,
       });
 
-      this.logger.log(`✅ [CORREO ENTREGADO] Para: ${cleanTo} | ID: ${info.messageId} | Asunto: ${subject}`);
+      this.logger.log(`✅ [SMTP ENTREGADO] Para: ${cleanTo} | ID: ${info.messageId} | Asunto: ${subject}`);
       return true;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
