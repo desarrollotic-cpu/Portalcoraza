@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { runWithTenantContext } from '../../common/tenant/run-with-tenant';
+import { Organization } from '../organizations/entities/organization.entity';
 import { HrAlertsService } from './hr-alerts.service';
 
 /**
@@ -15,17 +19,29 @@ import { HrAlertsService } from './hr-alerts.service';
 export class HrAlertsCron {
   private readonly logger = new Logger(HrAlertsCron.name);
 
-  constructor(private readonly alerts: HrAlertsService) {}
+  constructor(
+    private readonly alerts: HrAlertsService,
+    @InjectRepository(Organization)
+    private readonly orgsRepo: Repository<Organization>,
+  ) {}
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'hr-alerts-daily' })
   async handleDailyAlerts() {
-    this.logger.log('Ejecutando motor de alertas HRM (diario)');
-    try {
-      await this.alerts.cleanupStale();
-      const summary = await this.alerts.generateAll();
-      this.logger.log(`Motor de alertas completado: ${JSON.stringify(summary)}`);
-    } catch (err) {
-      this.logger.error('Error ejecutando motor de alertas HRM', err as Error);
+    this.logger.log('Ejecutando motor de alertas HRM (diario, por tenant)');
+    const orgs = await this.orgsRepo.find({ where: { activo: true }, select: ['id'] });
+
+    for (const org of orgs) {
+      try {
+        await runWithTenantContext(org.id, async () => {
+          await this.alerts.cleanupStale();
+          const summary = await this.alerts.generateAll();
+          this.logger.log(
+            `Tenant ${org.id}: motor de alertas completado ${JSON.stringify(summary)}`,
+          );
+        });
+      } catch (err) {
+        this.logger.error(`Error motor alertas tenant ${org.id}`, err as Error);
+      }
     }
   }
 }
