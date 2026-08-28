@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
@@ -9,6 +9,8 @@ import { DocumentalMailService } from './documental-mail.service';
 
 @Injectable()
 export class LoansService {
+  private readonly logger = new Logger(LoansService.name);
+
   constructor(
     @InjectRepository(Loan)
     private readonly repo: Repository<Loan>,
@@ -119,7 +121,7 @@ export class LoansService {
 
     // Enviar correo formal de confirmación de aprobación al solicitante
     if (saved.email) {
-      this.mailService.sendLoanApprovalEmail({
+      await this.mailService.sendLoanApprovalEmail({
         id: saved.id,
         requester: saved.requester,
         email: saved.email,
@@ -127,7 +129,9 @@ export class LoansService {
         loanDate: saved.loanDate || new Date().toISOString().slice(0, 10),
         returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
         department: saved.department || undefined,
-      }).catch(() => {});
+      }).catch((err) => {
+        this.logger.error(`Error enviando correo de aprobación a ${saved.email}:`, err);
+      });
     }
 
     await this.audit.log({
@@ -152,14 +156,16 @@ export class LoansService {
 
     // Enviar correo formal de rechazo con el motivo al solicitante
     if (saved.email) {
-      this.mailService.sendLoanRejectionEmail({
+      await this.mailService.sendLoanRejectionEmail({
         id: saved.id,
         requester: saved.requester,
         email: saved.email,
         document: saved.document || saved.documentCode || 'Expediente Documental',
         motivoRechazo: motivoFinal,
         department: saved.department || undefined,
-      }).catch(() => {});
+      }).catch((err) => {
+        this.logger.error(`Error enviando correo de rechazo a ${saved.email}:`, err);
+      });
     }
 
     await this.audit.log({
