@@ -118,9 +118,8 @@ export class DocumentalMailService {
     // 1. Despacho prioritario vía HTTPS REST API (Puerto 443 - Inmune a bloqueos de red en Render Cloud)
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (resendKey) {
-      try {
-        const fromEmail = process.env.MAIL_FROM || 'Gestión Documental Coraza <onboarding@resend.dev>';
-        const res = await fetch('https://api.resend.com/emails', {
+        const fromEmail = process.env.MAIL_FROM || 'Gestión Documental Coraza <documental@corazaseguridadcta.com>';
+        let res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${resendKey}`,
@@ -133,6 +132,23 @@ export class DocumentalMailService {
             html: htmlBody,
           }),
         });
+
+        if (!res.ok) {
+          // Si el remitente personalizado aún no tiene DNS verificado, reintentar con el remitente del onboarding
+          res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${resendKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: 'Gestión Documental Coraza <onboarding@resend.dev>',
+              to: [cleanTo],
+              subject,
+              html: htmlBody,
+            }),
+          });
+        }
 
         if (res.ok) {
           const resData = (await res.json()) as any;
