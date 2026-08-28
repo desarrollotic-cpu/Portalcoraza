@@ -115,97 +115,37 @@ export class DocumentalMailService {
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     const cleanTo = to.trim().toLowerCase();
 
-    // 1. Intentar por HTTPS REST API si está configurada (Puerto 443 - ideal para servidores cloud como Render)
-    const resendKey = process.env.RESEND_API_KEY;
-    if (resendKey) {
-      try {
-        const fromEmail = process.env.MAIL_FROM || 'Gestión Documental <documental@corazaseguridadcta.com>';
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey.trim()}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: [cleanTo],
-            subject,
-            html: htmlBody,
-          }),
-        });
-        if (res.ok) {
-          const resData = await res.json() as any;
-          this.logger.log(`✅ [HTTPS RESEND DESPACHADO] Para: ${cleanTo} | ID: ${resData?.id}`);
-          return true;
-        }
-        const errText = await res.text();
-        this.logger.warn(`⚠️ Error de entrega Resend HTTP (${res.status}): ${errText}`);
-      } catch (httpErr: any) {
-        this.logger.warn(`⚠️ Falla en despacho HTTPS: ${httpErr.message}`);
-      }
-    }
-
-    // 2. Intentar transporte SMTP con Timeout estricto de 4 segundos
-    if (!this.transporter) {
-      this.initTransporter();
-    }
-
     try {
-      if (this.transporter) {
-        const sendPromise = this.transporter.sendMail({
-          from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-          to: cleanTo,
-          subject,
-          html: htmlBody,
-        });
+      const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
+      const smtpPort = Number(process.env.SMTP_PORT) || 465;
+      const smtpUser = (process.env.SMTP_USER || 'documental@corazaseguridadcta.com').trim();
+      const smtpPass = (process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn').trim();
+      const smtpSecure = process.env.SMTP_SECURE !== 'false';
 
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('SMTP timeout (4000ms) - firewall bloqueó el puerto')), 4000)
-        );
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpSecure,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
 
-        const info = await Promise.race([sendPromise, timeoutPromise]);
-        this.logger.log(`✅ [SMTP DESPACHADO EXITOSAMENTE] Para: ${cleanTo} | ID: ${(info as any)?.messageId} | Asunto: ${subject}`);
-        return true;
-      }
+      const info = await transporter.sendMail({
+        from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
+        to: cleanTo,
+        subject,
+        html: htmlBody,
+      });
+
+      this.logger.log(`✅ [CORREO ENTREGADO] Para: ${cleanTo} | ID: ${info.messageId} | Asunto: ${subject}`);
+      return true;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`⚠️ No se pudo enviar por SMTP principal (${errorMsg}). Intentando puerto 587 directo...`);
-
-      // Fallback transporte directo con timeout
-      try {
-        const fallbackTransporter = nodemailer.createTransport({
-          host: 'smtp.gmail.com',
-          port: 587,
-          secure: false,
-          connectionTimeout: 4000,
-          greetingTimeout: 4000,
-          socketTimeout: 4000,
-          auth: {
-            user: (process.env.SMTP_USER || 'documental@corazaseguridadcta.com').trim(),
-            pass: (process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn').trim(),
-          },
-        });
-
-        const fbSend = fallbackTransporter.sendMail({
-          from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-          to: cleanTo,
-          subject,
-          html: htmlBody,
-        });
-
-        const fbTimeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Fallback SMTP timeout (4000ms)')), 4000)
-        );
-
-        const info = await Promise.race([fbSend, fbTimeout]);
-        this.logger.log(`✅ [FALLBACK SMTP EXITOSO] Para: ${cleanTo} | ID: ${(info as any)?.messageId}`);
-        return true;
-      } catch (fallbackErr: unknown) {
-        const fbMsg = fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr);
-        this.logger.error(`❌ Error entregando correo a ${cleanTo}: ${fbMsg}`);
-      }
+      this.logger.error(`❌ Error enviando correo a ${cleanTo}: ${errorMsg}`);
+      return false;
     }
-    return false;
   }
 
   private buildApprovalEmailTemplate(notice: {
