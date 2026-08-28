@@ -40,14 +40,36 @@ const CACHEABLE_ENDPOINTS = [
   '/payroll-periods',
 ];
 
+/** Prefijos de caché a invalidar según la URL mutada (POST/PUT/PATCH/DELETE). */
+function cachePrefixesForMutation(url: string): string[] {
+  const matched = CACHEABLE_ENDPOINTS.filter((ep) => url.includes(ep));
+  const prefixes = new Set(matched);
+  if (matched.some((ep) => !ep.startsWith('/dashboard'))) {
+    prefixes.add('/dashboard/stats');
+  }
+  return [...prefixes];
+}
+
+function invalidateCacheForMutation(url: string): void {
+  const prefixes = cachePrefixesForMutation(url);
+  if (prefixes.length === 0) {
+    cache.clear();
+    return;
+  }
+  for (const key of cache.keys()) {
+    if (prefixes.some((p) => key.includes(p))) {
+      cache.delete(key);
+    }
+  }
+}
+
 export const httpCacheInterceptor: HttpInterceptorFn = (
   req: HttpRequest<unknown>,
   next: HttpHandlerFn,
 ): Observable<HttpEvent<unknown>> => {
   // Solo cacheamos peticiones GET de consulta
   if (req.method !== 'GET') {
-    // Si es POST/PUT/PATCH/DELETE, invalidamos la caché para tener datos frescos
-    cache.clear();
+    invalidateCacheForMutation(req.url);
     return next(req);
   }
 
