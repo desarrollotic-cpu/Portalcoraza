@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
@@ -19,29 +20,50 @@ export class LoansService {
   ) {}
 
   /**
-   * Marca como VENCIDO los préstamos ACTIVOS cuya fecha de devolución ya pasó
-   * y envía automáticamente el correo de recordatorio a los que no han sido notificados.
+   * Tarea programada automática:
+   * Revisa préstamos vencidos todos los días a las 8:00 AM y 2:00 PM
+   * y envía correos de recordatorio recurrentes de forma automática
+   * hasta que el funcionario realice la devolución física.
    */
-  private async autoExpire(): Promise<void> {
-    // 1. Actualizar estado a VENCIDO
+  @Cron('0 8,14 * * *')
+  async handleRecurringOverdueCheck(): Promise<void> {
+    this.logger.log('⏰ [CRON GESTIÓN DOCUMENTAL] Verificación automática de préstamos vencidos...');
+    await this.checkAndSendOverdueReminders();
+  }
+
+  /**
+   * Marca como VENCIDO los préstamos cuya fecha límite ya pasó
+   * y envía automáticamente recordatorio diario a cada solicitante
+   * hasta que el estado cambie a DEVUELTO.
+   */
+  async checkAndSendOverdueReminders(): Promise<void> {
+    // 1. Actualizar estado de préstamos activos cuya fecha ya venció
     await this.repo
       .createQueryBuilder()
       .update(Loan)
       .set({ status: 'VENCIDO' })
-      .where('status = :active AND return_date < CURRENT_DATE', { active: 'ACTIVO' })
+      .where("status = 'ACTIVO' AND return_date < CURRENT_DATE")
       .execute();
 
-    // 2. Buscar préstamos vencidos que tengan correo y aún no hayan sido notificados
-    const pendingNotifications = await this.repo
+    // 2. Buscar todos los préstamos vencidos pendientes de devolución
+    const overdueLoans = await this.repo
       .createQueryBuilder('l')
-      .where("(l.status = 'VENCIDO' OR (l.status = 'ACTIVO' AND l.return_date < CURRENT_DATE))")
-      .andWhere('l.email IS NOT NULL')
-      .andWhere("l.email != ''")
-      .andWhere('l.overdue_notified_at IS NULL')
+      .where("l.status = 'VENCIDO'")
+      .andWhere("l.status != 'DEVUELTO'")
+      .andWhere("l.status != 'RECHAZADO'")
+      .andWhere("l.email IS NOT NULL AND l.email != ''")
       .getMany();
 
-    for (const loan of pendingNotifications) {
-      if (loan.email) {
+    const now = Date.now();
+    const TWENTY_HOURS_MS = 20 * 60 * 60 * 1000;
+
+    for (const loan of overdueLoans) {
+      if (!loan.email) continue;
+
+      // Si nunca fue notificado o pasaron más de 20 horas desde el último aviso (aviso diario recurrente)
+      const lastNotified = loan.overdueNotifiedAt ? new Date(loan.overdueNotifiedAt).getTime() : 0;
+      if (!lastNotified || now - lastNotified > TWENTY_HOURS_MS) {
+        this.logger.log(`📧 [RECORDATORIO RECURRENTE] Enviando aviso diario de devolución para préstamo #${loan.id} a ${loan.email}`);
         await this.mailService.sendOverdueReminder({
           id: loan.id,
           requester: loan.requester,
@@ -49,7 +71,10 @@ export class LoansService {
           document: loan.document || loan.documentCode || 'Expediente Documental',
           returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
           department: loan.department || undefined,
+        }).catch((err) => {
+          this.logger.error(`Error enviando recordatorio diario a ${loan.email}:`, err);
         });
+
         loan.overdueNotifiedAt = new Date();
         await this.repo.save(loan);
       }
@@ -57,7 +82,7 @@ export class LoansService {
   }
 
   async list() {
-    await this.autoExpire();
+    await this.checkAndSendOverdueReminders();
     return this.repo.find({ order: { loanDate: 'DESC' } });
   }
 
