@@ -144,9 +144,9 @@ export class LoansService {
     loan.loanDate = new Date().toISOString().slice(0, 10);
     const saved = await this.repo.save(loan);
 
-    // Enviar correo formal de confirmación de aprobación al solicitante
+    // Enviar correo formal de confirmación de aprobación al solicitante de manera asíncrona
     if (saved.email) {
-      await this.mailService.sendLoanApprovalEmail({
+      void this.mailService.sendLoanApprovalEmail({
         id: saved.id,
         requester: saved.requester,
         email: saved.email,
@@ -179,9 +179,9 @@ export class LoansService {
     loan.observations = `${loan.observations ? loan.observations + ' | ' : ''}RECHAZADO: ${motivoFinal}`;
     const saved = await this.repo.save(loan);
 
-    // Enviar correo formal de rechazo con el motivo al solicitante
+    // Enviar correo formal de rechazo con el motivo al solicitante de manera asíncrona
     if (saved.email) {
-      await this.mailService.sendLoanRejectionEmail({
+      void this.mailService.sendLoanRejectionEmail({
         id: saved.id,
         requester: saved.requester,
         email: saved.email,
