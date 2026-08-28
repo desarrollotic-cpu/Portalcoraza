@@ -5,6 +5,7 @@ import {
   LucideClock,
   LucideCopy,
   LucideExternalLink,
+  LucideEye,
   LucideFileText,
   LucideMail,
   LucidePlus,
@@ -187,9 +188,13 @@ import { DOC_STYLES } from '../documental.styles';
                     </span>
                   </td>
                   <td style="text-align:right">
-                    @if (canManage()) {
-                      @if (l.status === 'PENDIENTE_APROBACION') {
-                        <div class="btn-group-right">
+                    <div class="btn-group-right">
+                      <button type="button" class="btn-act-view" (click)="openDetailModal(l)" title="Ver detalle completo de la solicitud">
+                        <app-icon [icon]="icons.Eye" [size]="13" [strokeWidth]="2" />
+                        <span>Detalles</span>
+                      </button>
+                      @if (canManage()) {
+                        @if (l.status === 'PENDIENTE_APROBACION') {
                           <button type="button" class="btn-act-approve" (click)="approve(l)" title="Aprobar Solicitud">
                             <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
                             Aprobar
@@ -198,16 +203,12 @@ import { DOC_STYLES } from '../documental.styles';
                             <app-icon [icon]="icons.X" [size]="13" [strokeWidth]="2.5" />
                             Rechazar
                           </button>
-                        </div>
-                      } @else if (l.status === 'RECHAZADO') {
-                        <div class="btn-group-right">
+                        } @else if (l.status === 'RECHAZADO') {
                           <button type="button" class="btn-act-approve" (click)="approve(l)" title="Reconsiderar y Aprobar Solicitud">
                             <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
                             Aprobar / Confirmar
                           </button>
-                        </div>
-                      } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
-                        <div class="btn-group-right">
+                        } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
                           @if (l.email) {
                             <button
                               type="button"
@@ -226,11 +227,9 @@ import { DOC_STYLES } from '../documental.styles';
                           <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
                              Devolver
                           </button>
-                        </div>
-                      } @else {
-                        <span class="muted">—</span>
+                        }
                       }
-                    }
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -241,6 +240,118 @@ import { DOC_STYLES } from '../documental.styles';
         </div>
       }
     </div>
+
+    <!-- MODAL DE DETALLE COMPLETO DE LA SOLICITUD (OJO DE INSPECCIÓN) -->
+    @if (selectedLoan(); as loan) {
+      <div class="modal-backdrop" (click)="closeDetailModal()">
+        <div class="detail-modal-card" (click)="$event.stopPropagation()">
+          <div class="detail-modal-header">
+            <div class="detail-title-box">
+              <div class="icon-circle-detail">
+                <app-icon [icon]="icons.FileText" [size]="22" [strokeWidth]="2" />
+              </div>
+              <div>
+                <h4>Detalle de Solicitud de Préstamo</h4>
+                <div class="detail-sub-meta">
+                  <span>ID: #{{ loan.id.slice(0, 8) }}</span>
+                  <span class="badge" [class.ok]="loan.status === 'ACTIVO' || loan.status === 'DEVUELTO'" [class.crit]="loan.status === 'VENCIDO' || loan.status === 'RECHAZADO'" [class.warn]="loan.status === 'PENDIENTE_APROBACION'">
+                    {{ loan.status }}
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="btn-close" (click)="closeDetailModal()">
+              <app-icon [icon]="icons.X" [size]="18" [strokeWidth]="2" />
+            </button>
+          </div>
+
+          <div class="detail-modal-body">
+            <div class="detail-grid">
+              <div class="detail-item full-width">
+                <span class="detail-label">👤 Solicitante & Identificación</span>
+                <div class="detail-val-strong">{{ loan.requester }}</div>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">📧 Correo de Contacto / Notificación</span>
+                <div class="detail-val">{{ loan.email || 'No registrado' }}</div>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">🏢 Área / Dependencia</span>
+                <div class="detail-val">{{ loan.department || 'No especificada' }}</div>
+              </div>
+
+              <div class="detail-item full-width doc-highlight-box">
+                <span class="detail-label">📄 Expediente / Documento Solicitado</span>
+                <div class="detail-val-strong doc-name">{{ loan.document || '—' }}</div>
+                @if (loan.documentCode) {
+                  <span class="doc-code-pill">Radicado / Código: #{{ loan.documentCode }}</span>
+                }
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">📅 Fecha de Solicitud / Préstamo</span>
+                <div class="detail-val">{{ loan.loanDate || '—' }}</div>
+              </div>
+
+              <div class="detail-item">
+                <span class="detail-label">📅 Fecha Estimada de Devolución</span>
+                <div class="detail-val" [style.color]="loan.status === 'VENCIDO' ? '#dc2626' : 'inherit'" [style.font-weight]="loan.status === 'VENCIDO' ? '800' : '600'">
+                  {{ loan.returnDate || 'Sin fecha límite' }}
+                </div>
+              </div>
+
+              @if (loan.realReturnDate) {
+                <div class="detail-item full-width">
+                  <span class="detail-label">✅ Fecha Real de Devolución Física</span>
+                  <div class="detail-val" style="color:#16a34a; font-weight:700;">{{ loan.realReturnDate }}</div>
+                </div>
+              }
+
+              @if (loan.observations) {
+                <div class="detail-item full-width obs-card-box">
+                  <span class="detail-label">📝 Motivo / Justificación / Observaciones</span>
+                  <div class="obs-content-text">{{ loan.observations }}</div>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="detail-modal-footer">
+            <button type="button" class="btn-ghost" (click)="closeDetailModal()">Cerrar</button>
+            
+            <div class="modal-footer-actions">
+              @if (canManage()) {
+                @if (loan.status === 'PENDIENTE_APROBACION') {
+                  <button type="button" class="btn-act-reject modal-btn" (click)="reject(loan); closeDetailModal()">
+                    <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
+                    <span>Rechazar Solicitud</span>
+                  </button>
+                  <button type="button" class="btn-act-approve modal-btn" (click)="approve(loan); closeDetailModal()">
+                    <app-icon [icon]="icons.Check" [size]="14" [strokeWidth]="2.5" />
+                    <span>Aprobar Solicitud</span>
+                  </button>
+                } @else if (loan.status === 'RECHAZADO') {
+                  <button type="button" class="btn-act-approve modal-btn" (click)="approve(loan); closeDetailModal()">
+                    <app-icon [icon]="icons.Check" [size]="14" [strokeWidth]="2.5" />
+                    <span>Reconsiderar y Aprobar</span>
+                  </button>
+                } @else if (loan.status === 'ACTIVO' || loan.status === 'VENCIDO') {
+                  <button type="button" class="btn-act-reject modal-btn" (click)="reject(loan); closeDetailModal()">
+                    <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
+                    <span>Anular / Rechazar</span>
+                  </button>
+                  <button type="button" class="btn-primary modal-btn" (click)="ret(loan); closeDetailModal()">
+                    <span>Registrar Devolución</span>
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- MODAL DE CÓDIGO QR / ENLACE PÚBLICO -->
     @if (qrModalOpen()) {
@@ -417,6 +528,25 @@ import { DOC_STYLES } from '../documental.styles';
     .notif-badge { font-size: 0.68rem; color: #b45309; background: #fef3c7; padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
     
     .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
+    .btn-act-view {
+      background: #f8fafc;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.35rem;
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      transition: all 0.15s;
+    }
+    .btn-act-view:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
     .btn-act-approve {
       background: #ecfdf5;
       color: #047857;
@@ -462,6 +592,89 @@ import { DOC_STYLES } from '../documental.styles';
     .btn-notify-email:hover { background: #e0f2fe; }
 
     .btn-return { font-size: 0.75rem; padding: 0.25rem 0.6rem; border-radius: 0.35rem; font-weight: 700; }
+
+    /* MODAL DE DETALLE COMPLETO (OJO) */
+    .detail-modal-card {
+      background: #ffffff;
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 580px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      animation: modalSlideUp 0.2s ease-out;
+    }
+    @keyframes modalSlideUp {
+      from { transform: translateY(12px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .detail-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .detail-title-box { display: flex; align-items: center; gap: 0.75rem; }
+    .icon-circle-detail {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: #e0f2fe;
+      color: #0369a1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .detail-title-box h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; }
+    .detail-sub-meta { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.2rem; font-size: 0.75rem; color: #64748b; }
+
+    .detail-modal-body {
+      padding: 1.5rem;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .detail-item { display: flex; flex-direction: column; gap: 0.25rem; }
+    .detail-item.full-width { grid-column: span 2; }
+    .detail-label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.02em; }
+    .detail-val { font-size: 0.88rem; color: #1e293b; font-weight: 600; }
+    .detail-val-strong { font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+    
+    .doc-highlight-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 0.65rem;
+      padding: 0.85rem 1rem;
+    }
+    .doc-name { color: #0369a1; font-size: 1rem; }
+    .doc-code-pill { display: inline-block; background: #e0f2fe; color: #0284c7; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; margin-top: 0.35rem; }
+
+    .obs-card-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 0.65rem;
+      padding: 0.85rem 1rem;
+    }
+    .obs-content-text { font-size: 0.85rem; color: #92400e; font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-top: 0.25rem; }
+
+    .detail-modal-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-top: 1px solid #e2e8f0;
+      background: #f8fafc;
+      gap: 0.5rem;
+    }
+    .modal-footer-actions { display: flex; gap: 0.5rem; align-items: center; }
+    .modal-btn { padding: 0.45rem 0.85rem; font-size: 0.82rem; }
 
     /* MODAL QR */
     .modal-backdrop {
@@ -554,6 +767,7 @@ export class LoansScreen implements OnInit {
     Clock: LucideClock,
     Copy: LucideCopy,
     ExternalLink: LucideExternalLink,
+    Eye: LucideEye,
     FileText: LucideFileText,
     Mail: LucideMail,
     Plus: LucidePlus,
@@ -569,6 +783,7 @@ export class LoansScreen implements OnInit {
   readonly qrModalOpen = signal(false);
   readonly copied = signal(false);
   readonly emailStatusMsg = signal<string | null>(null);
+  readonly selectedLoan = signal<Loan | null>(null);
 
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
@@ -603,6 +818,14 @@ export class LoansScreen implements OnInit {
 
   toggle(): void {
     this.showForm.update((v) => !v);
+  }
+
+  openDetailModal(l: Loan): void {
+    this.selectedLoan.set(l);
+  }
+
+  closeDetailModal(): void {
+    this.selectedLoan.set(null);
   }
 
   openQrModal(): void {
