@@ -71,7 +71,7 @@ type PeriodKey = CommandPeriod;
           <div class="hero-quick-stats">
             <div class="stat-bubble">
               <span class="bubble-lbl">Asociados Activos</span>
-              <b class="bubble-val">{{ rrhh()?.kpis?.activeAssociates || 623 }}</b>
+              <b class="bubble-val">{{ rrhh()?.kpis?.activeAssociates ?? '—' }}</b>
               <small class="bubble-sub">100% al día</small>
             </div>
             <div class="stat-bubble">
@@ -107,7 +107,7 @@ type PeriodKey = CommandPeriod;
             </div>
             <div class="core-card-body">
               <span class="core-title">Talento Humano</span>
-              <b class="core-number">{{ rrhh()?.kpis?.activeAssociates || 623 }}</b>
+              <b class="core-number">{{ rrhh()?.kpis?.activeAssociates ?? '—' }}</b>
               <small class="core-subtext">Asociados en planta activa de seguridad</small>
             </div>
             <a routerLink="/rrhh" class="core-link">Ver Directorio RRHH →</a>
@@ -135,11 +135,11 @@ type PeriodKey = CommandPeriod;
               <div class="core-icon bg-amber">
                 <app-icon [icon]="icons.Boxes" [size]="20" [strokeWidth]="2" />
               </div>
-              <span class="core-badge orange">{{ dotacion()?.lowStockCount || 14 }} en Alerta</span>
+              <span class="core-badge orange">{{ dotacion()?.lowStockCount ?? 0 }} en Alerta</span>
             </div>
             <div class="core-card-body">
               <span class="core-title">Dotación & Almacén</span>
-              <b class="core-number">{{ dotacion()?.lowStockCount || 14 }}</b>
+              <b class="core-number">{{ dotacion()?.lowStockCount ?? '—' }}</b>
               <small class="core-subtext">Elementos de dotación con stock bajo</small>
             </div>
             <a routerLink="/dotacion/inventario" class="core-link">Gestionar Almacén →</a>
@@ -155,7 +155,7 @@ type PeriodKey = CommandPeriod;
             </div>
             <div class="core-card-body">
               <span class="core-title">Recepción & Visitas</span>
-              <b class="core-number">{{ recepcion()?.stats?.todayEntries || 40 }}</b>
+              <b class="core-number">{{ recepcion()?.stats?.todayEntries ?? '—' }}</b>
               <small class="core-subtext">Ingresos registrados en los últimos 7 días</small>
             </div>
             <a routerLink="/recepcion" class="core-link">Control de Accesos →</a>
