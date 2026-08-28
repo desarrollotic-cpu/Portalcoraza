@@ -118,6 +118,7 @@ export class DocumentalMailService {
     // 1. Despacho prioritario vía HTTPS REST API (Puerto 443 - Inmune a bloqueos de red en Render Cloud)
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (resendKey) {
+      try {
         const fromEmail = process.env.MAIL_FROM || 'Gestión Documental Coraza <documental@corazaseguridadcta.com>';
         let res = await fetch('https://api.resend.com/emails', {
           method: 'POST',
