@@ -195,36 +195,42 @@ import { DOC_STYLES } from '../documental.styles';
                       </button>
                       @if (canManage()) {
                         @if (l.status === 'PENDIENTE_APROBACION') {
-                          <button type="button" class="btn-act-approve" (click)="approve(l)" title="Aprobar Solicitud">
+                          <button type="button" class="btn-act-approve" (click)="requestApprove(l)" title="Aprobar Solicitud">
                             <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
                             Aprobar
                           </button>
-                          <button type="button" class="btn-act-reject" (click)="reject(l)" title="Rechazar Solicitud">
+                          <button type="button" class="btn-act-reject" (click)="requestReject(l)" title="Rechazar Solicitud">
                             <app-icon [icon]="icons.X" [size]="13" [strokeWidth]="2.5" />
                             Rechazar
                           </button>
                         } @else if (l.status === 'RECHAZADO') {
-                          <button type="button" class="btn-act-approve" (click)="approve(l)" title="Reconsiderar y Aprobar Solicitud">
+                          <button type="button" class="btn-act-approve" (click)="requestApprove(l)" title="Reconsiderar y Aprobar Solicitud">
                             <app-icon [icon]="icons.Check" [size]="13" [strokeWidth]="2.5" />
                             Aprobar / Confirmar
                           </button>
+                          @if (l.email) {
+                            <button type="button" class="btn-notify-email" (click)="requestReject(l)" title="Reenviar notificación de rechazo con motivo">
+                              <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
+                              <span>Notificar</span>
+                            </button>
+                          }
                         } @else if (l.status === 'ACTIVO' || l.status === 'VENCIDO') {
                           @if (l.email) {
                             <button
                               type="button"
                               class="btn-notify-email"
-                              (click)="sendEmailReminder(l)"
-                              title="Enviar recordatorio de devolución desde Documental@corazaseguridadcta.com"
+                              (click)="requestNotify(l)"
+                              title="Enviar recordatorio de devolución por correo"
                             >
                               <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
                               <span>Notificar</span>
                             </button>
                           }
-                          <button type="button" class="btn-act-reject" (click)="reject(l)" title="Rechazar o Anular Préstamo">
+                          <button type="button" class="btn-act-reject" (click)="requestReject(l)" title="Rechazar o Anular Préstamo">
                             <app-icon [icon]="icons.X" [size]="13" [strokeWidth]="2.5" />
                             Rechazar
                           </button>
-                          <button type="button" class="btn-ghost btn-return" (click)="ret(l)">
+                          <button type="button" class="btn-ghost btn-return" (click)="requestReturn(l)">
                              Devolver
                           </button>
                         }
@@ -240,6 +246,111 @@ import { DOC_STYLES } from '../documental.styles';
         </div>
       }
     </div>
+
+    <!-- MODAL DE CONFIRMACIÓN CON BOTÓN DE ACEPTAR / CANCELAR -->
+    @if (confirmModal(); as cm) {
+      <div class="modal-backdrop" (click)="closeConfirmModal()">
+        <div class="confirm-modal-card" (click)="$event.stopPropagation()">
+          <div class="confirm-modal-header" [class.danger]="cm.type === 'reject'" [class.success]="cm.type === 'approve'" [class.info]="cm.type === 'notify' || cm.type === 'return'">
+            <div class="confirm-icon-box">
+              @if (cm.type === 'approve') {
+                <app-icon [icon]="icons.Check" [size]="24" [strokeWidth]="2.5" />
+              } @else if (cm.type === 'reject') {
+                <app-icon [icon]="icons.X" [size]="24" [strokeWidth]="2.5" />
+              } @else if (cm.type === 'notify') {
+                <app-icon [icon]="icons.Mail" [size]="24" [strokeWidth]="2" />
+              } @else {
+                <app-icon [icon]="icons.FileText" [size]="24" [strokeWidth]="2" />
+              }
+            </div>
+            <div>
+              @if (cm.type === 'approve') {
+                <h4>¿Confirmar Aprobación de Préstamo?</h4>
+                <p>Se autorizará la entrega física del expediente</p>
+              } @else if (cm.type === 'reject') {
+                <h4>¿Confirmar Rechazo de Solicitud?</h4>
+                <p>Se registrará el rechazo y se notificará el motivo</p>
+              } @else if (cm.type === 'notify') {
+                <h4>¿Confirmar Envío de Notificación?</h4>
+                <p>Se enviará el recordatorio por correo electrónico</p>
+              } @else {
+                <h4>¿Confirmar Devolución Física?</h4>
+                <p>Se cerrará el préstamo y se detendrán los avisos</p>
+              }
+            </div>
+            <button type="button" class="btn-close" (click)="closeConfirmModal()">
+              <app-icon [icon]="icons.X" [size]="18" [strokeWidth]="2" />
+            </button>
+          </div>
+
+          <div class="confirm-modal-body">
+            <div class="confirm-summary-box">
+              <div class="confirm-row">
+                <span class="lbl">👤 Solicitante:</span>
+                <span class="val">{{ cm.loan.requester }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="lbl">📄 Expediente:</span>
+                <span class="val">{{ cm.loan.document || '—' }}</span>
+              </div>
+              <div class="confirm-row">
+                <span class="lbl">📧 Correo Destino:</span>
+                <span class="val" style="color:#0284c7; font-weight:700;">{{ cm.loan.email || '⚠️ Sin correo registrado' }}</span>
+              </div>
+            </div>
+
+            @if (cm.type === 'reject') {
+              <div class="reject-reason-group">
+                <label for="rejectReason">Motivo del Rechazo (se incluirá en el correo):</label>
+                <textarea
+                  id="rejectReason"
+                  rows="3"
+                  [(ngModel)]="cm.reason"
+                  placeholder="Escriba el motivo: ej. Documento en consulta física por auditoría..."
+                ></textarea>
+              </div>
+            }
+
+            <div class="confirm-alert-note">
+              @if (cm.loan.email) {
+                ℹ️ <strong>Confirmación:</strong> Al pulsar <strong>Aceptar</strong>, el sistema aplicará la acción y despachará el correo a <u>{{ cm.loan.email }}</u>. Si pulsa <strong>Cancelar</strong>, nada será modificado ni enviado.
+              } @else {
+                ℹ️ Al pulsar <strong>Aceptar</strong>, se aplicará el cambio en el sistema. Si pulsa <strong>Cancelar</strong>, se aborta la operación.
+              }
+            </div>
+          </div>
+
+          <div class="confirm-modal-footer">
+            <button type="button" class="btn-ghost" (click)="closeConfirmModal()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn-accept"
+              [class.btn-accept-approve]="cm.type === 'approve'"
+              [class.btn-accept-reject]="cm.type === 'reject'"
+              [class.btn-accept-notify]="cm.type === 'notify'"
+              [class.btn-accept-return]="cm.type === 'return'"
+              (click)="executeConfirmedAction()"
+            >
+              @if (cm.type === 'approve') {
+                <app-icon [icon]="icons.Check" [size]="15" [strokeWidth]="2.5" />
+                <span>Aceptar y Aprobar</span>
+              } @else if (cm.type === 'reject') {
+                <app-icon [icon]="icons.X" [size]="15" [strokeWidth]="2.5" />
+                <span>Aceptar y Rechazar</span>
+              } @else if (cm.type === 'notify') {
+                <app-icon [icon]="icons.Mail" [size]="15" [strokeWidth]="2" />
+                <span>Aceptar y Enviar</span>
+              } @else {
+                <app-icon [icon]="icons.Check" [size]="15" [strokeWidth]="2" />
+                <span>Aceptar y Devolver</span>
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- MODAL DE DETALLE COMPLETO DE LA SOLICITUD (OJO DE INSPECCIÓN) -->
     @if (selectedLoan(); as loan) {
@@ -324,25 +435,25 @@ import { DOC_STYLES } from '../documental.styles';
             <div class="modal-footer-actions">
               @if (canManage()) {
                 @if (loan.status === 'PENDIENTE_APROBACION') {
-                  <button type="button" class="btn-act-reject modal-btn" (click)="reject(loan); closeDetailModal()">
+                  <button type="button" class="btn-act-reject modal-btn" (click)="requestReject(loan); closeDetailModal()">
                     <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
                     <span>Rechazar Solicitud</span>
                   </button>
-                  <button type="button" class="btn-act-approve modal-btn" (click)="approve(loan); closeDetailModal()">
+                  <button type="button" class="btn-act-approve modal-btn" (click)="requestApprove(loan); closeDetailModal()">
                     <app-icon [icon]="icons.Check" [size]="14" [strokeWidth]="2.5" />
                     <span>Aprobar Solicitud</span>
                   </button>
                 } @else if (loan.status === 'RECHAZADO') {
-                  <button type="button" class="btn-act-approve modal-btn" (click)="approve(loan); closeDetailModal()">
+                  <button type="button" class="btn-act-approve modal-btn" (click)="requestApprove(loan); closeDetailModal()">
                     <app-icon [icon]="icons.Check" [size]="14" [strokeWidth]="2.5" />
                     <span>Reconsiderar y Aprobar</span>
                   </button>
                 } @else if (loan.status === 'ACTIVO' || loan.status === 'VENCIDO') {
-                  <button type="button" class="btn-act-reject modal-btn" (click)="reject(loan); closeDetailModal()">
+                  <button type="button" class="btn-act-reject modal-btn" (click)="requestReject(loan); closeDetailModal()">
                     <app-icon [icon]="icons.X" [size]="14" [strokeWidth]="2" />
                     <span>Anular / Rechazar</span>
                   </button>
-                  <button type="button" class="btn-primary modal-btn" (click)="ret(loan); closeDetailModal()">
+                  <button type="button" class="btn-primary modal-btn" (click)="requestReturn(loan); closeDetailModal()">
                     <span>Registrar Devolución</span>
                   </button>
                 }
@@ -676,6 +787,114 @@ import { DOC_STYLES } from '../documental.styles';
     .modal-footer-actions { display: flex; gap: 0.5rem; align-items: center; }
     .modal-btn { padding: 0.45rem 0.85rem; font-size: 0.82rem; }
 
+    /* MODAL DE CONFIRMACIÓN */
+    .confirm-modal-card {
+      background: #ffffff;
+      border-radius: 1.25rem;
+      width: 100%;
+      max-width: 500px;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .confirm-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1.25rem 1.5rem;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .confirm-modal-header.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
+    .confirm-modal-header.danger { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
+    .confirm-modal-header.info { background: #f0f9ff; border-color: #bae6fd; color: #075985; }
+
+    .confirm-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .confirm-modal-header.success .confirm-icon-box { color: #16a34a; }
+    .confirm-modal-header.danger .confirm-icon-box { color: #dc2626; }
+    .confirm-modal-header.info .confirm-icon-box { color: #0284c7; }
+
+    .confirm-modal-header h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; }
+    .confirm-modal-header p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #64748b; }
+
+    .confirm-modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+    .confirm-summary-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .confirm-row { display: flex; justify-content: space-between; font-size: 0.84rem; }
+    .confirm-row .lbl { color: #64748b; font-weight: 600; }
+    .confirm-row .val { color: #0f172a; font-weight: 700; text-align: right; }
+
+    .reject-reason-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    .reject-reason-group label { font-size: 0.8rem; font-weight: 700; color: #334155; }
+    .reject-reason-group textarea {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 0.5rem;
+      padding: 0.65rem;
+      font-size: 0.84rem;
+      font-family: inherit;
+      resize: vertical;
+    }
+    .reject-reason-group textarea:focus { outline: none; border-color: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2); }
+
+    .confirm-alert-note {
+      background: #f1f5f9;
+      border-left: 3px solid #64748b;
+      border-radius: 0.4rem;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.78rem;
+      color: #334155;
+      line-height: 1.4;
+    }
+
+    .confirm-modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+      padding: 1rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+    }
+
+    .btn-accept {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      border: none;
+      border-radius: 0.55rem;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #ffffff;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn-accept-approve { background: #16a34a; }
+    .btn-accept-approve:hover { background: #15803d; }
+    .btn-accept-reject { background: #dc2626; }
+    .btn-accept-reject:hover { background: #b91c1c; }
+    .btn-accept-notify { background: #0284c7; }
+    .btn-accept-notify:hover { background: #0369a1; }
+    .btn-accept-return { background: #0c4a6e; }
+    .btn-accept-return:hover { background: #075985; }
+
     /* MODAL QR */
     .modal-backdrop {
       position: fixed;
@@ -784,6 +1003,11 @@ export class LoansScreen implements OnInit {
   readonly copied = signal(false);
   readonly emailStatusMsg = signal<string | null>(null);
   readonly selectedLoan = signal<Loan | null>(null);
+  readonly confirmModal = signal<{
+    type: 'approve' | 'reject' | 'notify' | 'return';
+    loan: Loan;
+    reason?: string;
+  } | null>(null);
 
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
@@ -826,6 +1050,99 @@ export class LoansScreen implements OnInit {
 
   closeDetailModal(): void {
     this.selectedLoan.set(null);
+  }
+
+  requestApprove(loan: Loan): void {
+    this.confirmModal.set({
+      type: 'approve',
+      loan,
+    });
+  }
+
+  requestReject(loan: Loan): void {
+    this.confirmModal.set({
+      type: 'reject',
+      loan,
+      reason: 'Expediente en consulta física por auditoría / No disponible temporalmente',
+    });
+  }
+
+  requestNotify(loan: Loan): void {
+    this.confirmModal.set({
+      type: 'notify',
+      loan,
+    });
+  }
+
+  requestReturn(loan: Loan): void {
+    this.confirmModal.set({
+      type: 'return',
+      loan,
+    });
+  }
+
+  closeConfirmModal(): void {
+    this.confirmModal.set(null);
+  }
+
+  executeConfirmedAction(): void {
+    const cm = this.confirmModal();
+    if (!cm) return;
+
+    const { type, loan, reason } = cm;
+    this.closeConfirmModal();
+
+    if (type === 'approve') {
+      this.api.approveLoan(loan.id).subscribe({
+        next: () => {
+          if (loan.email) {
+            this.emailStatusMsg.set(`✅ Solicitud Aprobada / Confirmada. Notificación formal enviada a ${loan.email}`);
+            setTimeout(() => this.emailStatusMsg.set(null), 5000);
+          }
+          this.load();
+        },
+        error: () => {
+          this.emailStatusMsg.set('❌ Error al aprobar la solicitud.');
+          setTimeout(() => this.emailStatusMsg.set(null), 4000);
+        },
+      });
+    } else if (type === 'reject') {
+      const motivoFinal = reason?.trim() || 'No cumple con los requisitos o expediente no disponible temporalmente';
+      this.api.rejectLoan(loan.id, motivoFinal).subscribe({
+        next: () => {
+          if (loan.email) {
+            this.emailStatusMsg.set(`❌ Solicitud Rechazada. Notificación del motivo enviada a ${loan.email}`);
+            setTimeout(() => this.emailStatusMsg.set(null), 5000);
+          }
+          this.load();
+        },
+        error: () => {
+          this.emailStatusMsg.set('❌ Error al rechazar la solicitud.');
+          setTimeout(() => this.emailStatusMsg.set(null), 4000);
+        },
+      });
+    } else if (type === 'notify') {
+      if (!loan.email) return;
+      this.api.sendLoanReminder(loan.id).subscribe({
+        next: () => {
+          this.emailStatusMsg.set(`📧 Correo de recordatorio formal enviado a ${loan.email}`);
+          this.load();
+          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+        },
+        error: () => {
+          this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
+          setTimeout(() => this.emailStatusMsg.set(null), 4000);
+        },
+      });
+    } else if (type === 'return') {
+      this.api.returnLoan(loan.id).subscribe({
+        next: () => {
+          this.emailStatusMsg.set('✅ Devolución física registrada en archivo.');
+          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+          this.load();
+        },
+      });
+    }
   }
 
   openQrModal(): void {
@@ -923,59 +1240,6 @@ export class LoansScreen implements OnInit {
       error: () => {
         this.saving.set(false);
         this.error.set('No se pudo registrar el préstamo.');
-      },
-    });
-  }
-
-  approve(l: Loan): void {
-    this.api.approveLoan(l.id).subscribe({
-      next: () => {
-        if (l.email) {
-          this.emailStatusMsg.set(`✅ Solicitud Aprobada / Confirmada. Correo enviado a ${l.email}`);
-          setTimeout(() => this.emailStatusMsg.set(null), 5000);
-        }
-        this.load();
-      },
-      error: () => {
-        this.emailStatusMsg.set('❌ Error al aprobar la solicitud.');
-        setTimeout(() => this.emailStatusMsg.set(null), 4000);
-      }
-    });
-  }
-
-  reject(l: Loan): void {
-    const motivo = window.prompt('Ingresa el motivo de rechazo que se notificará al solicitante por correo:', 'Expediente en consulta física / No disponible');
-    if (motivo === null) return; // Cancelado por el usuario
-    this.api.rejectLoan(l.id, motivo).subscribe({
-      next: () => {
-        if (l.email) {
-          this.emailStatusMsg.set(`❌ Solicitud Rechazada. Notificación del motivo enviada a ${l.email}`);
-          setTimeout(() => this.emailStatusMsg.set(null), 5000);
-        }
-        this.load();
-      },
-      error: () => {
-        this.emailStatusMsg.set('❌ Error al rechazar la solicitud.');
-        setTimeout(() => this.emailStatusMsg.set(null), 4000);
-      }
-    });
-  }
-
-  ret(l: Loan): void {
-    this.api.returnLoan(l.id).subscribe({ next: () => this.load() });
-  }
-
-  sendEmailReminder(l: Loan): void {
-    if (!l.email) return;
-    this.api.sendLoanReminder(l.id).subscribe({
-      next: (res) => {
-        this.emailStatusMsg.set(` Correo de recordatorio enviado a ${l.email} desde Documental@corazaseguridadcta.com`);
-        this.load();
-        setTimeout(() => this.emailStatusMsg.set(null), 5000);
-      },
-      error: () => {
-        this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
-        setTimeout(() => this.emailStatusMsg.set(null), 4000);
       },
     });
   }
