@@ -10,7 +10,8 @@ describe('LoansService state machine', () => {
       createQueryBuilder: jest.fn(),
     };
     const audit = { log: jest.fn(async () => undefined) };
-    return { service: new LoansService(repo as never, audit as never), repo, loan };
+    const mailService = { sendLoanStatusEmail: jest.fn(async () => undefined) };
+    return { service: new LoansService(repo as never, audit as never, mailService as never), repo, loan };
   }
 
   it('rejects approve when not pending', async () => {

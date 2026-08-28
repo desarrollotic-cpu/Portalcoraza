@@ -1,5 +1,8 @@
 import { ForbiddenException } from '@nestjs/common';
+import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
 import { MinutaService } from './minuta.service';
+
+const TENANT = CENTRAL_ORGANIZATION_ID;
 
 describe('MinutaService post scope (PUESTO)', () => {
   function makeService(postIds: string[]) {
@@ -17,6 +20,7 @@ describe('MinutaService post scope (PUESTO)', () => {
       email: 'admin@x.com',
       roleCode: 'GERENCIA',
       permissions: ['minuta.view'],
+      tenantId: TENANT,
     });
     expect(scope).toEqual({ restricted: false });
   });
@@ -28,6 +32,7 @@ describe('MinutaService post scope (PUESTO)', () => {
       email: 'amisi@corazaseguridadcta.com',
       roleCode: 'PUESTO',
       permissions: ['minuta.view', 'minuta.create'],
+      tenantId: TENANT,
     });
     expect(scope).toEqual({ restricted: true, postIds: ['post-a'] });
   });
@@ -40,6 +45,7 @@ describe('MinutaService post scope (PUESTO)', () => {
         email: 'x@corazaseguridadcta.com',
         roleCode: 'PUESTO',
         permissions: ['minuta.view'],
+        tenantId: TENANT,
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
@@ -52,6 +58,7 @@ describe('MinutaService post scope (PUESTO)', () => {
         email: 'amisi@corazaseguridadcta.com',
         roleCode: 'PUESTO',
         permissions: ['minuta.create'],
+        tenantId: TENANT,
       },
       null,
     );
@@ -67,6 +74,7 @@ describe('MinutaService post scope (PUESTO)', () => {
           email: 'amisi@corazaseguridadcta.com',
           roleCode: 'PUESTO',
           permissions: ['minuta.create'],
+          tenantId: TENANT,
         },
         'post-other',
       ),
