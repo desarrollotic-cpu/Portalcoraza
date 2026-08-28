@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { runWithTenantContext } from '../../common/tenant/run-with-tenant';
 import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
 import {
   MotorCiclo,
@@ -58,26 +59,28 @@ export class MotorQueueService {
     };
     this.jobs.set(jobId, job);
 
-    setImmediate(async () => {
-      try {
-        const results = await this.schedulingService.generateMotorGlobal(
-          {
-            year: input.year,
-            month: input.month,
-            tipoCiclo,
-            createMissing: Boolean(input.createMissing),
-          },
-          input.userId,
-          (prog) => {
-            job.progress = prog;
-          },
-        );
-        job.status = 'completed';
-        job.result = { ok: true, results };
-      } catch (err: any) {
-        job.status = 'failed';
-        job.failedReason = err?.message || 'Error en motor global';
-      }
+    setImmediate(() => {
+      void runWithTenantContext(input.tenantId, async () => {
+        try {
+          const results = await this.schedulingService.generateMotorGlobal(
+            {
+              year: input.year,
+              month: input.month,
+              tipoCiclo,
+              createMissing: Boolean(input.createMissing),
+            },
+            input.userId,
+            (prog) => {
+              job.progress = prog;
+            },
+          );
+          job.status = 'completed';
+          job.result = { ok: true, results };
+        } catch (err: any) {
+          job.status = 'failed';
+          job.failedReason = err?.message || 'Error en motor global';
+        }
+      });
     });
 
     return { jobId, status: 'queued' };
