@@ -59,15 +59,21 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <!-- Alerta: no encontrado en RRHH (llenar manual) -->
         @if (lookupDone() && !foundInRrhh() && !alreadyRegistered()) {
           <div class="alert-info">
-            ℹ️ Cédula no encontrada en RRHH. Completa los datos manualmente.
+            ℹ️ Cédula no encontrada en RRHH. Completa los datos manualmente para crear la carpeta.
           </div>
         }
 
         <!-- Alerta: encontrado en RRHH, datos autocompletos -->
         @if (lookupDone() && foundInRrhh() && !alreadyRegistered()) {
-          <div class="alert-ok">
-            ✅ Datos traídos de RRHH. Verifica la fecha de retiro, selecciona el motivo y la ubicación.
-          </div>
+          @if (rrhhStatus() === 'ACTIVO') {
+            <div class="alert-ok">
+              ✅ <strong>Asociado ACTIVO en RRHH.</strong> Datos cargados. Al asignar la carpeta y guardar, el sistema pasará automáticamente su estado a <strong>RETIRADO</strong> en RRHH.
+            </div>
+          } @else {
+            <div class="alert-ok">
+              ✅ <strong>Asociado en RRHH (Estado: {{ rrhhStatus() || 'RETIRADO' }}).</strong> Datos cargados. Selecciona el motivo y la ubicación de archivo.
+            </div>
+          }
         }
 
         <!-- Solo mostrar el resto del formulario si no está ya registrado -->
@@ -218,6 +224,7 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly foundInRrhh = signal(false);
   readonly alreadyRegistered = signal(false);
   readonly existingCode = signal<number | null>(null);
+  readonly rrhhStatus = signal<string | null>(null);
 
   model = this.emptyModel();
 
@@ -245,6 +252,7 @@ export class RetiredPersonnelScreen implements OnInit {
         this.foundInRrhh.set(res.found);
         this.alreadyRegistered.set(res.alreadyRegistered);
         this.existingCode.set(res.existingCode);
+        this.rrhhStatus.set(res.rrhhStatus);
 
         if (res.found) {
           if (res.fullName) this.model.fullName = res.fullName;
@@ -256,6 +264,7 @@ export class RetiredPersonnelScreen implements OnInit {
         this.lookupLoading.set(false);
         this.lookupDone.set(true);
         this.foundInRrhh.set(false);
+        this.rrhhStatus.set(null);
       },
     });
   }
@@ -265,6 +274,7 @@ export class RetiredPersonnelScreen implements OnInit {
     this.foundInRrhh.set(false);
     this.alreadyRegistered.set(false);
     this.existingCode.set(null);
+    this.rrhhStatus.set(null);
     this.model = this.emptyModel();
     this.error.set(null);
   }

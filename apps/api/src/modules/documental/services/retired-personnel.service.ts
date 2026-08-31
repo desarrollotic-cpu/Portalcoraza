@@ -24,7 +24,7 @@ export class RetiredPersonnelService {
     });
   }
 
-  /** Busca en RRHH (associates) por número de cédula para autocompletar el formulario. */
+  /** Busca en RRHH (associates) por número de cédula para autocompletar el formulario (activos o retirados). */
   async lookupAssociate(cedula: string): Promise<{
     found: boolean;
     alreadyRegistered: boolean;
@@ -32,8 +32,12 @@ export class RetiredPersonnelService {
     fullName: string | null;
     retirementDate: string | null;
     personType: string | null;
+    rrhhStatus: string | null;
   }> {
-    // 1. Buscar en RRHH
+    const rawCedula = cedula.trim();
+    const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
+
+    // 1. Buscar en RRHH (tanto activos como retirados o cualquier estado)
     const rows = await this.em.query<
       {
         first_name: string;
@@ -47,29 +51,54 @@ export class RetiredPersonnelService {
       `SELECT first_name, second_name, first_last_name, second_last_name, updated_at, status
        FROM associates
        WHERE document_number = $1
+          OR TRIM(document_number) = $1
+          OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
        LIMIT 1`,
-      [cedula],
+      [rawCedula, cleanCedula],
     );
 
+    // 2. Verificar si ya tiene carpeta en Gestión Documental
+    const existing = await this.repo.findOne({
+      where: [{ idNumber: rawCedula }, { idNumber: cleanCedula }],
+    });
+
     if (!rows.length) {
-      return { found: false, alreadyRegistered: false, existingCode: null, fullName: null, retirementDate: null, personType: null };
+      if (existing) {
+        return {
+          found: true,
+          alreadyRegistered: true,
+          existingCode: existing.numericCode ?? null,
+          fullName: existing.fullName,
+          retirementDate: existing.retirementDate,
+          personType: existing.personType,
+          rrhhStatus: null,
+        };
+      }
+      return {
+        found: false,
+        alreadyRegistered: false,
+        existingCode: null,
+        fullName: null,
+        retirementDate: null,
+        personType: null,
+        rrhhStatus: null,
+      };
     }
 
     const a = rows[0];
     const parts = [a.first_name, a.second_name, a.first_last_name, a.second_last_name].filter(Boolean);
     const fullName = parts.join(' ').trim();
-    const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : null;
+    const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
 
-    // 2. Verificar si ya tiene carpeta en Documental
-    const existing = await this.repo.findOne({ where: { idNumber: cedula } });
     if (existing) {
       return {
         found: true,
         alreadyRegistered: true,
         existingCode: existing.numericCode ?? null,
-        fullName,
-        retirementDate,
-        personType: 'ASOCIADO',
+        fullName: existing.fullName || fullName,
+        retirementDate: existing.retirementDate || retirementDate,
+        personType: existing.personType || 'ASOCIADO',
+        rrhhStatus: a.status,
       };
     }
 
@@ -80,16 +109,19 @@ export class RetiredPersonnelService {
       fullName,
       retirementDate,
       personType: 'ASOCIADO',
+      rrhhStatus: a.status,
     };
   }
 
   async create(dto: CreateRetiredPersonnelDto, userId: string) {
     const numeric = await this.sequence.next('retired_personnel');
+    const rawCedula = dto.idNumber.trim();
+    const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
 
     const saved = await this.repo.save(
       this.repo.create({
         fullName: dto.fullName,
-        idNumber: dto.idNumber,
+        idNumber: rawCedula,
         retirementDate: dto.retirementDate ?? null,
         retirementReason: dto.retirementReason ?? null,
         observations: dto.observations ?? null,
@@ -98,6 +130,24 @@ export class RetiredPersonnelService {
         voxelsera: dto.voxelsera ?? null,
       }),
     );
+
+    // Si el asociado existe en RRHH (tabla associates), pasarlo de inmediato a estado 'RETIRADO'
+    try {
+      await this.em.query(
+        `UPDATE associates
+         SET status = 'RETIRADO', updated_at = NOW()
+         WHERE (
+           document_number = $1
+           OR TRIM(document_number) = $1
+           OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
+         )
+         AND status != 'RETIRADO'`,
+        [rawCedula, cleanCedula],
+      );
+    } catch (err) {
+      // Registrar si ocurre error al sincronizar estado en RRHH
+      console.error('Error actualizando estado a RETIRADO en RRHH:', err);
+    }
 
     await this.audit.log({
       userId,

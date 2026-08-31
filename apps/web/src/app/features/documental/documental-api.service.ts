@@ -270,6 +270,7 @@ export class DocumentalApiService {
     fullName: string | null;
     retirementDate: string | null;
     personType: string | null;
+    rrhhStatus: string | null;
   }> {
     return this.http.get<{
       found: boolean;
@@ -278,6 +279,7 @@ export class DocumentalApiService {
       fullName: string | null;
       retirementDate: string | null;
       personType: string | null;
+      rrhhStatus: string | null;
     }>(`${this.baseUrl}/retired-personnel/lookup/${encodeURIComponent(cedula)}`);
   }
 
