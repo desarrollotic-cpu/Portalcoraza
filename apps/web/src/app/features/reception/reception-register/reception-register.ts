@@ -27,8 +27,8 @@ import {
           <fieldset>
             <legend>Datos personales</legend>
             <p class="scan-hint">
-              La lectora puede llenar hasta fecha de nacimiento. El resto se completa a mano y el
-              registro solo se guarda con el botón.
+              La lectora llena hasta fecha de nacimiento; al terminar deja el foco en ARL.
+              El resto se completa a mano y el registro solo se guarda con el botón.
             </p>
             <label>
               Cédula
@@ -87,7 +87,7 @@ import {
             </label>
             <label>
               ARL
-              <input [(ngModel)]="form.arl" name="arl" autocomplete="off" />
+              <input #arlInput [(ngModel)]="form.arl" name="arl" autocomplete="off" />
             </label>
             <label>
               EPS
@@ -124,7 +124,7 @@ import {
             <legend>Datos de ingreso</legend>
             <label class="wide">
               Motivo de visita
-              <input #visitReasonInput [(ngModel)]="form.visitReason" name="visitReason" autocomplete="off" />
+              <input [(ngModel)]="form.visitReason" name="visitReason" autocomplete="off" />
             </label>
             <label>
               Hora de entrada
@@ -274,8 +274,8 @@ export class ReceptionRegister implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
 
-  private readonly visitReasonInput = viewChild<ElementRef<HTMLInputElement>>('visitReasonInput');
   private readonly documentInput = viewChild<ElementRef<HTMLInputElement>>('documentInput');
+  private readonly arlInput = viewChild<ElementRef<HTMLInputElement>>('arlInput');
 
   readonly authorizedByOptions = [
     'Recursos humanos',
@@ -335,9 +335,10 @@ export class ReceptionRegister implements OnInit {
     const target = event.target as HTMLElement | null;
     if (!target) return;
 
-    // Al terminar la lectura (suele caer en fecha de nacimiento), pasa al motivo.
+    // Tras la lectura (termina en fecha de nacimiento), seguir en ARL → EPS → lugar…
+    // (antes saltaba a Motivo y se comía ARL/EPS).
     if (target.getAttribute('name') === 'birthDate') {
-      queueMicrotask(() => this.visitReasonInput()?.nativeElement.focus());
+      queueMicrotask(() => this.arlInput()?.nativeElement.focus());
     }
   }
 
