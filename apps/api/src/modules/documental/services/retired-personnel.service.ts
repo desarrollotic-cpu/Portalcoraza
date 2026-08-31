@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
 import { CreateRetiredPersonnelDto } from '../dto/create-retired-personnel.dto';
 import { RetiredPersonnel } from '../entities/retired-personnel.entity';
@@ -13,7 +13,8 @@ export class RetiredPersonnelService {
     private readonly repo: Repository<RetiredPersonnel>,
     private readonly sequence: SequenceService,
     private readonly audit: AuditService,
-    private readonly dataSource: DataSource,
+    @InjectEntityManager()
+    private readonly em: EntityManager,
   ) {}
 
   list() {
@@ -33,7 +34,7 @@ export class RetiredPersonnelService {
     personType: string | null;
   }> {
     // 1. Buscar en RRHH
-    const rows = await this.dataSource.query<
+    const rows = await this.em.query<
       {
         first_name: string;
         second_name: string | null;
