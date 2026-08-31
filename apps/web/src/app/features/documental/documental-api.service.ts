@@ -263,6 +263,23 @@ export class DocumentalApiService {
   createRetired(payload: Record<string, unknown>): Observable<RetiredPersonnel> {
     return this.http.post<RetiredPersonnel>(`${this.baseUrl}/retired-personnel`, payload);
   }
+  lookupAssociate(cedula: string): Observable<{
+    found: boolean;
+    alreadyRegistered: boolean;
+    existingCode: number | null;
+    fullName: string | null;
+    retirementDate: string | null;
+    personType: string | null;
+  }> {
+    return this.http.get<{
+      found: boolean;
+      alreadyRegistered: boolean;
+      existingCode: number | null;
+      fullName: string | null;
+      retirementDate: string | null;
+      personType: string | null;
+    }>(`${this.baseUrl}/retired-personnel/lookup/${encodeURIComponent(cedula)}`);
+  }
 
   // Contratos
   listContracts(): Observable<Contract[]> {

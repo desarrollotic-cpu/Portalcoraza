@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
 import { CreateRetiredPersonnelDto } from '../dto/create-retired-personnel.dto';
 import { RetiredPersonnel } from '../entities/retired-personnel.entity';
@@ -13,12 +13,73 @@ export class RetiredPersonnelService {
     private readonly repo: Repository<RetiredPersonnel>,
     private readonly sequence: SequenceService,
     private readonly audit: AuditService,
+    private readonly dataSource: DataSource,
   ) {}
 
   list() {
     return this.repo.find({
       order: { retirementDate: 'DESC', fullName: 'ASC' },
+      take: 500,
     });
+  }
+
+  /** Busca en RRHH (associates) por número de cédula para autocompletar el formulario. */
+  async lookupAssociate(cedula: string): Promise<{
+    found: boolean;
+    alreadyRegistered: boolean;
+    existingCode: number | null;
+    fullName: string | null;
+    retirementDate: string | null;
+    personType: string | null;
+  }> {
+    // 1. Buscar en RRHH
+    const rows = await this.dataSource.query<
+      {
+        first_name: string;
+        second_name: string | null;
+        first_last_name: string;
+        second_last_name: string | null;
+        updated_at: string;
+        status: string;
+      }[]
+    >(
+      `SELECT first_name, second_name, first_last_name, second_last_name, updated_at, status
+       FROM associates
+       WHERE document_number = $1
+       LIMIT 1`,
+      [cedula],
+    );
+
+    if (!rows.length) {
+      return { found: false, alreadyRegistered: false, existingCode: null, fullName: null, retirementDate: null, personType: null };
+    }
+
+    const a = rows[0];
+    const parts = [a.first_name, a.second_name, a.first_last_name, a.second_last_name].filter(Boolean);
+    const fullName = parts.join(' ').trim();
+    const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : null;
+
+    // 2. Verificar si ya tiene carpeta en Documental
+    const existing = await this.repo.findOne({ where: { idNumber: cedula } });
+    if (existing) {
+      return {
+        found: true,
+        alreadyRegistered: true,
+        existingCode: existing.numericCode ?? null,
+        fullName,
+        retirementDate,
+        personType: 'ASOCIADO',
+      };
+    }
+
+    return {
+      found: true,
+      alreadyRegistered: false,
+      existingCode: null,
+      fullName,
+      retirementDate,
+      personType: 'ASOCIADO',
+    };
   }
 
   async create(dto: CreateRetiredPersonnelDto, userId: string) {
