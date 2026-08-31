@@ -33,19 +33,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
                 [(ngModel)]="model.idNumber"
                 name="idNumber"
                 required
-                placeholder="Escribe la cédula y presiona Enter o Tab"
-                (keydown.enter)="$event.preventDefault(); buscarCedula()"
+                placeholder="Escribe la cédula..."
+                (keydown.enter)="$event.preventDefault(); buscarCedula(true)"
                 (blur)="buscarCedula()"
-                [readonly]="lookupDone()"
               />
-              @if (lookupDone()) {
-                <button type="button" class="btn-ghost btn-sm" (click)="resetLookup()" title="Cambiar cédula">✕ Cambiar</button>
-              }
+              <button type="button" class="btn-primary btn-sm" (click)="buscarCedula(true)" [disabled]="lookupLoading()">
+                {{ lookupLoading() ? 'Buscando...' : '🔍 Buscar' }}
+              </button>
             </div>
           </label>
-          @if (lookupLoading()) {
-            <span class="lookup-status buscando">🔍 Buscando en RRHH...</span>
-          }
         </div>
 
         <!-- Alerta: ya registrado en Documental -->
@@ -228,6 +224,8 @@ export class RetiredPersonnelScreen implements OnInit {
 
   model = this.emptyModel();
 
+  lastSearchedCedula = '';
+
   ngOnInit(): void {
     this.queueCount.set(getPrintQueue().length);
     this.load();
@@ -238,10 +236,12 @@ export class RetiredPersonnelScreen implements OnInit {
     if (!this.showForm()) this.resetLookup();
   }
 
-  buscarCedula(): void {
+  buscarCedula(force = false): void {
     const cedula = this.model.idNumber?.trim();
-    if (!cedula || cedula.length < 5 || this.lookupDone()) return;
+    if (!cedula || cedula.length < 4) return;
+    if (!force && cedula === this.lastSearchedCedula && this.lookupDone()) return;
 
+    this.lastSearchedCedula = cedula;
     this.lookupLoading.set(true);
     this.error.set(null);
 
@@ -262,7 +262,7 @@ export class RetiredPersonnelScreen implements OnInit {
       },
       error: () => {
         this.lookupLoading.set(false);
-        this.lookupDone.set(true);
+        this.lookupDone.set(false);
         this.foundInRrhh.set(false);
         this.rrhhStatus.set(null);
       },
@@ -270,6 +270,7 @@ export class RetiredPersonnelScreen implements OnInit {
   }
 
   resetLookup(): void {
+    this.lastSearchedCedula = '';
     this.lookupDone.set(false);
     this.foundInRrhh.set(false);
     this.alreadyRegistered.set(false);
