@@ -140,6 +140,9 @@ export class AuthService {
     if (user.role?.code === 'PUESTO') {
       return environment.minutaWebUrl;
     }
+    if (user.role?.code === 'DOCUMENTAL') {
+      return '/documental';
+    }
     if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
       return '/sig';
     }
