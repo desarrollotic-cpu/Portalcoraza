@@ -34,46 +34,95 @@ export class RetiredPersonnelService {
     personType: string | null;
     rrhhStatus: string | null;
   }> {
-    const rawCedula = cedula.trim();
-    const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
+    try {
+      const rawCedula = (cedula || '').trim();
+      const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
 
-    // 1. Buscar en RRHH (tanto activos como retirados o cualquier estado)
-    const rows = await this.em.query<
-      {
-        first_name: string;
-        second_name: string | null;
-        first_last_name: string;
-        second_last_name: string | null;
-        updated_at: string;
-        status: string;
-      }[]
-    >(
-      `SELECT first_name, second_name, first_last_name, second_last_name, updated_at, status
-       FROM associates
-       WHERE document_number = $1
-          OR TRIM(document_number) = $1
-          OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
-       LIMIT 1`,
-      [rawCedula, cleanCedula],
-    );
+      if (!rawCedula) {
+        return { found: false, alreadyRegistered: false, existingCode: null, fullName: null, retirementDate: null, personType: null, rrhhStatus: null };
+      }
 
-    // 2. Verificar si ya tiene carpeta en Gestión Documental
-    const existing = await this.repo.findOne({
-      where: [{ idNumber: rawCedula }, { idNumber: cleanCedula }],
-    });
+      // 1. Buscar en RRHH (tanto activos como retirados o cualquier estado)
+      const rows = await this.em.query<
+        {
+          first_name: string;
+          second_name: string | null;
+          first_last_name: string;
+          second_last_name: string | null;
+          updated_at: string;
+          status: string;
+        }[]
+      >(
+        `SELECT first_name, second_name, first_last_name, second_last_name, updated_at, status
+         FROM associates
+         WHERE document_number = $1
+            OR TRIM(document_number) = $1
+            OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
+         LIMIT 1`,
+        [rawCedula, cleanCedula],
+      );
 
-    if (!rows.length) {
+      // 2. Verificar si ya tiene carpeta en Gestión Documental
+      let existing = null;
+      try {
+        existing = await this.repo.findOne({
+          where: [{ idNumber: rawCedula }, { idNumber: cleanCedula }],
+        });
+      } catch (repoErr) {
+        console.warn('Error comprobando existencia en doc_retired_personnel:', repoErr);
+      }
+
+      if (!rows || !rows.length) {
+        if (existing) {
+          return {
+            found: true,
+            alreadyRegistered: true,
+            existingCode: existing.numericCode ?? null,
+            fullName: existing.fullName,
+            retirementDate: existing.retirementDate,
+            personType: existing.personType,
+            rrhhStatus: null,
+          };
+        }
+        return {
+          found: false,
+          alreadyRegistered: false,
+          existingCode: null,
+          fullName: null,
+          retirementDate: null,
+          personType: null,
+          rrhhStatus: null,
+        };
+      }
+
+      const a = rows[0];
+      const parts = [a.first_name, a.second_name, a.first_last_name, a.second_last_name].filter(Boolean);
+      const fullName = parts.join(' ').trim();
+      const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
+
       if (existing) {
         return {
           found: true,
           alreadyRegistered: true,
           existingCode: existing.numericCode ?? null,
-          fullName: existing.fullName,
-          retirementDate: existing.retirementDate,
-          personType: existing.personType,
-          rrhhStatus: null,
+          fullName: existing.fullName || fullName,
+          retirementDate: existing.retirementDate || retirementDate,
+          personType: existing.personType || 'ASOCIADO',
+          rrhhStatus: a.status,
         };
       }
+
+      return {
+        found: true,
+        alreadyRegistered: false,
+        existingCode: null,
+        fullName,
+        retirementDate,
+        personType: 'ASOCIADO',
+        rrhhStatus: a.status,
+      };
+    } catch (err) {
+      console.error('Error in lookupAssociate:', err);
       return {
         found: false,
         alreadyRegistered: false,
@@ -84,33 +133,6 @@ export class RetiredPersonnelService {
         rrhhStatus: null,
       };
     }
-
-    const a = rows[0];
-    const parts = [a.first_name, a.second_name, a.first_last_name, a.second_last_name].filter(Boolean);
-    const fullName = parts.join(' ').trim();
-    const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
-
-    if (existing) {
-      return {
-        found: true,
-        alreadyRegistered: true,
-        existingCode: existing.numericCode ?? null,
-        fullName: existing.fullName || fullName,
-        retirementDate: existing.retirementDate || retirementDate,
-        personType: existing.personType || 'ASOCIADO',
-        rrhhStatus: a.status,
-      };
-    }
-
-    return {
-      found: true,
-      alreadyRegistered: false,
-      existingCode: null,
-      fullName,
-      retirementDate,
-      personType: 'ASOCIADO',
-      rrhhStatus: a.status,
-    };
   }
 
   async create(dto: CreateRetiredPersonnelDto, userId: string) {
