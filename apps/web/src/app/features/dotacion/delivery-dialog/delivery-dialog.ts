@@ -401,7 +401,17 @@ export class DeliveryDialog implements OnInit {
       });
     }
 
-    options.sort((a, b) => a.talla.localeCompare(b.talla, undefined, { numeric: true }));
+    options.sort((a, b) => {
+      const rank = (g: string | null) => {
+        const x = (g ?? '').toLowerCase();
+        if (x === 'f' || x === 'mujer') return 0;
+        if (x === 'm' || x === 'hombre') return 1;
+        return 2;
+      };
+      const rg = rank(a.genero) - rank(b.genero);
+      if (rg !== 0) return rg;
+      return a.talla.localeCompare(b.talla, undefined, { numeric: true });
+    });
     const next = { ...this.tallaOptionsByLine() };
     next[index] = options;
     this.tallaOptionsByLine.set(next);

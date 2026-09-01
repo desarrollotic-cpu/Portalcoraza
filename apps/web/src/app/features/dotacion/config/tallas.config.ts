@@ -22,7 +22,7 @@ const COINCIDENCIAS = [
   { palabras: ['impermeable'], categoria: 'chaqueta_impermeable' },
   { palabras: ['chaqueta', 'chaquetas', 'jacket'], categoria: 'chaqueta' },
   { palabras: ['overol', 'overoles', 'overall'], categoria: 'overol' },
-  { palabras: ['bota', 'botas', 'zapato', 'zapatos', 'calzado', 'valeta'], categoria: 'botas' },
+  { palabras: ['bota', 'botas', 'zapato', 'zapatos', 'calzado', 'valeta', 'baleta', 'baletas'], categoria: 'botas' },
 ];
 
 export function requiereTalla(tipo: string): boolean {
