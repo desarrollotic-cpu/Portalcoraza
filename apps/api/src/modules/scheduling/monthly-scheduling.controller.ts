@@ -40,6 +40,12 @@ export class MonthlySchedulingController {
     return this.service.getOne(query);
   }
 
+  @Get('active-period')
+  @RequirePermissions('scheduling.view')
+  getActivePeriod() {
+    return this.service.getActivePeriod();
+  }
+
   @Get('today-coverage')
   @RequirePermissions('scheduling.view')
   getTodayCoverage(@Query('date') date?: string) {

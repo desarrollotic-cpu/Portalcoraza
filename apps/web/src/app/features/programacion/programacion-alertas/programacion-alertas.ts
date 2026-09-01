@@ -191,8 +191,18 @@ export class ProgramacionAlertas implements OnInit {
   });
 
   ngOnInit(): void {
-    this.monthInput.set(`${this.year}-${String(this.month).padStart(2, '0')}`);
-    this.reload();
+    this.api.getActivePeriod().subscribe({
+      next: (p) => {
+        this.year = p.year;
+        this.month = p.month;
+        this.monthInput.set(`${p.year}-${String(p.month).padStart(2, '0')}`);
+        this.reload();
+      },
+      error: () => {
+        this.monthInput.set(`${this.year}-${String(this.month).padStart(2, '0')}`);
+        this.reload();
+      },
+    });
   }
 
   count(key: TabKey): number {

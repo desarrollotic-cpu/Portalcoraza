@@ -95,25 +95,40 @@ export function computeMonthlyAlerts(args: {
   month: string;
   daysInMonth: number;
   cells: AlertCellInput[];
+  /** Puestos del mes (cuadros). Si se omite, se infieren solo de `cells`. */
+  posts?: Array<{ postId: string; postName: string }>;
 }): ScheduleAlertItem[] {
   const { month, daysInMonth, cells } = args;
   const alerts: ScheduleAlertItem[] = [];
 
   const postNames = new Map<string, string>();
+  for (const p of args.posts ?? []) {
+    postNames.set(p.postId, p.postName);
+  }
   for (const c of cells) {
     if (!postNames.has(c.postId)) postNames.set(c.postId, c.postName);
   }
   const postIds = [...postNames.keys()];
 
-  // 1) Huecos: puestos con al menos una celda en el mes → cubrir todos los días
+  // Cobertura indexada: evita filter O(posts×días×celdas)
+  const coverage = new Map<string, { d: boolean; n: boolean }>();
+  for (const c of cells) {
+    if (!isActiveCoverage(c)) continue;
+    const fringe = fringeOf(c.codigo);
+    if (!fringe) continue;
+    const key = `${c.postId}|${c.day}`;
+    const cur = coverage.get(key) ?? { d: false, n: false };
+    if (fringe === 'D') cur.d = true;
+    else cur.n = true;
+    coverage.set(key, cur);
+  }
+
+  // 1) Huecos: puestos con cuadro en el mes → cubrir todos los días
   for (const postId of postIds) {
     const postName = postNames.get(postId) ?? postId;
     for (let day = 1; day <= daysInMonth; day++) {
-      const dayCells = cells.filter((c) => c.postId === postId && c.day === day);
-      const hasActiveDay = dayCells.some((c) => isActiveCoverage(c) && fringeOf(c.codigo) === 'D');
-      const hasActiveNight = dayCells.some((c) => isActiveCoverage(c) && fringeOf(c.codigo) === 'N');
-
-      if (!hasActiveDay) {
+      const cov = coverage.get(`${postId}|${day}`);
+      if (!cov?.d) {
         alerts.push({
           id: `hueco_cobertura:${month}:${postId}:${day}:D`,
           type: 'hueco_cobertura',
@@ -126,7 +141,7 @@ export function computeMonthlyAlerts(args: {
           message: `${postName} · día ${day} · falta cobertura diurna (D)`,
         });
       }
-      if (!hasActiveNight) {
+      if (!cov?.n) {
         alerts.push({
           id: `hueco_cobertura:${month}:${postId}:${day}:N`,
           type: 'hueco_cobertura',
@@ -204,18 +219,20 @@ export function computeMonthlyAlerts(args: {
   }
 
   // 4) Carga >24 (solo D/N)
-  const counts = new Map<string, { name: string | null; n: number }>();
+  const counts = new Map<
+    string,
+    { name: string | null; n: number; sample?: AlertCellInput }
+  >();
   for (const c of cells) {
     if (!c.associateId || !isTwelveHourCode(c.codigo)) continue;
     const cur = counts.get(c.associateId) ?? { name: c.associateName, n: 0 };
     cur.n += 1;
     if (c.associateName) cur.name = c.associateName;
+    if (!cur.sample) cur.sample = c;
     counts.set(c.associateId, cur);
   }
-  for (const [associateId, { name, n }] of counts) {
+  for (const [associateId, { name, n, sample }] of counts) {
     if (n <= 24) continue;
-    // postId del primer cell del associate para anclar el ítem
-    const sample = cells.find((c) => c.associateId === associateId && isTwelveHourCode(c.codigo));
     alerts.push({
       id: `carga_sobre_24:${month}:${associateId}`,
       type: 'carga_sobre_24',

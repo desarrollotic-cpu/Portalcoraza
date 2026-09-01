@@ -178,6 +178,18 @@ export class MonthlySchedulingApiService {
     return this.http.get<MonthlyScheduleWithPost[]>(`${this.baseUrl}/by-month`, { params });
   }
 
+  getActivePeriod(): Observable<{
+    year: number;
+    month: number;
+    source: 'current' | 'latest_with_data';
+  }> {
+    return this.http.get<{
+      year: number;
+      month: number;
+      source: 'current' | 'latest_with_data';
+    }>(`${this.baseUrl}/active-period`);
+  }
+
   getMonthlyOverview(year: number, month: number): Observable<ProgramacionOverview> {
     const params = new HttpParams()
       .set('year', String(year))

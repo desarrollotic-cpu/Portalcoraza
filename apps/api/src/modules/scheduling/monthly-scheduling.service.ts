@@ -48,8 +48,14 @@ const DEFAULT_ROLES: PersonalRole[] = [
   { rol: 'relevante', associateId: null, turnoId: 'AM', displayName: 'Relevante' },
 ];
 
+/** Cache corto en memoria para reportes pesados (alertas / recargos). */
+const REPORT_CACHE_TTL_MS = 45_000;
+
 @Injectable()
 export class MonthlySchedulingService {
+  // ponytail: cache en proceso, techo 45s; upgrade: Redis por tenant si hay >1 instancia
+  private readonly reportCache = new Map<string, { at: number; data: unknown }>();
+
   constructor(
     @InjectRepository(MonthlySchedule)
     private readonly schedulesRepo: Repository<MonthlySchedule>,
@@ -63,11 +69,75 @@ export class MonthlySchedulingService {
     private readonly motor: MotorTurnosService,
   ) {}
 
+  private readReportCache<T>(key: string): T | null {
+    const hit = this.reportCache.get(key);
+    if (!hit) return null;
+    if (Date.now() - hit.at > REPORT_CACHE_TTL_MS) {
+      this.reportCache.delete(key);
+      return null;
+    }
+    return hit.data as T;
+  }
+
+  private writeReportCache(key: string, data: unknown): void {
+    this.reportCache.set(key, { at: Date.now(), data });
+  }
+
+  private clearReportCache(): void {
+    this.reportCache.clear();
+  }
+
   async getOne(query: GetMonthlyScheduleDto): Promise<MonthlySchedule | null> {
     return this.schedulesRepo.findOne({
       where: { postId: query.postId, year: query.year, month: query.month },
       relations: { assignments: true },
     });
+  }
+
+  /**
+   * Periodo operativo a mostrar por defecto:
+   * mes actual (Bogotá) si ya tiene asignaciones; si no, el último mes con malla.
+   */
+  async getActivePeriod(): Promise<{
+    year: number;
+    month: number;
+    source: 'current' | 'latest_with_data';
+  }> {
+    const today = this.bogotaYmd();
+    const currentAssigned = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', {
+        year: today.year,
+        month: today.month,
+      })
+      .andWhere('a.associate_id IS NOT NULL')
+      .getCount();
+
+    if (currentAssigned > 0) {
+      return { year: today.year, month: today.month, source: 'current' };
+    }
+
+    const latest = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .select('s.year', 'year')
+      .addSelect('s.month', 'month')
+      .where('a.associate_id IS NOT NULL')
+      .orderBy('s.year', 'DESC')
+      .addOrderBy('s.month', 'DESC')
+      .limit(1)
+      .getRawOne<{ year: string | number; month: string | number }>();
+
+    if (latest) {
+      return {
+        year: Number(latest.year),
+        month: Number(latest.month),
+        source: 'latest_with_data',
+      };
+    }
+
+    return { year: today.year, month: today.month, source: 'current' };
   }
 
   async listByMonth(query: ListMonthlyScheduleDto) {
@@ -178,16 +248,33 @@ export class MonthlySchedulingService {
       todayDay: today.day,
     });
 
+    const cacheKey = `alerts:${scope}:${months.map((m) => `${m.year}-${m.month}`).join(',')}`;
+    const cached = this.readReportCache<{
+      generatedAt: string;
+      months: string[];
+      totals: {
+        huecos: number;
+        inactivos: number;
+        conflictos: number;
+        carga: number;
+      };
+      alerts: ScheduleAlertItem[];
+    }>(cacheKey);
+    if (cached) return cached;
+
     const alerts: ScheduleAlertItem[] = [];
     const monthLabels: string[] = [];
 
     for (const m of months) {
       const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
       monthLabels.push(label);
-      const cells = await this.loadAlertCells(m.year, m.month);
+      const [posts, cells] = await Promise.all([
+        this.loadMonthPosts(m.year, m.month),
+        this.loadAlertCells(m.year, m.month),
+      ]);
       const daysInMonth = new Date(m.year, m.month, 0).getDate();
       alerts.push(
-        ...computeMonthlyAlerts({ month: label, daysInMonth, cells }),
+        ...computeMonthlyAlerts({ month: label, daysInMonth, cells, posts }),
       );
     }
 
@@ -198,12 +285,14 @@ export class MonthlySchedulingService {
       carga: alerts.filter((a) => a.type === 'carga_sobre_24').length,
     };
 
-    return {
+    const result = {
       generatedAt: new Date().toISOString(),
       months: monthLabels,
       totals,
       alerts,
     };
+    this.writeReportCache(cacheKey, result);
+    return result;
   }
 
   async getBoardAlerts(query: BoardAlertsQueryDto) {
@@ -298,6 +387,26 @@ export class MonthlySchedulingService {
       .trim();
   }
 
+  private async loadMonthPosts(
+    year: number,
+    month: number,
+  ): Promise<Array<{ postId: string; postName: string }>> {
+    const rows = await this.schedulesRepo
+      .createQueryBuilder('s')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .select('s.post_id', 'postId')
+      .addSelect(
+        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        'postName',
+      )
+      .getRawMany<{ postId: string; postName: string }>();
+    return rows.map((r) => ({
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+    }));
+  }
+
   private async loadAlertCellsForPost(postId: string, year: number, month: number): Promise<AlertCellInput[]> {
     const postAssocRows = await this.assignmentsRepo
       .createQueryBuilder('a')
@@ -373,12 +482,16 @@ export class MonthlySchedulingService {
   }
 
   private async loadAlertCells(year: number, month: number): Promise<AlertCellInput[]> {
+    // Solo celdas con señal operativa; huecos usan la lista de puestos del mes.
     const rows = await this.assignmentsRepo
       .createQueryBuilder('a')
       .innerJoin('a.schedule', 's')
       .leftJoin(Post, 'p', 'p.id = s.post_id')
       .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
       .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere(
+        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8'))`,
+      )
       .select([
         's.post_id AS "postId"',
         `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
@@ -580,6 +693,7 @@ export class MonthlySchedulingService {
       },
     });
 
+    this.clearReportCache();
     return this.getById(id);
   }
 
@@ -680,6 +794,7 @@ export class MonthlySchedulingService {
     });
 
     const updated = await this.getById(id);
+    this.clearReportCache();
     return {
       ...updated,
       motorAlerts: this.motor.validateBoard(generated, daysInMonth),
@@ -782,6 +897,7 @@ export class MonthlySchedulingService {
       },
     });
 
+    this.clearReportCache();
     return {
       year: dto.year,
       month: dto.month,
@@ -1165,10 +1281,20 @@ export class MonthlySchedulingService {
    * Devuelve quién está de turno diurno (D), nocturno (N), relevo, descanso (DR) o novedad en cada puesto.
    */
   async getTodayCoverage(dateIso?: string) {
-    const targetDate = dateIso ? new Date(dateIso) : new Date();
-    const year = targetDate.getFullYear();
-    const month = targetDate.getMonth() + 1;
-    const day = targetDate.getDate();
+    let year: number;
+    let month: number;
+    let day: number;
+    if (dateIso) {
+      const targetDate = new Date(dateIso);
+      year = targetDate.getFullYear();
+      month = targetDate.getMonth() + 1;
+      day = targetDate.getDate();
+    } else {
+      const bogota = this.bogotaYmd();
+      year = bogota.year;
+      month = bogota.month;
+      day = bogota.day;
+    }
 
     const schedules = await this.schedulesRepo.find({
       where: { year, month },
@@ -1321,14 +1447,69 @@ export class MonthlySchedulingService {
    * extras nocturnas (1.75) y dominicales/festivos (1.75) según el Código Sustantivo del Trabajo de Colombia.
    */
   async getPayrollRecargos(year: number, month: number) {
-    const schedules = await this.schedulesRepo.find({
-      where: { year, month },
-    });
+    const cacheKey = `payroll:${year}-${month}`;
+    const cached = this.readReportCache<{
+      year: number;
+      month: number;
+      daysInMonth: number;
+      totalAssociates: number;
+      totals: {
+        horasOrdinarias: number;
+        horasExtrasDiurnas: number;
+        recargosNocturnos: number;
+        horasExtrasNocturnas: number;
+        dominicalesFestivas: number;
+        totalHorasLiquidables: number;
+      };
+      associates: Array<{
+        associateId: string;
+        nombre: string;
+        cedula: string;
+        cargo: string;
+        puestos: string;
+        diasLaborados: number;
+        turnosDiurnos: number;
+        turnosNocturnos: number;
+        descansos: number;
+        novedades: number;
+        horasOrdinarias: number;
+        horasExtrasDiurnas: number;
+        recargosNocturnos: number;
+        horasExtrasNocturnas: number;
+        dominicalesFestivas: number;
+        totalHoras: number;
+      }>;
+    }>(cacheKey);
+    if (cached) return cached;
 
-    if (!schedules.length) {
-      return {
+    const assignmentRows = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .leftJoin(Post, 'p', 'p.id = s.post_id')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .select([
+        'a.associate_id AS "associateId"',
+        'a.day AS day',
+        'a.codigo AS codigo',
+        's.post_id AS "postId"',
+        `COALESCE(NULLIF(p.code, ''), '') AS "postCode"`,
+        `COALESCE(NULLIF(p.name, ''), '') AS "postName"`,
+      ])
+      .getRawMany<{
+        associateId: string;
+        day: string | number;
+        codigo: string | null;
+        postId: string;
+        postCode: string;
+        postName: string;
+      }>();
+
+    if (!assignmentRows.length) {
+      const empty = {
         year,
         month,
+        daysInMonth: new Date(year, month, 0).getDate(),
         totalAssociates: 0,
         totals: {
           horasOrdinarias: 0,
@@ -1338,41 +1519,43 @@ export class MonthlySchedulingService {
           dominicalesFestivas: 0,
           totalHorasLiquidables: 0,
         },
-        associates: [],
+        associates: [] as Array<{
+          associateId: string;
+          nombre: string;
+          cedula: string;
+          cargo: string;
+          puestos: string;
+          diasLaborados: number;
+          turnosDiurnos: number;
+          turnosNocturnos: number;
+          descansos: number;
+          novedades: number;
+          horasOrdinarias: number;
+          horasExtrasDiurnas: number;
+          recargosNocturnos: number;
+          horasExtrasNocturnas: number;
+          dominicalesFestivas: number;
+          totalHoras: number;
+        }>,
       };
+      this.writeReportCache(cacheKey, empty);
+      return empty;
     }
-
-    const scheduleIds = schedules.map((s) => s.id);
-    const assignments = await this.assignmentsRepo.find({
-      where: {
-        scheduleId: In(scheduleIds),
-      },
-    });
 
     const daysInMonth = new Date(year, month, 0).getDate();
     const holidays = (await import('./utils/colombia-holidays')).getColombiaHolidays(year);
     const holidayIsoSet = new Set(holidays.map((h) => h.date));
 
-    const postIds = [...new Set(schedules.map((s) => s.postId))];
-    const posts = await this.dataSource.getRepository(Post).find({
-      where: { id: In(postIds) },
-    });
-    const postMap = new Map(posts.map((p) => [p.id, p]));
-
-    const schedulePostMap = new Map(schedules.map((s) => [s.id, postMap.get(s.postId)]));
-
-    // Agrupar por asociado
     const byAssociate = new Map<
       string,
       {
         associateId: string;
         puestos: Set<string>;
-        assignments: ScheduleAssignment[];
+        assignments: Array<{ day: number; codigo: string | null }>;
       }
     >();
 
-    for (const a of assignments) {
-      if (!a.associateId) continue;
+    for (const a of assignmentRows) {
       let entry = byAssociate.get(a.associateId);
       if (!entry) {
         entry = {
@@ -1382,16 +1565,24 @@ export class MonthlySchedulingService {
         };
         byAssociate.set(a.associateId, entry);
       }
-      entry.assignments.push(a);
-      const p = schedulePostMap.get(a.scheduleId);
-      if (p) entry.puestos.add(`${p.code} - ${p.name}`);
+      entry.assignments.push({ day: Number(a.day), codigo: a.codigo });
+      const label = [a.postCode, a.postName].filter(Boolean).join(' - ');
+      if (label) entry.puestos.add(label);
     }
 
     const associateIds = [...byAssociate.keys()];
     const associates = associateIds.length
-      ? await this.dataSource.getRepository(Associate).find({
-          where: { id: In(associateIds) },
-        })
+      ? await this.dataSource
+          .getRepository(Associate)
+          .createQueryBuilder('assoc')
+          .select([
+            'assoc.id',
+            'assoc.documentNumber',
+            'assoc.firstName',
+            'assoc.firstLastName',
+          ])
+          .where('assoc.id IN (:...ids)', { ids: associateIds })
+          .getMany()
       : [];
     const associateMap = new Map(associates.map((a) => [a.id, a]));
 
@@ -1498,7 +1689,7 @@ export class MonthlySchedulingService {
       });
     }
 
-    return {
+    const result = {
       year,
       month,
       daysInMonth,
@@ -1513,6 +1704,8 @@ export class MonthlySchedulingService {
       },
       associates: rows.sort((a, b) => a.nombre.localeCompare(b.nombre)),
     };
+    this.writeReportCache(cacheKey, result);
+    return result;
   }
 
   /**

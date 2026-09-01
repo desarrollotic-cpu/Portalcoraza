@@ -30,8 +30,15 @@ export interface GuardAvailabilityItem {
         <div>
           <h2>Panel de Programación y Disponibilidad Operativa</h2>
           <p>Supervisión en vivo de puestos cubiertos, vigilantes en servicio y personal disponible para relevos.</p>
+          @if (periodHint()) {
+            <p class="period-hint">{{ periodHint() }}</p>
+          }
         </div>
         <div class="head-actions">
+          <label class="month-pick">
+            Mes de malla
+            <input type="month" [ngModel]="monthStr" (ngModelChange)="onMonth($event)" />
+          </label>
           <a routerLink="/programacion/cuadro" class="btn-primary">📋 Cuadro de Turnos</a>
           <a routerLink="/programacion/recargos" class="btn-secondary">Liquidación y Recargos</a>
         </div>
@@ -356,6 +363,28 @@ export interface GuardAvailabilityItem {
       margin: 0;
       color: var(--text-muted, #64748b);
       font-size: 0.88rem;
+    }
+    .period-hint {
+      margin-top: 0.45rem !important;
+      color: #b45309 !important;
+      font-weight: 600;
+      font-size: 0.82rem !important;
+    }
+    .month-pick {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+      font-size: 0.75rem;
+      color: var(--text-muted, #64748b);
+      font-weight: 600;
+    }
+    .month-pick input {
+      padding: 0.4rem 0.55rem;
+      border: 1px solid var(--border, #cbd5e1);
+      border-radius: 8px;
+      font: inherit;
+      background: var(--surface, #fff);
+      color: var(--text, #0f172a);
     }
     .head-actions {
       display: flex;
@@ -687,6 +716,7 @@ export class ProgramacionPanel implements OnInit {
   readonly searchFilter = signal('');
   readonly guardSearchQuery = signal('');
   readonly statusFilter = signal('ALL');
+  readonly periodHint = signal<string | null>(null);
 
   // Paginación Cobertura de Puestos
   readonly todayPageSize = signal(20);
@@ -696,13 +726,15 @@ export class ProgramacionPanel implements OnInit {
   readonly guardPageSize = signal(20);
   readonly guardCurrentPage = signal(1);
 
-  private readonly year: number;
-  private readonly month: number;
+  private year: number;
+  private month: number;
+  monthStr = '';
 
   constructor() {
     const now = new Date();
     this.year = now.getFullYear();
     this.month = now.getMonth() + 1;
+    this.monthStr = `${this.year}-${String(this.month).padStart(2, '0')}`;
   }
 
   readonly monthLabel = computed(() => {
@@ -973,12 +1005,42 @@ export class ProgramacionPanel implements OnInit {
   }
 
   ngOnInit(): void {
+    this.api.getActivePeriod().subscribe({
+      next: (p) => {
+        this.year = p.year;
+        this.month = p.month;
+        this.monthStr = `${p.year}-${String(p.month).padStart(2, '0')}`;
+        if (p.source === 'latest_with_data') {
+          this.periodHint.set(
+            `El mes calendario aún no tiene malla con asignaciones. Mostrando ${this.monthStr} (último mes con datos).`,
+          );
+        } else {
+          this.periodHint.set(null);
+        }
+        this.reloadAll();
+      },
+      error: () => this.reloadAll(),
+    });
+  }
+
+  onMonth(value: string): void {
+    if (!value || !/^\d{4}-\d{2}$/.test(value)) return;
+    const [y, m] = value.split('-').map(Number);
+    this.year = y;
+    this.month = m;
+    this.monthStr = value;
+    this.periodHint.set(null);
+    this.reloadAll();
+  }
+
+  private reloadAll(): void {
     this.loadOverview();
     this.loadTodayCoverage();
     this.loadPayrollAssociates();
   }
 
   private loadOverview(): void {
+    this.loading.set(true);
     this.api.getMonthlyOverview(this.year, this.month).subscribe({
       next: (d) => {
         this.data.set(d);
@@ -1009,6 +1071,7 @@ export class ProgramacionPanel implements OnInit {
       next: (res) => {
         this.payrollRecargos.set(res.associates || []);
       },
+      error: () => this.payrollRecargos.set([]),
     });
   }
 }

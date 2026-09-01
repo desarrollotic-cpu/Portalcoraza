@@ -234,9 +234,17 @@ export class ProgramacionRecargos implements OnInit {
   searchQuery = '';
 
   ngOnInit(): void {
-    const now = new Date();
-    this.monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    this.load();
+    this.api.getActivePeriod().subscribe({
+      next: (p) => {
+        this.monthStr = `${p.year}-${String(p.month).padStart(2, '0')}`;
+        this.load();
+      },
+      error: () => {
+        const now = new Date();
+        this.monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        this.load();
+      },
+    });
   }
 
   load(): void {
