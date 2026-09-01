@@ -71,8 +71,8 @@ type PeriodKey = CommandPeriod;
           <div class="hero-quick-stats">
             <div class="stat-bubble">
               <span class="bubble-lbl">Asociados Activos</span>
-              <b class="bubble-val">{{ rrhh()?.kpis?.activeAssociates ?? '—' }}</b>
-              <small class="bubble-sub">100% al día</small>
+              <b class="bubble-val">{{ activeAssociates() }}</b>
+              <small class="bubble-sub">Estado ACTIVO en RRHH</small>
             </div>
             <div class="stat-bubble">
               <span class="bubble-lbl">Total puestos</span>
@@ -103,12 +103,12 @@ type PeriodKey = CommandPeriod;
               <div class="core-icon bg-blue">
                 <app-icon [icon]="icons.UsersRound" [size]="20" [strokeWidth]="2" />
               </div>
-              <span class="core-badge green">100% Activo</span>
+              <span class="core-badge green">RRHH</span>
             </div>
             <div class="core-card-body">
               <span class="core-title">Talento Humano</span>
-              <b class="core-number">{{ rrhh()?.kpis?.activeAssociates ?? '—' }}</b>
-              <small class="core-subtext">Asociados en planta activa de seguridad</small>
+              <b class="core-number">{{ activeAssociates() }}</b>
+              <small class="core-subtext">Asociados en estado ACTIVO</small>
             </div>
             <a routerLink="/rrhh" class="core-link">Ver Directorio RRHH →</a>
           </article>
@@ -715,6 +715,15 @@ export class Dashboard implements OnInit {
   readonly programacion = computed(() => this.data()?.modules?.['programacion'] as any);
   readonly operaciones = computed(() => this.data()?.modules?.['operaciones'] as any);
   readonly documental = computed(() => this.data()?.modules?.['documental'] as any);
+
+  /** Conteo real desde modules.rrhh.counts.ACTIVO (o KPI rrhh-active del command center). */
+  readonly activeAssociates = computed(() => {
+    const fromCounts = this.rrhh()?.counts?.ACTIVO;
+    if (fromCounts !== undefined && fromCounts !== null) return Number(fromCounts) || 0;
+    const kpi = (this.data()?.kpis ?? []).find((k) => k.id === 'rrhh-active');
+    if (kpi?.value !== undefined && kpi?.value !== null) return Number(kpi.value) || 0;
+    return '—';
+  });
 
   readonly postsTotal = computed(() => {
     const ops = this.operaciones()?.kpis?.total;
