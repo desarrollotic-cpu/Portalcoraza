@@ -385,7 +385,13 @@ export class MasterGrid implements OnInit {
     this.postsApi.listPosts().subscribe({
       next: (posts) => this.allPosts.set(posts),
     });
-    this.reload();
+    this.api.getActivePeriod().subscribe({
+      next: (p) => {
+        this.month = `${p.year}-${String(p.month).padStart(2, '0')}`;
+        this.reload();
+      },
+      error: () => this.reload(),
+    });
   }
 
   reload(): void {

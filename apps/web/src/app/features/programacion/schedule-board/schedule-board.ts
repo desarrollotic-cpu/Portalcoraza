@@ -1153,10 +1153,14 @@ export class ScheduleBoard implements OnInit {
     const qMonth = qp.get('month');
     const qYear = qp.get('year');
     if (qPost) this.postId = qPost;
+
+    let monthFromQuery = false;
     if (qMonth && /^\d{4}-\d{2}$/.test(qMonth)) {
       this.month = qMonth;
+      monthFromQuery = true;
     } else if (qYear && qMonth && /^\d+$/.test(qMonth)) {
       this.month = `${qYear}-${String(Number(qMonth)).padStart(2, '0')}`;
+      monthFromQuery = true;
     }
 
     this.schedulingApi.listPosts().subscribe({
@@ -1170,8 +1174,21 @@ export class ScheduleBoard implements OnInit {
     this.api.listTemplates().subscribe({
       next: (rows) => this.templates.set(rows),
     });
-    if (this.postId && this.month) {
-      this.onSelectionChange();
+
+    const afterMonthReady = () => {
+      if (this.postId && this.month) this.onSelectionChange();
+    };
+
+    if (monthFromQuery) {
+      afterMonthReady();
+    } else {
+      this.api.getActivePeriod().subscribe({
+        next: (p) => {
+          this.month = `${p.year}-${String(p.month).padStart(2, '0')}`;
+          afterMonthReady();
+        },
+        error: () => afterMonthReady(),
+      });
     }
   }
 

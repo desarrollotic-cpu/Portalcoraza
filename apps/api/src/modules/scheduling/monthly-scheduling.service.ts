@@ -946,6 +946,15 @@ export class MonthlySchedulingService {
       .getRawOne<{ n: string | number }>();
     const postsCovered = Number(postsCoveredRow?.n ?? 0);
 
+    const distinctAssociatesRow = await this.assignmentsRepo
+      .createQueryBuilder('a')
+      .innerJoin('a.schedule', 's')
+      .where('s.year = :year AND s.month = :month', { year, month })
+      .andWhere('a.associate_id IS NOT NULL')
+      .select('COUNT(DISTINCT a.associate_id)::int', 'n')
+      .getRawOne<{ n: string | number }>();
+    const distinctAssociates = Number(distinctAssociatesRow?.n ?? 0);
+
     const assignedRows = await this.assignmentsRepo
       .createQueryBuilder('a')
       .innerJoin('a.schedule', 's')
@@ -1008,6 +1017,7 @@ export class MonthlySchedulingService {
         postsCovered,
         postsUncovered: Math.max(0, postsInMonth - postsCovered),
         assignedCells,
+        distinctAssociates,
         conflicts: conflicts.length,
         templates: templates.length,
       },

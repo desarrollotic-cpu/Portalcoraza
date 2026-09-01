@@ -83,6 +83,7 @@ export interface ProgramacionOverview {
     postsCovered: number;
     postsUncovered: number;
     assignedCells: number;
+    distinctAssociates: number;
     conflicts: number;
     templates: number;
   };

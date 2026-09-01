@@ -24,7 +24,10 @@ describe('MonthlySchedulingService.overview', () => {
       orderBy: jest.fn().mockReturnThis(),
       limit: jest.fn().mockReturnThis(),
       getCount: jest.fn().mockResolvedValue(3),
-      getRawOne: jest.fn().mockResolvedValue({ n: 2 }),
+      getRawOne: jest
+        .fn()
+        .mockResolvedValueOnce({ n: 2 })
+        .mockResolvedValueOnce({ n: 5 }),
       getRawMany: jest.fn().mockResolvedValue([
         { postId: 'post-a', label: 'P-A', value: '2' },
         { postId: 'post-b', label: 'P-B', value: '1' },
@@ -61,6 +64,7 @@ describe('MonthlySchedulingService.overview', () => {
     expect(result.catalog).toEqual({ total: 299, active: 250, inactive: 49 });
     expect(result.kpis.postsInMonth).toBe(2);
     expect(result.kpis.assignedCells).toBe(3);
+    expect(result.kpis.distinctAssociates).toBe(5);
     expect(result.kpis.conflicts).toBe(1);
     expect(result.kpis.templates).toBe(2);
     expect(result.series.length).toBeGreaterThan(0);

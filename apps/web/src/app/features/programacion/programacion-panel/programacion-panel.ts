@@ -103,7 +103,8 @@ export interface GuardAvailabilityItem {
             <p class="loading-text">Consultando asignaciones operativas de hoy...</p>
           } @else if (!todayData()?.posts?.length) {
             <div class="empty-today">
-              <p>No se encontraron programaciones activas para el día de hoy.</p>
+              <p>No hay cuadros con asignaciones para el día de hoy (mes calendario).</p>
+              <p class="loading-text">Si la malla operativa está en otro mes, usa el selector “Mes de malla” arriba; la cobertura de hoy sigue el día real.</p>
               <a routerLink="/programacion/cuadro" class="btn-link">Crear o autoprogramar turnos en el Cuadro Mensual →</a>
             </div>
           } @else {
@@ -754,7 +755,8 @@ export class ProgramacionPanel implements OnInit {
 
   readonly kpiItems = computed<StatsKpiItem[]>(() => {
     const k = this.data()?.kpis;
-    const totalGuardias = this.guardsList().length;
+    const totalGuardias =
+      this.guardsList().length || k?.distinctAssociates || 0;
     const disponibles = this.availableCount();
     const puestosTotal =
       this.data()?.catalog?.total ??
@@ -770,15 +772,17 @@ export class ProgramacionPanel implements OnInit {
         link: '/operaciones/puestos',
       },
       {
-        label: 'Vigilantes Activos',
-        value: totalGuardias || (this.data()?.kpis.assignedCells ? '681' : '—'),
-        hint: 'En plantilla de seguridad',
+        label: 'Vigilantes en malla',
+        value: totalGuardias,
+        hint: `${k?.assignedCells ?? 0} celdas asignadas en ${this.monthLabel()}`,
         link: '/programacion/cuadro',
       },
       {
         label: 'Disponibles / Relevos',
         value: disponibles,
-        hint: 'Libres para cubrir novedades',
+        hint: this.guardsList().length
+          ? 'Libres para cubrir novedades (hoy)'
+          : 'Cargando disponibilidad del mes…',
         link: '/programacion/panel',
       },
       {
