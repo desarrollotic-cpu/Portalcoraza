@@ -250,6 +250,11 @@ export class HrDashboard implements OnInit {
   );
 
   ngOnInit(): void {
+    if (!this.auth.hasPermission('hr_dashboard.view')) {
+      this.loading.set(false);
+      this.error.set('Sin permiso para ver el panel');
+      return;
+    }
     this.api.dashboardOverview().subscribe({
       next: (d) => {
         this.data.set(d);

@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { permissionGuard } from './core/guards/permission.guard';
+import { hrHomeGuard } from './core/guards/hr-home.guard';
 import { AuthLayout } from './layouts/auth-layout/auth-layout';
 import { MainLayout } from './layouts/main-layout/main-layout';
 
@@ -78,6 +79,7 @@ export const routes: Routes = [
         children: [
           {
             path: '',
+            canActivate: [hrHomeGuard],
             loadComponent: () =>
               import('./features/rrhh/hr-dashboard/hr-dashboard').then((m) => m.HrDashboard),
           },
