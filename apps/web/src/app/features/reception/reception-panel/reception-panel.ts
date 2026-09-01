@@ -22,9 +22,14 @@ import {
           <h2>Panel de control</h2>
           <p>Estadísticas visuales de visitantes. Los datos permanecen en Supabase.</p>
         </div>
-        @if (auth.hasPermission('reception.register')) {
-          <a class="btn" routerLink="/recepcion/registrar">Registrar visitante</a>
-        }
+        <div class="head-actions">
+          @if (auth.hasPermission('posts.view')) {
+            <a class="btn btn-ghost" routerLink="/recepcion/puestos">Puestos altas/bajas</a>
+          }
+          @if (auth.hasPermission('reception.register')) {
+            <a class="btn" routerLink="/recepcion/registrar">Registrar visitante</a>
+          }
+        </div>
       </header>
 
       @if (error()) {
@@ -171,6 +176,12 @@ import {
     }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
     .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; max-width: 36rem; }
+    .head-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .btn-ghost {
+      background: transparent !important;
+      color: var(--primary) !important;
+      border: 1px solid var(--primary);
+    }
     .btn {
       display: inline-flex;
       align-items: center;

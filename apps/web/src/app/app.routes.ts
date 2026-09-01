@@ -520,6 +520,15 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'puestos',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import(
+                './features/reception/reception-posts-dashboard/reception-posts-dashboard'
+              ).then((m) => m.ReceptionPostsDashboard),
+          },
+          {
             path: 'registrar',
             canActivate: [permissionGuard],
             data: { permission: 'reception.register' },

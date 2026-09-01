@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
+  LucideBriefcaseBusiness,
   LucideClipboardPen,
   LucideHistory,
   LucideLayoutDashboard,
@@ -29,6 +30,13 @@ export class ReceptionLayout {
       permission: 'reception.view',
       exact: true,
       icon: LucideLayoutDashboard,
+    },
+    {
+      label: 'Puestos (altas/bajas)',
+      route: '/recepcion/puestos',
+      permission: 'posts.view',
+      exact: true,
+      icon: LucideBriefcaseBusiness,
     },
     {
       label: 'Registrar visitante',
