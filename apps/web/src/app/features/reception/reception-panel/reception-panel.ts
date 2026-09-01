@@ -23,8 +23,8 @@ import {
           <p>Estadísticas visuales de visitantes. Los datos permanecen en Supabase.</p>
         </div>
         <div class="head-actions">
-          @if (auth.hasPermission('posts.view')) {
-            <a class="btn btn-ghost" routerLink="/recepcion/puestos">Puestos altas/bajas</a>
+          @if (auth.hasPermission('reception.view')) {
+            <a class="btn btn-ghost" routerLink="/recepcion/puestos">Informe de puestos</a>
           }
           @if (auth.hasPermission('reception.register')) {
             <a class="btn" routerLink="/recepcion/registrar">Registrar visitante</a>

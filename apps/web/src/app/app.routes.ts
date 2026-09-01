@@ -522,7 +522,10 @@ export const routes: Routes = [
           {
             path: 'puestos',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.view' },
+            data: {
+              permissions: ['reception.view', 'posts.view'],
+              permissionMode: 'any',
+            },
             loadComponent: () =>
               import(
                 './features/reception/reception-posts-dashboard/reception-posts-dashboard'

@@ -32,9 +32,9 @@ export class ReceptionLayout {
       icon: LucideLayoutDashboard,
     },
     {
-      label: 'Puestos (altas/bajas)',
+      label: 'Informe de puestos',
       route: '/recepcion/puestos',
-      permission: 'posts.view',
+      permission: 'reception.view',
       exact: true,
       icon: LucideBriefcaseBusiness,
     },
