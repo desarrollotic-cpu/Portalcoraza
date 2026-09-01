@@ -1,7 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { of, switchMap } from 'rxjs';
-import { getTallasDisponibles } from '../config/tallas.config';
+import { getTallasDisponibles, requiereTalla } from '../config/tallas.config';
 import { InventoryApiService, InventoryVariant } from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
 
@@ -51,29 +51,35 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
         </div>
 
         <form [formGroup]="form" (ngSubmit)="submit()">
-          <div class="row">
-            <label>
-              Género *
-              <select formControlName="genero">
-                <option value="">Seleccione...</option>
-                <option value="M">Hombre</option>
-                <option value="F">Mujer</option>
-              </select>
-            </label>
-            <label>
-              Talla *
-              @if (tallaOptions().length) {
-                <select formControlName="talla">
-                  <option value="">Seleccione...</option>
-                  @for (t of tallaOptions(); track t) {
-                    <option [value]="t">{{ t }}</option>
-                  }
-                </select>
-              } @else {
-                <input formControlName="talla" placeholder="Ej. M, 40..." />
+          @if (needsSize()) {
+            <div class="row" [class.row-single]="!needsGender()">
+              @if (needsGender()) {
+                <label>
+                  Género *
+                  <select formControlName="genero">
+                    <option value="">Seleccione...</option>
+                    <option value="M">Hombre</option>
+                    <option value="F">Mujer</option>
+                  </select>
+                </label>
               }
-            </label>
-          </div>
+              <label>
+                Talla *
+                @if (tallaOptions().length) {
+                  <select formControlName="talla">
+                    <option value="">Seleccione...</option>
+                    @for (t of tallaOptions(); track t) {
+                      <option [value]="t">{{ t }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input formControlName="talla" placeholder="Ej. 40..." />
+                }
+              </label>
+            </div>
+          } @else {
+            <p class="hint">Este elemento no usa talla/género; el ingreso va a la variante única.</p>
+          }
           <label>
             Cantidad a agregar *
             <input formControlName="quantity" type="number" min="1" max="9999" inputmode="numeric" />
@@ -128,6 +134,14 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
       color: #525252;
     }
     .stock-ok { color: #15803d; font-weight: 600; }
+    .hint {
+      margin: 0 0 0.85rem;
+      padding: 0.55rem 0.7rem;
+      background: #f8fafc;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      color: #475569;
+    }
     code {
       background: #e2e8f0;
       padding: 0.1rem 0.35rem;
@@ -139,6 +153,7 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
       grid-template-columns: 1fr 1fr;
       gap: 0.75rem;
     }
+    .row-single { grid-template-columns: 1fr; }
     label {
       display: flex;
       flex-direction: column;
@@ -197,11 +212,24 @@ export class AddStockDialog {
   readonly selection = signal<{ genero: string; talla: string }>({ genero: '', talla: '' });
 
   readonly form = this.fb.group({
-    genero: ['', Validators.required],
-    talla: ['', Validators.required],
+    genero: [''],
+    talla: [''],
     quantity: [1, [Validators.required, Validators.min(1), Validators.max(9999)]],
     reasonPreset: ['', Validators.required],
     notes: [''],
+  });
+
+  readonly needsSize = computed(() => {
+    const v = this.variant();
+    const name = v?.item?.name ?? '';
+    if (requiereTalla(name)) return true;
+    return this.variants().some((x) => !!variantTalla(x));
+  });
+
+  /** Género solo si el ítem ya tiene variantes M/F (camisa, pantalón, etc.). */
+  readonly needsGender = computed(() => {
+    if (!this.needsSize()) return false;
+    return this.variants().some((x) => variantGenero(x) !== '');
   });
 
   readonly tallaOptions = computed(() => {
@@ -217,11 +245,16 @@ export class AddStockDialog {
   });
 
   readonly displayStock = computed(() => {
+    if (!this.needsSize()) {
+      return this.variant()?.stockOwn ?? this.variant()?.stockCurrent ?? 0;
+    }
     const { genero, talla } = this.selection();
-    if (genero && talla) {
-      const matched = this.variants().find(
-        (x) => variantTalla(x) === talla && variantGenero(x) === genero,
-      );
+    if (talla) {
+      const matched = this.variants().find((x) => {
+        if (variantTalla(x) !== talla) return false;
+        if (!this.needsGender()) return true;
+        return variantGenero(x) === genero;
+      });
       if (matched) return matched.stockOwn ?? matched.stockCurrent ?? 0;
     }
     return this.variant()?.stockOwn ?? this.variant()?.stockCurrent ?? 0;
@@ -263,13 +296,20 @@ export class AddStockDialog {
     const genero = (this.form.value.genero || '') as 'M' | 'F' | '';
     const talla = String(this.form.value.talla ?? '').trim();
 
-    if (!genero || !talla) {
-      this.error.set('Selecciona género y talla.');
-      return;
-    }
     if (!preset) {
       this.error.set('Selecciona el motivo de entrada.');
       return;
+    }
+
+    if (this.needsSize()) {
+      if (!talla) {
+        this.error.set('Selecciona la talla.');
+        return;
+      }
+      if (this.needsGender() && !genero) {
+        this.error.set('Selecciona el género.');
+        return;
+      }
     }
 
     const itemId = seed.itemId || seed.item?.id;
@@ -282,11 +322,6 @@ export class AddStockDialog {
     this.saving.set(true);
     this.error.set(null);
 
-    const existing =
-      this.variants().find(
-        (x) => variantTalla(x) === talla && variantGenero(x) === genero,
-      ) ?? null;
-
     const move = (variantId: string) =>
       this.api.registerMovement({
         variantId,
@@ -296,17 +331,39 @@ export class AddStockDialog {
         observations: notes || undefined,
       });
 
+    // Sin talla: ingresar a la variante abierta (p. ej. cinturón U).
+    if (!this.needsSize()) {
+      move(seed.id).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.completed.emit();
+        },
+        error: (err) => {
+          this.error.set(err?.error?.message ?? 'No se pudo registrar el ingreso.');
+          this.saving.set(false);
+        },
+      });
+      return;
+    }
+
+    const existing =
+      this.variants().find((x) => {
+        if (variantTalla(x) !== talla) return false;
+        if (!this.needsGender()) return variantGenero(x) === '';
+        return variantGenero(x) === genero;
+      }) ?? null;
+
     const ensureVariant$ = existing
       ? of(existing)
       : this.api.createVariant({
           itemId,
-          sku: `${code}-${genero}-${talla}`.slice(0, 80),
+          sku: `${code}-${genero || 'U'}-${talla}`.slice(0, 80),
           attributes: {
             talla,
-            genero: genero === 'F' ? 'Mujer' : 'Hombre',
+            ...(genero ? { genero: genero === 'F' ? 'Mujer' : 'Hombre' } : {}),
           },
           talla,
-          genero,
+          genero: genero || undefined,
         });
 
     ensureVariant$

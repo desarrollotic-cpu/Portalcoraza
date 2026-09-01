@@ -1,22 +1,41 @@
 import { Component, OnInit, ViewChild, effect, inject, input, output, signal } from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
-import { getTallasDisponibles, requiereTalla } from '../config/tallas.config';
 import { InventoryApiService, InventoryItem, InventoryVariant } from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
 import { SignaturePad } from '../signature-pad/signature-pad';
 
-interface CategoryOption {
-  code: string;
+interface ItemOption {
+  id: string;
   name: string;
 }
 
-interface TallaOption {
-  talla: string;
-  genero: string | null;
-  stock: number;
+interface VariantOption {
   variantId: string;
   label: string;
+  stock: number;
+}
+
+function stockOf(v: InventoryVariant): number {
+  if (v.stockOwn != null) return Number(v.stockOwn);
+  return Number(v.stockCurrent ?? 0);
+}
+
+function variantLabel(v: InventoryVariant): string {
+  const talla = String(v.talla ?? v.attributes?.['talla'] ?? '').trim();
+  const generoRaw = v.genero ?? (v.attributes?.['genero'] != null ? String(v.attributes['genero']) : '');
+  const genero =
+    generoRaw === 'M' || generoRaw === 'Hombre'
+      ? 'Hombre'
+      : generoRaw === 'F' || generoRaw === 'Mujer'
+        ? 'Mujer'
+        : '';
+  const parts = [
+    talla ? `Talla ${talla}` : null,
+    genero || null,
+  ].filter(Boolean);
+  const base = parts.length ? parts.join(' — ') : 'Única';
+  return `${base} (Stock: ${stockOf(v)})`;
 }
 
 @Component({
@@ -34,25 +53,31 @@ interface TallaOption {
           <div formArrayName="lines" class="lines">
             @for (line of lines.controls; track $index; let i = $index) {
               <div class="line" [formGroupName]="i">
-                <select formControlName="category" (change)="onCategoryChange(i)">
-                  <option value="">Categoría...</option>
-                  @for (c of categories(); track c.code) {
-                    <option [value]="c.code">{{ c.name }}</option>
+                <select formControlName="itemId" (change)="onItemChange(i)">
+                  <option value="">Elemento...</option>
+                  @for (it of itemOptions(); track it.id) {
+                    <option [value]="it.id">{{ it.name }}</option>
                   }
                 </select>
 
-                @if (lineNeedsTalla(i)) {
-                  <select formControlName="tallaKey" (change)="onTallaChange(i)">
-                    <option value="">Talla / género...</option>
-                    @for (opt of tallaOptions(i); track opt.variantId) {
-                      <option [value]="opt.talla + '|' + (opt.genero ?? 'N/A')">{{ opt.label }}</option>
+                @if (variantOptions(i).length > 1) {
+                  <select formControlName="variantId" (change)="onVariantChange(i)">
+                    <option value="">Talla / variante...</option>
+                    @for (opt of variantOptions(i); track opt.variantId) {
+                      <option [value]="opt.variantId">{{ opt.label }}</option>
                     }
                   </select>
+                } @else if (variantOptions(i).length === 1) {
+                  <span class="variant-fixed">{{ variantOptions(i)[0].label }}</span>
+                } @else if (line.get('itemId')?.value) {
+                  <span class="stock-badge low">Sin stock en tu almacén</span>
                 }
 
                 <input formControlName="quantity" type="number" min="1" max="99" placeholder="Cant." />
                 @if (stockHint(i) !== null) {
-                  <span class="stock-badge" [class.low]="stockHint(i) === 0">{{ stockHint(i) === 0 ? 'Sin stock' : 'Stock: ' + stockHint(i) }}</span>
+                  <span class="stock-badge" [class.low]="stockHint(i) === 0">
+                    {{ stockHint(i) === 0 ? 'Sin stock' : 'Stock: ' + stockHint(i) }}
+                  </span>
                 }
                 <button type="button" class="btn-remove" (click)="removeLine(i)" [disabled]="lines.length === 1">×</button>
               </div>
@@ -88,7 +113,7 @@ interface TallaOption {
     .lines { display: flex; flex-direction: column; gap: 0.5rem; }
     .line {
       display: grid;
-      grid-template-columns: 1fr 1fr 80px auto auto;
+      grid-template-columns: 1.2fr 1.4fr 80px auto auto;
       gap: 0.5rem;
       align-items: center;
     }
@@ -100,6 +125,13 @@ interface TallaOption {
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
       width: 100%;
+    }
+    .variant-fixed {
+      font-size: 0.85rem;
+      color: #334155;
+      padding: 0.35rem 0.5rem;
+      background: #f1f5f9;
+      border-radius: 8px;
     }
     .stock-badge {
       font-size: 0.75rem;
@@ -145,10 +177,10 @@ export class DeliveryDialog implements OnInit {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
-  readonly categories = signal<CategoryOption[]>([]);
+  readonly itemOptions = signal<ItemOption[]>([]);
   private items = signal<InventoryItem[]>([]);
   private variants = signal<InventoryVariant[]>([]);
-  private tallaOptionsByLine = signal<Record<number, TallaOption[]>>({});
+  private variantsByLine = signal<Record<number, VariantOption[]>>({});
   private stockByLine = signal<Record<number, number | null>>({});
 
   readonly form = this.fb.nonNullable.group({
@@ -180,8 +212,8 @@ export class DeliveryDialog implements OnInit {
 
   private createLineGroup() {
     return this.fb.nonNullable.group({
-      category: ['', Validators.required],
-      tallaKey: [''],
+      itemId: ['', Validators.required],
+      variantId: ['', Validators.required],
       quantity: [1, [Validators.required, Validators.min(1)]],
     });
   }
@@ -196,45 +228,30 @@ export class DeliveryDialog implements OnInit {
     this.refreshLineMaps();
   }
 
-  lineNeedsTalla(index: number): boolean {
-    const category = this.lines.at(index)?.get('category')?.value ?? '';
-    return requiereTalla(category);
-  }
-
-  tallaOptions(index: number): TallaOption[] {
-    return this.tallaOptionsByLine()[index] ?? [];
+  variantOptions(index: number): VariantOption[] {
+    return this.variantsByLine()[index] ?? [];
   }
 
   stockHint(index: number): number | null {
     return this.stockByLine()[index] ?? null;
   }
 
-  onCategoryChange(index: number): void {
-    const category = this.lines.at(index)?.get('category')?.value ?? '';
-    this.lines.at(index)?.patchValue({ tallaKey: '' });
-    this.updateTallaOptions(index, category);
-    if (!requiereTalla(category)) {
-      this.updateStockForLine(index, category);
-    } else {
-      this.patchStock(index, null);
-    }
+  onItemChange(index: number): void {
+    const itemId = this.lines.at(index)?.get('itemId')?.value ?? '';
+    const options = this.buildVariantOptions(itemId);
+    const next = { ...this.variantsByLine() };
+    next[index] = options;
+    this.variantsByLine.set(next);
+
+    const autoId = options.length === 1 ? options[0].variantId : '';
+    this.lines.at(index)?.patchValue({ variantId: autoId });
+    this.patchStock(index, autoId ? options[0]?.stock ?? 0 : null);
   }
 
-  onTallaChange(index: number): void {
-    const line = this.lines.at(index);
-    if (!line) return;
-    const category = line.get('category')?.value ?? '';
-    const tallaKey = line.get('tallaKey')?.value ?? '';
-    if (!tallaKey) {
-      this.patchStock(index, null);
-      return;
-    }
-    const [talla, generoRaw] = tallaKey.split('|');
-    const genero = generoRaw === 'N/A' ? null : generoRaw;
-    const opt = this.tallaOptions(index).find(
-      (o) => o.talla === talla && (o.genero ?? 'N/A') === (genero ?? 'N/A'),
-    );
-    this.patchStock(index, opt?.stock ?? 0);
+  onVariantChange(index: number): void {
+    const variantId = this.lines.at(index)?.get('variantId')?.value ?? '';
+    const opt = this.variantOptions(index).find((o) => o.variantId === variantId);
+    this.patchStock(index, opt ? opt.stock : null);
   }
 
   canSubmit(): boolean {
@@ -242,9 +259,8 @@ export class DeliveryDialog implements OnInit {
     if (this.form.invalid) return false;
     if (this.signaturePad?.isEmpty()) return false;
     return this.lines.controls.every((ctrl, i) => {
-      const category = ctrl.get('category')?.value;
-      if (!category) return false;
-      if (requiereTalla(category) && !ctrl.get('tallaKey')?.value) return false;
+      const variantId = ctrl.get('variantId')?.value;
+      if (!variantId) return false;
       const stock = this.stockHint(i);
       const qty = Number(ctrl.get('quantity')?.value ?? 0);
       return stock !== null && stock >= qty && qty > 0;
@@ -256,65 +272,42 @@ export class DeliveryDialog implements OnInit {
     this.saving.set(true);
     this.error.set(null);
 
-    const elementos = this.lines.controls.map((ctrl) => {
-      const category = ctrl.get('category')!.value;
-      const tallaKey = ctrl.get('tallaKey')!.value;
-      const [talla, generoRaw] = tallaKey ? tallaKey.split('|') : [undefined, undefined];
-      return {
-        category,
-        talla: requiereTalla(category) ? talla : undefined,
-        genero: requiereTalla(category) && generoRaw && generoRaw !== 'N/A' ? generoRaw : undefined,
-        quantity: Number(ctrl.get('quantity')!.value),
-      };
-    });
+    const items = this.lines.controls.map((ctrl) => ({
+      variantId: String(ctrl.get('variantId')!.value),
+      quantity: Number(ctrl.get('quantity')!.value),
+    }));
 
-    this.api.validateStock(elementos).subscribe({
-      next: (validation) => {
-        if (!validation.valid) {
+    const payload = {
+      observations: this.form.controls.observations.value.trim() || undefined,
+      items,
+      ...(this.associateId() ? { associateId: this.associateId()! } : {}),
+      ...(this.postId() ? { postId: this.postId()! } : {}),
+    };
+
+    this.api.createDelivery(payload).subscribe({
+      next: (delivery) => {
+        const signature = this.signaturePad.exportDataUrl();
+        if (!signature) {
           this.saving.set(false);
-          this.error.set('Stock insuficiente para uno o más ítems');
+          this.error.set('La firma es obligatoria');
           return;
         }
-
-        const items = validation.validations
-          .filter((v) => v.variantId)
-          .map((v) => ({ variantId: v.variantId!, quantity: v.quantity }));
-
-        const payload = {
-          observations: this.form.controls.observations.value.trim() || undefined,
-          items,
-          ...(this.associateId() ? { associateId: this.associateId()! } : {}),
-          ...(this.postId() ? { postId: this.postId()! } : {}),
-        };
-
-        this.api.createDelivery(payload).subscribe({
-          next: (delivery) => {
-            const signature = this.signaturePad.exportDataUrl();
-            if (!signature) {
-              this.saving.set(false);
-              this.error.set('La firma es obligatoria');
-              return;
-            }
-            this.api.signDelivery(delivery.id, signature).subscribe({
-              next: () => {
-                this.saving.set(false);
-                this.completed.emit();
-              },
-              error: () => {
-                this.saving.set(false);
-                this.error.set('Entrega creada pero no se pudo registrar la firma');
-              },
-            });
+        this.api.signDelivery(delivery.id, signature).subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.completed.emit();
           },
           error: (err) => {
             this.saving.set(false);
-            this.error.set(err?.error?.message ?? 'No se pudo crear la entrega');
+            this.error.set(
+              err?.error?.message ?? 'Entrega creada pero no se pudo confirmar (firma/stock)',
+            );
           },
         });
       },
-      error: () => {
+      error: (err) => {
         this.saving.set(false);
-        this.error.set('No se pudo validar el stock');
+        this.error.set(err?.error?.message ?? 'No se pudo crear la entrega');
       },
     });
   }
@@ -328,7 +321,7 @@ export class DeliveryDialog implements OnInit {
     this.lines.clear();
     this.lines.push(this.createLineGroup());
     this.error.set(null);
-    this.tallaOptionsByLine.set({});
+    this.variantsByLine.set({});
     this.stockByLine.set({});
   }
 
@@ -341,7 +334,7 @@ export class DeliveryDialog implements OnInit {
       next: ({ items, variants }) => {
         this.items.set(items);
         this.variants.set(variants);
-        this.categories.set(this.buildCategories(items, variants));
+        this.itemOptions.set(this.buildItemOptions(items, variants));
         this.loading.set(false);
       },
       error: () => {
@@ -351,77 +344,27 @@ export class DeliveryDialog implements OnInit {
     });
   }
 
-  private buildCategories(items: InventoryItem[], variants: InventoryVariant[]): CategoryOption[] {
+  private buildItemOptions(items: InventoryItem[], variants: InventoryVariant[]): ItemOption[] {
     const withStock = new Set(
-      variants.filter((v) => v.stockCurrent > 0).map((v) => v.itemId),
+      variants.filter((v) => stockOf(v) > 0).map((v) => v.itemId),
     );
-    const map = new Map<string, string>();
-    for (const item of items) {
-      if (!withStock.has(item.id)) continue;
-      const code = item.category?.code ?? item.code;
-      const name = item.category?.name ?? item.name;
-      map.set(code.toLowerCase(), name);
-    }
-    return [...map.entries()]
-      .map(([code, name]) => ({ code, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    return items
+      .filter((item) => withStock.has(item.id))
+      .map((item) => ({ id: item.id, name: item.name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'es'));
   }
 
-  private updateTallaOptions(index: number, category: string): void {
-    if (!requiereTalla(category)) {
-      const next = { ...this.tallaOptionsByLine() };
-      next[index] = [];
-      this.tallaOptionsByLine.set(next);
-      return;
-    }
+  private buildVariantOptions(itemId: string): VariantOption[] {
+    if (!itemId) return [];
+    const options = this.variants()
+      .filter((v) => v.itemId === itemId && stockOf(v) > 0)
+      .map((v) => ({
+        variantId: v.id,
+        label: variantLabel(v),
+        stock: stockOf(v),
+      }));
 
-    const categoryKey = category.toLowerCase();
-    const allowedTallas = new Set(getTallasDisponibles(categoryKey));
-    const options: TallaOption[] = [];
-
-    for (const variant of this.variants()) {
-      if (variant.stockCurrent <= 0) continue;
-      const item = this.items().find((i) => i.id === variant.itemId);
-      if (!item) continue;
-      const itemCategory = (item.category?.code ?? item.name).toLowerCase();
-      if (itemCategory !== categoryKey && !item.name.toLowerCase().includes(categoryKey)) {
-        continue;
-      }
-      const talla = String(variant.attributes['talla'] ?? '').trim();
-      if (!talla || (allowedTallas.size > 0 && !allowedTallas.has(talla))) continue;
-      const genero = variant.attributes['genero'] != null ? String(variant.attributes['genero']) : null;
-      const generoLabel =
-        genero === 'F' ? 'Mujer' : genero === 'M' ? 'Hombre' : '';
-      options.push({
-        talla,
-        genero,
-        stock: variant.stockCurrent,
-        variantId: variant.id,
-        label: `Talla ${talla}${generoLabel ? ` — ${generoLabel}` : ''} (Stock: ${variant.stockCurrent})`,
-      });
-    }
-
-    options.sort((a, b) => {
-      const rank = (g: string | null) => {
-        const x = (g ?? '').toLowerCase();
-        if (x === 'f' || x === 'mujer') return 0;
-        if (x === 'm' || x === 'hombre') return 1;
-        return 2;
-      };
-      const rg = rank(a.genero) - rank(b.genero);
-      if (rg !== 0) return rg;
-      return a.talla.localeCompare(b.talla, undefined, { numeric: true });
-    });
-    const next = { ...this.tallaOptionsByLine() };
-    next[index] = options;
-    this.tallaOptionsByLine.set(next);
-  }
-
-  private updateStockForLine(index: number, category: string): void {
-    this.api.availableStock(category).subscribe({
-      next: (res) => this.patchStock(index, res.quantity),
-      error: () => this.patchStock(index, 0),
-    });
+    return options.sort((a, b) => a.label.localeCompare(b.label, 'es', { numeric: true }));
   }
 
   private patchStock(index: number, stock: number | null): void {
@@ -432,10 +375,8 @@ export class DeliveryDialog implements OnInit {
 
   private refreshLineMaps(): void {
     this.lines.controls.forEach((_, i) => {
-      const category = this.lines.at(i)?.get('category')?.value ?? '';
-      if (category) {
-        this.onCategoryChange(i);
-      }
+      const itemId = this.lines.at(i)?.get('itemId')?.value ?? '';
+      if (itemId) this.onItemChange(i);
     });
   }
 }
