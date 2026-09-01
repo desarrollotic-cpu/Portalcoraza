@@ -4,11 +4,12 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { DeliveryDialog } from '../delivery-dialog/delivery-dialog';
 import { DeliverableAssociate, Delivery, InventoryApiService } from '../inventory-api.service';
+import { ModalShell } from '../modal-shell/modal-shell';
 import { SignatureViewer } from '../signature-viewer/signature-viewer';
 
 @Component({
   selector: 'app-deliveries-list',
-  imports: [RouterLink, DatePipe, DeliveryDialog, SignatureViewer],
+  imports: [RouterLink, DatePipe, DeliveryDialog, ModalShell, SignatureViewer],
   template: `
     <div class="dot-page">
       <header class="dot-dash-panel__head">
@@ -48,6 +49,7 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
                   <th>Asociado</th>
                   <th>Estado</th>
                   <th>Elementos</th>
+                  <th>Firma</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
@@ -69,10 +71,22 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
                       </ul>
                     </td>
                     <td>
+                      @if (d.signatureUrl) {
+                        <button type="button" class="btn-eye" title="Ver firma" aria-label="Ver firma" (click)="openSignature(d)">
+                          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                            <path
+                              fill="currentColor"
+                              d="M12 5c-7 0-10 7-10 7s3 7 10 7 10-7 10-7-3-7-10-7zm0 12a5 5 0 1 1 0-10 5 5 0 0 1 0 10zm0-2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"
+                            />
+                          </svg>
+                        </button>
+                      } @else {
+                        <span class="dot-muted">—</span>
+                      }
+                    </td>
+                    <td>
                       @if (d.status === 'PENDING') {
                         <a [routerLink]="['/dotacion/entregas', d.id, 'firmar']">Firmar</a>
-                      } @else if (d.signatureUrl) {
-                        <app-signature-viewer [deliveryId]="d.id" />
                       } @else {
                         —
                       }
@@ -80,7 +94,7 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
                   </tr>
                 } @empty {
                   <tr>
-                    <td colspan="5" class="dot-empty">No hay entregas registradas.</td>
+                    <td colspan="6" class="dot-empty">No hay entregas registradas.</td>
                   </tr>
                 }
               </tbody>
@@ -105,6 +119,16 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
       }
     </div>
 
+    <app-modal-shell
+      [open]="!!signatureDeliveryId()"
+      title="Firma de la entrega"
+      (closed)="closeSignature()"
+    >
+      @if (signatureDeliveryId(); as sid) {
+        <app-signature-viewer [deliveryId]="sid" [active]="true" />
+      }
+    </app-modal-shell>
+
     <app-delivery-dialog
       [open]="dialogOpen()"
       [associateId]="dialogAssociateId()"
@@ -120,6 +144,19 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
       font-size: 0.82rem;
     }
     .items-list li { margin-bottom: 0.15rem; }
+    .btn-eye {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      border: 1px solid var(--coraza-border, #e5e5e5);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--primary-dark, #1d4ed8);
+      cursor: pointer;
+    }
+    .btn-eye:hover { background: #eff6ff; }
     .dot-pagination {
       display: flex;
       align-items: center;
@@ -150,6 +187,7 @@ export class DeliveriesList implements OnInit {
   readonly dialogOpen = signal(false);
   readonly dialogAssociateId = signal<string | null>(null);
   readonly dialogSubject = signal('');
+  readonly signatureDeliveryId = signal<string | null>(null);
 
   ngOnInit(): void {
     this.api.listEligibleAssociates().subscribe({
@@ -198,8 +236,18 @@ export class DeliveriesList implements OnInit {
 
   detailLabel(line: Delivery['details'][number]): string {
     const item = line.variant?.item?.name ?? line.variant?.sku ?? 'Ítem';
-    const sku = line.variant?.sku ? ` (${line.variant.sku})` : '';
-    return `${item}${sku} × ${line.quantity}`;
+    const talla = String(line.variant?.talla ?? line.variant?.attributes?.['talla'] ?? '').trim();
+    const generoRaw =
+      line.variant?.genero ??
+      (line.variant?.attributes?.['genero'] != null ? String(line.variant.attributes['genero']) : '');
+    const genero =
+      generoRaw === 'M' || generoRaw === 'Hombre'
+        ? 'Hombre'
+        : generoRaw === 'F' || generoRaw === 'Mujer'
+          ? 'Mujer'
+          : '';
+    const bits = [item, talla ? `talla ${talla}` : null, genero || null].filter(Boolean);
+    return `${bits.join(' · ')} × ${line.quantity}`;
   }
 
   statusClass(status: string): string {
@@ -213,6 +261,14 @@ export class DeliveriesList implements OnInit {
     if (status === 'REVERTED') return 'Revertida';
     if (status === 'PENDING') return 'Pendiente';
     return status;
+  }
+
+  openSignature(d: Delivery): void {
+    this.signatureDeliveryId.set(d.id);
+  }
+
+  closeSignature(): void {
+    this.signatureDeliveryId.set(null);
   }
 
   openNewDelivery(): void {
