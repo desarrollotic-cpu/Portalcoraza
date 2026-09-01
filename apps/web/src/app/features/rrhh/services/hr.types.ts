@@ -110,13 +110,13 @@ export interface Associate {
   email: string | null;
   address: string | null;
   landline: string | null;
-  mobile: string;
+  mobile: string | null;
 
   emergencyContactName: string | null;
   emergencyContactRelationship: string | null;
   emergencyContactPhone: string | null;
 
-  hireDate: string;
+  hireDate: string | null;
   jobPositionId: string | null;
   jobPosition: JobPosition | null;
   workCenterId: string | null;
@@ -172,6 +172,8 @@ export interface Associate {
   ageAtHire: number;
   currentAge: number;
   tenureYears: number;
+  /** Celular + fecha ingreso + cargo */
+  profileComplete?: boolean;
 }
 
 export interface AssociatesQuery {

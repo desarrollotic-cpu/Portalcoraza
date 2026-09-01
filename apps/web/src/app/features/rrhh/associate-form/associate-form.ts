@@ -165,7 +165,7 @@ type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
             <h3>Contacto</h3>
             <div class="hr-form-grid">
               <div class="hr-field">
-                <label>Celular *</label>
+                <label>Celular</label>
                 <input formControlName="mobile" type="tel" />
               </div>
               <div class="hr-field">
@@ -204,7 +204,7 @@ type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
             <h3>Laboral</h3>
             <div class="hr-form-grid">
               <div class="hr-field">
-                <label>Fecha ingreso *</label>
+                <label>Fecha ingreso</label>
                 <input formControlName="hireDate" type="date" />
               </div>
               <div class="hr-field col-2">
@@ -511,7 +511,7 @@ export class AssociateForm implements OnInit {
     actReference: [null],
 
     // Contacto
-    mobile: ['', Validators.required],
+    mobile: [null],
     landline: [null],
     email: [null, [Validators.email]],
     address: [null],
@@ -520,7 +520,7 @@ export class AssociateForm implements OnInit {
     emergencyContactPhone: [null],
 
     // Laboral
-    hireDate: ['', Validators.required],
+    hireDate: [null],
     jobPositionId: [null],
     workCenterId: [null],
     positionChangeReason: [null],

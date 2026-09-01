@@ -115,8 +115,8 @@ export class Associate {
   @Column({ type: 'varchar', length: 30, nullable: true })
   landline!: string | null;
 
-  @Column({ type: 'varchar', length: 80 })
-  mobile!: string;
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  mobile!: string | null;
 
   // ─── Contacto de emergencia ─────────────────────────────────────────────
   @Column({ name: 'emergency_contact_name', type: 'varchar', length: 150, nullable: true })
@@ -129,8 +129,8 @@ export class Associate {
   emergencyContactPhone!: string | null;
 
   // ─── Laboral y contrato ─────────────────────────────────────────────────
-  @Column({ name: 'hire_date', type: 'date' })
-  hireDate!: string;
+  @Column({ name: 'hire_date', type: 'date', nullable: true })
+  hireDate!: string | null;
 
   @Column({ name: 'job_position_id', type: 'uuid', nullable: true })
   jobPositionId!: string | null;

@@ -67,8 +67,8 @@ export class CreateAssociateDto {
   @IsOptional() @IsString() @MaxLength(30)
   landline?: string | null;
 
-  @IsString() @Length(4, 80)
-  mobile!: string;
+  @IsOptional() @IsString() @Length(4, 80)
+  mobile?: string | null;
 
   // ─── Emergencia ───────────────────────────────────────────────────────
   @IsOptional() @IsString() @MaxLength(150)
@@ -81,8 +81,8 @@ export class CreateAssociateDto {
   emergencyContactPhone?: string | null;
 
   // ─── Laboral ──────────────────────────────────────────────────────────
-  @IsDateString()
-  hireDate!: string;
+  @IsOptional() @IsDateString()
+  hireDate?: string | null;
 
   @IsOptional() @IsUUID()
   jobPositionId?: string | null;

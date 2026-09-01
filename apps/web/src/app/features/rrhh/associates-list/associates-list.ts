@@ -118,6 +118,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                 <th>Nivel educativo</th>
                 <th>Centro</th>
                 <th>Estado</th>
+                <th>Ficha</th>
                 <th>Antigüedad</th>
                 <th>SST</th>
                 <th></th>
@@ -141,6 +142,16 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                       {{ statusLabel(a.status) }}
                     </span>
                   </td>
+                  <td>
+                    <span
+                      class="hr-ficha"
+                      [class.hr-ficha--ok]="isProfileComplete(a)"
+                      [class.hr-ficha--incomplete]="!isProfileComplete(a)"
+                      [title]="isProfileComplete(a) ? 'Celular, ingreso y cargo registrados' : 'Falta celular, fecha de ingreso o cargo'"
+                    >
+                      {{ isProfileComplete(a) ? 'Completa' : 'Incompleta' }}
+                    </span>
+                  </td>
                   <td>{{ a.tenureYears }} a</td>
                   <td>
                     <div class="hr-sst-lights" [title]="complianceTooltip(a)">
@@ -161,7 +172,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="9">
+                  <td colspan="10">
                     <div class="hr-empty-state">
                       <app-icon [icon]="icons.SearchX" [size]="36" />
                       <p>Sin resultados con estos filtros.</p>
@@ -303,6 +314,12 @@ export class AssociatesList implements OnInit, OnDestroy {
     this.query.status = this.query.status === value ? undefined : value;
     this.page.set(1);
     this.applyFilters();
+  }
+
+  isProfileComplete(a: Associate): boolean {
+    if (typeof a.profileComplete === 'boolean') return a.profileComplete;
+    const mobile = (a.mobile ?? '').trim();
+    return mobile.length >= 4 && !!a.hireDate && !!a.jobPositionId;
   }
 
   statusColor(s: AssociateStatus): string {

@@ -447,6 +447,7 @@ export class AssociatesService {
       ageAtHire: derived.ageAtHire,
       currentAge: derived.currentAge,
       tenureYears: derived.tenureYears,
+      profileComplete: this.isProfileComplete(associate),
       fullName: [
         associate.firstName,
         associate.secondName,
@@ -458,6 +459,13 @@ export class AssociatesService {
         .trim(),
     };
     return this.sensitive.maskAssociate(enriched, user);
+  }
+
+  /** Completa = celular + fecha ingreso + cargo (identidad ya es obligatoria al crear). */
+  private isProfileComplete(a: Associate): boolean {
+    const mobile = (a.mobile ?? '').trim();
+    const hireDate = (a.hireDate ?? '').toString().trim();
+    return mobile.length >= 4 && !!hireDate && !!a.jobPositionId;
   }
 
   private async latestRetirementDate(associateId: string): Promise<string | null> {
