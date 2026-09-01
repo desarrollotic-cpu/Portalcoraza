@@ -523,8 +523,18 @@ export class AssociateDetail implements OnInit {
         this.error.set(err.status === 403 ? 'Sin permiso' : 'No se pudo cargar el asociado');
       },
     });
-    this.api.listAssociateDocuments(id).subscribe({ next: (rows) => this.documents.set(rows), error: () => {} });
-    this.api.alertsByAssociate(id).subscribe({ next: (rows) => this.alerts.set(rows), error: () => {} });
+    if (this.auth.hasPermission('hr_documents.view')) {
+      this.api.listAssociateDocuments(id).subscribe({
+        next: (rows) => this.documents.set(rows),
+        error: () => {},
+      });
+    }
+    if (this.auth.hasPermission('hr_alerts.view')) {
+      this.api.alertsByAssociate(id).subscribe({
+        next: (rows) => this.alerts.set(rows),
+        error: () => {},
+      });
+    }
     this.api.getAssociateHistory(id).subscribe({ next: (rows) => this.history.set(rows), error: () => {} });
     this.api.getPositionHistory(id).subscribe({ next: (rows) => this.positionHistory.set(rows), error: () => {} });
     if (this.auth.hasPermission('absences.view')) {

@@ -86,7 +86,8 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 401) {
         clearSession(auth, router);
       } else if (error.status === 403) {
-        window.alert('No tienes permisos para esta accion');
+        // ponytail: no alert global — pantallas manejan 403; evita spam al abrir RRHH
+        // (listado dispara cargos/centros/catálogos en paralelo).
       } else if (error.status >= 500) {
         window.alert('Error del servidor, intente nuevamente');
       }

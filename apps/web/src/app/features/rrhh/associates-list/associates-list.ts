@@ -250,18 +250,24 @@ export class AssociatesList implements OnInit, OnDestroy {
   ];
 
   ngOnInit(): void {
-    this.api.listJobPositions().subscribe({
-      next: (rows) => this.positions.set(rows),
-      error: () => {},
-    });
-    this.api.listWorkCenters().subscribe({
-      next: (rows) => this.workCenters.set(rows),
-      error: () => {},
-    });
-    this.api.listCatalog('NIVEL_ESTUDIO').subscribe({
-      next: (rows) => this.educationLevels.set(rows),
-      error: () => {},
-    });
+    if (this.auth.hasPermission('job_positions.view')) {
+      this.api.listJobPositions().subscribe({
+        next: (rows) => this.positions.set(rows),
+        error: () => {},
+      });
+    }
+    if (this.auth.hasPermission('work_centers.view')) {
+      this.api.listWorkCenters().subscribe({
+        next: (rows) => this.workCenters.set(rows),
+        error: () => {},
+      });
+    }
+    if (this.auth.hasPermission('catalogs.view')) {
+      this.api.listCatalog('NIVEL_ESTUDIO').subscribe({
+        next: (rows) => this.educationLevels.set(rows),
+        error: () => {},
+      });
+    }
     // Debounce de la búsqueda: 300ms entre pulsaciones para reducir llamadas
     this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(() => this.applyFilters());
     this.applyFilters();
