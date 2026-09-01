@@ -68,11 +68,15 @@ export class SignatureViewer {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
+  /** No usar signal aquí: leer blobUrl() dentro del effect re-dispara el effect. */
+  private objectUrl: string | null = null;
+
   constructor() {
     effect((onCleanup) => {
       const id = this.deliveryId();
       const active = this.active();
-      this.revokeCurrent();
+
+      this.revokeObjectUrl();
       this.blobUrl.set(null);
       this.error.set(null);
 
@@ -83,32 +87,61 @@ export class SignatureViewer {
 
       this.loading.set(true);
       const sub = this.api.getDeliverySignatureBlob(id).subscribe({
-        next: (blob) => {
+        next: async (blob) => {
+          // Si el API devolvió JSON de error con status 200 mal tipado, o blob vacío.
+          if (!blob || blob.size === 0) {
+            this.error.set('Firma vacía o no disponible');
+            this.loading.set(false);
+            return;
+          }
+          if (blob.type && blob.type.includes('json')) {
+            this.error.set(await this.readBlobError(blob));
+            this.loading.set(false);
+            return;
+          }
           const url = URL.createObjectURL(blob);
+          this.objectUrl = url;
           this.blobUrl.set(url);
           this.loading.set(false);
         },
-        error: (err) => {
-          const msg =
-            err?.status === 404
-              ? 'Firma no encontrada'
-              : err?.status === 403
-                ? 'Sin permiso para ver la firma'
-                : 'No se pudo cargar la firma';
-          this.error.set(msg);
+        error: async (err) => {
+          this.error.set(await this.formatHttpError(err));
           this.loading.set(false);
         },
       });
       onCleanup(() => sub.unsubscribe());
     });
 
-    this.destroyRef.onDestroy(() => this.revokeCurrent());
+    this.destroyRef.onDestroy(() => this.revokeObjectUrl());
   }
 
-  private revokeCurrent(): void {
-    const current = this.blobUrl();
-    if (current) {
-      URL.revokeObjectURL(current);
+  private revokeObjectUrl(): void {
+    if (this.objectUrl) {
+      URL.revokeObjectURL(this.objectUrl);
+      this.objectUrl = null;
+    }
+  }
+
+  private async formatHttpError(err: unknown): Promise<string> {
+    const e = err as { status?: number; error?: Blob | { message?: string }; message?: string };
+    if (e?.status === 404) return 'Firma no encontrada';
+    if (e?.status === 403) return 'Sin permiso para ver la firma';
+    if (e?.error instanceof Blob) {
+      return this.readBlobError(e.error);
+    }
+    if (e?.error && typeof e.error === 'object' && 'message' in e.error) {
+      return String((e.error as { message?: string }).message ?? 'No se pudo cargar la firma');
+    }
+    return e?.message ?? 'No se pudo cargar la firma';
+  }
+
+  private async readBlobError(blob: Blob): Promise<string> {
+    try {
+      const text = await blob.text();
+      const parsed = JSON.parse(text) as { message?: string };
+      return parsed.message ?? 'No se pudo cargar la firma';
+    } catch {
+      return 'No se pudo cargar la firma';
     }
   }
 }
