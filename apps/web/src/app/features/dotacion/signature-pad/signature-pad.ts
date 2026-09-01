@@ -6,6 +6,7 @@ import {
   OnDestroy,
   ViewChild,
   forwardRef,
+  output,
   signal,
 } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
@@ -228,6 +229,10 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
   @ViewChild('canvas') canvasRef!: ElementRef<HTMLCanvasElement>;
 
   readonly hint = signal<string | null>(null);
+  /** true cuando hay trazo (para habilitar botones en el padre vía CD de signals). */
+  readonly hasInk = signal(false);
+  readonly inkChange = output<boolean>();
+
   private pad: SimpleSignaturePad | null = null;
   private onChange: (value: string | null) => void = () => undefined;
   private onTouched: () => void = () => undefined;
@@ -237,7 +242,10 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
     this.pad = new SimpleSignaturePad(this.canvasRef.nativeElement);
     const emit = (): void => {
       if (!this.pad) return;
-      this.onChange(this.pad.empty ? null : this.pad.toDataURL());
+      const ink = !this.pad.empty;
+      this.hasInk.set(ink);
+      this.inkChange.emit(ink);
+      this.onChange(ink ? this.pad.toDataURL() : null);
       this.onTouched();
     };
     this.canvasRef.nativeElement.addEventListener('mouseup', emit);
@@ -258,6 +266,8 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
       const wasEmpty = this.pad?.empty ?? true;
       this.pad?.resizeToDisplay();
       if (!wasEmpty) {
+        this.hasInk.set(false);
+        this.inkChange.emit(false);
         this.onChange(null);
         this.hint.set('La firma se limpió al cambiar el tamaño. Vuelve a firmar.');
       }
@@ -266,12 +276,14 @@ export class SignaturePad implements AfterViewInit, OnDestroy, ControlValueAcces
 
   clear(): void {
     this.pad?.clear();
+    this.hasInk.set(false);
+    this.inkChange.emit(false);
     this.onChange(null);
     this.hint.set(null);
   }
 
   isEmpty(): boolean {
-    return this.pad?.empty ?? true;
+    return !this.hasInk() || (this.pad?.empty ?? true);
   }
 
   exportDataUrl(): string | null {

@@ -91,16 +91,19 @@ function variantLabel(v: InventoryVariant): string {
           </label>
 
           <h4>Firma de recepción</h4>
-          <app-signature-pad #signaturePad />
+          <app-signature-pad #signaturePad (inkChange)="onInkChange($event)" />
         </form>
 
+        @if (submitBlockReason(); as why) {
+          <p class="hint-block">{{ why }}</p>
+        }
         @if (error()) {
           <p class="error">{{ error() }}</p>
         }
 
         <div class="actions">
           <button type="button" (click)="dismiss()">Cancelar</button>
-          <button type="button" (click)="submit()" [disabled]="saving() || !canSubmit()">
+          <button type="button" class="btn-confirm" (click)="submit()" [disabled]="saving()">
             {{ saving() ? 'Guardando...' : 'Confirmar entrega' }}
           </button>
         </div>
@@ -158,7 +161,26 @@ function variantLabel(v: InventoryVariant): string {
     }
     .obs { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 1rem; }
     .actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+    .btn-confirm {
+      padding: 0.55rem 1rem;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary, #1d4ed8);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-confirm:disabled { opacity: 0.55; cursor: not-allowed; }
     .error { color: var(--coraza-error); }
+    .hint-block {
+      margin: 0.75rem 0 0;
+      padding: 0.55rem 0.75rem;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      color: #9a3412;
+      font-size: 0.85rem;
+    }
   `,
 })
 export class DeliveryDialog implements OnInit {
@@ -177,6 +199,7 @@ export class DeliveryDialog implements OnInit {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly signed = signal(false);
   readonly itemOptions = signal<ItemOption[]>([]);
   private items = signal<InventoryItem[]>([]);
   private variants = signal<InventoryVariant[]>([]);
@@ -236,6 +259,10 @@ export class DeliveryDialog implements OnInit {
     return this.stockByLine()[index] ?? null;
   }
 
+  onInkChange(hasInk: boolean): void {
+    this.signed.set(hasInk);
+  }
+
   onItemChange(index: number): void {
     const itemId = this.lines.at(index)?.get('itemId')?.value ?? '';
     const options = this.buildVariantOptions(itemId);
@@ -254,21 +281,40 @@ export class DeliveryDialog implements OnInit {
     this.patchStock(index, opt ? opt.stock : null);
   }
 
-  canSubmit(): boolean {
-    if (!this.associateId() && !this.postId()) return false;
-    if (this.form.invalid) return false;
-    if (this.signaturePad?.isEmpty()) return false;
-    return this.lines.controls.every((ctrl, i) => {
+  /** Motivo visible de por qué aún no se puede confirmar. */
+  submitBlockReason(): string | null {
+    if (!this.associateId() && !this.postId()) {
+      return 'Selecciona un asociado o puesto antes de entregar.';
+    }
+    for (let i = 0; i < this.lines.length; i++) {
+      const ctrl = this.lines.at(i);
+      const itemId = ctrl.get('itemId')?.value;
       const variantId = ctrl.get('variantId')?.value;
-      if (!variantId) return false;
-      const stock = this.stockHint(i);
       const qty = Number(ctrl.get('quantity')?.value ?? 0);
-      return stock !== null && stock >= qty && qty > 0;
-    });
+      if (!itemId) return 'Selecciona el elemento a entregar.';
+      if (!variantId) return 'Selecciona la talla / variante.';
+      const stock = this.stockHint(i);
+      if (stock === null) return 'Selecciona talla / variante para ver el stock.';
+      if (stock <= 0) return 'No hay stock disponible para esa variante.';
+      if (!Number.isFinite(qty) || qty < 1) return 'Indica una cantidad válida.';
+      if (qty > stock) return `La cantidad supera el stock (${stock}).`;
+    }
+    if (!this.signed() && (this.signaturePad?.isEmpty() ?? true)) {
+      return 'Falta la firma del asociado que recibe.';
+    }
+    return null;
+  }
+
+  canSubmit(): boolean {
+    return this.submitBlockReason() === null;
   }
 
   submit(): void {
-    if (!this.canSubmit()) return;
+    const why = this.submitBlockReason();
+    if (why) {
+      this.error.set(why);
+      return;
+    }
     this.saving.set(true);
     this.error.set(null);
 
@@ -321,6 +367,7 @@ export class DeliveryDialog implements OnInit {
     this.lines.clear();
     this.lines.push(this.createLineGroup());
     this.error.set(null);
+    this.signed.set(false);
     this.variantsByLine.set({});
     this.stockByLine.set({});
   }
