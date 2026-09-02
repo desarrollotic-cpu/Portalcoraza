@@ -151,29 +151,33 @@ const CODES: CodeConfig[] = [
           <button type="button" (click)="runMotor()" [disabled]="saving()">
             Aplicar motor ({{ tipoCiclo }})
           </button>
-          <button type="button" (click)="saveAsTemplate()" [disabled]="saving()">
-            Guardar plantilla
-          </button>
-          @if (templates().length) {
-            <label class="tpl">
-              Plantilla
-              <select [(ngModel)]="selectedTemplateId">
-                <option value="">—</option>
-                @for (t of templates(); track t.id) {
-                  <option [value]="t.id">{{ t.name }}</option>
-                }
-              </select>
-            </label>
-            <button
-              type="button"
-              (click)="applySelectedTemplate()"
-              [disabled]="saving() || !selectedTemplateId"
-            >
-              Aplicar plantilla
-            </button>
-          }
           <button type="button" class="primary" (click)="save()" [disabled]="saving() || !dirty()">
             Guardar
+          </button>
+          <button
+            type="button"
+            class="btn-save-tpl"
+            (click)="saveAsTemplate()"
+            [disabled]="saving() || !cells().size"
+            title="Guarda el cuadro actual como plantilla de este puesto para meses siguientes"
+          >
+            Guardar como plantilla
+          </button>
+          <label class="tpl">
+            Plantilla del puesto
+            <select [(ngModel)]="selectedTemplateId">
+              <option value="">— Elegir —</option>
+              @for (t of postTemplates(); track t.id) {
+                <option [value]="t.id">{{ t.name }}</option>
+              }
+            </select>
+          </label>
+          <button
+            type="button"
+            (click)="applySelectedTemplate()"
+            [disabled]="saving() || !selectedTemplateId"
+          >
+            Aplicar plantilla
           </button>
           @if (schedule()!.status !== 'publicado') {
             <button type="button" class="success" (click)="setStatus('publicado')" [disabled]="saving() || dirty()">
@@ -191,6 +195,10 @@ const CODES: CodeConfig[] = [
             <span class="hint warn">Hay cambios sin guardar</span>
           }
         </div>
+        <p class="tpl-hint">
+          Flujo: motor → ajusta celdas a mano → Guardar → Guardar como plantilla.
+          En meses siguientes: Aplicar plantilla (del mismo puesto).
+        </p>
 
         <div class="roles-panel">
           <h3>Personal / Roles</h3>
@@ -242,54 +250,6 @@ const CODES: CodeConfig[] = [
             }
           </div>
           <button type="button" class="sm" (click)="addRole()">+ Agregar rol</button>
-        </div>
-
-        <!-- BARRA DE AUTO-LLENADO INTELIGENTE DE TURNOS -->
-        <div class="quick-pattern-bar">
-          <div class="qpb-header">
-            <span class="qpb-title"> Auto-Llenado Inteligente por Patrón (1 Clic):</span>
-            <span class="qpb-hint">Llena el mes completo automáticamente evitando digitación manual celda por celda</span>
-          </div>
-          <div class="qpb-controls">
-            <label class="qpb-field">
-              Rol a llenar:
-              <select #patternRoleSelect>
-                <option value="ALL"> Todos los roles</option>
-                @for (r of personal(); track r.rol) {
-                  <option [value]="r.rol">{{ r.displayName || r.rol }}</option>
-                }
-              </select>
-            </label>
-            <label class="qpb-field">
-              Patrón de Rotación:
-              <select #patternCodeSelect>
-                <option value="2x2x2">Patrón 2x2x2 (2D, 2N, 2DR)</option>
-                <option value="2x2x2_N">Patrón 2x2x2 Invertido (2N, 2D, 2DR)</option>
-                <option value="6x1_D">Patrón 6x1 Diurno (6D, 1DR)</option>
-                <option value="6x1_N">Patrón 6x1 Nocturno (6N, 1DR)</option>
-                <option value="4x2">Patrón 4x2 (4D, 2DR)</option>
-                <option value="D_ALL">12h Diurno Continuo (D todos los días)</option>
-                <option value="N_ALL">12h Nocturno Continuo (N todos los días)</option>
-                <option value="D8_L_V">5x2 Oficina Lunes a Viernes 8h (D8)</option>
-              </select>
-            </label>
-            <label class="qpb-field">
-              Desde el día:
-              <select #patternStartDaySelect>
-                @for (day of days(); track day) {
-                  <option [value]="day">Día {{ day }}</option>
-                }
-              </select>
-            </label>
-            <button
-              type="button"
-              class="btn-apply-pattern"
-              (click)="applyCustomPattern(patternRoleSelect.value, patternCodeSelect.value, +patternStartDaySelect.value)"
-              [disabled]="saving() || !personal().length"
-            >
-               Poblar Mes Automáticamente
-            </button>
-          </div>
         </div>
 
         <div class="matrix-wrap">
@@ -994,69 +954,19 @@ const CODES: CodeConfig[] = [
       text-align: center;
     }
 
-    .quick-pattern-bar {
-      margin-bottom: 1rem;
-      padding: 0.85rem 1.15rem;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-    .qpb-header {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .qpb-title {
-      font-size: 0.9rem;
-      font-weight: 800;
-      color: #0f172a;
-    }
-    .qpb-hint {
+    .tpl-hint {
+      margin: 0 0 1rem;
       font-size: 0.78rem;
       color: #64748b;
+      line-height: 1.35;
     }
-    .qpb-controls {
-      display: flex;
-      align-items: flex-end;
-      gap: 0.75rem;
-      flex-wrap: wrap;
+    .btn-save-tpl {
+      background: #0f766e;
+      color: #fff;
+      border: 1px solid #0f766e;
     }
-    .qpb-field {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      font-size: 0.78rem;
-      font-weight: 700;
-      color: #334155;
-    }
-    .qpb-field select {
-      padding: 0.4rem 0.6rem;
-      border: 1.5px solid #cbd5e1;
-      border-radius: 6px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      background: #ffffff;
-    }
-    .btn-apply-pattern {
-      background: #0369a1;
-      color: #ffffff;
-      border: 1px solid #0369a1;
-      border-radius: 6px;
-      padding: 0.45rem 0.9rem;
-      font-size: 0.85rem;
-      font-weight: 700;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      transition: background 0.15s;
-    }
-    .btn-apply-pattern:hover:not(:disabled) {
-      background: #0369a1;
+    .btn-save-tpl:hover:not(:disabled) {
+      background: #0d9488;
     }
 
     .modal-actions {
@@ -1127,6 +1037,10 @@ export class ScheduleBoard implements OnInit {
   readonly error = signal<string | null>(null);
   readonly motorOk = signal<string | null>(null);
   readonly templates = signal<ScheduleTemplate[]>([]);
+  readonly postTemplates = computed(() => {
+    const pid = this.postId;
+    return this.templates().filter((t) => !t.postId || t.postId === pid);
+  });
 
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
   editAssociateId: string | null = null;
@@ -1309,6 +1223,7 @@ export class ScheduleBoard implements OnInit {
   onSelectionChange(): void {
     this.editing.set(null);
     this.motorOk.set(null);
+    this.selectedTemplateId = '';
     this.loadSchedule();
   }
 
@@ -1485,19 +1400,62 @@ export class ScheduleBoard implements OnInit {
   saveAsTemplate(): void {
     const sched = this.schedule();
     if (!sched) return;
-    const name = prompt('Nombre de la plantilla', `Plantilla ${this.month}`);
+    if (!this.cells().size) {
+      this.error.set('No hay celdas para guardar como plantilla. Aplica el motor o llena el cuadro primero.');
+      return;
+    }
+    const postName = this.posts().find((p) => p.id === this.postId)?.name ?? 'Puesto';
+    const name = prompt(
+      'Nombre de la plantilla (queda ligada a este puesto)',
+      `${postName}`,
+    );
     if (!name?.trim()) return;
-    this.saving.set(true);
-    this.api.createTemplate({ name: name.trim(), fromScheduleId: sched.id }).subscribe({
-      next: (t) => {
-        this.templates.update((list) => [t, ...list]);
-        this.saving.set(false);
-      },
-      error: () => {
-        this.saving.set(false);
-        this.error.set('No se pudo guardar la plantilla');
-      },
-    });
+
+    const create = (scheduleId: string) => {
+      this.saving.set(true);
+      this.error.set(null);
+      this.api
+        .createTemplate({
+          name: name.trim(),
+          fromScheduleId: scheduleId,
+          postId: this.postId || undefined,
+        })
+        .subscribe({
+          next: (t) => {
+            this.templates.update((list) => [t, ...list.filter((x) => x.id !== t.id)]);
+            this.selectedTemplateId = t.id;
+            this.saving.set(false);
+            this.motorOk.set(`Plantilla guardada: «${t.name}». Úsala en meses siguientes con Aplicar plantilla.`);
+          },
+          error: () => {
+            this.saving.set(false);
+            this.error.set('No se pudo guardar la plantilla');
+          },
+        });
+    };
+
+    // La plantilla se toma del cuadro en BD: si hay cambios locales, guardar primero.
+    if (this.dirty()) {
+      const payload = this.buildSavePayload();
+      this.saving.set(true);
+      this.api.save(sched.id, payload).subscribe({
+        next: (updated) => {
+          this.applySchedule(updated);
+          create(updated.id);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.error.set(
+            typeof (err.error as { message?: string })?.message === 'string'
+              ? (err.error as { message: string }).message
+              : 'Guarda el cuadro antes de crear la plantilla',
+          );
+        },
+      });
+      return;
+    }
+
+    create(sched.id);
   }
 
   applySelectedTemplate(): void {
@@ -1505,10 +1463,17 @@ export class ScheduleBoard implements OnInit {
     if (!sched || !this.selectedTemplateId) return;
     if (!confirm('¿Aplicar la plantilla? Se reemplazarán las celdas actuales.')) return;
     this.saving.set(true);
+    this.error.set(null);
+    this.motorOk.set(null);
     this.api.applyTemplate(sched.id, this.selectedTemplateId).subscribe({
       next: (updated) => {
+        const [year, mon] = this.month.split('-').map(Number);
+        this.scheduleCache.delete(`${this.postId}:${year}:${mon}`);
         this.applySchedule(updated);
         this.saving.set(false);
+        this.motorOk.set(
+          `Plantilla aplicada: ${updated.assignments?.length ?? 0} celdas. Revisa y Guarda si hace falta.`,
+        );
       },
       error: () => {
         this.saving.set(false);
@@ -1517,60 +1482,7 @@ export class ScheduleBoard implements OnInit {
     });
   }
 
-  applyCustomPattern(targetRole: string, patternKey: string, startDay: number = 1): void {
-    const rolesToFill = targetRole === 'ALL' 
-      ? this.personal() 
-      : this.personal().filter(r => r.rol === targetRole);
-    
-    if (rolesToFill.length === 0) return;
-
-    let sequence: string[] = ['D', 'D', 'N', 'N', 'DR', 'DR'];
-    if (patternKey === '2x2x2') sequence = ['D', 'D', 'N', 'N', 'DR', 'DR'];
-    else if (patternKey === '2x2x2_N') sequence = ['N', 'N', 'D', 'D', 'DR', 'DR'];
-    else if (patternKey === '6x1_D') sequence = ['D', 'D', 'D', 'D', 'D', 'D', 'DR'];
-    else if (patternKey === '6x1_N') sequence = ['N', 'N', 'N', 'N', 'N', 'N', 'DR'];
-    else if (patternKey === '4x2') sequence = ['D', 'D', 'D', 'D', 'DR', 'DR'];
-    else if (patternKey === 'D_ALL') sequence = ['D'];
-    else if (patternKey === 'N_ALL') sequence = ['N'];
-
-    const days = this.days();
-    const map = new Map(this.cells());
-
-    rolesToFill.forEach((role, rIdx) => {
-      const roleOffset = targetRole === 'ALL' ? (rIdx * 2) % sequence.length : 0;
-      
-      days.forEach((d) => {
-        if (d < startDay) return;
-        
-        let codeStr = 'D';
-        if (patternKey === 'D8_L_V') {
-          const isWknd = this.isSunday(d) || this.isSaturday(d);
-          codeStr = isWknd ? 'DR' : 'D8';
-        } else {
-          const seqIdx = (d - startDay + roleOffset) % sequence.length;
-          codeStr = sequence[seqIdx];
-        }
-
-        const cfg = CODES.find(c => c.codigo === codeStr) || CODES[0];
-        const key = `${role.rol}:${d}`;
-        map.set(key, {
-          associateId: role.associateId,
-          jornada: cfg.jornada,
-          codigo: cfg.codigo,
-          turno: cfg.turno,
-          inicio: cfg.inicio,
-          fin: cfg.fin,
-        });
-      });
-    });
-
-    this.cells.set(map);
-    this.dirty.set(true);
-  }
-
-  save(): void {
-    const sched = this.schedule();
-    if (!sched) return;
+  private buildSavePayload(): SavePayload {
     const assignments = Array.from(this.cells().entries())
       .map(([key, state]) => {
         const day = Number(key.split(':')[1]);
@@ -1588,11 +1500,16 @@ export class ScheduleBoard implements OnInit {
       })
       .filter((a) => a.jornada !== 'sin_asignar' || a.associateId);
 
-    const payload: SavePayload = {
+    return {
       personal: this.personal(),
       assignments,
     };
-    this.persistSave(sched.id, payload, false);
+  }
+
+  save(): void {
+    const sched = this.schedule();
+    if (!sched) return;
+    this.persistSave(sched.id, this.buildSavePayload(), false);
   }
 
   private persistSave(id: string, savePayload: SavePayload, confirmWarnings: boolean): void {
