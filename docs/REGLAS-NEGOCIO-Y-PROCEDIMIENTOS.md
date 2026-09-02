@@ -253,12 +253,12 @@ Stock bajo se evalúa **por almacén** frente al umbral del ítem.
 
 ## 7. Programación
 
-**Rutas:** `/programacion` (panel), `/programacion/matriz`, `/programacion/cuadro`  
+**Rutas:** `/programacion` (panel), `/programacion/cuadro`, `/programacion/alertas`, `/programacion/recargos`  
 **Permisos:** `scheduling.view/create/edit`
 
 ### Para qué sirve
 
-Turnos de personal por puesto (matriz mensual / cuadro). El **panel** resume puestos del mes, asignaciones, conflictos y plantillas.
+Turnos de personal por puesto (cuadro mensual). El **panel** resume puestos del mes, asignaciones, conflictos y plantillas. La vista multi-puesto (Matriz) se retiró: saturaba el portal.
 
 ### Reglas
 
@@ -266,7 +266,7 @@ Turnos de personal por puesto (matriz mensual / cuadro). El **panel** resume pue
 |-------|---------|
 | Sin solapamiento | Un asociado no puede quedar en conflicto el mismo día en dos puestos (detector de conflictos) |
 | Fechas pasadas | No se editan ni eliminan turnos de hoy o del pasado; solo futuros (reglas del cuadro) |
-| Publicación | Al publicar matriz mensual se puede notificar a GERENCIA |
+| Publicación | Al publicar el cuadro mensual se puede notificar a GERENCIA |
 | Motor automático | Puede regenerar asignaciones del mes (sobrescribe las existentes del schedule) |
 
 ### Integración
@@ -380,7 +380,7 @@ Variables relevantes en API: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, opcion
 | `GERENCIA` | Supervisión / consulta amplia; en Dotación no mueve stock |
 | `RRHH` | Asociados, alertas, retiros, datos sensibles |
 | `ALMACENISTA` | Inventario y entregas **de su almacén** (Medellín o Rionegro) |
-| `PROGRAMADOR` | Turnos / matriz |
+| `PROGRAMADOR` | Turnos / cuadro |
 | `RECEPCIONISTA` | Recepción sede |
 | `SUPERVISOR` | Consulta operativa / dashboard |
 | `COORDINADOR_OPERATIVO` | Operación / consultas según seed |

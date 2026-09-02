@@ -1,8 +1,25 @@
 # Programación nativa en Portal Coraza
 
 **Fecha:** 2026-08-03  
+**Actualizado:** 2026-09-02  
 **Fuente de verdad de negocio:** [APP-CONTABILIDAD](https://github.com/freidercao-spec/APP-CONTABILIDAD) (CONTROL DE PUESTOS)  
 **Grafo:** `../APP-CONTABILIDAD/graphify-out/` (Graphify, code-only)
+
+## Handoff (2026-09-02) — continuar en otro PC
+
+Commit de código: `b1261aa` `fix(programacion): quitar Matriz de Turnos`.
+
+**Hecho:** se eliminó el submódulo **Matriz de Turnos** (`/programacion/matriz`, `master-grid.ts`). Bajaba el mes entero (`listByMonth`) y pintaba una tabla de todos los puestos × días; saturaba el pool de Supabase (máx. 5) y el navegador. El **Cuadro** por puesto cubre la operación.
+
+**No recrear** `master-grid` ni la ruta `programacion/matriz`.
+
+**Queda en el menú:** Panel, Cuadro de Turnos, Control de Alertas, Liquidación y Recargos.
+
+**Siguiente paso (uno a uno, un commit por cambio):** aligerar el **Panel**. Hoy `reloadAll()` dispara en paralelo `getMonthlyOverview` + `getTodayCoverage` + `getPayrollRecargos`. Recargos recorre el mes de todos los asociados y no hace falta en el panel de entrada. Quitar esa llamada del panel (la pantalla Recargos ya la tiene). Luego, si hace falta, serializar overview/cobertura o cachear.
+
+**No tocar** SST / documental ( Freider ). No mezclar skills locales (`.agents/skills`) en commits.
+
+**Verificar:** `npx tsc -p tsconfig.app.json --noEmit` en `apps/web`. No `ng build` completo salvo deploy.
 
 ## Cambio (fase 1)
 
@@ -76,11 +93,11 @@ Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 - [x] Continuidad mes→mes al aplicar motor
 - [x] Alertas de validación del motor (en respuesta de `/motor`)
 - [x] Save atómico TypeORM + publish + notificación GERENCIA
-- [x] **MasterGrid** multi-puesto (`/programacion/matriz`) + filtro por tipo
-- [x] Festivos Colombia en matriz y cuadro
+- [x] Festivos Colombia en el cuadro
 - [x] Conflictos cross-puesto (`GET /scheduling/monthly/conflicts`)
-- [x] Motor global del mes (`POST /scheduling/monthly/motor-global`) + UI en matriz
+- [x] Motor por puesto en el cuadro (`POST /scheduling/monthly/:id/motor`)
 - [x] Plantillas básicas (`GET/POST templates`, `POST :id/apply-template/:templateId`) + UI en cuadro
+- [x] **Retirado 2026-09-02:** MasterGrid `/programacion/matriz` (pesado; no se vuelve a montar)
 
 ## Pendiente (paridad con APP — fases siguientes)
 
@@ -96,8 +113,8 @@ npm run api:dev
 npm run web:dev
 ```
 
-1. Login → Dashboard → **Ir a Programación** (misma pestaña, `/programacion`)
-2. Matriz: elegir ciclo → **Motor global** (o crear faltantes + motor)
+1. Login → Dashboard → **Ir a Programación** (misma pestaña, `/programacion/panel`)
+2. No debe existir pestaña **Matriz de Turnos**
 3. Abrir cuadro de un puesto → Aplicar motor / editar celdas → Guardar
 4. En cuadro: **Guardar como plantilla** / aplicar plantilla existente
 5. Publicar → No debe abrirse GitHub Pages
