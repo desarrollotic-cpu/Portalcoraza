@@ -1,26 +1,30 @@
 ---
-description: Cómo combinar Ponytail, Superpowers y Graphify en Portalcoraza
+description: Cómo combinar Ponytail, Superpowers y Graphify en Portalcoraza (modo rápido)
 alwaysApply: true
 ---
 
 # Toolkit del agente (Portalcoraza)
 
-Estas reglas mejoran *cómo* desarrollas. No cambian el dominio del negocio.
-
 ## Prioridad
 
-1. **Ponytail** (siempre): solución mínima, reutilizar lo existente en el monorepo, sin over-engineering. No recortar seguridad, validación ni permisos.
-2. **Superpowers** (features grandes / bugs difíciles): `brainstorming` → `writing-plans` → implementar → `verification-before-completion`. Para bugs: `systematic-debugging`. Para TDD en API Nest cuando el cambio lo merezca: `test-driven-development`.
-3. **Graphify** (mapa del repo): usar cuando haga falta entender arquitectura, conexiones entre módulos, o antes de un refactor amplio. Requiere CLI `graphify` si existe `graphify-out/`; si no está instalado, explorar con herramientas normales del agente.
+1. **Ponytail** (siempre): mínimo, reutilizar, sin over-engineering. Sin recortar seguridad/permisos.
+2. **Modo rápido** si Freider dice: `monta`, `resuelve`, `soluciona`, `pull`, `link`, `rápido`:
+   - Implementar ya (o ejecutar el comando).
+   - **No** brainstorming largo, **no** writing-plans formal, **no** subagentes.
+   - Spec de 5–15 líneas solo si el módulo es nuevo; si no, cero docs.
+   - Verificar con lo mínimo: `tsc`/test unitario del cambio, **no** `ng build` completo salvo deploy.
+3. **Superpowers** solo en features grandes *sin* urgencia explícita, o si Freider pide “diseña / planifica”.
+4. **Graphify**: opcional (ver regla graphify). Nunca bloquear.
 
 ## Flujo típico
 
-- Cambio chico (UI, campo, fix): Ponytail + diff corto + commit/rama como pida JHON.
-- Feature nueva: brainstorm/plan (Superpowers) → implementar mínimo (Ponytail) → verificar.
-- “¿Dónde se conecta X?”: Graphify si hay grafo; si no, grep/lectura dirigida.
+- Cambio chico / “resuelve”: Ponytail → código → commit/push solo si lo pide.
+- Feature nueva con “monta”: MVP nativo Nest+Angular+SQL (patrón Minuta/SIG) → push si lo pide.
+- “¿Dónde se conecta X?”: grep/lectura; graphify solo si está listo.
 
 ## No hacer
 
-- No copiar código de esos repos al producto.
 - No inventar dependencias ni abstracciones “por si acaso”.
-- No saltarse el saludo por nombre (**JHON**) ni las reglas de git del usuario.
+- No saltarse el saludo (**Freider**).
+- No esperar builds de 5–10 min para un cambio de UI/API pequeño.
+- No lanzar Task/subagent si un comando Shell directo basta.

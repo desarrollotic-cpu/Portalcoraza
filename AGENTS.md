@@ -4,8 +4,9 @@ Guía para agentes de código (Cursor, etc.). El producto es el monorepo NestJS 
 
 ## Preferencias del usuario
 
-- Responder empezando por **JHON**.
-- Cambios de recepción/dotación: rama → commit → merge a `main` solo cuando lo pida.
+- Responder empezando por **Freider**.
+- Cambios: commit/push a `main` solo cuando lo pida.
+- Priorizar velocidad: `monta` / `resuelve` / `pull` → ejecutar sin brainstorming largo ni graphify obligatorio.
 - Mejorar el *agente* con skills/reglas; no volcar metodologías como código de negocio.
 
 ## Toolkit instalado en este repo
@@ -14,9 +15,10 @@ Guía para agentes de código (Cursor, etc.). El producto es el monorepo NestJS 
 |------|-----------|-----|
 | Ponytail | `.cursor/rules/ponytail.mdc` | Código mínimo, YAGNI, reutilizar |
 | Coordinación | `.cursor/rules/agent-toolkit.mdc` | Cuándo usar cada skill |
-| Nombre | `.cursor/rules/respuesta-con-nombre.mdc` | Saludo JHON |
-| Superpowers | `.cursor/skills/*` | Plan, TDD, debug, review, subagentes |
-| Graphify | `.cursor/skills/graphify/` | Grafo del codebase (`/graphify`) |
+| Nombre | `.cursor/rules/respuesta-con-nombre.mdc` | Saludo Freider |
+| Velocidad | `.cursor/rules/velocidad.mdc` | Evitar waits/builds/subagentes innecesarios |
+| Superpowers | `.cursor/skills/*` | Solo features grandes sin urgencia |
+| Graphify | `.cursor/skills/graphify/` | Opcional (`/graphify`) |
 | Dominio | `.agents/skills/supabase*` | Supabase / Postgres |
 
 ## Graphify (CLI opcional)

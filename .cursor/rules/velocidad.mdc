@@ -1,0 +1,14 @@
+---
+description: Velocidad del agente — evitar waits y builds innecesarios
+alwaysApply: true
+---
+
+# Velocidad (Freider)
+
+- Preferir **un** Shell corto (&lt;30s) sobre subagentes o builds largos.
+- `git pull` / `git status` / edits: ejecutar ya; no investigar 10 archivos primero.
+- `ng build` / `nest build` completos: **solo** antes de claim “listo en producción” o si Freider pide deploy.
+- Para TypeScript API: `npx tsc -p tsconfig.build.json --noEmit` o test puntual si hace falta.
+- Si un comando cuelga &gt;60s sin progreso: matar, informar, ofrecer comando local.
+- No leer transcripts largos ni skills enteras cuando el pedido es trivial (`link`, `pull`, credenciales).
+- Respuestas cortas. Una acción útil por turno cuando el pedido es operativo.
