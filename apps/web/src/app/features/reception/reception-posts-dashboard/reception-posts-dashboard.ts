@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -68,7 +68,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
 
 @Component({
   selector: 'app-reception-posts-dashboard',
-  imports: [DatePipe, FormsModule, RouterLink, StatsKpiGrid],
+  imports: [DatePipe, FormsModule, RouterLink, StatsKpiGrid, NgTemplateOutlet],
   template: `
     <section class="page">
       <header class="head">
@@ -123,7 +123,39 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
             <strong [class.neg]="netMonth() < 0">{{ netMonth() }}</strong>
           </p>
         </div>
-        <app-stats-kpi-grid [items]="monthKpis()" [loading]="loading()" />
+
+        <div class="month-kpis" role="group" aria-label="Resumen del mes; toca una casilla para ver el detalle">
+          <button
+            type="button"
+            class="mkpi mkpi--new"
+            (click)="focusSection('started-section')"
+            [attr.aria-label]="'Ver los ' + startedInMonth().length + ' puestos nuevos de ' + selectedLabel()"
+          >
+            <span class="mkpi-label">Nuevos este mes</span>
+            <strong class="mkpi-value">{{ startedInMonth().length }}</strong>
+            <span class="mkpi-hint">Ver cuáles fueron ↓</span>
+          </button>
+          <button
+            type="button"
+            class="mkpi mkpi--end"
+            (click)="focusSection('ended-section')"
+            [attr.aria-label]="'Ver los ' + endedInMonth().length + ' puestos cerrados de ' + selectedLabel()"
+          >
+            <span class="mkpi-label">Cerrados este mes</span>
+            <strong class="mkpi-value">{{ endedInMonth().length }}</strong>
+            <span class="mkpi-hint">Ver cuáles fueron ↓</span>
+          </button>
+          <div class="mkpi mkpi--net">
+            <span class="mkpi-label">Neto del mes</span>
+            <strong class="mkpi-value" [class.neg]="netMonth() < 0">{{ netMonth() }}</strong>
+            <span class="mkpi-hint">nuevos − cerrados</span>
+          </div>
+          <div class="mkpi mkpi--mov">
+            <span class="mkpi-label">Movimientos</span>
+            <strong class="mkpi-value">{{ startedInMonth().length + endedInMonth().length }}</strong>
+            <span class="mkpi-hint">altas + bajas</span>
+          </div>
+        </div>
       </section>
 
       <div class="charts" aria-label="Gráficas del informe">
@@ -198,7 +230,12 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       </div>
 
       <div class="grid-2">
-        <section class="card" aria-labelledby="started-title">
+        <section
+          class="card"
+          id="started-section"
+          aria-labelledby="started-title"
+          [class.flash]="flashSection() === 'started-section'"
+        >
           <h3 id="started-title">
             Comenzaron en {{ selectedLabel() }}
             <span class="count-pill count-pill--ok">{{ startedInMonth().length }}</span>
@@ -207,44 +244,52 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
             <table>
               <thead>
                 <tr>
+                  <th></th>
                   <th>Código</th>
                   <th>Nombre</th>
-                  <th>Tipo</th>
-                  <th>Cliente</th>
+                  <th>NIT</th>
+                  <th>Sector</th>
+                  <th>Ciudad</th>
                   <th>Zona</th>
                   <th>Contrato</th>
-                  <th>Contacto</th>
-                  <th>Armado</th>
                   <th>Creado</th>
                   <th>Estado</th>
                 </tr>
               </thead>
               <tbody>
                 @for (p of startedInMonth(); track p.id) {
-                  <tr>
+                  <tr class="row" [class.expanded]="expandedId() === p.id">
+                    <td class="expander">
+                      <button
+                        type="button"
+                        class="chev"
+                        [attr.aria-expanded]="expandedId() === p.id"
+                        [attr.aria-label]="(expandedId() === p.id ? 'Ocultar' : 'Ver') + ' detalles de ' + p.name"
+                        (click)="toggleExpand(p.id)"
+                      >{{ expandedId() === p.id ? '▾' : '▸' }}</button>
+                    </td>
                     <td><code>{{ p.code }}</code></td>
                     <td>
                       <strong>{{ p.name }}</strong>
-                      @if (p.address) {
-                        <div class="meta">{{ p.address }}</div>
-                      }
+                      @if (p.address) { <div class="meta">{{ p.address }}</div> }
                     </td>
-                    <td>{{ typeLabel(p.type) }}</td>
-                    <td>{{ p.clientName || '—' }}</td>
+                    <td>{{ p.nit || '—' }}</td>
+                    <td>{{ p.sector || '—' }}</td>
+                    <td>{{ p.city || '—' }}</td>
                     <td>{{ p.zone || '—' }}</td>
                     <td>{{ p.contractNumber || '—' }}</td>
-                    <td>
-                      {{ p.contactName || '—' }}
-                      @if (p.phone) {
-                        <div class="meta">{{ p.phone }}</div>
-                      }
-                    </td>
-                    <td>{{ p.armed ? 'Sí' : 'No' }}</td>
                     <td>{{ p.createdAt | date: 'dd/MM/yyyy' }}</td>
                     <td>
                       <span class="badge" [class.on]="p.status === 'ACTIVO'">{{ p.status }}</span>
                     </td>
                   </tr>
+                  @if (expandedId() === p.id) {
+                    <tr class="detail-row">
+                      <td colspan="10">
+                        <ng-container *ngTemplateOutlet="detailTpl; context: { $implicit: p }"></ng-container>
+                      </td>
+                    </tr>
+                  }
                 } @empty {
                   <tr>
                     <td colspan="10" class="empty">Ningún puesto nuevo en este mes.</td>
@@ -255,7 +300,12 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
           </div>
         </section>
 
-        <section class="card" aria-labelledby="ended-title">
+        <section
+          class="card"
+          id="ended-section"
+          aria-labelledby="ended-title"
+          [class.flash]="flashSection() === 'ended-section'"
+        >
           <h3 id="ended-title">
             Se acabaron en {{ selectedLabel() }}
             <span class="count-pill count-pill--warn">{{ endedInMonth().length }}</span>
@@ -264,45 +314,50 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
             <table>
               <thead>
                 <tr>
+                  <th></th>
                   <th>Código</th>
                   <th>Nombre</th>
-                  <th>Tipo</th>
-                  <th>Cliente</th>
+                  <th>NIT</th>
+                  <th>Sector</th>
+                  <th>Ciudad</th>
                   <th>Zona</th>
                   <th>Contrato</th>
-                  <th>Contacto</th>
-                  <th>Armado</th>
                   <th>Cierre*</th>
                   <th>Creado</th>
                 </tr>
               </thead>
               <tbody>
                 @for (p of endedInMonth(); track p.id) {
-                  <tr>
+                  <tr class="row" [class.expanded]="expandedId() === p.id">
+                    <td class="expander">
+                      <button
+                        type="button"
+                        class="chev"
+                        [attr.aria-expanded]="expandedId() === p.id"
+                        [attr.aria-label]="(expandedId() === p.id ? 'Ocultar' : 'Ver') + ' detalles de ' + p.name"
+                        (click)="toggleExpand(p.id)"
+                      >{{ expandedId() === p.id ? '▾' : '▸' }}</button>
+                    </td>
                     <td><code>{{ p.code }}</code></td>
                     <td>
                       <strong>{{ p.name }}</strong>
-                      @if (p.address) {
-                        <div class="meta">{{ p.address }}</div>
-                      }
-                      @if (p.notes) {
-                        <div class="meta">{{ p.notes }}</div>
-                      }
+                      @if (p.address) { <div class="meta">{{ p.address }}</div> }
                     </td>
-                    <td>{{ typeLabel(p.type) }}</td>
-                    <td>{{ p.clientName || '—' }}</td>
+                    <td>{{ p.nit || '—' }}</td>
+                    <td>{{ p.sector || '—' }}</td>
+                    <td>{{ p.city || '—' }}</td>
                     <td>{{ p.zone || '—' }}</td>
                     <td>{{ p.contractNumber || '—' }}</td>
-                    <td>
-                      {{ p.contactName || '—' }}
-                      @if (p.phone) {
-                        <div class="meta">{{ p.phone }}</div>
-                      }
-                    </td>
-                    <td>{{ p.armed ? 'Sí' : 'No' }}</td>
                     <td>{{ p.updatedAt | date: 'dd/MM/yyyy' }}</td>
                     <td>{{ p.createdAt | date: 'dd/MM/yyyy' }}</td>
                   </tr>
+                  @if (expandedId() === p.id) {
+                    <tr class="detail-row">
+                      <td colspan="10">
+                        <ng-container *ngTemplateOutlet="detailTpl; context: { $implicit: p }"></ng-container>
+                      </td>
+                    </tr>
+                  }
                 } @empty {
                   <tr>
                     <td colspan="10" class="empty">Ningún puesto cerrado en este mes.</td>
@@ -314,6 +369,103 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
           <p class="hint">* Cierre = última actualización del puesto en estado INACTIVO.</p>
         </section>
       </div>
+
+      <!-- Panel de detalles reutilizable para ambas tablas -->
+      <ng-template #detailTpl let-p>
+        <div class="detail">
+          <div class="detail-cols">
+            <div class="detail-col">
+              <h4>Contrato y ubicación</h4>
+              <dl>
+                <dt>N.º contrato</dt><dd>{{ p.contractNumber || '—' }}</dd>
+                <dt>Tipo interno</dt><dd>{{ typeLabel(p.type) }}</dd>
+                <dt>Sector</dt><dd>{{ p.sector || '—' }}</dd>
+                <dt>BASC</dt><dd>{{ boolLabel(p.basc) }}</dd>
+                <dt>Fecha inicial</dt><dd>{{ (p.contractStart | date: 'dd/MM/yyyy') || '—' }}</dd>
+                <dt>Fecha final</dt><dd>{{ (p.contractEnd | date: 'dd/MM/yyyy') || '—' }}</dd>
+                <dt>Dirección</dt><dd>{{ p.address || '—' }}</dd>
+                <dt>Ciudad</dt><dd>{{ p.city || '—' }}</dd>
+                <dt>Zona</dt><dd>{{ p.zone || '—' }}</dd>
+                <dt>Cliente</dt><dd>{{ p.clientName || '—' }}</dd>
+                <dt>Con armamento</dt><dd>{{ p.armed ? 'Sí' : 'No' }}</dd>
+              </dl>
+            </div>
+
+            <div class="detail-col">
+              <h4>Representante legal y contacto</h4>
+              <dl>
+                <dt>Rep. legal</dt><dd>{{ p.legalRepName || '—' }}</dd>
+                <dt>Cédula RL</dt><dd>{{ p.legalRepId || '—' }}</dd>
+                <dt>Contacto</dt><dd>{{ p.contactName || '—' }}</dd>
+                <dt>Teléfono</dt>
+                <dd>
+                  @if (p.phone) {
+                    @for (line of splitPhone(p.phone); track line) {
+                      <div>{{ line }}</div>
+                    }
+                  } @else { — }
+                </dd>
+                <dt>Email</dt>
+                <dd>
+                  @if (p.contactEmail) {
+                    <a [attr.href]="'mailto:' + p.contactEmail">{{ p.contactEmail }}</a>
+                  } @else { — }
+                </dd>
+              </dl>
+            </div>
+
+            <div class="detail-col">
+              <h4>Documentación</h4>
+              <ul class="chip-list">
+                @for (d of docChips(p); track d.label) {
+                  <li class="chip" [class.chip--ok]="d.state === 'yes'" [class.chip--no]="d.state === 'no'">
+                    <span class="chip-dot"></span>{{ d.label }}: {{ d.text }}
+                  </li>
+                }
+              </ul>
+            </div>
+          </div>
+
+          <div class="detail-col detail-col--wide">
+            <h4>Fechas de verificación</h4>
+            @if (verifRows(p).length) {
+              <div class="table-wrap">
+                <table class="mini">
+                  <thead>
+                    <tr><th>Autoridad / lista</th><th>Fecha</th></tr>
+                  </thead>
+                  <tbody>
+                    @for (v of verifRows(p); track v.label) {
+                      <tr>
+                        <td>{{ v.label }}</td>
+                        <td>{{ v.date | date: 'dd/MM/yyyy' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="empty">Sin fechas de verificación registradas.</p>
+            }
+          </div>
+
+          @if (p.observations || p.notes || p.requirements || p.instructions) {
+            <div class="detail-col detail-col--wide">
+              <h4>Notas</h4>
+              @if (p.requirements) { <p><strong>Requisitos:</strong> {{ p.requirements }}</p> }
+              @if (p.instructions) { <p><strong>Instrucciones:</strong> {{ p.instructions }}</p> }
+              @if (p.notes) { <p><strong>Notas:</strong> {{ p.notes }}</p> }
+              @if (p.observations) { <p><strong>Observaciones:</strong> <span class="pre">{{ p.observations }}</span></p> }
+            </div>
+          }
+
+          @if (auth.hasPermission('posts.edit')) {
+            <div class="detail-actions">
+              <a class="btn ghost" [routerLink]="'/recepcion/puestos/gestionar'">Editar en catálogo →</a>
+            </div>
+          }
+        </div>
+      </ng-template>
     </section>
   `,
   styles: `
@@ -591,8 +743,102 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       background: color-mix(in srgb, #16a34a 16%, transparent);
       color: #15803d;
     }
+
+    /* Casillas del resumen mensual (clickeables) */
+    .month-kpis {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .mkpi {
+      display: flex; flex-direction: column; gap: 0.15rem;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border, #e5e7eb);
+      background: var(--surface, #fff);
+      color: inherit;
+      text-align: left;
+      font: inherit;
+      cursor: default;
+      transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+    }
+    button.mkpi { cursor: pointer; }
+    button.mkpi:hover, button.mkpi:focus-visible {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px -12px rgba(0,0,0,0.35);
+      border-color: color-mix(in srgb, var(--primary) 45%, var(--border, #e5e7eb));
+      outline: none;
+    }
+    .mkpi--new { border-left: 4px solid #16a34a; }
+    .mkpi--end { border-left: 4px solid #dc2626; }
+    .mkpi--net { border-left: 4px solid #6366f1; }
+    .mkpi--mov { border-left: 4px solid #94a3b8; }
+    .mkpi-label { font-size: 0.78rem; color: var(--text-secondary); }
+    .mkpi-value { font-size: 1.6rem; line-height: 1.1; font-weight: 700; }
+    .mkpi-value.neg { color: #b45309; }
+    .mkpi-hint { font-size: 0.72rem; color: var(--text-secondary); }
+
+    /* Card resaltada al llegar con scroll desde una casilla */
+    .card.flash {
+      animation: cardFlash 1.4s ease-out 1;
+    }
+    @keyframes cardFlash {
+      0% { box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 55%, transparent); }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+
+    /* Fila expandible */
+    .expander { width: 28px; text-align: center; padding: 0.5rem 0; }
+    .chev {
+      background: transparent; border: 0; cursor: pointer;
+      font-size: 0.9rem; color: var(--text-secondary);
+      padding: 0.15rem 0.35rem; border-radius: 6px;
+    }
+    .chev:hover { background: var(--surface-2, #f3f4f6); color: var(--text); }
+    tr.row.expanded { background: color-mix(in srgb, var(--primary) 6%, transparent); }
+    tr.detail-row td { background: color-mix(in srgb, var(--primary) 3%, var(--surface, #fff)); }
+
+    .detail {
+      display: flex; flex-direction: column; gap: 0.85rem;
+      padding: 0.85rem 0.4rem;
+    }
+    .detail-cols {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .detail-col h4 {
+      margin: 0 0 0.4rem; font-size: 0.78rem; text-transform: uppercase;
+      letter-spacing: 0.03em; color: var(--text-secondary);
+    }
+    .detail-col--wide { grid-column: 1 / -1; }
+    .detail dl {
+      display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.75rem;
+      margin: 0; font-size: 0.85rem;
+    }
+    .detail dt { color: var(--text-secondary); font-weight: 500; }
+    .detail dd { margin: 0; }
+    .chip-list { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+    .chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      padding: 0.2rem 0.55rem; border-radius: 999px;
+      background: var(--surface-2, #f3f4f6);
+      color: var(--text-secondary);
+      font-size: 0.75rem; border: 1px solid transparent;
+    }
+    .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
+    .chip.chip--ok { background: color-mix(in srgb, #16a34a 12%, transparent); color: #15803d; }
+    .chip.chip--ok .chip-dot { background: #16a34a; }
+    .chip.chip--no { background: color-mix(in srgb, #dc2626 12%, transparent); color: #b91c1c; }
+    .chip.chip--no .chip-dot { background: #dc2626; }
+    table.mini { width: 100%; font-size: 0.82rem; }
+    table.mini th, table.mini td { padding: 0.35rem 0.4rem; }
+    .detail-actions { display: flex; justify-content: flex-end; }
+    .pre { white-space: pre-wrap; }
+
     @media (prefers-reduced-motion: reduce) {
-      .compare-bar, .trend-bar { transition: none; }
+      .compare-bar, .trend-bar, .card.flash { transition: none; animation: none; }
     }
   `,
 })
@@ -609,6 +855,8 @@ export class ReceptionPostsDashboard implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly posts = signal<OperacionesPost[]>([]);
+  readonly expandedId = signal<string | null>(null);
+  readonly flashSection = signal<string | null>(null);
 
   private readonly selectedOption = computed(() => {
     const key = this.selectedKey();
@@ -719,6 +967,80 @@ export class ReceptionPostsDashboard implements OnInit {
 
   monthChartAria(): string {
     return `Mes ${this.selectedLabel()}: ${this.startedInMonth().length} puestos nuevos y ${this.endedInMonth().length} cerrados`;
+  }
+
+  focusSection(id: string): void {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.flashSection.set(id);
+    // El highlight se ejecuta con la animación CSS; limpio la señal después de un tiempo prudencial.
+    setTimeout(() => {
+      if (this.flashSection() === id) this.flashSection.set(null);
+    }, 1600);
+  }
+
+  toggleExpand(id: string): void {
+    this.expandedId.update((cur) => (cur === id ? null : id));
+  }
+
+  boolLabel(v: boolean | null | undefined): string {
+    if (v === true) return 'SÍ';
+    if (v === false) return 'NO';
+    return '—';
+  }
+
+  splitPhone(phone: string): string[] {
+    return phone
+      .split(/[\r\n]+|(?:\s+-\s+)/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+  }
+
+  docChips(p: OperacionesPost): { label: string; state: 'yes' | 'no' | 'unknown'; text: string }[] {
+    const bool = (v: boolean | null): { state: 'yes' | 'no' | 'unknown'; text: string } =>
+      v === true ? { state: 'yes', text: 'SÍ' } : v === false ? { state: 'no', text: 'NO' } : { state: 'unknown', text: '—' };
+    return [
+      { label: 'Cámara comercio', ...bool(p.docCamaraComercio) },
+      { label: 'RUT', ...bool(p.docRut) },
+      { label: 'CC rep. legal', ...bool(p.docCcRepLegal) },
+      { label: 'Trat. datos', ...bool(p.docTratamientoDatos) },
+      { label: 'Formulario asoc.', ...bool(p.docFormularioAsociado) },
+      { label: 'Acuerdo seguridad', ...bool(p.docAcuerdoSeguridad) },
+      { label: 'Visita cliente', ...bool(p.docVisitaCliente) },
+      { label: 'RUES / Cámara', ...bool(p.docRuesCamara) },
+      p.docEstadosFinancieros
+        ? { label: 'Estados financieros', state: /^si$/i.test(p.docEstadosFinancieros.trim()) ? 'yes' : 'unknown', text: p.docEstadosFinancieros }
+        : { label: 'Estados financieros', state: 'unknown', text: '—' },
+    ];
+  }
+
+  verifRows(p: OperacionesPost): { label: string; date: string }[] {
+    const rows: { label: string; date: string }[] = [
+      { label: 'Encuesta de satisfacción', date: p.verifEncuestaSatisfaccion ?? '' },
+      { label: 'OFAC – Representante legal', date: p.verifOfacRl ?? '' },
+      { label: 'OFAC – Persona jurídica', date: p.verifOfacPersonaJuridica ?? '' },
+      { label: 'Central de riesgos PN', date: p.verifCentralRiesgosPn ?? '' },
+      { label: 'Central de riesgos NIT', date: p.verifCentralRiesgosNit ?? '' },
+      { label: 'Procuraduría NIT', date: p.verifProcuraduriaNit ?? '' },
+      { label: 'Procuraduría RL', date: p.verifProcuraduriaRl ?? '' },
+      { label: 'Procuraduría RLS', date: p.verifProcuraduriaRls ?? '' },
+      { label: 'Procuraduría RF principal', date: p.verifProcuraduriaRevFiscalPpal ?? '' },
+      { label: 'Procuraduría RF suplente', date: p.verifProcuraduriaRevFiscalSup ?? '' },
+      { label: 'Procuraduría miembros junta', date: p.verifProcuraduriaMiembrosJunta ?? '' },
+      { label: 'Policía RP', date: p.verifPoliciaRp ?? '' },
+      { label: 'Policía RP suplente', date: p.verifPoliciaRpSup ?? '' },
+      { label: 'Policía RF', date: p.verifPoliciaRevFiscal ?? '' },
+      { label: 'Policía RF suplente', date: p.verifPoliciaRevFiscalSup ?? '' },
+      { label: 'Policía miembros junta', date: p.verifPoliciaMiembrosJunta ?? '' },
+      { label: 'Contraloría RP', date: p.verifContraloriaRp ?? '' },
+      { label: 'Contraloría RP suplente', date: p.verifContraloriaRpSup ?? '' },
+      { label: 'Contraloría RF', date: p.verifContraloriaRevFiscal ?? '' },
+      { label: 'Contraloría RF suplente', date: p.verifContraloriaRevFiscalSup ?? '' },
+      { label: 'Contraloría miembros junta', date: p.verifContraloriaMiembrosJunta ?? '' },
+      { label: 'Supersociedades / Turismo / Comercio', date: p.verifSupersociedades ?? '' },
+    ];
+    return rows.filter((r) => r.date);
   }
 
   private load(): void {
