@@ -17,6 +17,8 @@ Commit de código: `b1261aa` `fix(programacion): quitar Matriz de Turnos`.
 
 **Hecho (panel):** `reloadAll()` ya no llama `getPayrollRecargos`. Disponibilidad del panel se arma solo con `getTodayCoverage`. Recargos siguen en `/programacion/recargos`.
 
+**Hecho (cuadro):** motor crea programación si falta; selector de puesto muestra nombre completo; titulares y celdas buscan vigilante por nombre/cédula (mín. 2 chars, 600+ asociados).
+
 **Siguiente paso (uno a uno, un commit por cambio):** si el panel sigue pesado, serializar `getMonthlyOverview` / `getTodayCoverage` o cachear.
 
 **No tocar** SST / documental ( Freider ). No mezclar skills locales (`.agents/skills`) en commits.

@@ -69,8 +69,8 @@ const CODES: CodeConfig[] = [
                 <div class="post-autocomplete-wrap">
                   <input
                     type="text"
-                    [value]="selectedPostName()"
-                    (input)="onPostSearchInput($event)"
+                    [ngModel]="postSearchQuery()"
+                    (ngModelChange)="onPostSearchChange($event)"
                     (focus)="postDropdownOpen.set(true)"
                     placeholder=" Escribe nombre de puesto (ej: 808, Navarra, Interclub...)"
                     class="inp-post-combobox"
@@ -139,6 +139,9 @@ const CODES: CodeConfig[] = [
           <button type="button" class="primary" (click)="createSchedule()" [disabled]="saving()">
             Crear programación
           </button>
+          <button type="button" (click)="runMotor()" [disabled]="saving()">
+            Crear y aplicar motor ({{ tipoCiclo }})
+          </button>
         </div>
       } @else {
         <div class="actions">
@@ -198,12 +201,39 @@ const CODES: CodeConfig[] = [
                   (ngModelChange)="updateRoleName(i, $event)"
                   placeholder="Nombre del rol"
                 />
-                <select [ngModel]="role.associateId" (ngModelChange)="updateRoleTitular(i, $event)">
-                  <option [ngValue]="null">Sin titular</option>
-                  @for (a of associates(); track a.id) {
-                    <option [ngValue]="a.id">{{ associateName(a) }}</option>
+                <div class="titular-autocomplete-wrap">
+                  <input
+                    type="text"
+                    class="inp-search-assoc"
+                    [ngModel]="titularInputValue(i, role.associateId)"
+                    (ngModelChange)="onTitularSearchChange(i, $event)"
+                    (focus)="openTitularPicker(i)"
+                    placeholder="Buscar vigilante (nombre o cédula)…"
+                  />
+                  @if (titularPickerIndex() === i && titularPickerQuery().trim().length >= 2) {
+                    <div class="search-results-list titular-dropdown">
+                      <div
+                        class="assoc-option"
+                        [class.selected]="!role.associateId"
+                        (click)="selectTitular(i, null)"
+                      >
+                        Sin titular
+                      </div>
+                      @for (a of filteredPickerAssociates().slice(0, 40); track a.id) {
+                        <div
+                          class="assoc-option"
+                          [class.selected]="role.associateId === a.id"
+                          (click)="selectTitular(i, a.id)"
+                        >
+                          <div class="assoc-name">{{ associateName(a) }}</div>
+                          <div class="assoc-cc">CC: {{ a.documentNumber }}</div>
+                        </div>
+                      } @empty {
+                        <div class="assoc-no-results">Sin coincidencias</div>
+                      }
+                    </div>
                   }
-                </select>
+                </div>
                 <button type="button" class="danger sm" (click)="removeRole(i)"></button>
               </div>
             }
@@ -372,15 +402,18 @@ const CODES: CodeConfig[] = [
                   type="text"
                   [ngModel]="associateSearchQuery()"
                   (ngModelChange)="associateSearchQuery.set($event)"
-                  placeholder=" Escribe nombre o cédula para buscar..."
+                  placeholder="Nombre completo o cédula (mín. 2 caracteres)…"
                   class="inp-search-assoc"
                 />
+                @if (associateSearchQuery().trim().length > 0 && associateSearchQuery().trim().length < 2) {
+                  <p class="assoc-hint">Escribe al menos 2 caracteres para buscar entre los vigilantes.</p>
+                }
                 @if (associateSearchQuery()) {
                   <button type="button" class="btn-clear-search" (click)="associateSearchQuery.set('')"></button>
                 }
               </div>
 
-              @if (associateSearchQuery().trim()) {
+              @if (associateSearchQuery().trim().length >= 2) {
                 <div class="search-results-list">
                   <div
                     class="assoc-option"
@@ -389,7 +422,7 @@ const CODES: CodeConfig[] = [
                   >
                     — Sin asignar / Titular por defecto —
                   </div>
-                  @for (a of filteredAssociates().slice(0, 25); track a.id) {
+                  @for (a of filteredAssociates().slice(0, 40); track a.id) {
                     <div
                       class="assoc-option"
                       [class.selected]="editAssociateId === a.id"
@@ -522,6 +555,9 @@ const CODES: CodeConfig[] = [
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
     .roles-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
     .role-row { display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 0.5rem; align-items: center; }
+    .titular-autocomplete-wrap { position: relative; min-width: 0; }
+    .titular-dropdown { position: absolute; z-index: 120; left: 0; right: 0; top: calc(100% + 4px); max-height: 240px; }
+    .assoc-hint { margin: 0.35rem 0 0; font-size: 0.75rem; color: #64748b; }
     .role-name { width: 100%; }
     .matrix-wrap { overflow: auto; max-height: 65vh; border: 1px solid var(--coraza-border); border-radius: 8px; }
     .matrix { border-collapse: collapse; min-width: 100%; font-size: 0.75rem; }
@@ -996,29 +1032,33 @@ export class ScheduleBoard implements OnInit {
   readonly postSearchQuery = signal('');
   readonly associateSearchQuery = signal('');
   readonly postDropdownOpen = signal(false);
+  readonly titularPickerIndex = signal<number | null>(null);
+  readonly titularPickerQuery = signal('');
 
-  readonly selectedPostName = computed(() => {
-    if (this.postSearchQuery()) return this.postSearchQuery();
-    const p = this.posts().find(x => x.id === this.postId);
-    return p ? p.name : '';
-  });
-
-  onPostSearchInput(event: Event): void {
-    const val = (event.target as HTMLInputElement).value;
+  onPostSearchChange(val: string): void {
     this.postSearchQuery.set(val);
     this.postDropdownOpen.set(true);
   }
 
   selectPost(p: { id: string; name: string }): void {
     this.postId = p.id;
-    this.postSearchQuery.set('');
+    this.postSearchQuery.set(p.name);
     this.postDropdownOpen.set(false);
     this.onSelectionChange();
   }
 
   clearPostSearch(): void {
-    this.postSearchQuery.set('');
+    this.syncPostSearchLabel();
     this.postDropdownOpen.set(false);
+  }
+
+  private syncPostSearchLabel(): void {
+    if (!this.postId) {
+      this.postSearchQuery.set('');
+      return;
+    }
+    const p = this.posts().find((x) => x.id === this.postId);
+    this.postSearchQuery.set(p?.name ?? '');
   }
 
   readonly loading = signal(false);
@@ -1035,19 +1075,20 @@ export class ScheduleBoard implements OnInit {
 
   readonly filteredPosts = computed(() => {
     const q = this.postSearchQuery().trim().toLowerCase();
-    if (!q) return this.posts();
-    return this.posts().filter(p => p.name.toLowerCase().includes(q));
+    const all = this.posts();
+    if (!q) return all;
+    const selected = all.find((p) => p.id === this.postId);
+    if (selected && q === selected.name.toLowerCase()) return all;
+    return all.filter((p) => p.name.toLowerCase().includes(q));
   });
 
-  readonly filteredAssociates = computed(() => {
-    const q = this.associateSearchQuery().trim().toLowerCase();
-    const all = this.associates();
-    if (!q) return all;
-    return all.filter(a => {
-      const full = `${a.firstName || ''} ${a.lastName || ''} ${a.documentNumber || ''}`.toLowerCase();
-      return full.includes(q);
-    });
-  });
+  readonly filteredAssociates = computed(() =>
+    this.filterAssociatesByQuery(this.associateSearchQuery()),
+  );
+
+  readonly filteredPickerAssociates = computed(() =>
+    this.filterAssociatesByQuery(this.titularPickerQuery()),
+  );
 
   readonly selectedAssociateLabel = computed(() => {
     if (!this.editAssociateId) return 'Sin asignar / Titular por defecto';
@@ -1098,6 +1139,7 @@ export class ScheduleBoard implements OnInit {
     const idx = this.currentPostIndex();
     if (idx > 0) {
       this.postId = this.posts()[idx - 1].id;
+      this.syncPostSearchLabel();
       this.onSelectionChange();
     }
   }
@@ -1106,6 +1148,7 @@ export class ScheduleBoard implements OnInit {
     const idx = this.currentPostIndex();
     if (idx >= 0 && idx < this.posts().length - 1) {
       this.postId = this.posts()[idx + 1].id;
+      this.syncPostSearchLabel();
       this.onSelectionChange();
     }
   }
@@ -1164,7 +1207,10 @@ export class ScheduleBoard implements OnInit {
     }
 
     this.schedulingApi.listPosts().subscribe({
-      next: (posts) => this.posts.set(posts),
+      next: (posts) => {
+        this.posts.set(posts);
+        this.syncPostSearchLabel();
+      },
       error: () => this.error.set('No se pudieron cargar los puestos'),
     });
     this.associatesApi.lookup('ACTIVO').subscribe({
@@ -1264,20 +1310,66 @@ export class ScheduleBoard implements OnInit {
   }
 
   runMotor(): void {
+    if (!this.postId || !this.month) {
+      this.error.set('Selecciona un puesto y un mes');
+      return;
+    }
+
+    const launch = (sched: MonthlySchedule) => {
+      if (!this.personal().length) {
+        this.error.set('Agrega al menos un rol en Personal / Roles antes de aplicar el motor.');
+        return;
+      }
+      if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
+      this.executeMotor(sched.id);
+    };
+
     const sched = this.schedule();
-    if (!sched) return;
-    if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
+    if (sched) {
+      launch(sched);
+      return;
+    }
+
+    const [year, mon] = this.month.split('-').map(Number);
     this.saving.set(true);
-    // Enviar personal actual: roles agregados en UI sin Guardar no deben perderse.
+    this.error.set(null);
+    this.api.createOrGet(this.postId, year, mon).subscribe({
+      next: (created) => {
+        const cacheKey = `${this.postId}:${year}:${mon}`;
+        this.scheduleCache.set(cacheKey, created);
+        this.applySchedule(created);
+        this.saving.set(false);
+        launch(created);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.error.set('No se pudo crear la programación del mes');
+      },
+    });
+  }
+
+  private executeMotor(scheduleId: string): void {
+    const [year, mon] = this.month.split('-').map(Number);
+    this.saving.set(true);
+    this.error.set(null);
     this.api
-      .generateMotor(sched.id, {
+      .generateMotor(scheduleId, {
         tipoCiclo: this.tipoCiclo,
         personal: this.personal(),
       })
       .subscribe({
         next: (updated) => {
+          const cacheKey = `${this.postId}:${year}:${mon}`;
+          this.scheduleCache.set(cacheKey, updated);
           this.applySchedule(updated);
           this.saving.set(false);
+          if (!updated.assignments?.length) {
+            this.error.set(
+              'El motor no generó celdas. Verifica que haya roles en Personal / Roles.',
+            );
+          } else {
+            this.reloadBoardAlerts(year, mon);
+          }
         },
         error: () => {
           this.saving.set(false);
@@ -1684,6 +1776,47 @@ export class ScheduleBoard implements OnInit {
       list.map((r, i) => (i === index ? { ...r, associateId } : r)),
     );
     this.dirty.set(true);
+  }
+
+  titularInputValue(index: number, associateId: string | null): string {
+    if (this.titularPickerIndex() === index) return this.titularPickerQuery();
+    if (!associateId) return '';
+    const a = this.associateMap().get(associateId);
+    return a ? `${this.associateName(a)} (CC: ${a.documentNumber})` : '';
+  }
+
+  openTitularPicker(index: number): void {
+    this.titularPickerIndex.set(index);
+    const role = this.personal()[index];
+    if (role?.associateId) {
+      const a = this.associateMap().get(role.associateId);
+      this.titularPickerQuery.set(a ? this.associateName(a) : '');
+    } else {
+      this.titularPickerQuery.set('');
+    }
+  }
+
+  onTitularSearchChange(index: number, val: string): void {
+    this.titularPickerIndex.set(index);
+    this.titularPickerQuery.set(val);
+  }
+
+  selectTitular(index: number, associateId: string | null): void {
+    this.updateRoleTitular(index, associateId);
+    this.titularPickerIndex.set(null);
+    this.titularPickerQuery.set('');
+  }
+
+  private filterAssociatesByQuery(query: string): Associate[] {
+    const q = query.trim().toLowerCase();
+    const all = this.associates();
+    if (q.length < 2) return all;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    return all.filter((a) => {
+      const haystack =
+        `${a.firstName ?? ''} ${a.lastName ?? ''} ${a.documentNumber ?? ''}`.toLowerCase();
+      return tokens.every((t) => haystack.includes(t));
+    });
   }
 
   openCell(role: PersonalRole, day: number): void {
