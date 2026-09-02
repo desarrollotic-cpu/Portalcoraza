@@ -3,7 +3,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   MonthlySchedulingApiService,
-  PayrollAssociateRecargo,
   ProgramacionOverview,
   TodayCoverageResponse,
 } from '../monthly-scheduling-api.service';
@@ -712,7 +711,6 @@ export class ProgramacionPanel implements OnInit {
   readonly error = signal<string | null>(null);
   readonly data = signal<ProgramacionOverview | null>(null);
   readonly todayData = signal<TodayCoverageResponse | null>(null);
-  readonly payrollRecargos = signal<PayrollAssociateRecargo[]>([]);
 
   readonly searchFilter = signal('');
   readonly guardSearchQuery = signal('');
@@ -862,76 +860,75 @@ export class ProgramacionPanel implements OnInit {
   }
 
   /**
-   * Construye la lista unificada de todos los vigilantes cruzando
-   * las asignaciones de hoy y las programaciones mensuales.
+   * Vigilantes del día desde cobertura (sin getPayrollRecargos — eso vive en /recargos).
    */
   readonly guardsList = computed<GuardAvailabilityItem[]>(() => {
     const today = this.todayData();
-    const payroll = this.payrollRecargos();
+    const byId = new Map<string, GuardAvailabilityItem>();
 
-    // Map of guard ID -> today shift details
-    const todayAssocMap = new Map<string, { status: 'TURNO_DIA' | 'TURNO_NOCHE' | 'DESCANSO' | 'NOVEDAD'; puesto: string; label: string }>();
+    const upsert = (
+      associateId: string,
+      nombre: string,
+      cedula: string,
+      status: GuardAvailabilityItem['statusToday'],
+      puesto: string,
+      label: string,
+    ) => {
+      if (byId.has(associateId)) return;
+      byId.set(associateId, {
+        associateId,
+        nombre,
+        cedula,
+        puestosMes: puesto,
+        statusToday: status,
+        puestoHoy: puesto,
+        statusLabel: label,
+        totalHorasMes: 0,
+      });
+    };
 
     if (today?.posts) {
       for (const p of today.posts) {
         if (p.turnoDia?.associateId) {
-          todayAssocMap.set(p.turnoDia.associateId, {
-            status: 'TURNO_DIA',
-            puesto: p.post.name,
-            label: '☀️ Turno Diurno (06–18)',
-          });
+          upsert(
+            p.turnoDia.associateId,
+            p.turnoDia.nombre,
+            p.turnoDia.cedula,
+            'TURNO_DIA',
+            p.post.name,
+            '☀️ Turno Diurno (06–18)',
+          );
         }
         if (p.turnoNoche?.associateId) {
-          todayAssocMap.set(p.turnoNoche.associateId, {
-            status: 'TURNO_NOCHE',
-            puesto: p.post.name,
-            label: '🌙 Turno Nocturno (18–06)',
-          });
+          upsert(
+            p.turnoNoche.associateId,
+            p.turnoNoche.nombre,
+            p.turnoNoche.cedula,
+            'TURNO_NOCHE',
+            p.post.name,
+            '🌙 Turno Nocturno (18–06)',
+          );
         }
         for (const o of p.otros) {
-          if (o.associateId && !todayAssocMap.has(o.associateId)) {
-            const code = (o.codigo || '').toUpperCase();
-            if (code === 'DR' || code === 'NR') {
-              todayAssocMap.set(o.associateId, {
-                status: 'DESCANSO',
-                puesto: p.post.name,
-                label: '🏖️ En Descanso',
-              });
-            } else {
-              todayAssocMap.set(o.associateId, {
-                status: 'NOVEDAD',
-                puesto: p.post.name,
-                label: `🏥 Novedad (${code || 'Permiso'})`,
-              });
-            }
+          if (!o.associateId) continue;
+          const code = (o.codigo || '').toUpperCase();
+          if (code === 'DR' || code === 'NR') {
+            upsert(o.associateId, o.nombre, o.cedula, 'DESCANSO', p.post.name, '🏖️ En Descanso');
+          } else {
+            upsert(
+              o.associateId,
+              o.nombre,
+              o.cedula,
+              'NOVEDAD',
+              p.post.name,
+              `🏥 Novedad (${code || 'Permiso'})`,
+            );
           }
         }
       }
     }
 
-    return payroll.map((rec) => {
-      const todayInfo = todayAssocMap.get(rec.associateId);
-      let statusToday: 'TURNO_DIA' | 'TURNO_NOCHE' | 'DESCANSO' | 'NOVEDAD' | 'DISPONIBLE' = 'DISPONIBLE';
-      let puestoHoy: string | null = null;
-      let statusLabel = '🟢 DISPONIBLE / LIBRE HOY';
-
-      if (todayInfo) {
-        statusToday = todayInfo.status;
-        puestoHoy = todayInfo.puesto;
-        statusLabel = todayInfo.label;
-      }
-
-      return {
-        associateId: rec.associateId,
-        nombre: rec.nombre,
-        cedula: rec.cedula,
-        puestosMes: rec.puestos,
-        statusToday,
-        puestoHoy,
-        statusLabel,
-        totalHorasMes: rec.totalHoras,
-      };
-    });
+    return [...byId.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   });
 
   readonly availableCount = computed(() => {
@@ -1040,7 +1037,6 @@ export class ProgramacionPanel implements OnInit {
   private reloadAll(): void {
     this.loadOverview();
     this.loadTodayCoverage();
-    this.loadPayrollAssociates();
   }
 
   private loadOverview(): void {
@@ -1067,15 +1063,6 @@ export class ProgramacionPanel implements OnInit {
       error: () => {
         this.todayLoading.set(false);
       },
-    });
-  }
-
-  private loadPayrollAssociates(): void {
-    this.api.getPayrollRecargos(this.year, this.month).subscribe({
-      next: (res) => {
-        this.payrollRecargos.set(res.associates || []);
-      },
-      error: () => this.payrollRecargos.set([]),
     });
   }
 }
