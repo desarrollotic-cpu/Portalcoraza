@@ -299,7 +299,7 @@ const DATE_ONLY_KEYS = [
                   Psicofísico vigente
                 </label>
               </div>
-              @if (form.controls.psychophysicalValid.value) {
+              @if (form.get('psychophysicalValid')?.value) {
                 <div class="hr-field">
                   <label>Inicio psicofísico *</label>
                   <input formControlName="psychophysicalIssuedDate" type="date" />
@@ -315,7 +315,7 @@ const DATE_ONLY_KEYS = [
                   Psicosensométrico vigente
                 </label>
               </div>
-              @if (form.controls.psychosensometricValid.value) {
+              @if (form.get('psychosensometricValid')?.value) {
                 <div class="hr-field">
                   <label>Inicio psicosensométrico *</label>
                   <input formControlName="psychosensometricIssuedDate" type="date" />
