@@ -22,6 +22,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { AssociateDerivedService } from '../hr-shared/services/associate-derived.service';
 import { HrAuditService } from '../hr-shared/services/hr-audit.service';
 import { SensitiveDataService } from '../hr-shared/services/sensitive-data.service';
+import { HrDocumentsService } from '../hr-documents/hr-documents.service';
 import { Retirement } from '../hr-retirements/entities/retirement.entity';
 import { AssociatesQueryDto } from './dto/associates-query.dto';
 import { CreateAssociateDto } from './dto/create-associate.dto';
@@ -74,6 +75,7 @@ export class AssociatesService {
     private readonly sensitive: SensitiveDataService,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    private readonly documents: HrDocumentsService,
   ) {}
 
   async lookup(status?: string) {
@@ -284,6 +286,10 @@ export class AssociatesService {
       ipAddress,
     });
 
+    if (dto.credentials?.length) {
+      await this.documents.registerCredentials(saved.id, dto.credentials, user.sub);
+    }
+
     return this.findOne(saved.id, user);
   }
 
@@ -330,6 +336,10 @@ export class AssociatesService {
       newValues: dto as unknown as Record<string, unknown>,
       ipAddress,
     });
+
+    if (dto.credentials?.length) {
+      await this.documents.registerCredentials(saved.id, dto.credentials, user.sub);
+    }
 
     return this.findOne(saved.id, user);
   }
@@ -427,6 +437,7 @@ export class AssociatesService {
       clean[k] = v;
     }
     delete clean.positionChangeReason;
+    delete clean.credentials;
     return clean as Partial<Associate>;
   }
 

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
 import { Retirement } from '../hr-retirements/entities/retirement.entity';
 import { HrSharedModule } from '../hr-shared/hr-shared.module';
+import { HrDocumentsModule } from '../hr-documents/hr-documents.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AssociatesController } from './associates.controller';
 import { AssociatesService } from './associates.service';
@@ -14,6 +15,7 @@ import { PositionHistory } from './entities/position-history.entity';
   imports: [
     TypeOrmModule.forFeature([Associate, AssociateHistory, PositionHistory, Retirement]),
     HrSharedModule,
+    HrDocumentsModule,
     NotificationsModule,
     AuditModule,
   ],

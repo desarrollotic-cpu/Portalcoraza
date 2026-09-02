@@ -298,11 +298,21 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                       <option [value]="k.value">{{ k.label }}</option>
                     }
                   </select>
+                  <span class="hr-muted">Inicio</span>
+                  <input
+                    type="date"
+                    [(ngModel)]="uploadIssued"
+                    [ngModelOptions]="{ standalone: true }"
+                    aria-label="Fecha de inicio"
+                    title="Fecha de inicio"
+                  />
+                  <span class="hr-muted">Vence</span>
                   <input
                     type="date"
                     [(ngModel)]="uploadExpiration"
                     [ngModelOptions]="{ standalone: true }"
-                    placeholder="Vence"
+                    aria-label="Fecha de vencimiento"
+                    title="Fecha de vencimiento"
                   />
                   <input type="file" (change)="onFileChange($event)" accept=".pdf,image/*" />
                   <button
@@ -327,6 +337,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                     <tr>
                       <th>Tipo</th>
                       <th>Archivo</th>
+                      <th>Inicio</th>
                       <th>Vence</th>
                       <th>Subido</th>
                       <th></th>
@@ -336,15 +347,18 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                     @for (d of documents(); track d.id) {
                       <tr>
                         <td><span class="hr-doc-kind">{{ docLabel(d.documentKind) }}</span></td>
-                        <td>{{ d.fileName ?? 'archivo' }}</td>
+                        <td>{{ d.fileName ?? (d.notes || 'sin archivo') }}</td>
+                        <td>{{ d.issuedDate ?? '—' }}</td>
                         <td [class.hr-expired]="isExpired(d)">
                           {{ d.expirationDate ?? '—' }}
                         </td>
                         <td>{{ d.uploadedAt | date:'shortDate' }}</td>
                         <td class="row-actions">
-                          <a [href]="d.fileUrl" target="_blank" rel="noopener" class="hr-link">
-                            <app-icon [icon]="icons.Download" [size]="14" /> Ver
-                          </a>
+                          @if (d.fileUrl) {
+                            <a [href]="d.fileUrl" target="_blank" rel="noopener" class="hr-link">
+                              <app-icon [icon]="icons.Download" [size]="14" /> Ver
+                            </a>
+                          }
                           @if (auth.hasPermission('hr_documents.delete')) {
                             <button type="button" class="hr-btn-danger-sm" (click)="deleteDoc(d.id)">
                               <app-icon [icon]="icons.Trash" [size]="14" />
@@ -500,6 +514,7 @@ export class AssociateDetail implements OnInit {
 
   selectedFile: File | null = null;
   uploadKind: AssociateDocumentKind = 'CERTIFICADO_CURSO';
+  uploadIssued: string = '';
   uploadExpiration: string = '';
 
   ngOnInit(): void {
@@ -589,12 +604,15 @@ export class AssociateDetail implements OnInit {
         this.selectedFile,
         this.uploadKind,
         this.uploadExpiration || undefined,
+        undefined,
+        this.uploadIssued || undefined,
       )
       .subscribe({
         next: () => {
           this.uploading.set(false);
           this.selectedFile = null;
           this.uploadExpiration = '';
+          this.uploadIssued = '';
           this.toast.success('Documento cargado', 'Se actualizaron los indicadores SST');
           this.load(a.id);
         },

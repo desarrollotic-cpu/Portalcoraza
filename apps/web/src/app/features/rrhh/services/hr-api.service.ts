@@ -170,11 +170,13 @@ export class HrApiService {
     documentKind: AssociateDocumentKind,
     expirationDate?: string,
     notes?: string,
+    issuedDate?: string,
   ): Observable<AssociateDocumentItem> {
     const form = new FormData();
     form.append('file', file);
     form.append('documentKind', documentKind);
     if (expirationDate) form.append('expirationDate', expirationDate);
+    if (issuedDate) form.append('issuedDate', issuedDate);
     if (notes) form.append('notes', notes);
     return this.http.post<AssociateDocumentItem>(
       `${this.api}/hr/documents/associate/${associateId}`,

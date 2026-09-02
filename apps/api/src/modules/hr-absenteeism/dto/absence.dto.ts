@@ -21,8 +21,9 @@ export class CreateAbsenceDto {
   @IsEnum(AbsenteeismKind)
   kind!: AbsenteeismKind;
 
+  @IsOptional()
   @IsEnum(AbsenteeismEventType)
-  eventType!: AbsenteeismEventType;
+  eventType?: AbsenteeismEventType;
 
   @IsDateString()
   startDate!: string;

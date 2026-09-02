@@ -10,7 +10,24 @@ export class UploadDocumentDto {
   documentKind!: AssociateDocumentKind;
 
   @IsOptional() @IsDateString()
+  issuedDate?: string;
+
+  @IsOptional() @IsDateString()
   expirationDate?: string;
+
+  @IsOptional() @IsString() @MaxLength(500)
+  notes?: string;
+}
+
+export class AssociateCredentialDto {
+  @IsEnum(AssociateDocumentKind)
+  documentKind!: AssociateDocumentKind;
+
+  @IsDateString()
+  issuedDate!: string;
+
+  @IsDateString()
+  expirationDate!: string;
 
   @IsOptional() @IsString() @MaxLength(500)
   notes?: string;

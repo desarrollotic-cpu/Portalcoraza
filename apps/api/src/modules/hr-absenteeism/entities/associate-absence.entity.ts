@@ -45,8 +45,9 @@ export class AssociateAbsence {
     type: 'enum',
     enum: AbsenteeismEventType,
     enumName: 'absenteeism_event_type',
+    nullable: true,
   })
-  eventType!: AbsenteeismEventType;
+  eventType!: AbsenteeismEventType | null;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate!: string;

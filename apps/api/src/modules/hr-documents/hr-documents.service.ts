@@ -6,7 +6,8 @@ import { SupabaseStorageService } from '../../common/services/supabase-storage.s
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
 import { HrAlert, HrAlertStatus, HrAlertType } from '../hr-alerts/entities/hr-alert.entity';
-import { UploadDocumentDto } from './dto/upload-document.dto';
+import { HrAlertsService } from '../hr-alerts/hr-alerts.service';
+import { AssociateCredentialDto, UploadDocumentDto } from './dto/upload-document.dto';
 import {
   AssociateDocument,
   AssociateDocumentKind,
@@ -24,6 +25,7 @@ const ALLOWED_MIME = new Set([
 
 const DOC_TO_ALERT: Partial<Record<AssociateDocumentKind, HrAlertType>> = {
   [AssociateDocumentKind.CERTIFICADO_CURSO]: HrAlertType.VENCIMIENTO_CURSO,
+  [AssociateDocumentKind.OTRO]: HrAlertType.VENCIMIENTO_CURSO,
   [AssociateDocumentKind.EXAMEN_PSICOFISICO]: HrAlertType.VENCIMIENTO_PSICOFISICO,
   [AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO]: HrAlertType.VENCIMIENTO_PSICOSENSOMETRICO,
   [AssociateDocumentKind.POLIZA_SURA]: HrAlertType.VENCIMIENTO_POLIZA,
@@ -50,6 +52,7 @@ export class HrDocumentsService {
     private readonly alertsRepo: Repository<HrAlert>,
     private readonly storage: SupabaseStorageService,
     private readonly audit: AuditService,
+    private readonly alerts: HrAlertsService,
   ) {}
 
   async list(associateId: string, kind?: AssociateDocumentKind) {
@@ -103,6 +106,7 @@ export class HrDocumentsService {
       fileName: file.originalname,
       fileSize: file.size,
       mimeType: file.mimetype,
+      issuedDate: dto.issuedDate ?? null,
       expirationDate: dto.expirationDate ?? null,
       notes: dto.notes ?? null,
       uploadedBy: userId,
@@ -142,12 +146,39 @@ export class HrDocumentsService {
       );
     }
 
+    await this.alerts.syncFromDocument(saved);
     return saved;
+  }
+
+  async registerCredentials(
+    associateId: string,
+    items: AssociateCredentialDto[],
+    userId: string,
+  ) {
+    const associate = await this.associatesRepo.findOne({ where: { id: associateId } });
+    if (!associate) throw new NotFoundException('Asociado no encontrado');
+
+    for (const item of items) {
+      const saved = await this.documentsRepo.save(
+        this.documentsRepo.create({
+          associateId,
+          documentKind: item.documentKind,
+          fileUrl: null,
+          fileName: item.notes?.trim() || null,
+          issuedDate: item.issuedDate ?? null,
+          expirationDate: item.expirationDate,
+          notes: item.notes?.trim() || null,
+          uploadedBy: userId,
+        }),
+      );
+      await this.alerts.syncFromDocument(saved);
+    }
+    await this.refreshValidityFlags(associateId);
   }
 
   async remove(id: string, userId: string) {
     const doc = await this.findOne(id);
-    const filePath = this.storage.extractFilePath(doc.fileUrl, BUCKET);
+    const filePath = doc.fileUrl ? this.storage.extractFilePath(doc.fileUrl, BUCKET) : null;
     if (filePath) {
       try {
         await this.storage.deleteObject(BUCKET, filePath);

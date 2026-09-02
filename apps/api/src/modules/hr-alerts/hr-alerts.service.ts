@@ -19,6 +19,7 @@ const THRESHOLDS_DAYS = [60, 30, 7];
  */
 const DOC_TO_ALERT: Partial<Record<AssociateDocumentKind, HrAlertType>> = {
   [AssociateDocumentKind.CERTIFICADO_CURSO]: HrAlertType.VENCIMIENTO_CURSO,
+  [AssociateDocumentKind.OTRO]: HrAlertType.VENCIMIENTO_CURSO,
   [AssociateDocumentKind.EXAMEN_PSICOFISICO]: HrAlertType.VENCIMIENTO_PSICOFISICO,
   [AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO]: HrAlertType.VENCIMIENTO_PSICOSENSOMETRICO,
   [AssociateDocumentKind.POLIZA_SURA]: HrAlertType.VENCIMIENTO_POLIZA,
@@ -117,34 +118,12 @@ export class HrAlertsService {
     }
 
     for (const doc of latestByKey.values()) {
-      const alertType = DOC_TO_ALERT[doc.documentKind];
-      if (!alertType || !doc.expirationDate) continue;
-
-      const expDate = new Date(doc.expirationDate);
-      const daysToExpire = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-
-      const trigger = THRESHOLDS_DAYS.find((t) => daysToExpire <= t && daysToExpire >= 0);
-      const isOverdue = daysToExpire < 0;
-      if (!trigger && !isOverdue) continue;
-
-      const inserted = await this.upsertAlert(doc.associateId, alertType, doc.expirationDate);
+      const inserted = await this.syncFromDocument(doc);
       if (inserted) {
-        summary.total += 1;
-        summary[alertType] = (summary[alertType] ?? 0) + 1;
-      }
-
-      // Si ya venció, apagar flags de vigencia en el asociado (motor diario).
-      if (isOverdue) {
-        if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOFISICO) {
-          await this.associatesRepo.update(
-            { id: doc.associateId },
-            { psychophysicalValid: false },
-          );
-        } else if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO) {
-          await this.associatesRepo.update(
-            { id: doc.associateId },
-            { psychosensometricValid: false },
-          );
+        const alertType = DOC_TO_ALERT[doc.documentKind];
+        if (alertType) {
+          summary.total += 1;
+          summary[alertType] = (summary[alertType] ?? 0) + 1;
         }
       }
     }
@@ -203,6 +182,29 @@ export class HrAlertsService {
     }
 
     return summary;
+  }
+
+  /** Crea alerta si el documento vence en 60/30/7 días o ya venció. */
+  async syncFromDocument(doc: AssociateDocument): Promise<boolean> {
+    const alertType = DOC_TO_ALERT[doc.documentKind];
+    if (!alertType || !doc.expirationDate) return false;
+
+    const today = new Date();
+    const expDate = new Date(doc.expirationDate);
+    const daysToExpire = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    const trigger = THRESHOLDS_DAYS.find((t) => daysToExpire <= t && daysToExpire >= 0);
+    const isOverdue = daysToExpire < 0;
+    if (!trigger && !isOverdue) return false;
+
+    const inserted = await this.upsertAlert(doc.associateId, alertType, doc.expirationDate);
+    if (isOverdue) {
+      if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOFISICO) {
+        await this.associatesRepo.update({ id: doc.associateId }, { psychophysicalValid: false });
+      } else if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO) {
+        await this.associatesRepo.update({ id: doc.associateId }, { psychosensometricValid: false });
+      }
+    }
+    return inserted;
   }
 
   /** Inserta una alerta si no existe otra idéntica en estado PENDIENTE. */

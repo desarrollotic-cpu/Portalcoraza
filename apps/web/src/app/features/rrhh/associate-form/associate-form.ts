@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -9,6 +9,7 @@ import { ToastService } from '../../../shared/services/toast.service';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
+  AssociateDocumentKind,
   CatalogKind,
   CatalogValue,
   JobPosition,
@@ -16,6 +17,13 @@ import type {
 } from '../services/hr.types';
 
 type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
+
+interface CredentialDraft {
+  documentKind: AssociateDocumentKind;
+  notes: string;
+  issuedDate: string;
+  expirationDate: string;
+}
 
 /**
  * Formulario de alta/edición de asociado. Estructura en 4 secciones para
@@ -25,7 +33,7 @@ type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
  */
 @Component({
   selector: 'app-associate-form',
-  imports: [CommonModule, ReactiveFormsModule, HrPageHeader],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, HrPageHeader],
   template: `
     <div class="hr-page">
       <app-hr-page-header [title]="associateId() ? 'Editar asociado' : 'Nuevo asociado'">
@@ -272,6 +280,60 @@ type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
                 </select>
               </div>
 
+              <div class="hr-field col-4">
+                <label>Cursos y certificados (fechas de inicio y vencimiento)</label>
+                <p class="hr-muted">Cada ítem genera alerta en RRHH cuando se acerca o llega la fecha de vencimiento.</p>
+                @for (c of credentials(); track $index; let i = $index) {
+                  <div class="hr-form-grid" style="margin-top: 0.65rem">
+                    <div class="hr-field">
+                      <label>Tipo</label>
+                      <select
+                        [(ngModel)]="c.documentKind"
+                        [ngModelOptions]="{ standalone: true }"
+                        name="credKind{{ i }}"
+                      >
+                        @for (k of credentialKinds; track k.value) {
+                          <option [value]="k.value">{{ k.label }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div class="hr-field">
+                      <label>Nombre / N.º</label>
+                      <input
+                        [(ngModel)]="c.notes"
+                        [ngModelOptions]="{ standalone: true }"
+                        name="credNotes{{ i }}"
+                        placeholder="Ej. Curso vigilancia 2026"
+                      />
+                    </div>
+                    <div class="hr-field">
+                      <label>Inicio *</label>
+                      <input
+                        type="date"
+                        required
+                        [(ngModel)]="c.issuedDate"
+                        [ngModelOptions]="{ standalone: true }"
+                        name="credStart{{ i }}"
+                      />
+                    </div>
+                    <div class="hr-field">
+                      <label>Vencimiento *</label>
+                      <input
+                        type="date"
+                        required
+                        [(ngModel)]="c.expirationDate"
+                        [ngModelOptions]="{ standalone: true }"
+                        name="credEnd{{ i }}"
+                      />
+                    </div>
+                    <div class="hr-field">
+                      <button type="button" class="hr-btn hr-btn-ghost" (click)="removeCredential(i)">Quitar</button>
+                    </div>
+                  </div>
+                }
+                <button type="button" class="hr-btn hr-btn-ghost" (click)="addCredential()">+ Agregar curso o certificado</button>
+              </div>
+
               <div class="hr-field checkbox">
                 <label>
                   <input type="checkbox" formControlName="psychophysicalValid" />
@@ -460,6 +522,14 @@ export class AssociateForm implements OnInit {
   readonly positions = signal<JobPosition[]>([]);
   readonly workCenters = signal<WorkCenter[]>([]);
   readonly catalogs = signal<CatalogMap>({});
+  readonly credentials = signal<CredentialDraft[]>([]);
+  readonly credentialKinds: { value: AssociateDocumentKind; label: string }[] = [
+    { value: 'CERTIFICADO_CURSO', label: 'Certificado de curso' },
+    { value: 'EXAMEN_PSICOFISICO', label: 'Examen psicofísico' },
+    { value: 'EXAMEN_PSICOSENSOMETRICO', label: 'Examen psicosensométrico' },
+    { value: 'POLIZA_SURA', label: 'Póliza SURA' },
+    { value: 'OTRO', label: 'Otro certificado' },
+  ];
 
   readonly canEditSensitive = computed(() => this.auth.hasPermission('hr_sensitive.view'));
 
@@ -618,7 +688,24 @@ export class AssociateForm implements OnInit {
     }
     this.saving.set(true);
     this.submitError.set(null);
-    const payload = this.form.getRawValue();
+    const rows = this.credentials();
+    const incomplete = rows.find((c) => !c.issuedDate || !c.expirationDate);
+    if (incomplete) {
+      this.saving.set(false);
+      this.section.set(3);
+      this.submitError.set('Cada curso o certificado necesita fecha de inicio y de vencimiento.');
+      this.toast.warning('Fechas incompletas', 'Completa inicio y vencimiento de cada certificado.');
+      return;
+    }
+    const payload = {
+      ...this.form.getRawValue(),
+      credentials: rows.map((c) => ({
+        documentKind: c.documentKind,
+        issuedDate: c.issuedDate,
+        expirationDate: c.expirationDate,
+        notes: c.notes.trim() || undefined,
+      })),
+    };
     const id = this.associateId();
     const req = id
       ? this.api.updateAssociate(id, payload as Partial<Associate>)
@@ -636,6 +723,17 @@ export class AssociateForm implements OnInit {
         this.toast.error('No se pudo guardar', msg);
       },
     });
+  }
+
+  addCredential(): void {
+    this.credentials.update((rows) => [
+      ...rows,
+      { documentKind: 'CERTIFICADO_CURSO', notes: '', issuedDate: '', expirationDate: '' },
+    ]);
+  }
+
+  removeCredential(index: number): void {
+    this.credentials.update((rows) => rows.filter((_, i) => i !== index));
   }
 
   cancel(): void {

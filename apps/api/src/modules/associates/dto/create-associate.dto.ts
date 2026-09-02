@@ -1,4 +1,6 @@
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsDateString,
   IsEnum,
@@ -11,7 +13,9 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+import { AssociateCredentialDto } from '../../hr-documents/dto/upload-document.dto';
 import {
   AssociateDocumentType,
   AssociateMaritalStatus,
@@ -155,4 +159,10 @@ export class CreateAssociateDto {
   // ─── Metadatos opcionales ────────────────────────────────────────────
   @IsOptional() @IsString() @MaxLength(200)
   positionChangeReason?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AssociateCredentialDto)
+  credentials?: AssociateCredentialDto[];
 }

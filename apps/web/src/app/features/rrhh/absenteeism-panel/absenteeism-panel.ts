@@ -153,8 +153,9 @@ import type {
               </select>
             </label>
             <label>
-              Evento *
-              <select [(ngModel)]="form.eventType" name="eventType" required>
+              Evento
+              <select [(ngModel)]="form.eventType" name="eventType">
+                <option [ngValue]="undefined">—</option>
                 @for (e of eventTypes; track e) {
                   <option [value]="e">{{ e }}</option>
                 }
@@ -272,7 +273,7 @@ import type {
                       {{ r.kind === 'MEDICO' ? 'Médico' : 'Admin' }}
                     </span>
                   </td>
-                  <td>{{ r.eventType }}</td>
+                  <td>{{ r.eventType || '—' }}</td>
                   <td>{{ r.startDate }}</td>
                   <td>{{ r.endDate }}</td>
                   <td>{{ r.absenceDays }}</td>
@@ -449,7 +450,7 @@ export class AbsenteeismPanel implements OnInit {
     this.form = {
       associateId: r.associateId,
       kind: r.kind,
-      eventType: r.eventType,
+      eventType: r.eventType ?? undefined,
       startDate: r.startDate.slice(0, 10),
       endDate: r.endDate.slice(0, 10),
       absenceDays: r.absenceDays,
@@ -587,7 +588,7 @@ export class AbsenteeismPanel implements OnInit {
     return {
       associateId: '',
       kind: 'MEDICO',
-      eventType: 'D.A.',
+      eventType: undefined,
       startDate: '',
       endDate: '',
       absenceDays: undefined,

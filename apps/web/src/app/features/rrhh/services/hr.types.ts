@@ -229,10 +229,11 @@ export interface AssociateDocumentItem {
   id: string;
   associateId: string;
   documentKind: AssociateDocumentKind;
-  fileUrl: string;
+  fileUrl: string | null;
   fileName: string | null;
   fileSize: number | null;
   mimeType: string | null;
+  issuedDate: string | null;
   expirationDate: string | null;
   notes: string | null;
   uploadedBy: string | null;
@@ -336,7 +337,7 @@ export interface AssociateAbsence {
   associateId: string;
   associate?: Associate;
   kind: AbsenteeismKind;
-  eventType: AbsenteeismEventType;
+  eventType: AbsenteeismEventType | null;
   startDate: string;
   endDate: string;
   absenceDays: number;
@@ -366,7 +367,7 @@ export interface AbsenceStats {
 export interface CreateAbsencePayload {
   associateId: string;
   kind: AbsenteeismKind;
-  eventType: AbsenteeismEventType;
+  eventType?: AbsenteeismEventType;
   startDate: string;
   endDate: string;
   absenceDays?: number;

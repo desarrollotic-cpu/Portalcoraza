@@ -44,8 +44,8 @@ export class AssociateDocument {
   })
   documentKind!: AssociateDocumentKind;
 
-  @Column({ name: 'file_url', type: 'text' })
-  fileUrl!: string;
+  @Column({ name: 'file_url', type: 'text', nullable: true })
+  fileUrl!: string | null;
 
   @Column({ name: 'file_name', type: 'varchar', length: 255, nullable: true })
   fileName!: string | null;
@@ -55,6 +55,9 @@ export class AssociateDocument {
 
   @Column({ name: 'mime_type', type: 'varchar', length: 120, nullable: true })
   mimeType!: string | null;
+
+  @Column({ name: 'issued_date', type: 'date', nullable: true })
+  issuedDate!: string | null;
 
   @Column({ name: 'expiration_date', type: 'date', nullable: true })
   expirationDate!: string | null;
