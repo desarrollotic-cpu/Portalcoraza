@@ -59,24 +59,27 @@ interface DraftRow {
           </div>
           <div class="actions">
             @if (canEdit()) {
+              <button type="button" class="btn ghost" (click)="markAllSafe()" title="Llenar ítems pendientes como Seguro">
+                ⚡ Marcar todo Seguro
+              </button>
               <button type="button" class="btn ghost" [disabled]="busy()" (click)="save(false)">
-                Guardar
+                💾 Guardar borrador
               </button>
               <button type="button" class="btn" [disabled]="busy()" (click)="save(true)">
-                Completar
+                ✓ Completar inspección
               </button>
             }
             @if (canClose()) {
-              <button type="button" class="btn danger" [disabled]="busy()" (click)="close()">
-                Cerrar
+              <button type="button" class="btn danger" [disabled]="busy()" (click)="close()" title="Archivar definitivamente la inspección">
+                🔒 Cerrar inspección
               </button>
             }
             @if (canReport()) {
               <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('md')">
-                Informe MD
+                📥 Informe MD
               </button>
               <button type="button" class="btn ghost" [disabled]="busy()" (click)="downloadReport('txt')">
-                Informe TXT
+                📥 Informe TXT
               </button>
             }
           </div>
@@ -224,7 +227,7 @@ export class SstInspectionDetail implements OnInit {
     const i = this.insp();
     return (
       !!i &&
-      i.estado !== 'CERRADA' &&
+      i.estado === 'COMPLETADA' &&
       this.auth.hasPermission('sst.inspect')
     );
   });
@@ -233,6 +236,18 @@ export class SstInspectionDetail implements OnInit {
     const i = this.insp();
     return !!i && (i.estado === 'COMPLETADA' || i.estado === 'CERRADA');
   });
+
+  markAllSafe(): void {
+    const current = this.drafts();
+    for (const d of current) {
+      if (!d.valoracion) {
+        d.valoracion = 'SEGURO';
+      }
+    }
+    this.drafts.set([...current]);
+    this.bump();
+    this.toast.success('Todos los ítems marcados como SEGURO. Ajusta los que requieran RIESGOSO.');
+  }
 
   readonly live = computed(() => {
     this.tick();

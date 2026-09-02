@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
+  LucideClipboardCheck,
   LucideClipboardList,
   LucideLayoutDashboard,
   LucideListChecks,
@@ -43,6 +44,13 @@ export class SstLayout {
       permission: 'sst.view',
       exact: true,
       icon: LucideListChecks,
+    },
+    {
+      label: 'Checklist IPT (34)',
+      route: '/sst/checklist',
+      permission: 'sst.view',
+      exact: true,
+      icon: LucideClipboardCheck,
     },
     {
       label: 'Clientes y puestos',

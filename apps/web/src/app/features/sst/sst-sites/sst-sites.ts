@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ToastService } from '../../../shared/services/toast.service';
 import {
@@ -66,7 +66,16 @@ import {
       </div>
 
       <div class="card">
-        <h3>Puestos activos</h3>
+        <div class="card-header-search">
+          <h3>Puestos activos ({{ filteredWorkplaces().length }} de {{ workplaces().length }})</h3>
+          <input
+            type="search"
+            placeholder="Buscar por puesto, cliente o ciudad…"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            class="search-input"
+          />
+        </div>
         <table>
           <thead>
             <tr>
@@ -77,7 +86,7 @@ import {
             </tr>
           </thead>
           <tbody>
-            @for (w of workplaces(); track w.id) {
+            @for (w of filteredWorkplaces(); track w.id) {
               <tr>
                 <td>{{ w.client?.nombre || '—' }}</td>
                 <td>{{ w.nombre }}</td>
@@ -86,7 +95,7 @@ import {
               </tr>
             } @empty {
               <tr>
-                <td colspan="4" class="empty">Sin puestos. Crea un cliente y un puesto.</td>
+                <td colspan="4" class="empty">No se encontraron puestos que coincidan con la búsqueda.</td>
               </tr>
             }
           </tbody>
@@ -104,6 +113,13 @@ import {
       border-radius: 0.75rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.65rem;
     }
     .card h3 { margin: 0; font-size: 1rem; }
+    .card-header-search {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .search-input {
+      font: inherit; padding: 0.4rem 0.75rem; border-radius: 0.45rem; border: 1px solid var(--border, #cbd5e1);
+      width: 100%; max-width: 320px; font-size: 0.85rem;
+    }
     label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; }
     input, select {
       font: inherit; font-weight: 400; padding: 0.5rem 0.65rem; border-radius: 0.45rem;
@@ -126,6 +142,20 @@ export class SstSites implements OnInit {
   readonly clients = signal<SstClient[]>([]);
   readonly workplaces = signal<SstWorkplace[]>([]);
   readonly busy = signal(false);
+  readonly searchQuery = signal('');
+
+  readonly filteredWorkplaces = computed(() => {
+    const q = this.searchQuery().trim().toLowerCase();
+    const list = this.workplaces();
+    if (!q) return list;
+    return list.filter(
+      (w) =>
+        w.nombre.toLowerCase().includes(q) ||
+        (w.client?.nombre && w.client.nombre.toLowerCase().includes(q)) ||
+        (w.ciudad && w.ciudad.toLowerCase().includes(q)) ||
+        (w.tipoPuesto && w.tipoPuesto.toLowerCase().includes(q)),
+    );
+  });
 
   readonly tipos: SstWorkplaceType[] = [
     'PORTERIA',

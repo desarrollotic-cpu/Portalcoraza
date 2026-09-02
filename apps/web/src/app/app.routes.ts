@@ -654,6 +654,15 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'checklist',
+            canActivate: [permissionGuard],
+            data: { permission: 'sst.view' },
+            loadComponent: () =>
+              import('./features/sst/sst-checklist/sst-checklist').then(
+                (m) => m.SstChecklistView,
+              ),
+          },
+          {
             path: 'puestos',
             canActivate: [permissionGuard],
             data: { permission: 'sst.manage' },
