@@ -156,7 +156,7 @@ export class AuthService {
     if (this.hasPermission('scheduling.view')) return '/programacion';
     if (this.hasPermission('minuta.view')) return '/minutas';
     if (this.hasPermission('sst.view')) return '/sst';
-    if (this.hasPermission('posts.view')) return '/operaciones';
+    if (this.hasPermission('operations.view')) return '/operaciones';
     if (this.hasPermission('accounting.view')) return '/contabilidad';
     if (this.hasPermission('payroll.view')) return '/nomina';
     if (this.hasPermission('sig.view')) return '/sig';

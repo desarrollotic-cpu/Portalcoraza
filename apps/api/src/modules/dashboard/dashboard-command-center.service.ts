@@ -330,7 +330,7 @@ export class DashboardCommandCenterService {
       }
     }
 
-    if (has('posts.view')) {
+    if (has('operations.view')) {
       const catalog = await this.posts.countSummary();
       modules['operaciones'] = { kpis: catalog };
     }

@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/services/auth.service';
 import { HrPageHeader } from '../../../../shared/components/hr-page-header/hr-page-header';
 import { ToastService } from '../../../../shared/services/toast.service';
@@ -9,13 +8,12 @@ import { HrApiService } from '../../services/hr-api.service';
 import type { WorkCenter } from '../../services/hr.types';
 
 /**
- * Administración de centros de trabajo (puestos / clientes).
- * Solo RRHH (y Gerencia) crea, edita o desactiva.
- * Dotación y Programación solo los consultan.
+ * Centros de trabajo (puestos / clientes) para Programación/Dotación.
+ * Alta de puestos operativos: Recepción. RRHH consulta.
  */
 @Component({
   selector: 'app-work-centers-admin',
-  imports: [CommonModule, FormsModule, HrPageHeader, RouterLink],
+  imports: [CommonModule, FormsModule, HrPageHeader],
   template: `
     <div class="hr-page">
       <app-hr-page-header title="Centros de trabajo (puestos)">
@@ -28,9 +26,8 @@ import type { WorkCenter } from '../../services/hr.types';
         }
       </app-hr-page-header>
       <p class="hr-muted sync-hint">
-        Los <strong>centros de trabajo RRHH</strong> se sincronizan a puestos de Programación/Dotación.
-        El catálogo operativo principal vive en
-        <a routerLink="/operaciones/puestos">Operaciones → Puestos</a>.
+        Los <strong>centros de trabajo RRHH</strong> se sincronizan a Programación/Dotación.
+        El alta de puestos operativos la hace <strong>Recepción</strong>. Esta pantalla es consulta.
         Dotación no crea puestos: solo entrega elementos.
       </p>
 

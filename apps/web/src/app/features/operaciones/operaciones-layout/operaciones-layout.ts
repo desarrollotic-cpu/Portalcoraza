@@ -9,7 +9,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Operaciones"
-      subtitle="Gestión operativa de puestos de trabajo. Los puestos activos alimentan Programación."
+      subtitle="Consulta de puestos de trabajo y minutas. Alta de puestos: solo Recepción."
       [nav]="nav"
     >
       <router-outlet />
@@ -21,21 +21,21 @@ export class OperacionesLayout {
     {
       label: 'Panel',
       route: '/operaciones',
-      permission: 'posts.view',
+      permission: 'operations.view',
       icon: LucideBriefcaseBusiness,
       exact: true,
     },
     {
       label: 'Puestos de trabajo',
       route: '/operaciones/puestos',
-      permission: 'posts.view',
+      permission: 'operations.view',
       icon: LucideMapPin,
       exact: true,
     },
     {
       label: 'Minutas',
       route: '/operaciones/minutas',
-      permission: 'posts.view',
+      permission: 'operations.view',
       icon: LucideClipboardList,
       exact: true,
     },

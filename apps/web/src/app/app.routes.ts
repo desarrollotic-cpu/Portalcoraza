@@ -466,7 +466,7 @@ export const routes: Routes = [
       {
         path: 'operaciones',
         canActivate: [permissionGuard],
-        data: { permission: 'posts.view' },
+        data: { permission: 'operations.view' },
         loadComponent: () =>
           import('./features/operaciones/operaciones-layout/operaciones-layout').then(
             (m) => m.OperacionesLayout,
@@ -476,7 +476,7 @@ export const routes: Routes = [
             path: '',
             pathMatch: 'full',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.view' },
+            data: { permission: 'operations.view' },
             loadComponent: () =>
               import('./features/operaciones/operaciones-panel/operaciones-panel').then(
                 (m) => m.OperacionesPanel,
@@ -485,7 +485,7 @@ export const routes: Routes = [
           {
             path: 'puestos',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.view' },
+            data: { permission: 'operations.view' },
             loadComponent: () =>
               import('./features/operaciones/puestos-list/puestos-list').then(
                 (m) => m.PuestosList,
@@ -494,7 +494,7 @@ export const routes: Routes = [
           {
             path: 'minutas',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.view' },
+            data: { permission: 'operations.view' },
             loadComponent: () =>
               import('./features/operaciones/minutas-list/minutas-list').then(
                 (m) => m.MinutasList,
@@ -536,7 +536,7 @@ export const routes: Routes = [
           {
             path: 'puestos/gestionar',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.view' },
+            data: { permission: 'posts.create' },
             loadComponent: () =>
               import('./features/operaciones/puestos-list/puestos-list').then(
                 (m) => m.PuestosList,

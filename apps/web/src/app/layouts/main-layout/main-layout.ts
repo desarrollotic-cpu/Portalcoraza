@@ -1064,7 +1064,7 @@ export class MainLayout implements OnDestroy {
           label: 'Operaciones',
           route: '/operaciones',
           icon: LucideBriefcaseBusiness,
-          permission: 'posts.view',
+          permission: 'operations.view',
         },
         {
           label: 'Recursos Humanos',

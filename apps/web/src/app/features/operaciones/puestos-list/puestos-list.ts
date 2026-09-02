@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import {
@@ -117,7 +117,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
             <option value="ACTIVO">Activos</option>
             <option value="INACTIVO">Inactivos</option>
           </select>
-          @if (auth.hasPermission('posts.create')) {
+          @if (canCreatePosts()) {
             <button type="button" class="primary" (click)="startCreate()">Nuevo puesto</button>
           }
         </div>
@@ -493,6 +493,7 @@ export class PuestosList implements OnInit {
   private readonly api = inject(OperacionesApiService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
   readonly types = POST_TYPES;
@@ -526,12 +527,16 @@ export class PuestosList implements OnInit {
     this.reload();
     // Si venimos del atajo "+ Nuevo puesto" del dashboard (?nuevo=1),
     // abrimos el formulario en pantalla y hacemos scroll a él.
-    if (this.route.snapshot.queryParamMap.get('nuevo') === '1' && this.auth.hasPermission('posts.create')) {
+    if (this.route.snapshot.queryParamMap.get('nuevo') === '1' && this.canCreatePosts()) {
       this.startCreate();
       queueMicrotask(() => {
         document.querySelector('form.form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       });
     }
+  }
+
+  canCreatePosts(): boolean {
+    return this.auth.hasPermission('posts.create') && this.router.url.startsWith('/recepcion');
   }
 
   typeLabel(type: PostType): string {
@@ -656,6 +661,11 @@ export class PuestosList implements OnInit {
     const draft = this.editing();
     if (!draft?.code?.trim() || !draft?.name?.trim()) {
       this.toast.error('Código y nombre son obligatorios');
+      return;
+    }
+
+    if (!draft.id && !this.canCreatePosts()) {
+      this.toast.error('Solo Recepción puede crear puestos de trabajo');
       return;
     }
 

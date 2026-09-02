@@ -34,8 +34,6 @@ const RRHH_PERMISSIONS = [
   'job_positions.create',
   'job_positions.edit',
   'work_centers.view',
-  'work_centers.create',
-  'work_centers.edit',
   'catalogs.view',
   'catalogs.manage',
   // Retiros / reingreso
