@@ -8,7 +8,6 @@ import { ToastService } from '../../../shared/services/toast.service';
 import {
   OperacionesApiService,
   OperacionesPost,
-  PostType,
 } from '../../operaciones/operaciones-api.service';
 
 interface MonthOption {
@@ -25,14 +24,6 @@ interface TrendPoint {
   started: number;
   ended: number;
 }
-
-const TYPE_LABELS: Record<PostType, string> = {
-  SERVICIO_ESPECIAL: 'Servicio especial',
-  UNIDAD_RESIDENCIAL: 'Unidad residencial',
-  HOSPITAL: 'Hospital',
-  UNIVERSIDAD: 'Universidad',
-  OBRA: 'Obra',
-};
 
 function monthKey(year: number, month: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -247,7 +238,6 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
               <thead>
                 <tr>
                   <th></th>
-                  <th>Código</th>
                   <th>Nombre</th>
                   <th>NIT</th>
                   <th>Sector</th>
@@ -270,7 +260,6 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                         (click)="toggleExpand(p.id)"
                       >{{ expandedId() === p.id ? '▾' : '▸' }}</button>
                     </td>
-                    <td><code>{{ p.code }}</code></td>
                     <td>
                       <strong>{{ p.name }}</strong>
                       @if (p.address) { <div class="meta">{{ p.address }}</div> }
@@ -287,14 +276,14 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                   </tr>
                   @if (expandedId() === p.id) {
                     <tr class="detail-row">
-                      <td colspan="10">
+                      <td colspan="9">
                         <ng-container *ngTemplateOutlet="detailTpl; context: { $implicit: p }"></ng-container>
                       </td>
                     </tr>
                   }
                 } @empty {
                   <tr>
-                    <td colspan="10" class="empty">Ningún puesto nuevo en este mes.</td>
+                    <td colspan="9" class="empty">Ningún puesto nuevo en este mes.</td>
                   </tr>
                 }
               </tbody>
@@ -317,7 +306,6 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
               <thead>
                 <tr>
                   <th></th>
-                  <th>Código</th>
                   <th>Nombre</th>
                   <th>NIT</th>
                   <th>Sector</th>
@@ -340,7 +328,6 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                         (click)="toggleExpand(p.id)"
                       >{{ expandedId() === p.id ? '▾' : '▸' }}</button>
                     </td>
-                    <td><code>{{ p.code }}</code></td>
                     <td>
                       <strong>{{ p.name }}</strong>
                       @if (p.address) { <div class="meta">{{ p.address }}</div> }
@@ -355,14 +342,14 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                   </tr>
                   @if (expandedId() === p.id) {
                     <tr class="detail-row">
-                      <td colspan="10">
+                      <td colspan="9">
                         <ng-container *ngTemplateOutlet="detailTpl; context: { $implicit: p }"></ng-container>
                       </td>
                     </tr>
                   }
                 } @empty {
                   <tr>
-                    <td colspan="10" class="empty">Ningún puesto cerrado en este mes.</td>
+                    <td colspan="9" class="empty">Ningún puesto cerrado en este mes.</td>
                   </tr>
                 }
               </tbody>
@@ -380,7 +367,6 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
               <h4>Contrato y ubicación</h4>
               <dl>
                 <dt>N.º contrato</dt><dd>{{ p.contractNumber || '—' }}</dd>
-                <dt>Tipo interno</dt><dd>{{ typeLabel(p.type) }}</dd>
                 <dt>Sector</dt><dd>{{ p.sector || '—' }}</dd>
                 <dt>BASC</dt><dd>{{ boolLabel(p.basc) }}</dd>
                 <dt>Fecha inicial</dt><dd>{{ p.contractStart || '—' }}</dd>
@@ -954,10 +940,6 @@ export class ReceptionPostsDashboard implements OnInit {
 
   ngOnInit(): void {
     this.load();
-  }
-
-  typeLabel(type: PostType): string {
-    return TYPE_LABELS[type] ?? type;
   }
 
   barPct(value: number): number {

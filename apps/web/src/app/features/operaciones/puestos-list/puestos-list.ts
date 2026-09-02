@@ -8,18 +8,9 @@ import {
   OperacionesApiService,
   OperacionesPost,
   PostStatus,
-  PostType,
 } from '../operaciones-api.service';
 
 type Draft = CreateOperacionesPostPayload & { id?: string };
-
-const POST_TYPES: { value: PostType; label: string }[] = [
-  { value: 'SERVICIO_ESPECIAL', label: 'Servicio especial' },
-  { value: 'UNIDAD_RESIDENCIAL', label: 'Unidad residencial' },
-  { value: 'HOSPITAL', label: 'Hospital' },
-  { value: 'UNIVERSIDAD', label: 'Universidad' },
-  { value: 'OBRA', label: 'Obra' },
-];
 
 /** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
 const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
@@ -108,7 +99,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
         <div class="controls">
           <input
             type="search"
-            placeholder="Buscar código, nombre, NIT o cliente…"
+            placeholder="Buscar nombre, NIT o cliente…"
             [ngModel]="query()"
             (ngModelChange)="query.set($event)"
           />
@@ -131,10 +122,6 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           <details open>
             <summary>Identificación</summary>
             <div class="grid">
-              <label>
-                Código *
-                <input name="code" [(ngModel)]="editing()!.code" required maxlength="50" />
-              </label>
               <label class="span-2">
                 Nombre *
                 <input name="name" [(ngModel)]="editing()!.name" required maxlength="200" />
@@ -146,12 +133,6 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
               <label>
                 Sector
                 <input name="sector" [(ngModel)]="editing()!.sector" maxlength="30" list="sector-hints" />
-              </label>
-              <label>
-                Tipo interno
-                <select name="type" [(ngModel)]="editing()!.type">
-                  @for (t of types; track t.value) { <option [ngValue]="t.value">{{ t.label }}</option> }
-                </select>
               </label>
               <label>
                 Estado
@@ -374,7 +355,6 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           <table>
             <thead>
               <tr>
-                <th>Código</th>
                 <th>Nombre</th>
                 <th>NIT</th>
                 <th>Sector</th>
@@ -387,7 +367,6 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
             <tbody>
               @for (p of filtered(); track p.id) {
                 <tr [class.dim]="p.status !== 'ACTIVO'">
-                  <td><code>{{ p.code }}</code></td>
                   <td><strong>{{ p.name }}</strong></td>
                   <td>{{ p.nit || '—' }}</td>
                   <td>{{ p.sector || '—' }}</td>
@@ -413,7 +392,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="8" class="empty">No hay puestos con ese filtro.</td>
+                  <td colspan="7" class="empty">No hay puestos con ese filtro.</td>
                 </tr>
               }
             </tbody>
@@ -496,7 +475,6 @@ export class PuestosList implements OnInit {
   private readonly router = inject(Router);
   readonly auth = inject(AuthService);
 
-  readonly types = POST_TYPES;
   readonly sectors = SECTORS;
   readonly statusHints = STATUS_HINTS;
   readonly docFields = DOC_FIELDS;
@@ -537,10 +515,6 @@ export class PuestosList implements OnInit {
 
   canCreatePosts(): boolean {
     return this.auth.hasPermission('posts.create') && this.router.url.startsWith('/recepcion');
-  }
-
-  typeLabel(type: PostType): string {
-    return POST_TYPES.find((t) => t.value === type)?.label ?? type;
   }
 
   boolStr(v: boolean | null | undefined): string {
@@ -657,10 +631,20 @@ export class PuestosList implements OnInit {
     this.editing.set(null);
   }
 
+  /** Código interno no visible; la BD lo exige único. */
+  private autoCode(name: string): string {
+    const slug = name
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 24);
+    return `P-${Date.now().toString(36)}${slug ? `-${slug}` : ''}`.slice(0, 50);
+  }
+
   save(): void {
     const draft = this.editing();
-    if (!draft?.code?.trim() || !draft?.name?.trim()) {
-      this.toast.error('Código y nombre son obligatorios');
+    if (!draft?.name?.trim()) {
+      this.toast.error('El nombre es obligatorio');
       return;
     }
 
@@ -678,7 +662,7 @@ export class PuestosList implements OnInit {
 
     const payload: CreateOperacionesPostPayload = {
       ...draft,
-      code: draft.code.trim(),
+      code: draft.id ? (draft.code?.trim() || this.autoCode(draft.name)) : this.autoCode(draft.name),
       name: draft.name.trim(),
       address: trimStr(draft.address),
       clientName: trimStr(draft.clientName),
