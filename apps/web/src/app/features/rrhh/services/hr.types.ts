@@ -53,7 +53,6 @@ export type HrAlertType =
   | 'VENCIMIENTO_PSICOFISICO'
   | 'VENCIMIENTO_PSICOSENSOMETRICO'
   | 'VENCIMIENTO_POLIZA'
-  | 'VENCIMIENTO_CURSO_VIGILANCIA'
   | 'DOCUMENTO_FALTANTE';
 
 export type HrAlertStatus = 'PENDIENTE' | 'RESUELTA';
@@ -132,10 +131,6 @@ export interface Associate {
   schoolNit: string | null;
   courseCertificateNumber: string | null;
   hasSuraPolicy: boolean;
-  suraPolicyStart: string | null;
-  suraPolicyEnd: string | null;
-  surveillanceCourseStart: string | null;
-  surveillanceCourseEnd: string | null;
   funeralService: string | null;
 
   childrenCount: number;
@@ -370,8 +365,8 @@ export interface AbsenceStats {
 
 export interface CreateAbsencePayload {
   associateId: string;
-  kind?: AbsenteeismKind;
-  eventType?: AbsenteeismEventType;
+  kind: AbsenteeismKind;
+  eventType: AbsenteeismEventType;
   startDate: string;
   endDate: string;
   absenceDays?: number;

@@ -118,18 +118,6 @@ export class CreateAssociateDto {
   @IsOptional() @IsBoolean()
   hasSuraPolicy?: boolean;
 
-  @IsOptional() @IsDateString()
-  surveillanceCourseStart?: string | null;
-
-  @IsOptional() @IsDateString()
-  surveillanceCourseEnd?: string | null;
-
-  @IsOptional() @IsDateString()
-  suraPolicyStart?: string | null;
-
-  @IsOptional() @IsDateString()
-  suraPolicyEnd?: string | null;
-
   @IsOptional() @IsString() @MaxLength(120)
   funeralService?: string | null;
 

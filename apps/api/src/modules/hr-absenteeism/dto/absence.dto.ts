@@ -18,13 +18,11 @@ export class CreateAbsenceDto {
   @IsUUID()
   associateId!: string;
 
-  @IsOptional()
   @IsEnum(AbsenteeismKind)
-  kind?: AbsenteeismKind;
+  kind!: AbsenteeismKind;
 
-  @IsOptional()
   @IsEnum(AbsenteeismEventType)
-  eventType?: AbsenteeismEventType;
+  eventType!: AbsenteeismEventType;
 
   @IsDateString()
   startDate!: string;

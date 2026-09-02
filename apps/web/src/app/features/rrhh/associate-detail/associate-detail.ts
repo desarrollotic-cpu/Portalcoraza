@@ -257,48 +257,6 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                   <div><dt>Nº certificado</dt><dd>{{ a.courseCertificateNumber ?? '—' }}</dd></div>
                   <div><dt>Póliza SURA</dt><dd>{{ a.hasSuraPolicy ? 'Sí' : 'No' }}</dd></div>
                 </dl>
-                <!-- Curso de Vigilancia -->
-                <div style="margin-top: 0.75rem; border-top: 1px solid var(--color-border, #e5e5e5); padding-top: 0.75rem;">
-                  <strong style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted, #737373);">
-                    Curso de Vigilancia
-                  </strong>
-                  <dl class="hr-dl" style="margin-top: 0.4rem;">
-                    <div>
-                      <dt>Inicio</dt>
-                      <dd>{{ a.surveillanceCourseStart ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Fin</dt>
-                      <dd [class.hr-expired]="isDateExpired(a.surveillanceCourseEnd)">
-                        {{ a.surveillanceCourseEnd ?? '—' }}
-                        @if (isDateExpired(a.surveillanceCourseEnd)) {
-                          <span class="hr-badge-expired">Vencido</span>
-                        }
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-                <!-- Póliza de Seguro SURA -->
-                <div style="margin-top: 0.75rem; border-top: 1px solid var(--color-border, #e5e5e5); padding-top: 0.75rem;">
-                  <strong style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-muted, #737373);">
-                    Póliza de Seguro SURA
-                  </strong>
-                  <dl class="hr-dl" style="margin-top: 0.4rem;">
-                    <div>
-                      <dt>Inicio</dt>
-                      <dd>{{ a.suraPolicyStart ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Fin</dt>
-                      <dd [class.hr-expired]="isDateExpired(a.suraPolicyEnd)">
-                        {{ a.suraPolicyEnd ?? '—' }}
-                        @if (isDateExpired(a.suraPolicyEnd)) {
-                          <span class="hr-badge-expired">Vencida</span>
-                        }
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
               </div>
             </div>
 
@@ -614,12 +572,6 @@ export class AssociateDetail implements OnInit {
   isExpired(d: AssociateDocumentItem): boolean {
     if (!d.expirationDate) return false;
     return new Date(d.expirationDate) < new Date();
-  }
-
-  /** Verifica si una fecha ISO (o null) ya caducó. */
-  isDateExpired(date: string | null | undefined): boolean {
-    if (!date) return false;
-    return new Date(date) < new Date();
   }
 
   onFileChange(event: Event): void {

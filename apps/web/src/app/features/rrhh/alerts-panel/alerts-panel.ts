@@ -15,7 +15,6 @@ const ALERT_TYPE_LABEL: Record<HrAlertType, string> = {
   VENCIMIENTO_PSICOFISICO: 'Examen psicofísico',
   VENCIMIENTO_PSICOSENSOMETRICO: 'Examen psicosensométrico',
   VENCIMIENTO_POLIZA: 'Póliza SURA',
-  VENCIMIENTO_CURSO_VIGILANCIA: 'Curso de Vigilancia',
   DOCUMENTO_FALTANTE: 'Documento faltante',
 };
 
