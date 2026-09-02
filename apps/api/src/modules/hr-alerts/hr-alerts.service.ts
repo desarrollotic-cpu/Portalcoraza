@@ -149,6 +149,59 @@ export class HrAlertsService {
       }
     }
 
+    // 1b) Alertas de vencimiento por campos propios del asociado (Curso de Vigilancia y Póliza SURA)
+    const activeAssociates = await this.associatesRepo.find({
+      where: { status: AssociateStatus.ACTIVO },
+    });
+
+    for (const assoc of activeAssociates) {
+      // Curso de Vigilancia
+      if (assoc.surveillanceCourseEnd) {
+        const expDate = new Date(assoc.surveillanceCourseEnd);
+        const daysToExpire = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const trigger = THRESHOLDS_DAYS.find((t) => daysToExpire <= t && daysToExpire >= 0);
+        const isOverdue = daysToExpire < 0;
+
+        if (trigger || isOverdue) {
+          const inserted = await this.upsertAlert(
+            assoc.id,
+            HrAlertType.VENCIMIENTO_CURSO_VIGILANCIA,
+            assoc.surveillanceCourseEnd,
+          );
+          if (inserted) {
+            summary.total += 1;
+            summary[HrAlertType.VENCIMIENTO_CURSO_VIGILANCIA] =
+              (summary[HrAlertType.VENCIMIENTO_CURSO_VIGILANCIA] ?? 0) + 1;
+          }
+        }
+      }
+
+      // Póliza SURA (por fecha fin registrada en ficha)
+      if (assoc.suraPolicyEnd) {
+        const expDate = new Date(assoc.suraPolicyEnd);
+        const daysToExpire = Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        const trigger = THRESHOLDS_DAYS.find((t) => daysToExpire <= t && daysToExpire >= 0);
+        const isOverdue = daysToExpire < 0;
+
+        if (trigger || isOverdue) {
+          const inserted = await this.upsertAlert(
+            assoc.id,
+            HrAlertType.VENCIMIENTO_POLIZA,
+            assoc.suraPolicyEnd,
+          );
+          if (inserted) {
+            summary.total += 1;
+            summary[HrAlertType.VENCIMIENTO_POLIZA] =
+              (summary[HrAlertType.VENCIMIENTO_POLIZA] ?? 0) + 1;
+          }
+
+          if (isOverdue && assoc.hasSuraPolicy) {
+            await this.associatesRepo.update({ id: assoc.id }, { hasSuraPolicy: false });
+          }
+        }
+      }
+    }
+
     // 2) Documentos faltantes críticos: psicofísico / psicosensométrico (no cédula)
     const missingKinds = [
       AssociateDocumentKind.EXAMEN_PSICOFISICO,

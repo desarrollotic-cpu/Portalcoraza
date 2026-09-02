@@ -194,6 +194,18 @@ export class Associate {
   @Column({ name: 'has_sura_policy', type: 'boolean', default: false })
   hasSuraPolicy!: boolean;
 
+  @Column({ name: 'surveillance_course_start', type: 'date', nullable: true })
+  surveillanceCourseStart!: string | null;
+
+  @Column({ name: 'surveillance_course_end', type: 'date', nullable: true })
+  surveillanceCourseEnd!: string | null;
+
+  @Column({ name: 'sura_policy_start', type: 'date', nullable: true })
+  suraPolicyStart!: string | null;
+
+  @Column({ name: 'sura_policy_end', type: 'date', nullable: true })
+  suraPolicyEnd!: string | null;
+
   @Column({ name: 'funeral_service', type: 'varchar', length: 120, nullable: true })
   funeralService!: string | null;
 

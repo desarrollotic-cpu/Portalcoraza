@@ -37,16 +37,17 @@ export class AssociateAbsence {
   @JoinColumn({ name: 'associate_id' })
   associate!: Associate;
 
-  @Column({ type: 'enum', enum: AbsenteeismKind, enumName: 'absenteeism_kind' })
-  kind!: AbsenteeismKind;
+  @Column({ type: 'enum', enum: AbsenteeismKind, enumName: 'absenteeism_kind', nullable: true })
+  kind!: AbsenteeismKind | null;
 
   @Column({
     name: 'event_type',
     type: 'enum',
     enum: AbsenteeismEventType,
     enumName: 'absenteeism_event_type',
+    nullable: true,
   })
-  eventType!: AbsenteeismEventType;
+  eventType!: AbsenteeismEventType | null;
 
   @Column({ name: 'start_date', type: 'date' })
   startDate!: string;

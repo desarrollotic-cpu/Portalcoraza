@@ -290,6 +290,36 @@ type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
                   Póliza SURA vigente
                 </label>
               </div>
+
+              <!-- Curso de Vigilancia -->
+              <div class="hr-field col-4">
+                <h4 style="margin: 0.5rem 0 0.25rem; font-size: 0.875rem; color: var(--color-muted, #737373); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Curso de Vigilancia
+                </h4>
+              </div>
+              <div class="hr-field">
+                <label>Fecha inicio *</label>
+                <input type="date" formControlName="surveillanceCourseStart" />
+              </div>
+              <div class="hr-field">
+                <label>Fecha fin *</label>
+                <input type="date" formControlName="surveillanceCourseEnd" />
+              </div>
+
+              <!-- Póliza de Seguro SURA -->
+              <div class="hr-field col-4">
+                <h4 style="margin: 0.5rem 0 0.25rem; font-size: 0.875rem; color: var(--color-muted, #737373); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">
+                  Póliza de Seguro SURA
+                </h4>
+              </div>
+              <div class="hr-field">
+                <label>Fecha inicio *</label>
+                <input type="date" formControlName="suraPolicyStart" />
+              </div>
+              <div class="hr-field">
+                <label>Fecha fin *</label>
+                <input type="date" formControlName="suraPolicyEnd" />
+              </div>
             </div>
           </section>
 
@@ -474,6 +504,8 @@ export class AssociateForm implements OnInit {
     ordinaryCompensation: 3, averageMonthlySalary: 3, bankAccount: 3,
     courseCode: 3, schoolNit: 3, courseCertificateNumber: 3, funeralService: 3,
     psychophysicalValid: 3, psychosensometricValid: 3, hasSuraPolicy: 3, status: 3,
+    surveillanceCourseStart: 3, surveillanceCourseEnd: 3,
+    suraPolicyStart: 3, suraPolicyEnd: 3,
   };
 
   /**
@@ -535,6 +567,10 @@ export class AssociateForm implements OnInit {
     psychosensometricValid: [false],
     hasSuraPolicy: [false],
     status: ['ACTIVO'],
+    surveillanceCourseStart: [null, Validators.required],
+    surveillanceCourseEnd: [null, Validators.required],
+    suraPolicyStart: [null, Validators.required],
+    suraPolicyEnd: [null, Validators.required],
 
     // Sociodemográfico
     epsId: [null],

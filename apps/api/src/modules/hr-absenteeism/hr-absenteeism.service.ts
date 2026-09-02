@@ -74,7 +74,8 @@ export class HrAbsenteeismService {
     const byEvent: Record<string, number> = {};
     const byOrigin: Record<string, number> = {};
     for (const r of rows) {
-      byEvent[r.eventType] = (byEvent[r.eventType] ?? 0) + 1;
+      const eventKey = r.eventType || 'SIN_EVENTO';
+      byEvent[eventKey] = (byEvent[eventKey] ?? 0) + 1;
       if (r.kind === AbsenteeismKind.MEDICO) {
         const origin = r.incapacityOrigin?.trim() || 'SIN ORIGEN';
         byOrigin[origin] = (byOrigin[origin] ?? 0) + (r.absenceDays || 0);
@@ -123,8 +124,8 @@ export class HrAbsenteeismService {
     const current = await this.findOne(id);
     const next = this.normalizePayload({
       associateId: current.associateId,
-      kind: dto.kind ?? current.kind,
-      eventType: dto.eventType ?? current.eventType,
+      kind: (dto.kind ?? current.kind) ?? undefined,
+      eventType: (dto.eventType ?? current.eventType) ?? undefined,
       startDate: dto.startDate ?? current.startDate,
       endDate: dto.endDate ?? current.endDate,
       absenceDays: dto.absenceDays ?? current.absenceDays,
@@ -371,14 +372,11 @@ export class HrAbsenteeismService {
     if (new Date(dto.endDate) < new Date(dto.startDate)) {
       throw new BadRequestException('La fecha fin no puede ser anterior a la fecha inicio');
     }
-    if (dto.kind === AbsenteeismKind.MEDICO && !dto.eventType) {
-      throw new BadRequestException('Tipo de evento requerido');
-    }
     const absenceDays = dto.absenceDays ?? this.daysBetween(dto.startDate, dto.endDate);
     return {
       associateId: dto.associateId,
-      kind: dto.kind,
-      eventType: dto.eventType,
+      kind: dto.kind ?? null,
+      eventType: dto.eventType ?? null,
       startDate: dto.startDate.slice(0, 10),
       endDate: dto.endDate.slice(0, 10),
       absenceDays,

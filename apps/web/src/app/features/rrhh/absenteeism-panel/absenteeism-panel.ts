@@ -153,8 +153,9 @@ import type {
               </select>
             </label>
             <label>
-              Evento *
-              <select [(ngModel)]="form.eventType" name="eventType" required>
+              Evento
+              <select [(ngModel)]="form.eventType" name="eventType">
+                <option [ngValue]="undefined">— Sin especificar —</option>
                 @for (e of eventTypes; track e) {
                   <option [value]="e">{{ e }}</option>
                 }
@@ -268,11 +269,15 @@ import type {
                     }
                   </td>
                   <td>
-                    <span class="hr-status" [attr.data-color]="r.kind === 'MEDICO' ? 'amber' : 'gray'">
-                      {{ r.kind === 'MEDICO' ? 'Médico' : 'Admin' }}
-                    </span>
+                    @if (r.kind) {
+                      <span class="hr-status" [attr.data-color]="r.kind === 'MEDICO' ? 'amber' : 'gray'">
+                        {{ r.kind === 'MEDICO' ? 'Médico' : 'Admin' }}
+                      </span>
+                    } @else {
+                      <span class="hr-muted">—</span>
+                    }
                   </td>
-                  <td>{{ r.eventType }}</td>
+                  <td>{{ r.eventType || '—' }}</td>
                   <td>{{ r.startDate }}</td>
                   <td>{{ r.endDate }}</td>
                   <td>{{ r.absenceDays }}</td>
@@ -587,7 +592,7 @@ export class AbsenteeismPanel implements OnInit {
     return {
       associateId: '',
       kind: 'MEDICO',
-      eventType: 'D.A.',
+      eventType: undefined,
       startDate: '',
       endDate: '',
       absenceDays: undefined,
