@@ -59,10 +59,6 @@ export interface SchedulePostSummary {
   status: string;
 }
 
-export interface MonthlyScheduleWithPost extends MonthlySchedule {
-  post: SchedulePostSummary | null;
-}
-
 export interface ScheduleConflict {
   associateId: string;
   day: number;
@@ -172,13 +168,6 @@ export class MonthlySchedulingApiService {
     return this.http.get<MonthlySchedule | null>(this.baseUrl, { params });
   }
 
-  listByMonth(year: number, month: number): Observable<MonthlyScheduleWithPost[]> {
-    const params = new HttpParams()
-      .set('year', String(year))
-      .set('month', String(month));
-    return this.http.get<MonthlyScheduleWithPost[]>(`${this.baseUrl}/by-month`, { params });
-  }
-
   getActivePeriod(): Observable<{
     year: number;
     month: number;
@@ -253,58 +242,6 @@ export class MonthlySchedulingApiService {
       `${this.baseUrl}/${id}/motor`,
       opts ?? {},
     );
-  }
-
-  generateMotorGlobal(payload: {
-    year: number;
-    month: number;
-    tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
-    createMissing?: boolean;
-  }): Observable<{ jobId: string; status: 'queued' }> {
-    return this.http.post<{ jobId: string; status: 'queued' }>(
-      `${this.baseUrl}/motor-global`,
-      payload,
-    );
-  }
-
-  getMotorJob(jobId: string): Observable<{
-    jobId: string;
-    status: 'queued' | 'active' | 'completed' | 'failed' | 'unknown';
-    progress: {
-      processed: number;
-      total: number;
-      ok: number;
-      failed: number;
-    } | null;
-    result: {
-      year: number;
-      month: number;
-      tipoCiclo: string;
-      processed: number;
-      ok: number;
-      failed: number;
-    } | null;
-    failedReason: string | null;
-  }> {
-    return this.http.get<{
-      jobId: string;
-      status: 'queued' | 'active' | 'completed' | 'failed' | 'unknown';
-      progress: {
-        processed: number;
-        total: number;
-        ok: number;
-        failed: number;
-      } | null;
-      result: {
-        year: number;
-        month: number;
-        tipoCiclo: string;
-        processed: number;
-        ok: number;
-        failed: number;
-      } | null;
-      failedReason: string | null;
-    }>(`${this.baseUrl}/motor-jobs/${encodeURIComponent(jobId)}`);
   }
 
   getTodayCoverage(date?: string): Observable<TodayCoverageResponse> {

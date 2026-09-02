@@ -90,8 +90,6 @@ const PAGE_SIZE = 25;
 
       <p class="alerts__foot">
         <a routerLink="/programacion/cuadro">Ir al cuadro mensual</a>
-        ·
-        <a routerLink="/programacion/matriz">Matriz multi-puesto</a>
       </p>
     </div>
   `,

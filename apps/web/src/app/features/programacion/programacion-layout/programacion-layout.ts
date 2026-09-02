@@ -3,7 +3,6 @@ import { RouterOutlet } from '@angular/router';
 import {
   LucideCalendarClock,
   LucideLayoutDashboard,
-  LucideLayoutGrid,
   LucideAlertTriangle,
   LucideCalculator,
 } from '@lucide/angular';
@@ -29,12 +28,6 @@ export class ProgramacionLayout {
       route: '/programacion/panel',
       permission: 'scheduling.view',
       icon: LucideLayoutDashboard,
-    },
-    {
-      label: 'Matriz de Turnos',
-      route: '/programacion/matriz',
-      permission: 'scheduling.view',
-      icon: LucideLayoutGrid,
     },
     {
       label: 'Cuadro de Turnos',

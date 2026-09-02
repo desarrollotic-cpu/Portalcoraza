@@ -35,7 +35,7 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
         Crea o edita puestos en
         <a routerLink="/operaciones/puestos">Puestos de trabajo</a>.
         Luego ábrelos en
-        <a routerLink="/programacion/matriz">Programación → Matriz</a>.
+        <a routerLink="/programacion/cuadro">Programación → Cuadro de Turnos</a>.
       </p>
     </section>
   `,

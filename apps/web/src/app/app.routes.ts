@@ -349,15 +349,6 @@ export const routes: Routes = [
               ),
           },
           {
-            path: 'matriz',
-            canActivate: [permissionGuard],
-            data: { permission: 'scheduling.view' },
-            loadComponent: () =>
-              import('./features/programacion/master-grid/master-grid').then(
-                (m) => m.MasterGrid,
-              ),
-          },
-          {
             path: 'cuadro',
             canActivate: [permissionGuard],
             data: { permission: 'scheduling.view' },
