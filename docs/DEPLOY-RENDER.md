@@ -6,6 +6,9 @@
 |----------|------------|--------|
 | **API** (`portalcoraza`) | `https://portalcoraza.onrender.com` | NestJS — rutas en `/api/v1/*` |
 | **Web** (`portalcoraza-web`) | `https://portalcoraza-web.onrender.com` | Angular — login, dashboard, módulos |
+| **Minuta** (`portalcoraza-minuta`) | `https://portalcoraza-minuta.onrender.com` | Angular — vigilantes en puesto (rol `PUESTO`) |
+
+> Handoff deploy Minuta (estado y pasos pendientes): [`docs/MINUTA-WEB-DEPLOY-HANDOFF.md`](./MINUTA-WEB-DEPLOY-HANDOFF.md)
 
 Abrir solo la URL de la **API** en `/` devuelve `404 Cannot GET /` — es normal. El portal está en el **Static Site**.
 
@@ -57,7 +60,7 @@ La raíz `/` sí carga; también sirven las rutas pregeneradas por `apps/web/scr
 2. En el servicio **API** → **Environment**, actualiza:
 
 ```
-CORS_ORIGIN=https://portalcoraza-web.onrender.com
+CORS_ORIGIN=https://portalcoraza-web.onrender.com,https://portalcoraza-minuta.onrender.com
 ```
 
 3. Redespliega la API.

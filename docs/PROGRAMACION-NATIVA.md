@@ -15,7 +15,9 @@ Commit de código: `b1261aa` `fix(programacion): quitar Matriz de Turnos`.
 
 **Queda en el menú:** Panel, Cuadro de Turnos, Control de Alertas, Liquidación y Recargos.
 
-**Siguiente paso (uno a uno, un commit por cambio):** aligerar el **Panel**. Hoy `reloadAll()` dispara en paralelo `getMonthlyOverview` + `getTodayCoverage` + `getPayrollRecargos`. Recargos recorre el mes de todos los asociados y no hace falta en el panel de entrada. Quitar esa llamada del panel (la pantalla Recargos ya la tiene). Luego, si hace falta, serializar overview/cobertura o cachear.
+**Hecho (panel):** `reloadAll()` ya no llama `getPayrollRecargos`. Disponibilidad del panel se arma solo con `getTodayCoverage`. Recargos siguen en `/programacion/recargos`.
+
+**Siguiente paso (uno a uno, un commit por cambio):** si el panel sigue pesado, serializar `getMonthlyOverview` / `getTodayCoverage` o cachear.
 
 **No tocar** SST / documental ( Freider ). No mezclar skills locales (`.agents/skills`) en commits.
 
