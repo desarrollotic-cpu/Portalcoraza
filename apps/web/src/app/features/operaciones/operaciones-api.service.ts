@@ -18,21 +18,22 @@ export interface PostClientFields {
   basc: boolean | null;
   contractStart: string | null;
   contractEnd: string | null;
+  contractTerm: string | null;
   city: string | null;
   legalRepName: string | null;
   legalRepId: string | null;
   contactEmail: string | null;
   observations: string | null;
 
-  docCamaraComercio: boolean | null;
-  docRut: boolean | null;
-  docCcRepLegal: boolean | null;
-  docTratamientoDatos: boolean | null;
-  docFormularioAsociado: boolean | null;
-  docAcuerdoSeguridad: boolean | null;
-  docVisitaCliente: boolean | null;
+  docCamaraComercio: string | null;
+  docRut: string | null;
+  docCcRepLegal: string | null;
+  docTratamientoDatos: string | null;
+  docFormularioAsociado: string | null;
+  docAcuerdoSeguridad: string | null;
+  docVisitaCliente: string | null;
   docEstadosFinancieros: string | null;
-  docRuesCamara: boolean | null;
+  docRuesCamara: string | null;
 
   verifEncuestaSatisfaccion: string | null;
   verifOfacRl: string | null;

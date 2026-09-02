@@ -93,7 +93,9 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
             </select>
           </label>
           @if (auth.hasPermission('posts.create')) {
-            <a class="btn" routerLink="/recepcion/puestos/gestionar">+ Nuevo puesto</a>
+            <a class="btn" routerLink="/recepcion/puestos/gestionar" [queryParams]="{ nuevo: 1 }">
+              + Nuevo puesto
+            </a>
           }
           @if (auth.hasPermission('posts.view')) {
             <a class="btn ghost" routerLink="/recepcion/puestos/gestionar">Ver catálogo</a>
@@ -381,8 +383,9 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                 <dt>Tipo interno</dt><dd>{{ typeLabel(p.type) }}</dd>
                 <dt>Sector</dt><dd>{{ p.sector || '—' }}</dd>
                 <dt>BASC</dt><dd>{{ boolLabel(p.basc) }}</dd>
-                <dt>Fecha inicial</dt><dd>{{ (p.contractStart | date: 'dd/MM/yyyy') || '—' }}</dd>
-                <dt>Fecha final</dt><dd>{{ (p.contractEnd | date: 'dd/MM/yyyy') || '—' }}</dd>
+                <dt>Fecha inicial</dt><dd>{{ p.contractStart || '—' }}</dd>
+                <dt>Tiempo del ctto</dt><dd>{{ p.contractTerm || '—' }}</dd>
+                <dt>Fecha final</dt><dd>{{ p.contractEnd || '—' }}</dd>
                 <dt>Dirección</dt><dd>{{ p.address || '—' }}</dd>
                 <dt>Ciudad</dt><dd>{{ p.city || '—' }}</dd>
                 <dt>Zona</dt><dd>{{ p.zone || '—' }}</dd>
@@ -438,7 +441,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                     @for (v of verifRows(p); track v.label) {
                       <tr>
                         <td>{{ v.label }}</td>
-                        <td>{{ v.date | date: 'dd/MM/yyyy' }}</td>
+                        <td>{{ v.date }}</td>
                       </tr>
                     }
                   </tbody>
@@ -998,20 +1001,24 @@ export class ReceptionPostsDashboard implements OnInit {
   }
 
   docChips(p: OperacionesPost): { label: string; state: 'yes' | 'no' | 'unknown'; text: string }[] {
-    const bool = (v: boolean | null): { state: 'yes' | 'no' | 'unknown'; text: string } =>
-      v === true ? { state: 'yes', text: 'SÍ' } : v === false ? { state: 'no', text: 'NO' } : { state: 'unknown', text: '—' };
+    const chip = (raw: string | null | undefined): { state: 'yes' | 'no' | 'unknown'; text: string } => {
+      const t = (raw ?? '').trim();
+      if (!t) return { state: 'unknown', text: '—' };
+      const u = t.toUpperCase();
+      if (u === 'SI' || u === 'SÍ') return { state: 'yes', text: t };
+      if (u === 'NO') return { state: 'no', text: t };
+      return { state: 'unknown', text: t };
+    };
     return [
-      { label: 'Cámara comercio', ...bool(p.docCamaraComercio) },
-      { label: 'RUT', ...bool(p.docRut) },
-      { label: 'CC rep. legal', ...bool(p.docCcRepLegal) },
-      { label: 'Trat. datos', ...bool(p.docTratamientoDatos) },
-      { label: 'Formulario asoc.', ...bool(p.docFormularioAsociado) },
-      { label: 'Acuerdo seguridad', ...bool(p.docAcuerdoSeguridad) },
-      { label: 'Visita cliente', ...bool(p.docVisitaCliente) },
-      { label: 'RUES / Cámara', ...bool(p.docRuesCamara) },
-      p.docEstadosFinancieros
-        ? { label: 'Estados financieros', state: /^si$/i.test(p.docEstadosFinancieros.trim()) ? 'yes' : 'unknown', text: p.docEstadosFinancieros }
-        : { label: 'Estados financieros', state: 'unknown', text: '—' },
+      { label: 'Cámara comercio', ...chip(p.docCamaraComercio) },
+      { label: 'RUT', ...chip(p.docRut) },
+      { label: 'CC rep. legal', ...chip(p.docCcRepLegal) },
+      { label: 'Trat. datos', ...chip(p.docTratamientoDatos) },
+      { label: 'Formulario asoc.', ...chip(p.docFormularioAsociado) },
+      { label: 'Acuerdo seguridad', ...chip(p.docAcuerdoSeguridad) },
+      { label: 'Visita cliente', ...chip(p.docVisitaCliente) },
+      { label: 'RUES / Cámara', ...chip(p.docRuesCamara) },
+      { label: 'Estados financieros', ...chip(p.docEstadosFinancieros) },
     ];
   }
 

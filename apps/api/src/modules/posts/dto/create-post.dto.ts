@@ -1,12 +1,11 @@
 import {
   IsBoolean,
-  IsDateString,
-  IsEmail,
   IsEnum,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator';
+// ponytail: fechas de contrato y verif_* son texto libre (tal cual el archivo).
 import { PostStatus, PostType } from '../entities/post.entity';
 
 export class CreatePostDto {
@@ -38,46 +37,47 @@ export class CreatePostDto {
   @IsOptional() @IsString() @MaxLength(30) nit?: string;
   @IsOptional() @IsString() @MaxLength(30) sector?: string;
   @IsOptional() @IsBoolean() basc?: boolean;
-  @IsOptional() @IsDateString() contractStart?: string;
-  @IsOptional() @IsDateString() contractEnd?: string;
+  @IsOptional() @IsString() @MaxLength(80) contractStart?: string;
+  @IsOptional() @IsString() @MaxLength(80) contractEnd?: string;
+  @IsOptional() @IsString() @MaxLength(80) contractTerm?: string;
   @IsOptional() @IsString() @MaxLength(120) city?: string;
   @IsOptional() @IsString() @MaxLength(200) legalRepName?: string;
   @IsOptional() @IsString() @MaxLength(30) legalRepId?: string;
-  @IsOptional() @IsEmail() @MaxLength(200) contactEmail?: string;
+  @IsOptional() @IsString() contactEmail?: string;
   @IsOptional() @IsString() observations?: string;
 
-  // --- Documentación (SI/NO) ---
-  @IsOptional() @IsBoolean() docCamaraComercio?: boolean;
-  @IsOptional() @IsBoolean() docRut?: boolean;
-  @IsOptional() @IsBoolean() docCcRepLegal?: boolean;
-  @IsOptional() @IsBoolean() docTratamientoDatos?: boolean;
-  @IsOptional() @IsBoolean() docFormularioAsociado?: boolean;
-  @IsOptional() @IsBoolean() docAcuerdoSeguridad?: boolean;
-  @IsOptional() @IsBoolean() docVisitaCliente?: boolean;
+  // --- Documentación (texto libre: SI/NO/SOLICITUD/PDT/PARA FIRMAR/…) ---
+  @IsOptional() @IsString() @MaxLength(60) docCamaraComercio?: string;
+  @IsOptional() @IsString() @MaxLength(60) docRut?: string;
+  @IsOptional() @IsString() @MaxLength(60) docCcRepLegal?: string;
+  @IsOptional() @IsString() @MaxLength(60) docTratamientoDatos?: string;
+  @IsOptional() @IsString() @MaxLength(60) docFormularioAsociado?: string;
+  @IsOptional() @IsString() @MaxLength(60) docAcuerdoSeguridad?: string;
+  @IsOptional() @IsString() @MaxLength(60) docVisitaCliente?: string;
   @IsOptional() @IsString() @MaxLength(80) docEstadosFinancieros?: string;
-  @IsOptional() @IsBoolean() docRuesCamara?: boolean;
+  @IsOptional() @IsString() @MaxLength(60) docRuesCamara?: string;
 
-  // --- Fechas de verificación ---
-  @IsOptional() @IsDateString() verifEncuestaSatisfaccion?: string;
-  @IsOptional() @IsDateString() verifOfacRl?: string;
-  @IsOptional() @IsDateString() verifOfacPersonaJuridica?: string;
-  @IsOptional() @IsDateString() verifCentralRiesgosPn?: string;
-  @IsOptional() @IsDateString() verifCentralRiesgosNit?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaNit?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaRl?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaRls?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaRevFiscalPpal?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaRevFiscalSup?: string;
-  @IsOptional() @IsDateString() verifProcuraduriaMiembrosJunta?: string;
-  @IsOptional() @IsDateString() verifPoliciaRp?: string;
-  @IsOptional() @IsDateString() verifPoliciaRpSup?: string;
-  @IsOptional() @IsDateString() verifPoliciaRevFiscal?: string;
-  @IsOptional() @IsDateString() verifPoliciaRevFiscalSup?: string;
-  @IsOptional() @IsDateString() verifPoliciaMiembrosJunta?: string;
-  @IsOptional() @IsDateString() verifContraloriaRp?: string;
-  @IsOptional() @IsDateString() verifContraloriaRpSup?: string;
-  @IsOptional() @IsDateString() verifContraloriaRevFiscal?: string;
-  @IsOptional() @IsDateString() verifContraloriaRevFiscalSup?: string;
-  @IsOptional() @IsDateString() verifContraloriaMiembrosJunta?: string;
-  @IsOptional() @IsDateString() verifSupersociedades?: string;
+  // --- Verificación (fecha ISO o texto libre: PDT/NO/SI/fecha mal formateada) ---
+  @IsOptional() @IsString() @MaxLength(30) verifEncuestaSatisfaccion?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifOfacRl?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifOfacPersonaJuridica?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifCentralRiesgosPn?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifCentralRiesgosNit?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaNit?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaRl?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaRls?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaRevFiscalPpal?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaRevFiscalSup?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifProcuraduriaMiembrosJunta?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifPoliciaRp?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifPoliciaRpSup?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifPoliciaRevFiscal?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifPoliciaRevFiscalSup?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifPoliciaMiembrosJunta?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifContraloriaRp?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifContraloriaRpSup?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifContraloriaRevFiscal?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifContraloriaRevFiscalSup?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifContraloriaMiembrosJunta?: string;
+  @IsOptional() @IsString() @MaxLength(30) verifSupersociedades?: string;
 }

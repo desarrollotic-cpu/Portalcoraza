@@ -1,5 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import {
@@ -23,8 +24,17 @@ const POST_TYPES: { value: PostType; label: string }[] = [
 /** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
 const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
 
-/** Campos booleanos de documentación agrupados para renderizar de forma compacta. */
-const DOC_BOOLS: { key: keyof CreateOperacionesPostPayload; label: string }[] = [
+/** Valores reales del archivo (no son solo SI/NO). */
+const STATUS_HINTS = [
+  'SI',
+  'NO',
+  'PDT',
+  'SOLICITUD',
+  'SE HIZO LA SOLICITUD',
+  'PARA FIRMAR',
+];
+
+const DOC_FIELDS: { key: keyof CreateOperacionesPostPayload; label: string }[] = [
   { key: 'docCamaraComercio', label: 'Cámara de comercio / Personería jurídica' },
   { key: 'docRut', label: 'RUT' },
   { key: 'docCcRepLegal', label: 'CC representante legal' },
@@ -32,7 +42,8 @@ const DOC_BOOLS: { key: keyof CreateOperacionesPostPayload; label: string }[] = 
   { key: 'docFormularioAsociado', label: 'Formulario asociado de negocio' },
   { key: 'docAcuerdoSeguridad', label: 'Acuerdo de seguridad' },
   { key: 'docVisitaCliente', label: 'Visita cliente' },
-  { key: 'docRuesCamara', label: 'RUES / Cámara' },
+  { key: 'docEstadosFinancieros', label: 'Estados financieros' },
+  { key: 'docRuesCamara', label: 'RUES / Cámara (fecha o estado)' },
 ];
 
 /** Fechas de verificación agrupadas por autoridad. */
@@ -134,10 +145,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
               </label>
               <label>
                 Sector
-                <select name="sector" [(ngModel)]="editing()!.sector">
-                  <option [ngValue]="undefined">—</option>
-                  @for (s of sectors; track s) { <option [ngValue]="s">{{ s }}</option> }
-                </select>
+                <input name="sector" [(ngModel)]="editing()!.sector" maxlength="30" list="sector-hints" />
               </label>
               <label>
                 Tipo interno
@@ -168,12 +176,32 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 <input name="contractNumber" [(ngModel)]="editing()!.contractNumber" maxlength="80" />
               </label>
               <label>
-                Fecha inicial
-                <input type="date" name="contractStart" [(ngModel)]="editing()!.contractStart" />
+                Fecha inicial ctto
+                <input
+                  name="contractStart"
+                  [(ngModel)]="editing()!.contractStart"
+                  maxlength="80"
+                  placeholder="2022-09-07 o tal cual el archivo"
+                />
               </label>
               <label>
-                Fecha final
-                <input type="date" name="contractEnd" [(ngModel)]="editing()!.contractEnd" />
+                Tiempo del ctto
+                <input
+                  name="contractTerm"
+                  [(ngModel)]="editing()!.contractTerm"
+                  maxlength="80"
+                  list="term-hints"
+                  placeholder="INDEFINIDO, 24 MESES, 2027-11-30 00:00:00…"
+                />
+              </label>
+              <label>
+                Fecha final ccto
+                <input
+                  name="contractEnd"
+                  [(ngModel)]="editing()!.contractEnd"
+                  maxlength="80"
+                  placeholder="INDEFINIDO, 24 MESES, 2027-11-30 00:00:00…"
+                />
               </label>
               <label>
                 BASC
@@ -205,7 +233,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           </details>
 
           <!-- 3. Ubicación -->
-          <details>
+          <details [attr.open]="!editing()!.id ? '' : null">
             <summary>Ubicación</summary>
             <div class="grid">
               <label class="span-2">
@@ -224,7 +252,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           </details>
 
           <!-- 4. Rep. legal y contacto -->
-          <details>
+          <details [attr.open]="!editing()!.id ? '' : null">
             <summary>Representante legal y contacto</summary>
             <div class="grid">
               <label class="span-2">
@@ -245,54 +273,61 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
               </label>
               <label class="span-2">
                 Email
-                <input type="email" name="contactEmail" [(ngModel)]="editing()!.contactEmail" maxlength="200" />
+                <input name="contactEmail" [(ngModel)]="editing()!.contactEmail" maxlength="500" placeholder="uno o varios, separados por coma" />
               </label>
             </div>
           </details>
 
           <!-- 5. Documentación -->
-          <details>
-            <summary>Documentación (SI / NO)</summary>
+          <details [attr.open]="!editing()!.id ? '' : null">
+            <summary>Documentación (SI / NO / PDT / SOLICITUD…)</summary>
+            <datalist id="sector-hints">
+              @for (s of sectors; track s) { <option [value]="s"></option> }
+            </datalist>
+            <datalist id="doc-status">
+              @for (s of statusHints; track s) {
+                <option [value]="s"></option>
+              }
+            </datalist>
+            <datalist id="term-hints">
+              <option value="INDEFINIDO"></option>
+              <option value="12 MESES"></option>
+              <option value="24 MESES"></option>
+              <option value="36 MESES"></option>
+              <option value="2 AÑOS"></option>
+              <option value="AUTOMATICO"></option>
+            </datalist>
             <div class="grid">
-              @for (d of docBools; track d.key) {
+              @for (d of docFields; track d.key) {
                 <label>
                   {{ d.label }}
-                  <select
+                  <input
                     [name]="d.key"
-                    [ngModel]="boolStr(getBool(d.key))"
-                    (ngModelChange)="setBool(d.key, strBool($event))"
-                  >
-                    <option [ngValue]="''">—</option>
-                    <option [ngValue]="'true'">SI</option>
-                    <option [ngValue]="'false'">NO</option>
-                  </select>
+                    [ngModel]="getStr(d.key)"
+                    (ngModelChange)="setStr(d.key, $event)"
+                    list="doc-status"
+                    maxlength="80"
+                    placeholder="SI, NO, PDT, SOLICITUD…"
+                  />
                 </label>
               }
-              <label class="span-2">
-                Estados financieros
-                <input
-                  name="docEstadosFinancieros"
-                  [(ngModel)]="editing()!.docEstadosFinancieros"
-                  maxlength="80"
-                  placeholder="SI / NO / texto"
-                />
-              </label>
             </div>
           </details>
 
           <!-- 6. Fechas de verificación -->
           @for (g of verifGroups; track g.title) {
-            <details>
-              <summary>Fechas de verificación — {{ g.title }}</summary>
+            <details [attr.open]="!editing()!.id ? '' : null">
+              <summary>Verificación — {{ g.title }}</summary>
               <div class="grid">
                 @for (v of g.items; track v.key) {
                   <label>
                     {{ v.label }}
                     <input
-                      type="date"
                       [name]="v.key"
                       [ngModel]="getStr(v.key)"
                       (ngModelChange)="setStr(v.key, $event)"
+                      maxlength="30"
+                      placeholder="YYYY-MM-DD, PDT, NO, SI…"
                     />
                   </label>
                 }
@@ -301,7 +336,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           }
 
           <!-- 7. Notas -->
-          <details>
+          <details [attr.open]="!editing()!.id ? '' : null">
             <summary>Requisitos, instrucciones y observaciones</summary>
             <div class="grid">
               <label class="span-3">
@@ -457,11 +492,13 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
 export class PuestosList implements OnInit {
   private readonly api = inject(OperacionesApiService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
   readonly auth = inject(AuthService);
 
   readonly types = POST_TYPES;
   readonly sectors = SECTORS;
-  readonly docBools = DOC_BOOLS;
+  readonly statusHints = STATUS_HINTS;
+  readonly docFields = DOC_FIELDS;
   readonly verifGroups = VERIF_GROUPS;
 
   readonly posts = signal<OperacionesPost[]>([]);
@@ -487,6 +524,14 @@ export class PuestosList implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    // Si venimos del atajo "+ Nuevo puesto" del dashboard (?nuevo=1),
+    // abrimos el formulario en pantalla y hacemos scroll a él.
+    if (this.route.snapshot.queryParamMap.get('nuevo') === '1' && this.auth.hasPermission('posts.create')) {
+      this.startCreate();
+      queueMicrotask(() => {
+        document.querySelector('form.form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
   }
 
   typeLabel(type: PostType): string {
@@ -499,19 +544,6 @@ export class PuestosList implements OnInit {
 
   strBool(v: string): boolean | undefined {
     return v === 'true' ? true : v === 'false' ? false : undefined;
-  }
-
-  getBool(key: keyof CreateOperacionesPostPayload): boolean | null | undefined {
-    const draft = this.editing();
-    if (!draft) return undefined;
-    return draft[key] as boolean | null | undefined;
-  }
-
-  setBool(key: keyof CreateOperacionesPostPayload, v: boolean | undefined): void {
-    const draft = this.editing();
-    if (!draft) return;
-    (draft as Record<string, unknown>)[key] = v;
-    this.editing.set({ ...draft });
   }
 
   getStr(key: keyof CreateOperacionesPostPayload): string {
@@ -576,20 +608,21 @@ export class PuestosList implements OnInit {
       basc: p.basc,
       contractStart: p.contractStart ?? '',
       contractEnd: p.contractEnd ?? '',
+      contractTerm: p.contractTerm ?? '',
       city: p.city ?? '',
       legalRepName: p.legalRepName ?? '',
       legalRepId: p.legalRepId ?? '',
       contactEmail: p.contactEmail ?? '',
       observations: p.observations ?? '',
-      docCamaraComercio: p.docCamaraComercio,
-      docRut: p.docRut,
-      docCcRepLegal: p.docCcRepLegal,
-      docTratamientoDatos: p.docTratamientoDatos,
-      docFormularioAsociado: p.docFormularioAsociado,
-      docAcuerdoSeguridad: p.docAcuerdoSeguridad,
-      docVisitaCliente: p.docVisitaCliente,
+      docCamaraComercio: p.docCamaraComercio ?? '',
+      docRut: p.docRut ?? '',
+      docCcRepLegal: p.docCcRepLegal ?? '',
+      docTratamientoDatos: p.docTratamientoDatos ?? '',
+      docFormularioAsociado: p.docFormularioAsociado ?? '',
+      docAcuerdoSeguridad: p.docAcuerdoSeguridad ?? '',
+      docVisitaCliente: p.docVisitaCliente ?? '',
       docEstadosFinancieros: p.docEstadosFinancieros ?? '',
-      docRuesCamara: p.docRuesCamara,
+      docRuesCamara: p.docRuesCamara ?? '',
       verifEncuestaSatisfaccion: p.verifEncuestaSatisfaccion ?? '',
       verifOfacRl: p.verifOfacRl ?? '',
       verifOfacPersonaJuridica: p.verifOfacPersonaJuridica ?? '',
@@ -658,6 +691,15 @@ export class PuestosList implements OnInit {
       docEstadosFinancieros: trimStr(draft.docEstadosFinancieros),
       contractStart: trimStr(draft.contractStart),
       contractEnd: trimStr(draft.contractEnd),
+      contractTerm: trimStr(draft.contractTerm),
+      docCamaraComercio: trimStr(draft.docCamaraComercio as string | undefined),
+      docRut: trimStr(draft.docRut as string | undefined),
+      docCcRepLegal: trimStr(draft.docCcRepLegal as string | undefined),
+      docTratamientoDatos: trimStr(draft.docTratamientoDatos as string | undefined),
+      docFormularioAsociado: trimStr(draft.docFormularioAsociado as string | undefined),
+      docAcuerdoSeguridad: trimStr(draft.docAcuerdoSeguridad as string | undefined),
+      docVisitaCliente: trimStr(draft.docVisitaCliente as string | undefined),
+      docRuesCamara: trimStr(draft.docRuesCamara as string | undefined),
     };
 
     // Fechas de verificación: si vienen vacías, no enviar.

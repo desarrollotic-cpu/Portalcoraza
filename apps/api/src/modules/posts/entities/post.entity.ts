@@ -101,11 +101,15 @@ export class Post {
   @Column({ type: 'boolean', nullable: true })
   basc!: boolean | null;
 
-  @Column({ name: 'contract_start', type: 'date', nullable: true })
+  @Column({ name: 'contract_start', type: 'varchar', nullable: true, length: 80 })
   contractStart!: string | null;
 
-  @Column({ name: 'contract_end', type: 'date', nullable: true })
+  @Column({ name: 'contract_end', type: 'varchar', nullable: true, length: 80 })
   contractEnd!: string | null;
+
+  /** Texto libre para plazo ("24 MESES", "INDEFINIDO", "2 AÑOS", "AUTOMATICO"). */
+  @Column({ name: 'contract_term', type: 'varchar', nullable: true, length: 80 })
+  contractTerm!: string | null;
 
   @Column({ type: 'varchar', nullable: true, length: 120 })
   city!: string | null;
@@ -116,106 +120,106 @@ export class Post {
   @Column({ name: 'legal_rep_id', type: 'varchar', nullable: true, length: 30 })
   legalRepId!: string | null;
 
-  @Column({ name: 'contact_email', type: 'varchar', nullable: true, length: 200 })
+  @Column({ name: 'contact_email', type: 'text', nullable: true })
   contactEmail!: string | null;
 
   @Column({ type: 'text', nullable: true })
   observations!: string | null;
 
-  // --- Documentación (SI/NO) ---
-  @Column({ name: 'doc_camara_comercio', type: 'boolean', nullable: true })
-  docCamaraComercio!: boolean | null;
+  // --- Documentación (texto libre: SI/NO/SOLICITUD/PDT/PARA FIRMAR/…) ---
+  @Column({ name: 'doc_camara_comercio', type: 'varchar', nullable: true, length: 60 })
+  docCamaraComercio!: string | null;
 
-  @Column({ name: 'doc_rut', type: 'boolean', nullable: true })
-  docRut!: boolean | null;
+  @Column({ name: 'doc_rut', type: 'varchar', nullable: true, length: 60 })
+  docRut!: string | null;
 
-  @Column({ name: 'doc_cc_rep_legal', type: 'boolean', nullable: true })
-  docCcRepLegal!: boolean | null;
+  @Column({ name: 'doc_cc_rep_legal', type: 'varchar', nullable: true, length: 60 })
+  docCcRepLegal!: string | null;
 
-  @Column({ name: 'doc_tratamiento_datos', type: 'boolean', nullable: true })
-  docTratamientoDatos!: boolean | null;
+  @Column({ name: 'doc_tratamiento_datos', type: 'varchar', nullable: true, length: 60 })
+  docTratamientoDatos!: string | null;
 
-  @Column({ name: 'doc_formulario_asociado', type: 'boolean', nullable: true })
-  docFormularioAsociado!: boolean | null;
+  @Column({ name: 'doc_formulario_asociado', type: 'varchar', nullable: true, length: 60 })
+  docFormularioAsociado!: string | null;
 
-  @Column({ name: 'doc_acuerdo_seguridad', type: 'boolean', nullable: true })
-  docAcuerdoSeguridad!: boolean | null;
+  @Column({ name: 'doc_acuerdo_seguridad', type: 'varchar', nullable: true, length: 60 })
+  docAcuerdoSeguridad!: string | null;
 
-  @Column({ name: 'doc_visita_cliente', type: 'boolean', nullable: true })
-  docVisitaCliente!: boolean | null;
+  @Column({ name: 'doc_visita_cliente', type: 'varchar', nullable: true, length: 60 })
+  docVisitaCliente!: string | null;
 
   /** Puede ser "SI", "NO" o texto libre ("SE HIZO LA SOLICITUD"). */
   @Column({ name: 'doc_estados_financieros', type: 'varchar', nullable: true, length: 80 })
   docEstadosFinancieros!: string | null;
 
-  @Column({ name: 'doc_rues_camara', type: 'boolean', nullable: true })
-  docRuesCamara!: boolean | null;
+  @Column({ name: 'doc_rues_camara', type: 'varchar', nullable: true, length: 60 })
+  docRuesCamara!: string | null;
 
-  // --- Fechas de verificación en listas ---
-  @Column({ name: 'verif_encuesta_satisfaccion', type: 'date', nullable: true })
+  // --- Fechas / textos de verificación en listas (ISO date o texto libre) ---
+  @Column({ name: 'verif_encuesta_satisfaccion', type: 'varchar', nullable: true, length: 30 })
   verifEncuestaSatisfaccion!: string | null;
 
-  @Column({ name: 'verif_ofac_rl', type: 'date', nullable: true })
+  @Column({ name: 'verif_ofac_rl', type: 'varchar', nullable: true, length: 30 })
   verifOfacRl!: string | null;
 
-  @Column({ name: 'verif_ofac_persona_juridica', type: 'date', nullable: true })
+  @Column({ name: 'verif_ofac_persona_juridica', type: 'varchar', nullable: true, length: 30 })
   verifOfacPersonaJuridica!: string | null;
 
-  @Column({ name: 'verif_central_riesgos_pn', type: 'date', nullable: true })
+  @Column({ name: 'verif_central_riesgos_pn', type: 'varchar', nullable: true, length: 30 })
   verifCentralRiesgosPn!: string | null;
 
-  @Column({ name: 'verif_central_riesgos_nit', type: 'date', nullable: true })
+  @Column({ name: 'verif_central_riesgos_nit', type: 'varchar', nullable: true, length: 30 })
   verifCentralRiesgosNit!: string | null;
 
-  @Column({ name: 'verif_procuraduria_nit', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_nit', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaNit!: string | null;
 
-  @Column({ name: 'verif_procuraduria_rl', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_rl', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaRl!: string | null;
 
-  @Column({ name: 'verif_procuraduria_rls', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_rls', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaRls!: string | null;
 
-  @Column({ name: 'verif_procuraduria_rev_fiscal_ppal', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_rev_fiscal_ppal', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaRevFiscalPpal!: string | null;
 
-  @Column({ name: 'verif_procuraduria_rev_fiscal_sup', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_rev_fiscal_sup', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaRevFiscalSup!: string | null;
 
-  @Column({ name: 'verif_procuraduria_miembros_junta', type: 'date', nullable: true })
+  @Column({ name: 'verif_procuraduria_miembros_junta', type: 'varchar', nullable: true, length: 30 })
   verifProcuraduriaMiembrosJunta!: string | null;
 
-  @Column({ name: 'verif_policia_rp', type: 'date', nullable: true })
+  @Column({ name: 'verif_policia_rp', type: 'varchar', nullable: true, length: 30 })
   verifPoliciaRp!: string | null;
 
-  @Column({ name: 'verif_policia_rp_sup', type: 'date', nullable: true })
+  @Column({ name: 'verif_policia_rp_sup', type: 'varchar', nullable: true, length: 30 })
   verifPoliciaRpSup!: string | null;
 
-  @Column({ name: 'verif_policia_rev_fiscal', type: 'date', nullable: true })
+  @Column({ name: 'verif_policia_rev_fiscal', type: 'varchar', nullable: true, length: 30 })
   verifPoliciaRevFiscal!: string | null;
 
-  @Column({ name: 'verif_policia_rev_fiscal_sup', type: 'date', nullable: true })
+  @Column({ name: 'verif_policia_rev_fiscal_sup', type: 'varchar', nullable: true, length: 30 })
   verifPoliciaRevFiscalSup!: string | null;
 
-  @Column({ name: 'verif_policia_miembros_junta', type: 'date', nullable: true })
+  @Column({ name: 'verif_policia_miembros_junta', type: 'varchar', nullable: true, length: 30 })
   verifPoliciaMiembrosJunta!: string | null;
 
-  @Column({ name: 'verif_contraloria_rp', type: 'date', nullable: true })
+  @Column({ name: 'verif_contraloria_rp', type: 'varchar', nullable: true, length: 30 })
   verifContraloriaRp!: string | null;
 
-  @Column({ name: 'verif_contraloria_rp_sup', type: 'date', nullable: true })
+  @Column({ name: 'verif_contraloria_rp_sup', type: 'varchar', nullable: true, length: 30 })
   verifContraloriaRpSup!: string | null;
 
-  @Column({ name: 'verif_contraloria_rev_fiscal', type: 'date', nullable: true })
+  @Column({ name: 'verif_contraloria_rev_fiscal', type: 'varchar', nullable: true, length: 30 })
   verifContraloriaRevFiscal!: string | null;
 
-  @Column({ name: 'verif_contraloria_rev_fiscal_sup', type: 'date', nullable: true })
+  @Column({ name: 'verif_contraloria_rev_fiscal_sup', type: 'varchar', nullable: true, length: 30 })
   verifContraloriaRevFiscalSup!: string | null;
 
-  @Column({ name: 'verif_contraloria_miembros_junta', type: 'date', nullable: true })
+  @Column({ name: 'verif_contraloria_miembros_junta', type: 'varchar', nullable: true, length: 30 })
   verifContraloriaMiembrosJunta!: string | null;
 
-  @Column({ name: 'verif_supersociedades', type: 'date', nullable: true })
+  @Column({ name: 'verif_supersociedades', type: 'varchar', nullable: true, length: 30 })
   verifSupersociedades!: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

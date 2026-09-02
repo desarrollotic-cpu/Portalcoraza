@@ -60,6 +60,12 @@ function cleanNumeric(s?: string): string | null {
   return clean.length ? clean : null;
 }
 
+function keepRaw(s?: string): string | null {
+  if (!s) return null;
+  const t = s.trim();
+  return t.length ? t : null;
+}
+
 function parseDate(s?: string): string | null {
   if (!s) return null;
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(s.trim());
@@ -83,24 +89,20 @@ function sectorToType(sector?: string): string {
   return 'SERVICIO_ESPECIAL';
 }
 
-function normalizeSector(sector?: string): string | null {
-  if (!sector) return null;
-  const s = sector.trim().toUpperCase();
-  return s.length ? s : null;
-}
-
-function normCity(c?: string): string | null {
-  if (!c) return null;
-  const s = c.trim().toUpperCase().replace(/Í/g, 'I').replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Ó/g, 'O').replace(/Ú/g, 'U');
-  return s.length ? s : null;
-}
-
 async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('Falta DATABASE_URL');
 
-  const migration = fs.readFileSync(
+  const migration049 = fs.readFileSync(
     path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '049_posts_client_fields.sql'),
+    'utf8',
+  );
+  const migration050 = fs.readFileSync(
+    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '050_posts_text_values.sql'),
+    'utf8',
+  );
+  const migration051 = fs.readFileSync(
+    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '051_posts_contract_text.sql'),
     'utf8',
   );
 
@@ -117,8 +119,10 @@ async function main() {
   await client.connect();
 
   try {
-    console.log('1) Aplicando migración 049 (extender posts)…');
-    await client.query(migration);
+    console.log('1) Aplicando migraciones 049 + 050 + 051…');
+    await client.query(migration049);
+    await client.query(migration050);
+    await client.query(migration051);
 
     console.log('2) TRUNCATE posts CASCADE (borra minutas/programación/entregas/equipos asociados)…');
     await client.query(`TRUNCATE posts RESTART IDENTITY CASCADE`);
@@ -156,10 +160,11 @@ async function main() {
 
       const name = r.header.slice(0, 200);
       const type = sectorToType(f['SECTOR']);
-      const start = parseDate(f['FECHA INICIAL CTTO']);
-      const end = parseDate(f['FECHA FINAL CCTO']) ?? parseDate(f['TIEMPO DEL CTTO']);
+      const startRaw = keepRaw(f['FECHA INICIAL CTTO']);
+      const created = parseDate(startRaw ?? undefined);
 
       const observations: string[] = [];
+      if (f['OBSERVACIONES']) observations.push(f['OBSERVACIONES']);
       for (const [k, v] of Object.entries(f)) {
         if (/^\d+$/.test(k)) observations.push(`${k}: ${v}`);
       }
@@ -170,7 +175,7 @@ async function main() {
           tenant_id, code, name, type, status,
           address, client_name, notes, zone, contact_name, phone,
           contract_number, service_type, armed,
-          nit, sector, basc, contract_start, contract_end, city,
+          nit, sector, basc, contract_start, contract_end, contract_term, city,
           legal_rep_name, legal_rep_id, contact_email, observations,
           doc_camara_comercio, doc_rut, doc_cc_rep_legal, doc_tratamiento_datos,
           doc_formulario_asociado, doc_acuerdo_seguridad, doc_visita_cliente,
@@ -190,22 +195,12 @@ async function main() {
           $1, $2, $3, $4, 'ACTIVO',
           $5, $6, NULL, $7, $8, $9,
           $10, NULL, false,
-          $11, $12, $13, $14, $15, $16,
-          $17, $18, $19, $20,
-          $21, $22, $23, $24,
-          $25, $26, $27,
-          $28, $29,
-          $30, $31, $32,
-          $33, $34,
-          $35, $36, $37,
-          $38, $39,
-          $40,
-          $41, $42, $43,
-          $44, $45,
-          $46, $47, $48,
-          $49, $50,
-          $51,
-          COALESCE($14::date, NOW()), NOW()
+          $11, $12, $13, $14, $15, $16, $17,
+          $18, $19, $20, $21,
+          $22, $23, $24, $25, $26, $27, $28, $29, $30,
+          $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45,
+          $46, $47, $48, $49, $50, $51, $52,
+          COALESCE($53::date, NOW()), NOW()
         )
         `,
         [
@@ -213,53 +208,55 @@ async function main() {
           code,
           name,
           type,
-          f['DIRECCION'] || null,
+          keepRaw(f['DIRECCION']),
           name,
-          f['ZONA'] || null,
-          f['NOMBRE DEL CONTACTO'] || null,
-          f['NUMERO TELEFONICO'] || null,
-          ccto,
-          cleanNumeric(f['NIT']),
-          normalizeSector(f['SECTOR']),
+          keepRaw(f['ZONA']),
+          keepRaw(f['NOMBRE DEL CONTACTO']),
+          keepRaw(f['NUMERO TELEFONICO']),
+          keepRaw(f['# DE CCTO']),
+          keepRaw(f['NIT']),
+          keepRaw(f['SECTOR']),
           parseBool(f['BASC  SI O NO']),
-          start,
-          end,
-          normCity(f['CIUDAD']),
-          f['NOMBRE REP LEGAL'] || null,
-          cleanNumeric(f['CEDULA REP LEGAL']),
-          f['EMAIL'] || null,
+          startRaw,
+          keepRaw(f['FECHA FINAL CCTO']),
+          keepRaw(f['TIEMPO DEL CTTO']),
+          keepRaw(f['CIUDAD']),
+          keepRaw(f['NOMBRE REP LEGAL']),
+          keepRaw(f['CEDULA REP LEGAL']),
+          keepRaw(f['EMAIL']),
           observations.length ? observations.join('\n') : null,
-          parseBool(f['CAMARA DE COMERCIO / PERSONERIA JURIDICA']),
-          parseBool(f['RUT']),
-          parseBool(f['CC REP LEGAL']),
-          parseBool(f['TRATAMIENTO DE DATOS']),
-          parseBool(f['FORMULARIO ASOCIADO DE NEGOCIO']),
-          parseBool(f['ACUERDO DE SEGURIDAD']),
-          parseBool(f['VISITA CLIENTE']),
-          f['ESTADOS FINANCIEROS'] || null,
-          parseBool(f['RUES / CAMARA']),
-          parseDate(f['ENCUESTA DE SATISFACCIÓN']),
-          parseDate(f['LISTA OFAC RL']),
-          parseDate(f['LISTA OFAC PERSONA JURIDICA']),
-          parseDate(f['CENTRAL DE RIESGOS PN']),
-          parseDate(f['CENTRAL DE RIESGOS NIT']),
-          parseDate(f['PROCURADURÍA NIT']),
-          parseDate(f['PROCURADURIA RL']),
-          parseDate(f['PROCURADURIA RLS']),
-          parseDate(f['PROCURADURIA REVISOR FISCAL PPAL']),
-          parseDate(f['PROCURADURIA REVISOR FISCAL SUPLENTE']),
-          parseDate(f['PROCURADURÍA MIEMBROS DE JUNTA']),
-          parseDate(f['POLICIA RP']),
-          parseDate(f['POLICIA RP SUP']),
-          parseDate(f['POLICIA REVISOR FISCAL']),
-          parseDate(f['POLICIA REVISOR FISCAL SUPLENTE']),
-          parseDate(f['POLICIA MIEMBROS DE JUNTA']),
-          parseDate(f['CONTRALORÍA RP']),
-          parseDate(f['CONTRALORIA RP SUP']),
-          parseDate(f['CONTRALORIA REVISOR FISCAL']),
-          parseDate(f['CONTRALORIA REVISOR FISCAL SUPLENTE']),
-          parseDate(f['CONTRALORIA MIEMBROS DE JUNTA']),
-          parseDate(f['SUPERSOCIEDADES / TURISMO COMERCIO TRANSP']),
+          keepRaw(f['CAMARA DE COMERCIO / PERSONERIA JURIDICA']),
+          keepRaw(f['RUT']),
+          keepRaw(f['CC REP LEGAL']),
+          keepRaw(f['TRATAMIENTO DE DATOS']),
+          keepRaw(f['FORMULARIO ASOCIADO DE NEGOCIO']),
+          keepRaw(f['ACUERDO DE SEGURIDAD']),
+          keepRaw(f['VISITA CLIENTE']),
+          keepRaw(f['ESTADOS FINANCIEROS']),
+          keepRaw(f['RUES / CAMARA']),
+          keepRaw(f['ENCUESTA DE SATISFACCIÓN']),
+          keepRaw(f['LISTA OFAC RL']),
+          keepRaw(f['LISTA OFAC PERSONA JURIDICA']),
+          keepRaw(f['CENTRAL DE RIESGOS PN']),
+          keepRaw(f['CENTRAL DE RIESGOS NIT']),
+          keepRaw(f['PROCURADURÍA NIT']),
+          keepRaw(f['PROCURADURIA RL']),
+          keepRaw(f['PROCURADURIA RLS']),
+          keepRaw(f['PROCURADURIA REVISOR FISCAL PPAL']),
+          keepRaw(f['PROCURADURIA REVISOR FISCAL SUPLENTE']),
+          keepRaw(f['PROCURADURÍA MIEMBROS DE JUNTA']),
+          keepRaw(f['POLICIA RP']),
+          keepRaw(f['POLICIA RP SUP']),
+          keepRaw(f['POLICIA REVISOR FISCAL']),
+          keepRaw(f['POLICIA REVISOR FISCAL SUPLENTE']),
+          keepRaw(f['POLICIA MIEMBROS DE JUNTA']),
+          keepRaw(f['CONTRALORÍA RP']),
+          keepRaw(f['CONTRALORIA RP SUP']),
+          keepRaw(f['CONTRALORIA REVISOR FISCAL']),
+          keepRaw(f['CONTRALORIA REVISOR FISCAL SUPLENTE']),
+          keepRaw(f['CONTRALORIA MIEMBROS DE JUNTA']),
+          keepRaw(f['SUPERSOCIEDADES / TURISMO COMERCIO TRANSP']),
+          created,
         ],
       );
       inserted++;
@@ -269,6 +266,16 @@ async function main() {
     console.log(`\nOK. Insertados: ${inserted}. Total ahora en posts: ${total.rows[0].c}`);
     if (skipped.length) console.log(`Saltados: ${skipped.length}`);
     skipped.forEach((s) => console.log('  -', s));
+
+    const checks = await client.query(
+      `SELECT code, name, doc_camara_comercio, doc_estados_financieros, doc_rues_camara,
+              contract_term, verif_encuesta_satisfaccion, observations
+       FROM posts
+       WHERE code IN ('937','953','1077','1075','1069','1124','857-1')
+       ORDER BY code`,
+    );
+    console.log('\nSpot-check:');
+    for (const row of checks.rows) console.log(JSON.stringify(row));
   } finally {
     await client.end();
   }
