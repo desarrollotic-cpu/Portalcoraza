@@ -1334,7 +1334,12 @@ export class ScheduleBoard implements OnInit {
         this.error.set('Agrega al menos un rol en Personal / Roles antes de aplicar el motor.');
         return;
       }
-      if (this.dirty() && !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')) return;
+      if (
+        this.cells().size > 0 &&
+        !confirm('Se sobrescribirán las celdas actuales. ¿Continuar?')
+      ) {
+        return;
+      }
       this.executeMotor(sched.id);
     };
 

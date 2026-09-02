@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, In, Repository } from 'typeorm';
+import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import ExcelJS from 'exceljs';
 import { AuditService } from '../audit/audit.service';
 import {
@@ -85,6 +86,17 @@ export class MonthlySchedulingService {
 
   private clearReportCache(): void {
     this.reportCache.clear();
+  }
+
+  /** Usa la transacción de la request (RLS + tenant_id); evita dataSource.transaction suelta. */
+  private async runInTenantTx<T>(
+    fn: (manager: EntityManager) => Promise<T>,
+  ): Promise<T> {
+    const qr = TenantQueryRunnerContext.getOptional();
+    if (qr?.manager) {
+      return fn(qr.manager);
+    }
+    return this.dataSource.transaction(fn);
   }
 
   async getOne(query: GetMonthlyScheduleDto): Promise<MonthlySchedule | null> {
@@ -653,7 +665,7 @@ export class MonthlySchedulingService {
       }
     }
 
-    await this.dataSource.transaction(async (manager) => {
+    await this.runInTenantTx(async (manager) => {
       await manager.update(MonthlySchedule, id, {
         personal: dto.personal as PersonalRole[],
         updatedBy: userId,
@@ -759,7 +771,7 @@ export class MonthlySchedulingService {
       tipoCiclo,
     );
 
-    await this.dataSource.transaction(async (manager) => {
+    await this.runInTenantTx(async (manager) => {
       await manager.delete(ScheduleAssignment, { scheduleId: id });
       const rows = generated.map((a) =>
         manager.create(ScheduleAssignment, {
