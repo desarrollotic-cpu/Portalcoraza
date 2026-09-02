@@ -474,8 +474,7 @@ export class HrExcelService {
       { header: 'Centro', key: 'workCenter', width: 10 },
       { header: 'Curso vigente', key: 'course', width: 14 },
       { header: 'Psicofísico vigente', key: 'psychophysical', width: 18 },
-      { header: 'Psicosensométrico vigente', key: 'psychosensometric', width: 24 },
-      { header: 'Póliza SURA', key: 'sura', width: 15 },
+      { header: 'Examen médico ocupacional', key: 'psychosensometric', width: 28 },
     ];
     sheet.getRow(1).font = { bold: true };
 
@@ -485,8 +484,7 @@ export class HrExcelService {
         a.psychophysical_valid || isFuture(a.psychophysical_expires_at);
       const psychosensometricValid =
         a.psychosensometric_valid || isFuture(a.psychosensometric_expires_at);
-      const hasSura = a.has_sura_policy || isFuture(a.sura_policy_expires_at);
-      const complete = courseValid && psychophysicalValid && psychosensometricValid && hasSura;
+      const complete = courseValid && psychophysicalValid && psychosensometricValid;
 
       const row = sheet.addRow({
         documentNumber: a.document_number,
@@ -496,7 +494,6 @@ export class HrExcelService {
         course: courseValid ? '✓' : '✗',
         psychophysical: psychophysicalValid ? '✓' : '✗',
         psychosensometric: psychosensometricValid ? '✓' : '✗',
-        sura: hasSura ? '✓' : '✗',
       });
       row.eachCell((cell) => {
         cell.fill = {

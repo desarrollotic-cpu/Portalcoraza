@@ -33,7 +33,7 @@ const DOCUMENT_LABELS: Record<AssociateDocumentKind, string> = {
   CEDULA: 'Cédula',
   CERTIFICADO_CURSO: 'Certificado de curso',
   EXAMEN_PSICOFISICO: 'Examen psicofísico',
-  EXAMEN_PSICOSENSOMETRICO: 'Examen psicosensométrico',
+  EXAMEN_PSICOSENSOMETRICO: 'Examen médico ocupacional',
   POLIZA_SURA: 'Póliza SURA',
   CONTRATO: 'Contrato',
   ACTA: 'Acta',
@@ -96,11 +96,8 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
               <span class="hr-sst-light" [class.on]="a.psychophysicalValid" title="Psicofísico">
                 <app-icon [icon]="a.psychophysicalValid ? icons.Check : icons.X" [size]="12" />
               </span>
-              <span class="hr-sst-light" [class.on]="a.psychosensometricValid" title="Psicosensométrico">
+              <span class="hr-sst-light" [class.on]="a.psychosensometricValid" title="Examen médico ocupacional">
                 <app-icon [icon]="a.psychosensometricValid ? icons.Check : icons.X" [size]="12" />
-              </span>
-              <span class="hr-sst-light" [class.on]="a.hasSuraPolicy" title="Póliza SURA">
-                <app-icon [icon]="a.hasSuraPolicy ? icons.Check : icons.X" [size]="12" />
               </span>
             </strong>
           </div>
@@ -251,11 +248,10 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                 <h3>Cumplimiento SST</h3>
                 <dl class="hr-dl">
                   <div><dt>Psicofísico</dt><dd>{{ a.psychophysicalValid ? 'Vigente' : 'Vencido / faltante' }}</dd></div>
-                  <div><dt>Psicosensométrico</dt><dd>{{ a.psychosensometricValid ? 'Vigente' : 'Vencido / faltante' }}</dd></div>
+                  <div><dt>Examen médico ocupacional</dt><dd>{{ a.psychosensometricValid ? 'Vigente' : 'Vencido / faltante' }}</dd></div>
                   <div><dt>Curso</dt><dd>{{ a.courseCode ?? '—' }}</dd></div>
                   <div><dt>Escuela NIT</dt><dd>{{ a.schoolNit ?? '—' }}</dd></div>
                   <div><dt>Nº certificado</dt><dd>{{ a.courseCertificateNumber ?? '—' }}</dd></div>
-                  <div><dt>Póliza SURA</dt><dd>{{ a.hasSuraPolicy ? 'Sí' : 'No' }}</dd></div>
                 </dl>
               </div>
             </div>
@@ -497,9 +493,9 @@ export class AssociateDetail implements OnInit {
     CalendarOff: LucideCalendarOff,
   };
 
-  readonly docKinds: { value: AssociateDocumentKind; label: string }[] = Object.entries(DOCUMENT_LABELS).map(
-    ([value, label]) => ({ value: value as AssociateDocumentKind, label }),
-  );
+  readonly docKinds: { value: AssociateDocumentKind; label: string }[] = Object.entries(DOCUMENT_LABELS)
+    .filter(([value]) => value !== 'POLIZA_SURA')
+    .map(([value, label]) => ({ value: value as AssociateDocumentKind, label }));
 
   readonly associate = signal<Associate | null>(null);
   readonly documents = signal<AssociateDocumentItem[]>([]);

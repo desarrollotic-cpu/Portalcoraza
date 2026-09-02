@@ -161,9 +161,6 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                       <span class="hr-sst-light" [class.on]="a.psychosensometricValid">
                         <app-icon [icon]="a.psychosensometricValid ? icons.Check : icons.X" [size]="14" />
                       </span>
-                      <span class="hr-sst-light" [class.on]="a.hasSuraPolicy">
-                        <app-icon [icon]="a.hasSuraPolicy ? icons.Check : icons.X" [size]="14" />
-                      </span>
                     </div>
                   </td>
                   <td>
@@ -339,8 +336,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   complianceTooltip(a: Associate): string {
     return [
       `Psicofísico: ${a.psychophysicalValid ? 'vigente' : 'vencido / faltante'}`,
-      `Psicosensométrico: ${a.psychosensometricValid ? 'vigente' : 'vencido / faltante'}`,
-      `Póliza SURA: ${a.hasSuraPolicy ? 'vigente' : 'sin cobertura'}`,
+      `Examen médico ocupacional: ${a.psychosensometricValid ? 'vigente' : 'vencido / faltante'}`,
     ].join('\n');
   }
 }
