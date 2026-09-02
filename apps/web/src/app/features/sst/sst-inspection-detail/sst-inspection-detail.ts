@@ -170,10 +170,10 @@ interface DraftRow {
                       </label>
                     </div>
 
-                    <!-- Sección de Fotos / Evidencias -->
-                    <div class="evidence-box">
+                    <!-- Fotos / Evidencias RIESGOSO -->
+                    <div class="evidence-box evidence-box-risk">
                       <div class="evidence-top">
-                        <span class="evidence-label">📷 Evidencias fotográficas ({{ row.evidencias.length }})</span>
+                        <span class="evidence-label">📷 Evidencias fotográficas del hallazgo ({{ row.evidencias.length }})</span>
                         @if (canEdit()) {
                           <label class="btn-upload-photo">
                             <input
@@ -187,7 +187,6 @@ interface DraftRow {
                           </label>
                         }
                       </div>
-
                       @if (row.evidencias.length > 0) {
                         <div class="evidence-thumbs">
                           @for (photo of row.evidencias; track $index; let idx = $index) {
@@ -205,6 +204,52 @@ interface DraftRow {
                     @if (row.reincidenciaCount >= 3) {
                       <p class="critical">⚠️ ALERTA CRÍTICA: {{ row.reincidenciaCount }} reincidencias en este puesto</p>
                     }
+                  </div>
+                }
+
+                <!-- Campos adicionales para ítems SEGURO: observación + fotos de verificación -->
+                @if (row.valoracion === 'SEGURO') {
+                  <div class="safe-fields">
+                    <label>
+                      Observación / Nota de verificación
+                      <textarea
+                        [(ngModel)]="row.hallazgo"
+                        rows="2"
+                        [disabled]="!canEdit()"
+                        placeholder="Ej. Se verificó condición en óptimo estado. Sin novedades."
+                      ></textarea>
+                    </label>
+
+                    <!-- Fotos / Evidencias SEGURO -->
+                    <div class="evidence-box evidence-box-safe">
+                      <div class="evidence-top">
+                        <span class="evidence-label evidence-label-safe">📷 Foto de verificación ({{ row.evidencias.length }})</span>
+                        @if (canEdit()) {
+                          <label class="btn-upload-photo btn-upload-safe">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              (change)="onFileSelected($event, row)"
+                              style="display: none;"
+                            />
+                            ➕ Tomar / Adjuntar foto
+                          </label>
+                        }
+                      </div>
+                      @if (row.evidencias.length > 0) {
+                        <div class="evidence-thumbs">
+                          @for (photo of row.evidencias; track $index; let idx = $index) {
+                            <div class="thumb-card">
+                              <img [src]="photo" alt="Verificación" (click)="previewPhoto.set(photo)" />
+                              @if (canEdit()) {
+                                <button type="button" class="btn-del-photo" (click)="removePhoto(row, idx)" title="Eliminar foto">✕</button>
+                              }
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
                   </div>
                 }
               </article>
@@ -294,12 +339,16 @@ interface DraftRow {
       margin-top: 0.4rem; background: #fff; border: 1px dashed #cbd5e1;
       border-radius: 0.5rem; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;
     }
+    .evidence-box-risk { border-color: #fca5a5; background: #fff5f5; }
+    .evidence-box-safe { border-color: #86efac; background: #f0fdf4; }
     .evidence-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .evidence-label { font-size: 0.82rem; font-weight: 700; color: #334155; }
+    .evidence-label-safe { color: #166534; }
     .btn-upload-photo {
       background: #0f766e; color: #fff; font-size: 0.78rem; font-weight: 600;
       padding: 0.3rem 0.65rem; border-radius: 0.4rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;
     }
+    .btn-upload-safe { background: #16a34a; }
     .btn-upload-photo:hover { opacity: 0.9; }
     .evidence-thumbs { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
     .thumb-card {
@@ -315,6 +364,18 @@ interface DraftRow {
       background: rgba(0,0,0,0.7); color: #fff; border: 0; font-size: 0.65rem; font-weight: bold;
       cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0;
     }
+
+    /* Campos adicionales para ítems SEGURO */
+    .safe-fields {
+      background: #f0fdf4; border: 1px solid #86efac; border-radius: 0.5rem;
+      padding: 0.75rem 0.9rem; margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .safe-fields label { font-size: 0.85rem; font-weight: 600; color: #166534; display: flex; flex-direction: column; gap: 0.3rem; }
+    .safe-fields textarea {
+      font-size: 0.85rem; padding: 0.45rem 0.6rem; border-radius: 0.4rem;
+      border: 1px solid #86efac; resize: vertical; background: #fff; color: #1e293b;
+    }
+    .safe-fields textarea:focus { outline: 2px solid #16a34a; border-color: transparent; }
 
     /* Modal previsualización */
     .modal-backdrop {
