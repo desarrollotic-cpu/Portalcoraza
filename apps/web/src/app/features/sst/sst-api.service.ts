@@ -108,6 +108,10 @@ export class SstApiService {
     return this.http.get<SstOverview>(`${this.baseUrl}/overview`);
   }
 
+  checklist(): Observable<SstChecklistItem[]> {
+    return this.http.get<SstChecklistItem[]>(`${this.baseUrl}/checklist`);
+  }
+
   listClients(): Observable<SstClient[]> {
     return this.http.get<SstClient[]>(`${this.baseUrl}/clients`);
   }
