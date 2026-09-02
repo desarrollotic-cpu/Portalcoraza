@@ -20,6 +20,67 @@ const POST_TYPES: { value: PostType; label: string }[] = [
   { value: 'OBRA', label: 'Obra' },
 ];
 
+/** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
+const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
+
+/** Campos booleanos de documentación agrupados para renderizar de forma compacta. */
+const DOC_BOOLS: { key: keyof CreateOperacionesPostPayload; label: string }[] = [
+  { key: 'docCamaraComercio', label: 'Cámara de comercio / Personería jurídica' },
+  { key: 'docRut', label: 'RUT' },
+  { key: 'docCcRepLegal', label: 'CC representante legal' },
+  { key: 'docTratamientoDatos', label: 'Tratamiento de datos' },
+  { key: 'docFormularioAsociado', label: 'Formulario asociado de negocio' },
+  { key: 'docAcuerdoSeguridad', label: 'Acuerdo de seguridad' },
+  { key: 'docVisitaCliente', label: 'Visita cliente' },
+  { key: 'docRuesCamara', label: 'RUES / Cámara' },
+];
+
+/** Fechas de verificación agrupadas por autoridad. */
+const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPayload; label: string }[] }[] = [
+  {
+    title: 'OFAC / Centrales de riesgo / Otras',
+    items: [
+      { key: 'verifEncuestaSatisfaccion', label: 'Encuesta de satisfacción' },
+      { key: 'verifOfacRl', label: 'OFAC representante legal' },
+      { key: 'verifOfacPersonaJuridica', label: 'OFAC persona jurídica' },
+      { key: 'verifCentralRiesgosPn', label: 'Central de riesgos PN' },
+      { key: 'verifCentralRiesgosNit', label: 'Central de riesgos NIT' },
+      { key: 'verifSupersociedades', label: 'Supersociedades / Turismo / Comercio' },
+    ],
+  },
+  {
+    title: 'Procuraduría',
+    items: [
+      { key: 'verifProcuraduriaNit', label: 'NIT' },
+      { key: 'verifProcuraduriaRl', label: 'RL' },
+      { key: 'verifProcuraduriaRls', label: 'RLS' },
+      { key: 'verifProcuraduriaRevFiscalPpal', label: 'Revisor fiscal principal' },
+      { key: 'verifProcuraduriaRevFiscalSup', label: 'Revisor fiscal suplente' },
+      { key: 'verifProcuraduriaMiembrosJunta', label: 'Miembros de junta' },
+    ],
+  },
+  {
+    title: 'Policía',
+    items: [
+      { key: 'verifPoliciaRp', label: 'RP' },
+      { key: 'verifPoliciaRpSup', label: 'RP suplente' },
+      { key: 'verifPoliciaRevFiscal', label: 'Revisor fiscal' },
+      { key: 'verifPoliciaRevFiscalSup', label: 'Revisor fiscal suplente' },
+      { key: 'verifPoliciaMiembrosJunta', label: 'Miembros de junta' },
+    ],
+  },
+  {
+    title: 'Contraloría',
+    items: [
+      { key: 'verifContraloriaRp', label: 'RP' },
+      { key: 'verifContraloriaRpSup', label: 'RP suplente' },
+      { key: 'verifContraloriaRevFiscal', label: 'Revisor fiscal' },
+      { key: 'verifContraloriaRevFiscalSup', label: 'Revisor fiscal suplente' },
+      { key: 'verifContraloriaMiembrosJunta', label: 'Miembros de junta' },
+    ],
+  },
+];
+
 @Component({
   selector: 'app-puestos-list',
   imports: [FormsModule],
@@ -29,14 +90,14 @@ const POST_TYPES: { value: PostType; label: string }[] = [
         <div>
           <h2>Puestos de trabajo</h2>
           <p>
-            Catálogo operativo. Los puestos <strong>ACTIVO</strong> aparecen en Programación
-            (matriz / cuadro) y en Dotación.
+            Catálogo de asociados de negocio. Los puestos <strong>ACTIVO</strong> aparecen en
+            Programación y en Dotación.
           </p>
         </div>
         <div class="controls">
           <input
             type="search"
-            placeholder="Buscar código, nombre o cliente…"
+            placeholder="Buscar código, nombre, NIT o cliente…"
             [ngModel]="query()"
             (ngModelChange)="query.set($event)"
           />
@@ -52,87 +113,216 @@ const POST_TYPES: { value: PostType; label: string }[] = [
       </header>
 
       @if (editing()) {
-        <form class="form" (ngSubmit)="save()">
+        <form class="form" (ngSubmit)="save()" #f="ngForm">
           <h3>{{ editing()!.id ? 'Editar puesto' : 'Nuevo puesto' }}</h3>
-          <div class="grid">
-            <label>
-              Código *
-              <input name="code" [(ngModel)]="editing()!.code" required maxlength="50" />
-            </label>
-            <label class="span-2">
-              Nombre *
-              <input name="name" [(ngModel)]="editing()!.name" required maxlength="200" />
-            </label>
-            <label>
-              Tipo
-              <select name="type" [(ngModel)]="editing()!.type">
-                @for (t of types; track t.value) {
-                  <option [value]="t.value">{{ t.label }}</option>
+
+          <!-- 1. Identificación -->
+          <details open>
+            <summary>Identificación</summary>
+            <div class="grid">
+              <label>
+                Código *
+                <input name="code" [(ngModel)]="editing()!.code" required maxlength="50" />
+              </label>
+              <label class="span-2">
+                Nombre *
+                <input name="name" [(ngModel)]="editing()!.name" required maxlength="200" />
+              </label>
+              <label>
+                NIT
+                <input name="nit" [(ngModel)]="editing()!.nit" maxlength="30" />
+              </label>
+              <label>
+                Sector
+                <select name="sector" [(ngModel)]="editing()!.sector">
+                  <option [ngValue]="undefined">—</option>
+                  @for (s of sectors; track s) { <option [ngValue]="s">{{ s }}</option> }
+                </select>
+              </label>
+              <label>
+                Tipo interno
+                <select name="type" [(ngModel)]="editing()!.type">
+                  @for (t of types; track t.value) { <option [ngValue]="t.value">{{ t.label }}</option> }
+                </select>
+              </label>
+              <label>
+                Estado
+                <select name="status" [(ngModel)]="editing()!.status">
+                  <option [ngValue]="'ACTIVO'">ACTIVO</option>
+                  <option [ngValue]="'INACTIVO'">INACTIVO</option>
+                </select>
+              </label>
+              <label class="span-2">
+                Cliente (nombre comercial)
+                <input name="clientName" [(ngModel)]="editing()!.clientName" maxlength="200" />
+              </label>
+            </div>
+          </details>
+
+          <!-- 2. Contrato -->
+          <details open>
+            <summary>Contrato</summary>
+            <div class="grid">
+              <label>
+                N.º contrato
+                <input name="contractNumber" [(ngModel)]="editing()!.contractNumber" maxlength="80" />
+              </label>
+              <label>
+                Fecha inicial
+                <input type="date" name="contractStart" [(ngModel)]="editing()!.contractStart" />
+              </label>
+              <label>
+                Fecha final
+                <input type="date" name="contractEnd" [(ngModel)]="editing()!.contractEnd" />
+              </label>
+              <label>
+                BASC
+                <select name="basc" [ngModel]="boolStr(editing()!.basc)" (ngModelChange)="editing()!.basc = strBool($event)">
+                  <option [ngValue]="''">—</option>
+                  <option [ngValue]="'true'">SI</option>
+                  <option [ngValue]="'false'">NO</option>
+                </select>
+              </label>
+              <label>
+                Tipo de servicio
+                <input name="serviceType" [(ngModel)]="editing()!.serviceType" maxlength="80" />
+              </label>
+              <label>
+                Prioridad
+                <select name="priority" [(ngModel)]="editing()!.priority">
+                  <option [ngValue]="undefined">—</option>
+                  <option [ngValue]="'baja'">Baja</option>
+                  <option [ngValue]="'media'">Media</option>
+                  <option [ngValue]="'alta'">Alta</option>
+                  <option [ngValue]="'critica'">Crítica</option>
+                </select>
+              </label>
+              <label class="check">
+                <input type="checkbox" name="armed" [(ngModel)]="editing()!.armed" />
+                Con armamento
+              </label>
+            </div>
+          </details>
+
+          <!-- 3. Ubicación -->
+          <details>
+            <summary>Ubicación</summary>
+            <div class="grid">
+              <label class="span-2">
+                Dirección
+                <input name="address" [(ngModel)]="editing()!.address" />
+              </label>
+              <label>
+                Ciudad
+                <input name="city" [(ngModel)]="editing()!.city" maxlength="120" />
+              </label>
+              <label>
+                Zona
+                <input name="zone" [(ngModel)]="editing()!.zone" maxlength="80" />
+              </label>
+            </div>
+          </details>
+
+          <!-- 4. Rep. legal y contacto -->
+          <details>
+            <summary>Representante legal y contacto</summary>
+            <div class="grid">
+              <label class="span-2">
+                Nombre representante legal
+                <input name="legalRepName" [(ngModel)]="editing()!.legalRepName" maxlength="200" />
+              </label>
+              <label>
+                Cédula representante legal
+                <input name="legalRepId" [(ngModel)]="editing()!.legalRepId" maxlength="30" />
+              </label>
+              <label class="span-2">
+                Nombre del contacto
+                <input name="contactName" [(ngModel)]="editing()!.contactName" maxlength="200" />
+              </label>
+              <label>
+                Teléfono
+                <input name="phone" [(ngModel)]="editing()!.phone" maxlength="200" />
+              </label>
+              <label class="span-2">
+                Email
+                <input type="email" name="contactEmail" [(ngModel)]="editing()!.contactEmail" maxlength="200" />
+              </label>
+            </div>
+          </details>
+
+          <!-- 5. Documentación -->
+          <details>
+            <summary>Documentación (SI / NO)</summary>
+            <div class="grid">
+              @for (d of docBools; track d.key) {
+                <label>
+                  {{ d.label }}
+                  <select
+                    [name]="d.key"
+                    [ngModel]="boolStr(getBool(d.key))"
+                    (ngModelChange)="setBool(d.key, strBool($event))"
+                  >
+                    <option [ngValue]="''">—</option>
+                    <option [ngValue]="'true'">SI</option>
+                    <option [ngValue]="'false'">NO</option>
+                  </select>
+                </label>
+              }
+              <label class="span-2">
+                Estados financieros
+                <input
+                  name="docEstadosFinancieros"
+                  [(ngModel)]="editing()!.docEstadosFinancieros"
+                  maxlength="80"
+                  placeholder="SI / NO / texto"
+                />
+              </label>
+            </div>
+          </details>
+
+          <!-- 6. Fechas de verificación -->
+          @for (g of verifGroups; track g.title) {
+            <details>
+              <summary>Fechas de verificación — {{ g.title }}</summary>
+              <div class="grid">
+                @for (v of g.items; track v.key) {
+                  <label>
+                    {{ v.label }}
+                    <input
+                      type="date"
+                      [name]="v.key"
+                      [ngModel]="getStr(v.key)"
+                      (ngModelChange)="setStr(v.key, $event)"
+                    />
+                  </label>
                 }
-              </select>
-            </label>
-            <label>
-              Estado
-              <select name="status" [(ngModel)]="editing()!.status">
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="INACTIVO">INACTIVO</option>
-              </select>
-            </label>
-            <label class="span-2">
-              Cliente
-              <input name="clientName" [(ngModel)]="editing()!.clientName" maxlength="200" />
-            </label>
-            <label class="span-2">
-              Dirección
-              <input name="address" [(ngModel)]="editing()!.address" />
-            </label>
-            <label>
-              Zona
-              <input name="zone" [(ngModel)]="editing()!.zone" maxlength="80" />
-            </label>
-            <label>
-              Contacto
-              <input name="contactName" [(ngModel)]="editing()!.contactName" maxlength="120" />
-            </label>
-            <label>
-              Teléfono
-              <input name="phone" [(ngModel)]="editing()!.phone" maxlength="40" />
-            </label>
-            <label>
-              Prioridad
-              <select name="priority" [(ngModel)]="editing()!.priority">
-                <option value="">—</option>
-                <option value="baja">Baja</option>
-                <option value="media">Media</option>
-                <option value="alta">Alta</option>
-                <option value="critica">Crítica</option>
-              </select>
-            </label>
-            <label>
-              N.º contrato
-              <input name="contractNumber" [(ngModel)]="editing()!.contractNumber" maxlength="80" />
-            </label>
-            <label>
-              Tipo de servicio
-              <input name="serviceType" [(ngModel)]="editing()!.serviceType" maxlength="80" />
-            </label>
-            <label class="check">
-              <input type="checkbox" name="armed" [(ngModel)]="editing()!.armed" />
-              Con armamento
-            </label>
-            <label class="span-3">
-              Requisitos
-              <textarea name="requirements" [(ngModel)]="editing()!.requirements" rows="2"></textarea>
-            </label>
-            <label class="span-3">
-              Instrucciones
-              <textarea name="instructions" [(ngModel)]="editing()!.instructions" rows="2"></textarea>
-            </label>
-            <label class="span-3">
-              Notas
-              <input name="notes" [(ngModel)]="editing()!.notes" />
-            </label>
-          </div>
+              </div>
+            </details>
+          }
+
+          <!-- 7. Notas -->
+          <details>
+            <summary>Requisitos, instrucciones y observaciones</summary>
+            <div class="grid">
+              <label class="span-3">
+                Requisitos
+                <textarea name="requirements" [(ngModel)]="editing()!.requirements" rows="2"></textarea>
+              </label>
+              <label class="span-3">
+                Instrucciones
+                <textarea name="instructions" [(ngModel)]="editing()!.instructions" rows="2"></textarea>
+              </label>
+              <label class="span-3">
+                Observaciones (uso interno)
+                <textarea name="observations" [(ngModel)]="editing()!.observations" rows="2"></textarea>
+              </label>
+              <label class="span-3">
+                Notas
+                <input name="notes" [(ngModel)]="editing()!.notes" />
+              </label>
+            </div>
+          </details>
+
           <div class="form-actions">
             <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
             <button type="submit" class="primary" [disabled]="saving()">Guardar</button>
@@ -151,9 +341,10 @@ const POST_TYPES: { value: PostType; label: string }[] = [
               <tr>
                 <th>Código</th>
                 <th>Nombre</th>
-                <th>Tipo</th>
+                <th>NIT</th>
+                <th>Sector</th>
+                <th>Ciudad</th>
                 <th>Zona</th>
-                <th>Cliente</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -163,9 +354,10 @@ const POST_TYPES: { value: PostType; label: string }[] = [
                 <tr [class.dim]="p.status !== 'ACTIVO'">
                   <td><code>{{ p.code }}</code></td>
                   <td><strong>{{ p.name }}</strong></td>
-                  <td>{{ typeLabel(p.type) }}</td>
+                  <td>{{ p.nit || '—' }}</td>
+                  <td>{{ p.sector || '—' }}</td>
+                  <td>{{ p.city || '—' }}</td>
                   <td>{{ p.zone || '—' }}</td>
-                  <td>{{ p.clientName || '—' }}</td>
                   <td>
                     <span class="badge" [class.ok]="p.status === 'ACTIVO'">{{ p.status }}</span>
                   </td>
@@ -186,7 +378,7 @@ const POST_TYPES: { value: PostType; label: string }[] = [
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="empty">No hay puestos con ese filtro.</td>
+                  <td colspan="8" class="empty">No hay puestos con ese filtro.</td>
                 </tr>
               }
             </tbody>
@@ -197,80 +389,49 @@ const POST_TYPES: { value: PostType; label: string }[] = [
   `,
   styles: `
     .page { display: flex; flex-direction: column; gap: 1rem; }
-    .head {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-      align-items: flex-start;
-    }
+    .head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; align-items: flex-start; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
     .head p { margin: 0; max-width: 42rem; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
     .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
-    .controls input[type='search'],
-    .controls select,
-    .form input,
-    .form select,
-    .form textarea {
-      border: 1px solid var(--border, #d1d5db);
-      border-radius: 8px;
-      padding: 0.45rem 0.65rem;
-      background: var(--surface, #fff);
-      color: inherit;
-      font: inherit;
+    .controls input[type='search'], .controls select,
+    .form input, .form select, .form textarea {
+      border: 1px solid var(--border, #d1d5db); border-radius: 8px;
+      padding: 0.45rem 0.65rem; background: var(--surface, #fff); color: inherit; font: inherit;
     }
-    .controls input[type='search'] { min-width: 220px; }
+    .controls input[type='search'] { min-width: 240px; }
     button.primary, button.ghost, button.link {
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font: inherit;
+      border: none; border-radius: 8px; cursor: pointer; font: inherit;
     }
-    button.primary {
-      background: var(--coraza-primary, #1d4ed8);
-      color: #fff;
-      padding: 0.5rem 0.9rem;
-    }
-    button.ghost {
-      background: transparent;
-      border: 1px solid var(--border, #d1d5db);
-      padding: 0.5rem 0.9rem;
-    }
-    button.link {
-      background: none;
-      color: var(--coraza-primary, #1d4ed8);
-      padding: 0;
-    }
+    button.primary { background: var(--coraza-primary, #1d4ed8); color: #fff; padding: 0.5rem 0.9rem; }
+    button.ghost { background: transparent; border: 1px solid var(--border, #d1d5db); padding: 0.5rem 0.9rem; }
+    button.link { background: none; color: var(--coraza-primary, #1d4ed8); padding: 0; }
     button.link.danger { color: #b91c1c; }
     .form {
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 12px;
-      padding: 1rem;
-      background: var(--surface, #fff);
-      display: flex;
-      flex-direction: column;
-      gap: 0.85rem;
+      border: 1px solid var(--border, #e5e7eb); border-radius: 12px;
+      padding: 1rem; background: var(--surface, #fff);
+      display: flex; flex-direction: column; gap: 0.75rem;
     }
-    .form h3 { margin: 0; font-size: 1rem; }
+    .form h3 { margin: 0 0 0.25rem; font-size: 1rem; }
+    details {
+      border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 0.5rem 0.75rem;
+      background: var(--surface-alt, #fafafa);
+    }
+    details[open] { padding-bottom: 0.9rem; }
+    details > summary {
+      cursor: pointer; font-weight: 600; font-size: 0.88rem; padding: 0.35rem 0;
+      color: var(--text, #111827);
+    }
     .grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 0.75rem;
+      display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem; margin-top: 0.5rem;
     }
     .grid label {
-      display: flex;
-      flex-direction: column;
-      gap: 0.3rem;
-      font-size: 0.8rem;
-      color: var(--text-muted, #6b7280);
+      display: flex; flex-direction: column; gap: 0.3rem;
+      font-size: 0.78rem; color: var(--text-muted, #6b7280);
     }
-    .check {
-      flex-direction: row !important;
-      align-items: center;
-      gap: 0.5rem;
-      margin-top: 1.4rem;
-    }
+    .check { flex-direction: row !important; align-items: center; gap: 0.5rem; margin-top: 1.4rem; }
     .check input { width: auto; }
+    .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
     .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
     .table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
@@ -279,20 +440,14 @@ const POST_TYPES: { value: PostType; label: string }[] = [
     th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #6b7280); }
     .dim { opacity: 0.55; }
     .badge {
-      display: inline-block;
-      padding: 0.15rem 0.45rem;
-      border-radius: 999px;
-      font-size: 0.72rem;
-      background: #f3f4f6;
+      display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px;
+      font-size: 0.72rem; background: #f3f4f6;
     }
     .badge.ok { background: #dcfce7; color: #166534; }
     .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .empty, .error { color: var(--text-muted, #6b7280); }
     .error { color: #b91c1c; }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.85em;
-    }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; }
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }
       .span-2, .span-3 { grid-column: span 1; }
@@ -305,6 +460,10 @@ export class PuestosList implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly types = POST_TYPES;
+  readonly sectors = SECTORS;
+  readonly docBools = DOC_BOOLS;
+  readonly verifGroups = VERIF_GROUPS;
+
   readonly posts = signal<OperacionesPost[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
@@ -319,7 +478,7 @@ export class PuestosList implements OnInit {
     return this.posts().filter((p) => {
       if (st && p.status !== st) return false;
       if (!q) return true;
-      return [p.code, p.name, p.clientName ?? '', p.address ?? '', p.zone ?? '']
+      return [p.code, p.name, p.clientName ?? '', p.address ?? '', p.zone ?? '', p.nit ?? '', p.city ?? '']
         .join(' ')
         .toLowerCase()
         .includes(q);
@@ -332,6 +491,40 @@ export class PuestosList implements OnInit {
 
   typeLabel(type: PostType): string {
     return POST_TYPES.find((t) => t.value === type)?.label ?? type;
+  }
+
+  boolStr(v: boolean | null | undefined): string {
+    return v === true ? 'true' : v === false ? 'false' : '';
+  }
+
+  strBool(v: string): boolean | undefined {
+    return v === 'true' ? true : v === 'false' ? false : undefined;
+  }
+
+  getBool(key: keyof CreateOperacionesPostPayload): boolean | null | undefined {
+    const draft = this.editing();
+    if (!draft) return undefined;
+    return draft[key] as boolean | null | undefined;
+  }
+
+  setBool(key: keyof CreateOperacionesPostPayload, v: boolean | undefined): void {
+    const draft = this.editing();
+    if (!draft) return;
+    (draft as Record<string, unknown>)[key] = v;
+    this.editing.set({ ...draft });
+  }
+
+  getStr(key: keyof CreateOperacionesPostPayload): string {
+    const draft = this.editing();
+    if (!draft) return '';
+    return ((draft[key] as string | null | undefined) ?? '').toString();
+  }
+
+  setStr(key: keyof CreateOperacionesPostPayload, v: string): void {
+    const draft = this.editing();
+    if (!draft) return;
+    (draft as Record<string, unknown>)[key] = v || undefined;
+    this.editing.set({ ...draft });
   }
 
   reload(): void {
@@ -355,18 +548,7 @@ export class PuestosList implements OnInit {
       name: '',
       type: 'SERVICIO_ESPECIAL',
       status: 'ACTIVO',
-      address: '',
-      clientName: '',
-      notes: '',
-      zone: '',
-      contactName: '',
-      phone: '',
-      priority: '',
-      contractNumber: '',
-      serviceType: '',
       armed: false,
-      requirements: '',
-      instructions: '',
     });
   }
 
@@ -389,6 +571,47 @@ export class PuestosList implements OnInit {
       armed: !!p.armed,
       requirements: p.requirements ?? '',
       instructions: p.instructions ?? '',
+      nit: p.nit ?? '',
+      sector: p.sector ?? undefined,
+      basc: p.basc,
+      contractStart: p.contractStart ?? '',
+      contractEnd: p.contractEnd ?? '',
+      city: p.city ?? '',
+      legalRepName: p.legalRepName ?? '',
+      legalRepId: p.legalRepId ?? '',
+      contactEmail: p.contactEmail ?? '',
+      observations: p.observations ?? '',
+      docCamaraComercio: p.docCamaraComercio,
+      docRut: p.docRut,
+      docCcRepLegal: p.docCcRepLegal,
+      docTratamientoDatos: p.docTratamientoDatos,
+      docFormularioAsociado: p.docFormularioAsociado,
+      docAcuerdoSeguridad: p.docAcuerdoSeguridad,
+      docVisitaCliente: p.docVisitaCliente,
+      docEstadosFinancieros: p.docEstadosFinancieros ?? '',
+      docRuesCamara: p.docRuesCamara,
+      verifEncuestaSatisfaccion: p.verifEncuestaSatisfaccion ?? '',
+      verifOfacRl: p.verifOfacRl ?? '',
+      verifOfacPersonaJuridica: p.verifOfacPersonaJuridica ?? '',
+      verifCentralRiesgosPn: p.verifCentralRiesgosPn ?? '',
+      verifCentralRiesgosNit: p.verifCentralRiesgosNit ?? '',
+      verifProcuraduriaNit: p.verifProcuraduriaNit ?? '',
+      verifProcuraduriaRl: p.verifProcuraduriaRl ?? '',
+      verifProcuraduriaRls: p.verifProcuraduriaRls ?? '',
+      verifProcuraduriaRevFiscalPpal: p.verifProcuraduriaRevFiscalPpal ?? '',
+      verifProcuraduriaRevFiscalSup: p.verifProcuraduriaRevFiscalSup ?? '',
+      verifProcuraduriaMiembrosJunta: p.verifProcuraduriaMiembrosJunta ?? '',
+      verifPoliciaRp: p.verifPoliciaRp ?? '',
+      verifPoliciaRpSup: p.verifPoliciaRpSup ?? '',
+      verifPoliciaRevFiscal: p.verifPoliciaRevFiscal ?? '',
+      verifPoliciaRevFiscalSup: p.verifPoliciaRevFiscalSup ?? '',
+      verifPoliciaMiembrosJunta: p.verifPoliciaMiembrosJunta ?? '',
+      verifContraloriaRp: p.verifContraloriaRp ?? '',
+      verifContraloriaRpSup: p.verifContraloriaRpSup ?? '',
+      verifContraloriaRevFiscal: p.verifContraloriaRevFiscal ?? '',
+      verifContraloriaRevFiscalSup: p.verifContraloriaRevFiscalSup ?? '',
+      verifContraloriaMiembrosJunta: p.verifContraloriaMiembrosJunta ?? '',
+      verifSupersociedades: p.verifSupersociedades ?? '',
     });
   }
 
@@ -403,24 +626,52 @@ export class PuestosList implements OnInit {
       return;
     }
 
+    // Limpia strings vacíos → undefined (evita enviarlos al backend).
+    const trimStr = (v: string | null | undefined): string | undefined => {
+      if (v === null || v === undefined) return undefined;
+      const t = String(v).trim();
+      return t.length ? t : undefined;
+    };
+
     const payload: CreateOperacionesPostPayload = {
+      ...draft,
       code: draft.code.trim(),
       name: draft.name.trim(),
-      type: draft.type,
-      status: draft.status,
-      address: draft.address?.trim() || undefined,
-      clientName: draft.clientName?.trim() || undefined,
-      notes: draft.notes?.trim() || undefined,
-      zone: draft.zone?.trim() || undefined,
-      contactName: draft.contactName?.trim() || undefined,
-      phone: draft.phone?.trim() || undefined,
-      priority: draft.priority?.trim() || undefined,
-      contractNumber: draft.contractNumber?.trim() || undefined,
-      serviceType: draft.serviceType?.trim() || undefined,
-      armed: !!draft.armed,
-      requirements: draft.requirements?.trim() || undefined,
-      instructions: draft.instructions?.trim() || undefined,
+      address: trimStr(draft.address),
+      clientName: trimStr(draft.clientName),
+      notes: trimStr(draft.notes),
+      zone: trimStr(draft.zone),
+      contactName: trimStr(draft.contactName),
+      phone: trimStr(draft.phone),
+      priority: trimStr(draft.priority),
+      contractNumber: trimStr(draft.contractNumber),
+      serviceType: trimStr(draft.serviceType),
+      requirements: trimStr(draft.requirements),
+      instructions: trimStr(draft.instructions),
+      nit: trimStr(draft.nit),
+      sector: trimStr(draft.sector),
+      city: trimStr(draft.city),
+      legalRepName: trimStr(draft.legalRepName),
+      legalRepId: trimStr(draft.legalRepId),
+      contactEmail: trimStr(draft.contactEmail),
+      observations: trimStr(draft.observations),
+      docEstadosFinancieros: trimStr(draft.docEstadosFinancieros),
+      contractStart: trimStr(draft.contractStart),
+      contractEnd: trimStr(draft.contractEnd),
     };
+
+    // Fechas de verificación: si vienen vacías, no enviar.
+    for (const g of VERIF_GROUPS) {
+      for (const it of g.items) {
+        const key = it.key as keyof CreateOperacionesPostPayload;
+        const v = (payload as Record<string, unknown>)[key];
+        if (typeof v === 'string' && !v.trim()) {
+          (payload as Record<string, unknown>)[key] = undefined;
+        }
+      }
+    }
+
+    delete (payload as { id?: string }).id;
 
     this.saving.set(true);
     const req = draft.id

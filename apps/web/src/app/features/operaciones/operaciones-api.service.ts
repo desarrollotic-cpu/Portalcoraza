@@ -11,7 +11,54 @@ export type PostType =
   | 'OBRA'
   | 'SERVICIO_ESPECIAL';
 
-export interface OperacionesPost {
+/** Campos extendidos del asociado de negocio (cliente / contrato). */
+export interface PostClientFields {
+  nit: string | null;
+  sector: string | null;
+  basc: boolean | null;
+  contractStart: string | null;
+  contractEnd: string | null;
+  city: string | null;
+  legalRepName: string | null;
+  legalRepId: string | null;
+  contactEmail: string | null;
+  observations: string | null;
+
+  docCamaraComercio: boolean | null;
+  docRut: boolean | null;
+  docCcRepLegal: boolean | null;
+  docTratamientoDatos: boolean | null;
+  docFormularioAsociado: boolean | null;
+  docAcuerdoSeguridad: boolean | null;
+  docVisitaCliente: boolean | null;
+  docEstadosFinancieros: string | null;
+  docRuesCamara: boolean | null;
+
+  verifEncuestaSatisfaccion: string | null;
+  verifOfacRl: string | null;
+  verifOfacPersonaJuridica: string | null;
+  verifCentralRiesgosPn: string | null;
+  verifCentralRiesgosNit: string | null;
+  verifProcuraduriaNit: string | null;
+  verifProcuraduriaRl: string | null;
+  verifProcuraduriaRls: string | null;
+  verifProcuraduriaRevFiscalPpal: string | null;
+  verifProcuraduriaRevFiscalSup: string | null;
+  verifProcuraduriaMiembrosJunta: string | null;
+  verifPoliciaRp: string | null;
+  verifPoliciaRpSup: string | null;
+  verifPoliciaRevFiscal: string | null;
+  verifPoliciaRevFiscalSup: string | null;
+  verifPoliciaMiembrosJunta: string | null;
+  verifContraloriaRp: string | null;
+  verifContraloriaRpSup: string | null;
+  verifContraloriaRevFiscal: string | null;
+  verifContraloriaRevFiscalSup: string | null;
+  verifContraloriaMiembrosJunta: string | null;
+  verifSupersociedades: string | null;
+}
+
+export interface OperacionesPost extends PostClientFields {
   id: string;
   code: string;
   name: string;
@@ -34,7 +81,7 @@ export interface OperacionesPost {
   updatedAt: string;
 }
 
-export interface CreateOperacionesPostPayload {
+export type CreateOperacionesPostPayload = {
   code: string;
   name: string;
   type?: PostType;
@@ -51,7 +98,7 @@ export interface CreateOperacionesPostPayload {
   armed?: boolean;
   requirements?: string;
   instructions?: string;
-}
+} & Partial<PostClientFields>;
 
 export type UpdateOperacionesPostPayload = Partial<CreateOperacionesPostPayload>;
 
