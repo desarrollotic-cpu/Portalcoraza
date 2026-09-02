@@ -51,8 +51,7 @@ import type { ComplianceMatrixRow } from '../services/hr.types';
                 <th>Centro</th>
                 <th class="cell-center">Curso</th>
                 <th class="cell-center">Psicofísico</th>
-                <th class="cell-center">Psicosensométrico</th>
-                <th class="cell-center">Póliza</th>
+                <th class="cell-center">Examen ocupacional</th>
                 <th>Estado</th>
               </tr>
             </thead>
@@ -78,9 +77,6 @@ import type { ComplianceMatrixRow } from '../services/hr.types';
                   <td class="cell-center" [class.cell-ok]="a.psychosensometricValid" [class.cell-ko]="!a.psychosensometricValid">
                     <app-icon [icon]="a.psychosensometricValid ? icons.Check : icons.X" [size]="16" />
                   </td>
-                  <td class="cell-center" [class.cell-ok]="a.hasSuraPolicy" [class.cell-ko]="!a.hasSuraPolicy">
-                    <app-icon [icon]="a.hasSuraPolicy ? icons.Check : icons.X" [size]="16" />
-                  </td>
                   <td>
                     @if (a.isComplete) {
                       <span class="hr-badge-ok">Cumple</span>
@@ -90,7 +86,7 @@ import type { ComplianceMatrixRow } from '../services/hr.types';
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="9" class="hr-empty">Sin personal en cargos críticos.</td></tr>
+                <tr><td colspan="8" class="hr-empty">Sin personal en cargos críticos.</td></tr>
               }
             </tbody>
           </table>

@@ -26,6 +26,7 @@ const DATE_ONLY_KEYS = [
   'psychophysicalExpirationDate',
   'psychosensometricIssuedDate',
   'psychosensometricExpirationDate',
+  'hasSuraPolicy',
 ] as const;
 
 /**
@@ -312,25 +313,19 @@ const DATE_ONLY_KEYS = [
               <div class="hr-field checkbox">
                 <label>
                   <input type="checkbox" formControlName="psychosensometricValid" />
-                  Psicosensométrico vigente
+                  Examen médico ocupacional
                 </label>
               </div>
               @if (form.get('psychosensometricValid')?.value) {
                 <div class="hr-field">
-                  <label>Inicio psicosensométrico *</label>
+                  <label>Inicio examen ocupacional *</label>
                   <input formControlName="psychosensometricIssuedDate" type="date" />
                 </div>
                 <div class="hr-field">
-                  <label>Vencimiento psicosensométrico *</label>
+                  <label>Vencimiento examen ocupacional *</label>
                   <input formControlName="psychosensometricExpirationDate" type="date" />
                 </div>
               }
-              <div class="hr-field checkbox">
-                <label>
-                  <input type="checkbox" formControlName="hasSuraPolicy" />
-                  Póliza SURA vigente
-                </label>
-              </div>
             </div>
           </section>
 
@@ -728,7 +723,7 @@ export class AssociateForm implements OnInit {
     }
     if (raw.psychosensometricValid) {
       if (!raw.psychosensometricIssuedDate || !raw.psychosensometricExpirationDate) {
-        missing.push('psicosensométrico');
+        missing.push('examen médico ocupacional');
       } else {
         credentials.push({
           documentKind: 'EXAMEN_PSICOSENSOMETRICO',

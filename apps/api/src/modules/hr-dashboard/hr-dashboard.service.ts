@@ -248,7 +248,7 @@ export class HrDashboardService {
         psychosensometricValid,
         hasSuraPolicy,
         isComplete:
-          courseValid && psychophysicalValid && psychosensometricValid && hasSuraPolicy,
+          courseValid && psychophysicalValid && psychosensometricValid,
       };
     });
   }

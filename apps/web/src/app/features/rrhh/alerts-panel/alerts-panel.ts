@@ -13,7 +13,7 @@ import type { HrAlert, HrAlertStatus, HrAlertType } from '../services/hr.types';
 const ALERT_TYPE_LABEL: Record<HrAlertType, string> = {
   VENCIMIENTO_CURSO: 'Curso de reentrenamiento',
   VENCIMIENTO_PSICOFISICO: 'Examen psicofísico',
-  VENCIMIENTO_PSICOSENSOMETRICO: 'Examen psicosensométrico',
+  VENCIMIENTO_PSICOSENSOMETRICO: 'Examen médico ocupacional',
   VENCIMIENTO_POLIZA: 'Póliza SURA',
   DOCUMENTO_FALTANTE: 'Documento faltante',
 };
