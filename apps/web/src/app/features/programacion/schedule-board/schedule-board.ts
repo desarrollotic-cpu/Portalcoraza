@@ -386,9 +386,12 @@ const CODES: CodeConfig[] = [
       @if (editing()) {
         <div class="modal-backdrop" (click)="closeCell()">
           <div class="modal" (click)="$event.stopPropagation()">
-            <h3>Editar celda</h3>
-            <p class="modal-sub">{{ editing()!.roleName }} — Día {{ editing()!.day }}</p>
+            <div class="modal-header">
+              <h3>Editar celda</h3>
+              <p class="modal-sub">{{ editing()!.roleName }} — Día {{ editing()!.day }}</p>
+            </div>
 
+            <div class="modal-body">
             <div class="assoc-search-box">
               <label class="assoc-label">
                 <span>Vigilante / Asociado</span>
@@ -486,6 +489,8 @@ const CODES: CodeConfig[] = [
                 }
               </div>
             }
+
+            </div>
 
             <div class="modal-actions">
               <button type="button" (click)="closeCell()">Cancelar</button>
@@ -671,8 +676,42 @@ const CODES: CodeConfig[] = [
     .hint { color: var(--coraza-text-muted); font-size: 0.8rem; }
     .hint.warn { color: #8a6d00; font-weight: 600; }
     .error { color: var(--coraza-error); }
-    .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; z-index: 50; }
-    .modal { background: #fff; border-radius: 12px; padding: 1.5rem; width: min(420px, 92vw); display: flex; flex-direction: column; gap: 0.85rem; }
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      padding: 1rem;
+      overflow-y: auto;
+    }
+    .modal {
+      background: #fff;
+      border-radius: 12px;
+      width: min(420px, 92vw);
+      max-height: min(90vh, 720px);
+      display: flex;
+      flex-direction: column;
+      margin: auto;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+    }
+    .modal-header {
+      flex-shrink: 0;
+      padding: 1.25rem 1.5rem 0.65rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .modal-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
     .modal h3 { margin: 0; }
     .modal-sub { margin: 0; color: var(--coraza-text-muted); font-size: 0.85rem; }
     
@@ -1020,7 +1059,15 @@ const CODES: CodeConfig[] = [
       background: #0369a1;
     }
 
-    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem; }
+    .modal-actions {
+      flex-shrink: 0;
+      display: flex;
+      gap: 0.5rem;
+      justify-content: flex-end;
+      padding: 0.85rem 1.5rem 1.15rem;
+      border-top: 1px solid #e2e8f0;
+      background: #fff;
+    }
   `,
 })
 export class ScheduleBoard implements OnInit {
