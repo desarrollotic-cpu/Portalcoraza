@@ -159,18 +159,29 @@ export class HrDocumentsService {
     if (!associate) throw new NotFoundException('Asociado no encontrado');
 
     for (const item of items) {
-      const saved = await this.documentsRepo.save(
-        this.documentsRepo.create({
-          associateId,
-          documentKind: item.documentKind,
-          fileUrl: null,
-          fileName: item.notes?.trim() || null,
-          issuedDate: item.issuedDate ?? null,
-          expirationDate: item.expirationDate,
-          notes: item.notes?.trim() || null,
-          uploadedBy: userId,
-        }),
-      );
+      const existing = await this.documentsRepo.findOne({
+        where: { associateId, documentKind: item.documentKind },
+        order: { uploadedAt: 'DESC' },
+      });
+      const saved = existing
+        ? await this.documentsRepo.save({
+            ...existing,
+            issuedDate: item.issuedDate ?? existing.issuedDate,
+            expirationDate: item.expirationDate,
+            notes: item.notes?.trim() || existing.notes,
+          })
+        : await this.documentsRepo.save(
+            this.documentsRepo.create({
+              associateId,
+              documentKind: item.documentKind,
+              fileUrl: null,
+              fileName: item.notes?.trim() || null,
+              issuedDate: item.issuedDate ?? null,
+              expirationDate: item.expirationDate,
+              notes: item.notes?.trim() || null,
+              uploadedBy: userId,
+            }),
+          );
       await this.alerts.syncFromDocument(saved);
     }
     await this.refreshValidityFlags(associateId);

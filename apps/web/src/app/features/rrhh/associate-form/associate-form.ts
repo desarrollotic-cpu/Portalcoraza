@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
@@ -9,6 +9,7 @@ import { ToastService } from '../../../shared/services/toast.service';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
+  AssociateDocumentItem,
   AssociateDocumentKind,
   CatalogKind,
   CatalogValue,
@@ -18,12 +19,14 @@ import type {
 
 type CatalogMap = Partial<Record<CatalogKind, CatalogValue[]>>;
 
-interface CredentialDraft {
-  documentKind: AssociateDocumentKind;
-  notes: string;
-  issuedDate: string;
-  expirationDate: string;
-}
+const DATE_ONLY_KEYS = [
+  'courseIssuedDate',
+  'courseExpirationDate',
+  'psychophysicalIssuedDate',
+  'psychophysicalExpirationDate',
+  'psychosensometricIssuedDate',
+  'psychosensometricExpirationDate',
+] as const;
 
 /**
  * Formulario de alta/edición de asociado. Estructura en 4 secciones para
@@ -33,7 +36,7 @@ interface CredentialDraft {
  */
 @Component({
   selector: 'app-associate-form',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, HrPageHeader],
+  imports: [CommonModule, ReactiveFormsModule, HrPageHeader],
   template: `
     <div class="hr-page">
       <app-hr-page-header [title]="associateId() ? 'Editar asociado' : 'Nuevo asociado'">
@@ -266,6 +269,16 @@ interface CredentialDraft {
                 <label>Nº certificado curso</label>
                 <input formControlName="courseCertificateNumber" type="text" />
               </div>
+              @if (showCourseDates()) {
+                <div class="hr-field">
+                  <label>Inicio curso *</label>
+                  <input formControlName="courseIssuedDate" type="date" />
+                </div>
+                <div class="hr-field">
+                  <label>Vencimiento curso *</label>
+                  <input formControlName="courseExpirationDate" type="date" />
+                </div>
+              }
               <div class="hr-field">
                 <label>Servicio funerario</label>
                 <input formControlName="funeralService" type="text" />
@@ -280,72 +293,38 @@ interface CredentialDraft {
                 </select>
               </div>
 
-              <div class="hr-field col-4">
-                <label>Cursos y certificados (fechas de inicio y vencimiento)</label>
-                <p class="hr-muted">Cada ítem genera alerta en RRHH cuando se acerca o llega la fecha de vencimiento.</p>
-                @for (c of credentials(); track $index; let i = $index) {
-                  <div class="hr-form-grid" style="margin-top: 0.65rem">
-                    <div class="hr-field">
-                      <label>Tipo</label>
-                      <select
-                        [(ngModel)]="c.documentKind"
-                        [ngModelOptions]="{ standalone: true }"
-                        name="credKind{{ i }}"
-                      >
-                        @for (k of credentialKinds; track k.value) {
-                          <option [value]="k.value">{{ k.label }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="hr-field">
-                      <label>Nombre / N.º</label>
-                      <input
-                        [(ngModel)]="c.notes"
-                        [ngModelOptions]="{ standalone: true }"
-                        name="credNotes{{ i }}"
-                        placeholder="Ej. Curso vigilancia 2026"
-                      />
-                    </div>
-                    <div class="hr-field">
-                      <label>Inicio *</label>
-                      <input
-                        type="date"
-                        required
-                        [(ngModel)]="c.issuedDate"
-                        [ngModelOptions]="{ standalone: true }"
-                        name="credStart{{ i }}"
-                      />
-                    </div>
-                    <div class="hr-field">
-                      <label>Vencimiento *</label>
-                      <input
-                        type="date"
-                        required
-                        [(ngModel)]="c.expirationDate"
-                        [ngModelOptions]="{ standalone: true }"
-                        name="credEnd{{ i }}"
-                      />
-                    </div>
-                    <div class="hr-field">
-                      <button type="button" class="hr-btn hr-btn-ghost" (click)="removeCredential(i)">Quitar</button>
-                    </div>
-                  </div>
-                }
-                <button type="button" class="hr-btn hr-btn-ghost" (click)="addCredential()">+ Agregar curso o certificado</button>
-              </div>
-
               <div class="hr-field checkbox">
                 <label>
                   <input type="checkbox" formControlName="psychophysicalValid" />
                   Psicofísico vigente
                 </label>
               </div>
+              @if (form.controls.psychophysicalValid.value) {
+                <div class="hr-field">
+                  <label>Inicio psicofísico *</label>
+                  <input formControlName="psychophysicalIssuedDate" type="date" />
+                </div>
+                <div class="hr-field">
+                  <label>Vencimiento psicofísico *</label>
+                  <input formControlName="psychophysicalExpirationDate" type="date" />
+                </div>
+              }
               <div class="hr-field checkbox">
                 <label>
                   <input type="checkbox" formControlName="psychosensometricValid" />
                   Psicosensométrico vigente
                 </label>
               </div>
+              @if (form.controls.psychosensometricValid.value) {
+                <div class="hr-field">
+                  <label>Inicio psicosensométrico *</label>
+                  <input formControlName="psychosensometricIssuedDate" type="date" />
+                </div>
+                <div class="hr-field">
+                  <label>Vencimiento psicosensométrico *</label>
+                  <input formControlName="psychosensometricExpirationDate" type="date" />
+                </div>
+              }
               <div class="hr-field checkbox">
                 <label>
                   <input type="checkbox" formControlName="hasSuraPolicy" />
@@ -522,14 +501,6 @@ export class AssociateForm implements OnInit {
   readonly positions = signal<JobPosition[]>([]);
   readonly workCenters = signal<WorkCenter[]>([]);
   readonly catalogs = signal<CatalogMap>({});
-  readonly credentials = signal<CredentialDraft[]>([]);
-  readonly credentialKinds: { value: AssociateDocumentKind; label: string }[] = [
-    { value: 'CERTIFICADO_CURSO', label: 'Certificado de curso' },
-    { value: 'EXAMEN_PSICOFISICO', label: 'Examen psicofísico' },
-    { value: 'EXAMEN_PSICOSENSOMETRICO', label: 'Examen psicosensométrico' },
-    { value: 'POLIZA_SURA', label: 'Póliza SURA' },
-    { value: 'OTRO', label: 'Otro certificado' },
-  ];
 
   readonly canEditSensitive = computed(() => this.auth.hasPermission('hr_sensitive.view'));
 
@@ -543,7 +514,10 @@ export class AssociateForm implements OnInit {
     hireDate: 3, jobPositionId: 3, workCenterId: 3, positionChangeReason: 3,
     ordinaryCompensation: 3, averageMonthlySalary: 3, bankAccount: 3,
     courseCode: 3, schoolNit: 3, courseCertificateNumber: 3, funeralService: 3,
+    courseIssuedDate: 3, courseExpirationDate: 3,
     psychophysicalValid: 3, psychosensometricValid: 3, hasSuraPolicy: 3, status: 3,
+    psychophysicalIssuedDate: 3, psychophysicalExpirationDate: 3,
+    psychosensometricIssuedDate: 3, psychosensometricExpirationDate: 3,
   };
 
   /**
@@ -600,9 +574,15 @@ export class AssociateForm implements OnInit {
     courseCode: [null],
     schoolNit: [null],
     courseCertificateNumber: [null],
+    courseIssuedDate: [''],
+    courseExpirationDate: [''],
     funeralService: [null],
     psychophysicalValid: [false],
+    psychophysicalIssuedDate: [''],
+    psychophysicalExpirationDate: [''],
     psychosensometricValid: [false],
+    psychosensometricIssuedDate: [''],
+    psychosensometricExpirationDate: [''],
     hasSuraPolicy: [false],
     status: ['ACTIVO'],
 
@@ -644,6 +624,7 @@ export class AssociateForm implements OnInit {
           this.api.getAssociate(id).subscribe({
             next: (a) => {
               this.patchForm(a);
+              this.patchCredentialDates(id);
               this.loading.set(false);
             },
             error: () => {
@@ -666,12 +647,39 @@ export class AssociateForm implements OnInit {
     return this.catalogs()[kind] ?? [];
   }
 
+  showCourseDates(): boolean {
+    const v = this.form.getRawValue();
+    return !!(String(v.courseCode ?? '').trim() || String(v.courseCertificateNumber ?? '').trim());
+  }
+
   private patchForm(a: Associate): void {
     const patch: Record<string, unknown> = {};
     for (const key of Object.keys(this.form.controls)) {
       if (key in a) patch[key] = (a as unknown as Record<string, unknown>)[key];
     }
     this.form.patchValue(patch);
+  }
+
+  private patchCredentialDates(associateId: string): void {
+    this.api.listAssociateDocuments(associateId).subscribe({
+      next: (docs) => {
+        const latest = (kind: AssociateDocumentKind) =>
+          docs.find((d) => d.documentKind === kind);
+        const day = (d?: AssociateDocumentItem) => d?.issuedDate?.slice(0, 10) ?? '';
+        const exp = (d?: AssociateDocumentItem) => d?.expirationDate?.slice(0, 10) ?? '';
+        const course = latest('CERTIFICADO_CURSO');
+        const psycho = latest('EXAMEN_PSICOFISICO');
+        const psicos = latest('EXAMEN_PSICOSENSOMETRICO');
+        this.form.patchValue({
+          courseIssuedDate: day(course),
+          courseExpirationDate: exp(course),
+          psychophysicalIssuedDate: day(psycho),
+          psychophysicalExpirationDate: exp(psycho),
+          psychosensometricIssuedDate: day(psicos),
+          psychosensometricExpirationDate: exp(psicos),
+        });
+      },
+    });
   }
 
   submit(): void {
@@ -686,26 +694,60 @@ export class AssociateForm implements OnInit {
       this.toast.warning('Formulario incompleto', 'Hay campos obligatorios sin llenar.');
       return;
     }
-    this.saving.set(true);
-    this.submitError.set(null);
-    const rows = this.credentials();
-    const incomplete = rows.find((c) => !c.issuedDate || !c.expirationDate);
-    if (incomplete) {
-      this.saving.set(false);
+    const raw = this.form.getRawValue();
+    const credentials: Array<{
+      documentKind: AssociateDocumentKind;
+      issuedDate: string;
+      expirationDate: string;
+      notes?: string;
+    }> = [];
+
+    const missing: string[] = [];
+    if (this.showCourseDates()) {
+      if (!raw.courseIssuedDate || !raw.courseExpirationDate) {
+        missing.push('curso');
+      } else {
+        credentials.push({
+          documentKind: 'CERTIFICADO_CURSO',
+          issuedDate: raw.courseIssuedDate,
+          expirationDate: raw.courseExpirationDate,
+          notes: [raw.courseCode, raw.courseCertificateNumber].filter(Boolean).join(' · ') || undefined,
+        });
+      }
+    }
+    if (raw.psychophysicalValid) {
+      if (!raw.psychophysicalIssuedDate || !raw.psychophysicalExpirationDate) {
+        missing.push('psicofísico');
+      } else {
+        credentials.push({
+          documentKind: 'EXAMEN_PSICOFISICO',
+          issuedDate: raw.psychophysicalIssuedDate,
+          expirationDate: raw.psychophysicalExpirationDate,
+        });
+      }
+    }
+    if (raw.psychosensometricValid) {
+      if (!raw.psychosensometricIssuedDate || !raw.psychosensometricExpirationDate) {
+        missing.push('psicosensométrico');
+      } else {
+        credentials.push({
+          documentKind: 'EXAMEN_PSICOSENSOMETRICO',
+          issuedDate: raw.psychosensometricIssuedDate,
+          expirationDate: raw.psychosensometricExpirationDate,
+        });
+      }
+    }
+    if (missing.length) {
       this.section.set(3);
-      this.submitError.set('Cada curso o certificado necesita fecha de inicio y de vencimiento.');
-      this.toast.warning('Fechas incompletas', 'Completa inicio y vencimiento de cada certificado.');
+      this.submitError.set(`Completa inicio y vencimiento de: ${missing.join(', ')}.`);
+      this.toast.warning('Fechas incompletas', 'Cada curso o examen marcado necesita ambas fechas.');
       return;
     }
-    const payload = {
-      ...this.form.getRawValue(),
-      credentials: rows.map((c) => ({
-        documentKind: c.documentKind,
-        issuedDate: c.issuedDate,
-        expirationDate: c.expirationDate,
-        notes: c.notes.trim() || undefined,
-      })),
-    };
+
+    this.saving.set(true);
+    this.submitError.set(null);
+    const payload: Record<string, unknown> = { ...raw, credentials };
+    for (const key of DATE_ONLY_KEYS) delete payload[key];
     const id = this.associateId();
     const req = id
       ? this.api.updateAssociate(id, payload as Partial<Associate>)
@@ -723,17 +765,6 @@ export class AssociateForm implements OnInit {
         this.toast.error('No se pudo guardar', msg);
       },
     });
-  }
-
-  addCredential(): void {
-    this.credentials.update((rows) => [
-      ...rows,
-      { documentKind: 'CERTIFICADO_CURSO', notes: '', issuedDate: '', expirationDate: '' },
-    ]);
-  }
-
-  removeCredential(index: number): void {
-    this.credentials.update((rows) => rows.filter((_, i) => i !== index));
   }
 
   cancel(): void {
