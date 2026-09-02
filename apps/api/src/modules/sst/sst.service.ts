@@ -157,6 +157,7 @@ export class SstService {
     const qb = this.responses
       .createQueryBuilder('r')
       .leftJoinAndSelect('r.item', 'item')
+      .leftJoinAndSelect('r.evidencias', 'evidencias')
       .leftJoinAndSelect('r.inspection', 'insp')
       .leftJoinAndSelect('insp.workplace', 'wp')
       .leftJoinAndSelect('wp.client', 'client')

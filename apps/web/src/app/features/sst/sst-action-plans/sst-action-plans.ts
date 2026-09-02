@@ -94,6 +94,13 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
                       <strong>Plan correctivo:</strong> {{ r.planAccionPropuesto }}
                     </div>
                   }
+                  @if (r.evidencias && r.evidencias.length > 0) {
+                    <div class="plan-photos">
+                      @for (ev of r.evidencias; track ev.id) {
+                        <img [src]="ev.urlArchivo" alt="Evidencia" class="plan-thumb" (click)="previewPhoto.set(ev.urlArchivo)" title="Clic para ampliar foto" />
+                      }
+                    </div>
+                  }
                   @if (r.responsablePlanAccion) {
                     <div class="meta-resp">
                       👤 Resp: <em>{{ r.responsablePlanAccion }}</em>
@@ -145,6 +152,15 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
           </tbody>
         </table>
       </div>
+
+      @if (previewPhoto(); as photoUrl) {
+        <div class="modal-backdrop" (click)="previewPhoto.set(null)">
+          <div class="modal-content" (click)="$event.stopPropagation()">
+            <img [src]="photoUrl" alt="Foto ampliada" class="modal-img" />
+            <button type="button" class="modal-close" (click)="previewPhoto.set(null)">✕ Cerrar</button>
+          </div>
+        </div>
+      }
     </section>
   `,
   styles: `
@@ -194,6 +210,12 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     .meta-date { font-size: 0.76rem; color: #64748b; margin-top: 0.2rem; }
     .hallazgo-box { color: #991b1b; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
     .plan-box { color: #0f766e; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.25rem; }
+    .plan-photos { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; }
+    .plan-thumb {
+      width: 44px; height: 44px; border-radius: 0.35rem; object-fit: cover;
+      border: 1px solid #cbd5e1; cursor: pointer; transition: transform 0.12s;
+    }
+    .plan-thumb:hover { transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
     .meta-resp { font-size: 0.78rem; color: #475569; }
     .overdue { color: #b91c1c; font-weight: 700; }
     .tag-overdue {
@@ -226,6 +248,21 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     .empty { text-align: center; color: var(--text-muted, #64748b); padding: 1.5rem !important; }
     tr.critical { background: color-mix(in srgb, #fecaca 25%, transparent); }
     tr.closed { opacity: 0.75; }
+
+    /* Modal previsualización */
+    .modal-backdrop {
+      position: fixed; inset: 0; z-index: 1000; background: rgba(0,0,0,0.75);
+      display: flex; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-content {
+      background: #fff; border-radius: 0.75rem; padding: 0.75rem; max-width: 90vw; max-height: 90vh;
+      display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+    }
+    .modal-img { max-width: 85vw; max-height: 78vh; object-fit: contain; border-radius: 0.4rem; }
+    .modal-close {
+      background: #334155; color: #fff; border: 0; border-radius: 0.4rem; padding: 0.4rem 0.85rem;
+      font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
   `,
 })
 export class SstActionPlans implements OnInit {
@@ -245,6 +282,7 @@ export class SstActionPlans implements OnInit {
   readonly rows = signal<SstResponseRow[]>([]);
   readonly loading = signal(true);
   readonly searchQuery = signal('');
+  readonly previewPhoto = signal<string | null>(null);
 
   readonly filteredRows = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();
