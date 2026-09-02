@@ -128,6 +128,9 @@ const CODES: CodeConfig[] = [
           <button type="button" class="ghost" style="padding:0.25rem 0.6rem; font-size:0.75rem;" (click)="onSelectionChange()">Reintentar</button>
         </div>
       }
+      @if (motorOk()) {
+        <div class="banner motor-ok-banner">{{ motorOk() }}</div>
+      }
 
       @if (loading()) {
         <p>Cargando programación…</p>
@@ -551,6 +554,16 @@ const CODES: CodeConfig[] = [
     button.btn-print:hover:not(:disabled) { background: #115e59; }
     button.sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
     .empty-state { padding: 2rem; text-align: center; border: 1px dashed var(--coraza-border); border-radius: 12px; }
+    .motor-ok-banner {
+      background: #dcfce7;
+      border: 1px solid #86efac;
+      color: #166534;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      font-size: 0.88rem;
+    }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
     .roles-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
@@ -1065,6 +1078,7 @@ export class ScheduleBoard implements OnInit {
   readonly saving = signal(false);
   readonly dirty = signal(false);
   readonly error = signal<string | null>(null);
+  readonly motorOk = signal<string | null>(null);
   readonly templates = signal<ScheduleTemplate[]>([]);
 
   readonly editing = signal<{ role: PersonalRole; roleName: string; day: number } | null>(null);
@@ -1247,10 +1261,11 @@ export class ScheduleBoard implements OnInit {
 
   onSelectionChange(): void {
     this.editing.set(null);
+    this.motorOk.set(null);
     this.loadSchedule();
   }
 
-  private loadSchedule(): void {
+  private loadSchedule(force = false): void {
     if (!this.postId || !this.month) {
       this.schedule.set(null);
       this.boardAlerts.set(null);
@@ -1259,8 +1274,7 @@ export class ScheduleBoard implements OnInit {
     const [year, mon] = this.month.split('-').map(Number);
     const cacheKey = `${this.postId}:${year}:${mon}`;
 
-    // Si ya está en memoria caché, aplicar al instante (0ms)
-    if (this.scheduleCache.has(cacheKey)) {
+    if (!force && this.scheduleCache.has(cacheKey)) {
       const cached = this.scheduleCache.get(cacheKey) ?? null;
       this.applySchedule(cached);
       this.loading.set(false);
@@ -1352,30 +1366,68 @@ export class ScheduleBoard implements OnInit {
     const [year, mon] = this.month.split('-').map(Number);
     this.saving.set(true);
     this.error.set(null);
+    this.motorOk.set(null);
     this.api
       .generateMotor(scheduleId, {
         tipoCiclo: this.tipoCiclo,
-        personal: this.personal(),
+        personal: this.personalForMotor(),
       })
       .subscribe({
-        next: (updated) => {
-          const cacheKey = `${this.postId}:${year}:${mon}`;
-          this.scheduleCache.set(cacheKey, updated);
-          this.applySchedule(updated);
+        next: () => {
           this.saving.set(false);
-          if (!updated.assignments?.length) {
-            this.error.set(
-              'El motor no generó celdas. Verifica que haya roles en Personal / Roles.',
-            );
-          } else {
-            this.reloadBoardAlerts(year, mon);
-          }
+          this.reloadScheduleAfterMotor(year, mon);
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
           this.saving.set(false);
-          this.error.set('No se pudo ejecutar el motor de ciclo');
+          this.error.set(this.formatMotorError(err));
         },
       });
+  }
+
+  /** Personal enviado al motor (associateId null, no string vacío). */
+  private personalForMotor(): PersonalRole[] {
+    return this.personal().map((p) => ({
+      rol: p.rol,
+      associateId: p.associateId || null,
+      turnoId: p.turnoId ?? null,
+      displayName: p.displayName,
+    }));
+  }
+
+  private reloadScheduleAfterMotor(year: number, mon: number): void {
+    const cacheKey = `${this.postId}:${year}:${mon}`;
+    this.scheduleCache.delete(cacheKey);
+    this.loading.set(true);
+    this.api.getOne(this.postId, year, mon).subscribe({
+      next: (sched) => {
+        this.scheduleCache.set(cacheKey, sched);
+        this.applySchedule(sched);
+        this.loading.set(false);
+        const n = sched?.assignments?.length ?? 0;
+        if (n === 0) {
+          this.error.set(
+            'El motor no generó celdas. Verifica roles en Personal / Roles o contacta soporte.',
+          );
+        } else {
+          this.motorOk.set(`Motor aplicado: ${n} celdas en ${this.monthLabel()}.`);
+          this.reloadBoardAlerts(year, mon);
+        }
+      },
+      error: () => {
+        this.loading.set(false);
+        this.error.set(
+          'El motor pudo ejecutarse pero no se pudo recargar el cuadro. Pulsa Reintentar.',
+        );
+      },
+    });
+  }
+
+  private formatMotorError(err: HttpErrorResponse): string {
+    const body = err.error as { message?: string | string[] } | null;
+    if (typeof body?.message === 'string') return body.message;
+    if (Array.isArray(body?.message)) return body.message.join('; ');
+    if (err.status === 403) return 'Sin permiso scheduling.edit para aplicar el motor.';
+    return 'No se pudo ejecutar el motor de ciclo';
   }
 
   saveAsTemplate(): void {
@@ -2101,7 +2153,7 @@ export class ScheduleBoard implements OnInit {
     }
     this.personal.set(sched.personal.map((p) => ({ ...p })));
     const map = new Map<string, CellState>();
-    for (const a of sched.assignments as ScheduleAssignment[]) {
+    for (const a of sched.assignments ?? []) {
       map.set(`${a.role}:${a.day}`, {
         associateId: a.associateId,
         jornada: a.jornada,

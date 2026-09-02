@@ -52,6 +52,8 @@ describe('MonthlySchedulingService.generateWithMotor', () => {
       log: jest.fn(),
     };
 
+    (service as unknown as { reportCache: Map<string, unknown> }).reportCache = new Map();
+
     const personal = [
       { rol: 'titular_a', associateId: null, turnoId: 'AM', displayName: 'Titular A' },
       { rol: 'titular_b', associateId: null, turnoId: 'PM', displayName: 'Titular B' },

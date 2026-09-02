@@ -663,6 +663,7 @@ export class MonthlySchedulingService {
 
       const rows = dto.assignments.map((a) =>
         manager.create(ScheduleAssignment, {
+          tenantId: schedule.tenantId,
           scheduleId: id,
           day: a.day,
           role: a.role,
@@ -762,6 +763,7 @@ export class MonthlySchedulingService {
       await manager.delete(ScheduleAssignment, { scheduleId: id });
       const rows = generated.map((a) =>
         manager.create(ScheduleAssignment, {
+          tenantId: schedule.tenantId,
           scheduleId: id,
           day: a.day,
           role: a.role,

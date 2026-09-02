@@ -10,6 +10,7 @@ import {
   IsUUID,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import {
@@ -22,7 +23,7 @@ export class PersonalRoleDto {
   @IsString()
   rol!: string;
 
-  @IsOptional()
+  @ValidateIf((_, v) => v != null && v !== '')
   @IsUUID()
   associateId!: string | null;
 
