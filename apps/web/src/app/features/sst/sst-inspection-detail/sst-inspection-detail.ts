@@ -5,6 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../shared/services/toast.service';
 import { liveCompliance } from '../sst-compliance';
+import { SstPdfData, SstPdfService } from '../sst-pdf.service';
 import {
   SstApiService,
   SstInspection,
@@ -59,6 +60,11 @@ interface DraftRow {
             }
           </div>
           <div class="actions">
+            <!-- Botón de Generar PDF Oficial con Membrete en cualquier momento -->
+            <button type="button" class="btn btn-pdf" (click)="generateOfficialPdf()" title="Generar e imprimir el PDF oficial con membrete y fotos">
+              📄 PDF Oficial Membrete
+            </button>
+
             @if (canEdit()) {
               <button type="button" class="btn ghost" (click)="markAllSafe()" title="Llenar ítems pendientes como Seguro">
                 ⚡ Marcar todo Seguro
@@ -66,8 +72,8 @@ interface DraftRow {
               <button type="button" class="btn ghost" [disabled]="busy()" (click)="save(false)">
                 💾 Guardar borrador
               </button>
-              <button type="button" class="btn" [disabled]="busy()" (click)="save(true)">
-                ✓ Completar inspección
+              <button type="button" class="btn btn-complete" [disabled]="busy()" (click)="save(true)" title="Genera el PDF oficial y completa la inspección">
+                ✓ Completar y Emitir PDF
               </button>
             }
             @if (canClose()) {
@@ -237,6 +243,12 @@ interface DraftRow {
       border: 0; border-radius: 0.5rem; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer;
       background: var(--brand, #0f766e); color: #fff; font-size: 0.85rem; transition: opacity 0.15s;
     }
+    .btn-pdf {
+      background: #1e293b; color: #fff; display: inline-flex; align-items: center; gap: 0.25rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    .btn-pdf:hover { background: #0f172a; }
+    .btn-complete { background: #0f766e; font-weight: 700; }
     .btn.ghost { background: transparent; color: var(--brand, #0f766e); border: 1px solid var(--border, #cbd5e1); }
     .btn.danger { background: #b91c1c; }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -322,6 +334,7 @@ interface DraftRow {
 })
 export class SstInspectionDetail implements OnInit {
   private readonly api = inject(SstApiService);
+  private readonly pdfService = inject(SstPdfService);
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
@@ -441,6 +454,39 @@ export class SstInspectionDetail implements OnInit {
     row.evidencias.splice(index, 1);
   }
 
+  generateOfficialPdf(): void {
+    const i = this.insp();
+    if (!i) return;
+
+    const pdfData: SstPdfData = {
+      id: i.id,
+      tipo: i.tipo,
+      fecha: i.fecha || new Date().toISOString().slice(0, 10),
+      clienteNombre: i.workplace?.client?.nombre || 'Coraza Seguridad C.T.A.',
+      puestoNombre: i.workplace?.nombre || 'Puesto de Trabajo',
+      ciudad: i.workplace?.ciudad || 'Medellín',
+      tipoPuesto: i.workplace?.tipoPuesto || 'Servicio General',
+      responsableNombre: i.responsableNombre,
+      responsableCargo: i.responsableCargo || 'Inspector SST',
+      observacionesGenerales: this.observaciones || i.observacionesGenerales || '',
+      cumplimientoGlobal: this.live()?.percent ?? i.cumplimientoGlobal,
+      nivelRiesgo: this.live()?.nivel ?? i.nivelRiesgo,
+      items: this.drafts().map((d) => ({
+        codigo: d.codigo,
+        categoria: d.categoria,
+        pregunta: d.pregunta,
+        valoracion: d.valoracion || 'N_A',
+        hallazgo: d.hallazgo || undefined,
+        planAccionPropuesto: d.planAccionPropuesto || undefined,
+        responsablePlanAccion: d.responsablePlanAccion || undefined,
+        fechaCompromiso: d.fechaCompromiso || undefined,
+        evidencias: d.evidencias,
+      })),
+    };
+
+    this.pdfService.generateAndPrintPdf(pdfData);
+  }
+
   private load(id: string): void {
     this.loading.set(true);
     this.api.getInspection(id).subscribe({
@@ -490,8 +536,13 @@ export class SstInspectionDetail implements OnInit {
       }));
 
     if (completar && respuestas.length < this.drafts().length) {
-      this.toast.error('Califica todos los ítems antes de completar');
+      this.toast.error('Califica todos los 34 ítems antes de completar');
       return;
+    }
+
+    if (completar) {
+      // 1. Generar automáticamente el PDF oficial completo con Membrete y Fotografías
+      this.generateOfficialPdf();
     }
 
     this.busy.set(true);
@@ -505,11 +556,15 @@ export class SstInspectionDetail implements OnInit {
         next: (insp) => {
           this.busy.set(false);
           this.apply(insp);
-          this.toast.success(completar ? 'Inspección completada con éxito' : 'Borrador guardado');
+          this.toast.success(
+            completar
+              ? '✓ Inspección completada y PDF oficial generado con éxito'
+              : 'Borrador guardado',
+          );
         },
         error: (e: { error?: { message?: string } }) => {
           this.busy.set(false);
-          this.toast.error(e?.error?.message || 'No se pudo guardar');
+          this.toast.error(e?.error?.message || 'No se pudo guardar la inspección');
         },
       });
   }

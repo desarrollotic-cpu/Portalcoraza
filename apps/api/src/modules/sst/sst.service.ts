@@ -447,11 +447,14 @@ export class SstService {
     existing.responsablePlanAccion = row.responsablePlanAccion?.trim() || null;
     existing.fechaCompromiso = row.fechaCompromiso ?? null;
 
-    await this.responses.save(existing);
-
-    if (row.evidenciasUrls?.length) {
+    // Manejo de evidencias fotográficas:
+    // Al completar la inspección (finalize = true), las fotos ya quedaron consolidadas en el PDF oficial
+    // generado y se purgan de la BD para optimizar espacio y rendimiento.
+    if (finalize) {
       await this.evidences.delete({ responseId: existing.id });
-      for (const url of row.evidenciasUrls) {
+    } else if (row.evidenciasUrls !== undefined) {
+      await this.evidences.delete({ responseId: existing.id });
+      for (const url of row.evidenciasUrls || []) {
         if (!url?.trim()) continue;
         await this.evidences.save(
           this.evidences.create({
