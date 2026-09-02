@@ -92,8 +92,11 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
               }
             </select>
           </label>
+          @if (auth.hasPermission('posts.create')) {
+            <a class="btn" routerLink="/recepcion/puestos/gestionar">+ Nuevo puesto</a>
+          }
           @if (auth.hasPermission('posts.view')) {
-            <a class="btn" routerLink="/operaciones/puestos">Catálogo de puestos</a>
+            <a class="btn ghost" routerLink="/recepcion/puestos/gestionar">Ver catálogo</a>
           }
         </div>
       </header>
@@ -355,6 +358,11 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       text-decoration: none;
       font-size: 0.9rem;
       font-weight: 600;
+    }
+    .btn.ghost {
+      background: transparent;
+      color: var(--text, var(--coraza-text));
+      border: 1px solid var(--border, #d1d5db);
     }
     .warn-banner {
       margin: 0;

@@ -39,6 +39,13 @@ export class ReceptionLayout {
       icon: LucideBriefcaseBusiness,
     },
     {
+      label: 'Gestionar puestos',
+      route: '/recepcion/puestos/gestionar',
+      permission: 'posts.create',
+      exact: true,
+      icon: LucideBriefcaseBusiness,
+    },
+    {
       label: 'Registrar visitante',
       route: '/recepcion/registrar',
       permission: 'reception.register',

@@ -534,6 +534,15 @@ export const routes: Routes = [
               ).then((m) => m.ReceptionPostsDashboard),
           },
           {
+            path: 'puestos/gestionar',
+            canActivate: [permissionGuard],
+            data: { permission: 'posts.view' },
+            loadComponent: () =>
+              import('./features/operaciones/puestos-list/puestos-list').then(
+                (m) => m.PuestosList,
+              ),
+          },
+          {
             path: 'registrar',
             canActivate: [permissionGuard],
             data: { permission: 'reception.register' },
