@@ -108,6 +108,15 @@ const CODES: CodeConfig[] = [
             Mes
             <input type="month" [(ngModel)]="month" (ngModelChange)="onSelectionChange()" />
           </label>
+          <button
+            type="button"
+            class="btn-excel"
+            (click)="exportPlanillaExcel()"
+            [disabled]="saving() || exportingExcel() || !month"
+            title="Excel del mes: una hoja por puesto, mismo formato que la planilla PDF"
+          >
+            {{ exportingExcel() ? 'Generando Excel…' : 'Excel del mes (todos los puestos)' }}
+          </button>
           <label>
             Ciclo
             <select [(ngModel)]="tipoCiclo">
@@ -526,6 +535,8 @@ const CODES: CodeConfig[] = [
     button.danger { background: #dc3545; color: #fff; border-color: #dc3545; }
     button.btn-print { background: #0f766e; color: #fff; border-color: #0f766e; font-weight: 600; }
     button.btn-print:hover:not(:disabled) { background: #115e59; }
+    button.btn-excel { background: #166534; color: #fff; border-color: #166534; font-weight: 600; }
+    button.btn-excel:hover:not(:disabled) { background: #15803d; }
     button.sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
     .empty-state { padding: 2rem; text-align: center; border: 1px dashed var(--coraza-border); border-radius: 12px; }
     .motor-ok-banner {
@@ -1060,6 +1071,7 @@ export class ScheduleBoard implements OnInit {
   readonly dirty = signal(false);
   readonly error = signal<string | null>(null);
   readonly motorOk = signal<string | null>(null);
+  readonly exportingExcel = signal(false);
   readonly templates = signal<ScheduleTemplate[]>([]);
   readonly postTemplates = computed(() => {
     const pid = this.postId;
@@ -1867,6 +1879,36 @@ export class ScheduleBoard implements OnInit {
     printWin.document.open();
     printWin.document.write(htmlContent);
     printWin.document.close();
+  }
+
+  exportPlanillaExcel(): void {
+    if (!this.month) {
+      this.error.set('Selecciona un mes');
+      return;
+    }
+    const [year, mon] = this.month.split('-').map(Number);
+    this.exportingExcel.set(true);
+    this.error.set(null);
+    this.api.downloadPlanillaExcel(year, mon).subscribe({
+      next: (blob) => {
+        this.exportingExcel.set(false);
+        if (blob.type?.includes('json')) {
+          this.error.set('No hay programaciones para exportar en este mes.');
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Planilla_Programacion_Coraza_${year}-${String(mon).padStart(2, '0')}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.motorOk.set('Excel del mes descargado: una hoja por puesto.');
+      },
+      error: () => {
+        this.exportingExcel.set(false);
+        this.error.set('No se pudo generar el Excel. Verifica que el mes tenga programaciones.');
+      },
+    });
   }
 
   addRole(): void {

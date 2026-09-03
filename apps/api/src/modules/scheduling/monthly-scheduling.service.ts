@@ -42,6 +42,7 @@ import {
   monthsForAlertsScope,
 } from './monthly-alerts.compute';
 import { MotorTurnosService } from './motor-turnos.service';
+import { buildPlanillaWorkbook } from './planilla-excel';
 import { mapCopiedDay, remainingMonthsOfYear } from './copy-month-pattern';
 
 const DEFAULT_ROLES: PersonalRole[] = [
@@ -2030,6 +2031,71 @@ export class MonthlySchedulingService {
       { width: 18 }, // Total Horas
     ];
 
+    const buffer = await wb.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  /**
+   * Excel del mes: una hoja por puesto, mismo layout que la planilla PDF/cartelera.
+   */
+  async exportPlanillaExcel(year: number, month: number): Promise<Buffer> {
+    const rows = await this.listByMonth({ year, month });
+    if (!rows.length) {
+      throw new BadRequestException('No hay programaciones para ese mes');
+    }
+
+    const assocIds = new Set<string>();
+    for (const s of rows) {
+      for (const p of s.personal ?? []) {
+        if (p.associateId) assocIds.add(p.associateId);
+      }
+    }
+    const associates =
+      assocIds.size === 0
+        ? []
+        : await this.dataSource.getRepository(Associate).find({
+            where: { id: In([...assocIds]) },
+          });
+    const assocMap = new Map(associates.map((a) => [a.id, a]));
+    const days = new Date(year, month, 0).getDate();
+
+    const posts = [...rows]
+      .sort((a, b) => (a.post?.name ?? '').localeCompare(b.post?.name ?? '', 'es'))
+      .map((s) => {
+        const personal = (s.personal ?? []).length
+          ? s.personal
+          : [...new Set((s.assignments ?? []).map((a) => a.role))].map((rol) => ({
+              rol,
+              associateId: null as string | null,
+              turnoId: null as string | null,
+              displayName: rol,
+            }));
+        const byRoleDay = new Map<string, string | null>();
+        for (const a of s.assignments ?? []) {
+          byRoleDay.set(`${a.role}:${a.day}`, a.codigo);
+        }
+        return {
+          postName: s.post?.name ?? s.postId,
+          status: s.status,
+          roles: personal.map((p) => {
+            const assoc = p.associateId ? assocMap.get(p.associateId) : undefined;
+            const codes: Array<string | null> = [];
+            for (let d = 1; d <= days; d++) {
+              codes.push(byRoleDay.get(`${p.rol}:${d}`) ?? null);
+            }
+            return {
+              label: p.displayName || p.rol,
+              associateName: assoc
+                ? this.associateDisplayName(assoc).toUpperCase()
+                : 'SIN ASIGNAR',
+              document: assoc?.documentNumber ? `CC: ${assoc.documentNumber}` : '—',
+              codes,
+            };
+          }),
+        };
+      });
+
+    const wb = buildPlanillaWorkbook({ year, month, posts });
     const buffer = await wb.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }

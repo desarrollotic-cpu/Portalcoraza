@@ -257,6 +257,16 @@ export class MonthlySchedulingApiService {
     return this.http.get<PayrollRecargosResponse>(`${this.baseUrl}/payroll-recargos`, { params });
   }
 
+  downloadPlanillaExcel(year: number, month: number): Observable<Blob> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get(`${this.baseUrl}/planilla/export-excel`, {
+      params,
+      responseType: 'blob',
+    });
+  }
+
   downloadPayrollRecargosExcel(year: number, month: number): Observable<Blob> {
     const params = new HttpParams()
       .set('year', String(year))

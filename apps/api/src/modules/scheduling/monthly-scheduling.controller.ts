@@ -52,6 +52,39 @@ export class MonthlySchedulingController {
     return this.service.getTodayCoverage(date);
   }
 
+  @Get('planilla/export-excel')
+  @RequirePermissions('scheduling.view')
+  async exportPlanillaExcel(
+    @Query('year') year: string,
+    @Query('month') month: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const y = parseInt(year, 10) || new Date().getFullYear();
+      const m = parseInt(month, 10) || new Date().getMonth() + 1;
+      const buffer = await this.service.exportPlanillaExcel(y, m);
+      res.setHeader(
+        'Content-Type',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="Planilla_Programacion_Coraza_${y}-${String(m).padStart(2, '0')}.xlsx"`,
+      );
+      res.status(200).end(buffer);
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === 'object' && 'message' in err
+          ? String((err as { message: unknown }).message)
+          : 'Error al generar el Excel de planilla';
+      const status =
+        err && typeof err === 'object' && 'getStatus' in err
+          ? (err as { getStatus: () => number }).getStatus()
+          : 500;
+      res.status(status).json({ statusCode: status, message });
+    }
+  }
+
   @Get('payroll-recargos/export-excel')
   @RequirePermissions('scheduling.view')
   async exportPayrollRecargosExcel(
