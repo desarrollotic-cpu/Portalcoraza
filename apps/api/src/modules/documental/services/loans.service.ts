@@ -36,14 +36,18 @@ export class LoansService {
    * y envía automáticamente recordatorio diario a cada solicitante
    * hasta que el estado cambie a DEVUELTO.
    */
-  async checkAndSendOverdueReminders(): Promise<void> {
-    // 1. Actualizar estado de préstamos activos cuya fecha ya venció
+  /** Solo marca VENCIDO. No envía correo (eso es del cron, no del GET). */
+  async markOverdueStatuses(): Promise<void> {
     await this.repo
       .createQueryBuilder()
       .update(Loan)
       .set({ status: 'VENCIDO' })
       .where("status = 'ACTIVO' AND return_date < CURRENT_DATE")
       .execute();
+  }
+
+  async checkAndSendOverdueReminders(): Promise<void> {
+    await this.markOverdueStatuses();
 
     // 2. Buscar todos los préstamos vencidos pendientes de devolución
     const overdueLoans = await this.repo
@@ -82,8 +86,11 @@ export class LoansService {
   }
 
   async list() {
-    await this.checkAndSendOverdueReminders();
-    return this.repo.find({ order: { loanDate: 'DESC' } });
+    await this.markOverdueStatuses();
+    return this.repo.find({
+      order: { loanDate: 'DESC', createdAt: 'DESC' },
+      take: 500,
+    });
   }
 
   async create(dto: CreateLoanDto, userId: string) {
