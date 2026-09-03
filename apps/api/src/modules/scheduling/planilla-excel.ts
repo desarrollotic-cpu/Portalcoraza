@@ -14,12 +14,18 @@ function makeWorkbook(): ExcelJS.Workbook {
   return new cjs.Workbook();
 }
 
+export interface PlanillaDayCell {
+  codigo: string | null;
+  inicio?: string | null;
+  fin?: string | null;
+}
+
 export interface PlanillaRoleRow {
   label: string;
   associateName: string;
   document: string;
-  /** Código por día (índice 0 = día 1). */
-  codes: Array<string | null>;
+  /** Código por día (índice 0 = día 1). Acepta string o {codigo,inicio,fin}. */
+  codes: Array<string | PlanillaDayCell | null>;
 }
 
 export interface PlanillaPostSheet {
@@ -68,12 +74,65 @@ export function excelSheetName(name: string, used: Set<string>): string {
   return n;
 }
 
+/** Horas entre inicio y fin (soporta turno nocturno que cruza medianoche). */
+export function hoursBetween(
+  inicio?: string | null,
+  fin?: string | null,
+): number | null {
+  if (!inicio || !fin) return null;
+  const parse = (t: string) => {
+    const [h, m] = t.split(':').map(Number);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return h * 60 + m;
+  };
+  const a = parse(inicio);
+  const b0 = parse(fin);
+  if (a == null || b0 == null) return null;
+  let b = b0;
+  if (b <= a) b += 24 * 60;
+  return Math.round((b - a) / 60);
+}
+
+/**
+ * Etiqueta de planilla con horas: D→D12, N→N12, D8, N8, D9, N9…
+ * Descansos / novedades se dejan igual (DR, VAC, IN…).
+ */
+export function formatPlanillaCode(
+  codigo: string | null | undefined,
+  inicio?: string | null,
+  fin?: string | null,
+): string | null {
+  if (!codigo?.trim()) return null;
+  const c = codigo.trim().toUpperCase();
+  if (['DR', 'NR', 'VAC', 'LC', 'IN', 'SP', 'AC', 'L'].includes(c)) return c;
+  if (/^[DN]\d+$/.test(c)) return c;
+
+  const hours = hoursBetween(inicio, fin);
+  if (c === 'D8') return 'D8';
+  if (c === 'N8') return 'N8';
+  if (c === 'D9') return 'D9';
+  if (c === 'N9') return 'N9';
+  if (c === 'D') return `D${hours ?? 12}`;
+  if (c === 'N') return `N${hours ?? 12}`;
+
+  if (hours != null && (c.startsWith('D') || c.startsWith('N'))) {
+    return `${c[0]}${hours}`;
+  }
+  return c;
+}
+
+function resolveDisplayCode(raw: string | PlanillaDayCell | null): string | null {
+  if (raw == null) return null;
+  if (typeof raw === 'string') return formatPlanillaCode(raw);
+  return formatPlanillaCode(raw.codigo, raw.inicio, raw.fin);
+}
+
 function codeStyle(code: string | null): { bg: string; fg: string; bold: boolean } {
   const c = (code ?? '').toUpperCase();
-  if (c === 'D' || c === 'D8') return { bg: 'FFFEF08A', fg: 'FF854D0E', bold: true };
-  if (c === 'N' || c === 'N8') return { bg: 'FFBBF7D0', fg: 'FF166534', bold: true };
+  if (/^D\d*$/.test(c)) return { bg: 'FFFEF08A', fg: 'FF854D0E', bold: true };
+  if (/^N\d*$/.test(c)) return { bg: 'FFBBF7D0', fg: 'FF166534', bold: true };
   if (c === 'DR' || c === 'NR' || c === 'L') return { bg: 'FFF1F5F9', fg: 'FF475569', bold: false };
-  if (c === 'IN' || c === 'VAC' || c === 'LC' || c === 'SP') {
+  if (c === 'IN' || c === 'VAC' || c === 'LC' || c === 'SP' || c === 'AC') {
     return { bg: 'FFFEE2E2', fg: 'FF991B1B', bold: true };
   }
   return { bg: 'FFFFFFFF', fg: 'FF334155', bold: false };
@@ -153,7 +212,7 @@ export function buildPlanillaWorkbook(args: {
     });
 
     ws.getColumn(1).width = 28;
-    for (let d = 1; d <= days; d++) ws.getColumn(d + 1).width = 3.4;
+    for (let d = 1; d <= days; d++) ws.getColumn(d + 1).width = 4.6;
 
     ws.mergeCells(1, 1, 1, lastCol);
     paint(ws.getCell(1, 1), {
@@ -197,7 +256,7 @@ export function buildPlanillaWorkbook(args: {
     ws.mergeCells(5, 1, 5, lastCol);
     paint(ws.getCell(5, 1), {
       value:
-        'CONVENCIONES:  D Diurno 12h (06:00-18:00)  ·  N Nocturno 12h (18:00-06:00)  ·  DR Descanso remunerado  ·  IN Incapacidad  ·  VAC Vacaciones  ·  ■ Domingos / Festivos',
+        'CONVENCIONES:  D12 Diurno 12h  ·  N12 Nocturno 12h  ·  D8/N8 8h  ·  D9/N9 9h  ·  DR Descanso  ·  IN Incapacidad  ·  VAC Vacaciones  ·  ■ Domingos/Festivos',
       bg: 'FFF1F5F9',
       fg: 'FF334155',
       size: 8,
@@ -237,14 +296,14 @@ export function buildPlanillaWorkbook(args: {
       });
       ws.getRow(r).height = 36;
       for (let d = 1; d <= days; d++) {
-        const code = role.codes[d - 1] ?? null;
-        const st = codeStyle(code);
+        const display = resolveDisplayCode(role.codes[d - 1] ?? null);
+        const st = codeStyle(display);
         paint(ws.getCell(r, d + 1), {
-          value: code || '—',
+          value: display || '—',
           bg: st.bg,
           fg: st.fg,
           bold: st.bold,
-          size: 8,
+          size: 7,
         });
       }
       r += 1;

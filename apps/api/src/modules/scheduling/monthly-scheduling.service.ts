@@ -2070,16 +2070,27 @@ export class MonthlySchedulingService {
               turnoId: null as string | null,
               displayName: rol,
             }));
-        const byRoleDay = new Map<string, string | null>();
+        const byRoleDay = new Map<
+          string,
+          { codigo: string | null; inicio: string | null; fin: string | null }
+        >();
         for (const a of s.assignments ?? []) {
-          byRoleDay.set(`${a.role}:${a.day}`, a.codigo);
+          byRoleDay.set(`${a.role}:${a.day}`, {
+            codigo: a.codigo,
+            inicio: a.inicio,
+            fin: a.fin,
+          });
         }
         return {
           postName: s.post?.name ?? s.postId,
           status: s.status,
           roles: personal.map((p) => {
             const assoc = p.associateId ? assocMap.get(p.associateId) : undefined;
-            const codes: Array<string | null> = [];
+            const codes: Array<{
+              codigo: string | null;
+              inicio: string | null;
+              fin: string | null;
+            } | null> = [];
             for (let d = 1; d <= days; d++) {
               codes.push(byRoleDay.get(`${p.rol}:${d}`) ?? null);
             }
