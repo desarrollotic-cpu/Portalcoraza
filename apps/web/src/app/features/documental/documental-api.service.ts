@@ -293,6 +293,9 @@ export class DocumentalApiService {
   createContract(payload: Record<string, unknown>): Observable<Contract> {
     return this.http.post<Contract>(`${this.baseUrl}/contracts`, payload);
   }
+  expiringContracts(days = 30): Observable<Contract[]> {
+    return this.http.get<Contract[]>(`${this.baseUrl}/contracts/expiring?days=${days}`);
+  }
 
   // Préstamos
   listLoans(): Observable<Loan[]> {

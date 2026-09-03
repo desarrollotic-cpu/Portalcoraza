@@ -26,6 +26,17 @@ export class ContractsService {
     return this.repo.find({ order: { numericCode: 'DESC' } });
   }
 
+  /** Contratos VIGENTES cuyo end_date cae en los próximos `days` días. */
+  async expiring(days: number) {
+    return this.repo
+      .createQueryBuilder('c')
+      .where(`c.status = 'VIGENTE'`)
+      .andWhere(`c.end_date IS NOT NULL`)
+      .andWhere(`c.end_date BETWEEN CURRENT_DATE AND CURRENT_DATE + :days * INTERVAL '1 day'`, { days })
+      .orderBy('c.end_date', 'ASC')
+      .getMany();
+  }
+
   /** Solo previsualiza: no consume el contador (abrir el form no debe saltar números). */
   async nextCode(): Promise<{ numeric: number; suggested: string }> {
     const numeric = await this.sequence.peek('contract');

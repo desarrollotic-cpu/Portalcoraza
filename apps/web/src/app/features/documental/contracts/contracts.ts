@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { Contract, DocumentalApiService } from '../documental-api.service';
@@ -77,6 +77,18 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       </div>
     }
 
+    @if (expiring().length > 0) {
+      <div class="expiring-banner">
+        <span class="expiring-icon">⚠️</span>
+        <strong>{{ expiring().length }} contrato{{ expiring().length > 1 ? 's' : '' }} vence{{ expiring().length === 1 ? '' : 'n' }} en los próximos 30 días:</strong>
+        <ul class="expiring-list">
+          @for (c of expiring(); track c.id) {
+            <li><strong>{{ c.contractNumber }}</strong> — {{ c.partyB ?? c.partyA }} · Vence: <span class="date-warn">{{ c.endDate }}</span></li>
+          }
+        </ul>
+      </div>
+    }
+
     @if (loading()) {
       <p>Cargando...</p>
     } @else {
@@ -104,6 +116,16 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     DOC_STYLES,
     `
     .actions-inline { display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .expiring-banner {
+      display:flex; flex-wrap:wrap; gap:.5rem; align-items:flex-start;
+      margin-bottom:1rem; padding:.9rem 1rem;
+      background:#fffbeb; border:1px solid #fcd34d; border-left:4px solid #f59e0b;
+      border-radius:10px; font-size:.88rem; color:#92400e;
+    }
+    .expiring-icon { font-size:1.1rem; }
+    .expiring-list { margin:.35rem 0 0 1rem; padding:0; list-style:disc; width:100%; }
+    .expiring-list li { margin:.15rem 0; }
+    .date-warn { color:#b45309; font-weight:700; }
     .toast-ok {
       display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;
       margin-bottom:1rem; padding:.85rem 1rem;
@@ -125,6 +147,7 @@ export class ContractsScreen implements OnInit {
   readonly lastSaved = signal<Contract | null>(null);
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
+  readonly expiring = signal<Contract[]>([]);
 
   model = {
     contractType: '',
@@ -142,6 +165,7 @@ export class ContractsScreen implements OnInit {
   ngOnInit(): void {
     this.queueCount.set(getPrintQueue().length);
     this.load();
+    this.api.expiringContracts(30).subscribe({ next: (r) => this.expiring.set(r) });
   }
 
   toggle(): void {

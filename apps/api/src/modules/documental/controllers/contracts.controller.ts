@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -22,6 +22,12 @@ export class ContractsController {
   @RequirePermissions('documental.view')
   nextCode() {
     return this.service.nextCode();
+  }
+
+  @Get('expiring')
+  @RequirePermissions('documental.view')
+  expiring(@Query('days') days?: string) {
+    return this.service.expiring(Number(days ?? 30));
   }
 
   @Post()
