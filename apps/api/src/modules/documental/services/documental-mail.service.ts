@@ -128,6 +128,25 @@ export class DocumentalMailService {
     return this.dispatchMail(targetEmail, subject, htmlBody);
   }
 
+  /** Agradecimiento al solicitante cuando Gestión Documental registra la devolución. */
+  async sendLoanReturnEmail(notice: {
+    id: string;
+    requester: string;
+    email: string;
+    document: string;
+    returnDate?: string;
+    department?: string;
+  }): Promise<boolean> {
+    const targetEmail = notice.email?.trim().toLowerCase();
+    if (!targetEmail || !targetEmail.includes('@')) {
+      this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de devolución.`);
+      return false;
+    }
+
+    const subject = `Devolución registrada: ${notice.document} — Coraza Seguridad C.T.A.`;
+    return this.dispatchMail(targetEmail, subject, this.buildReturnEmailTemplate(notice));
+  }
+
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     const cleanTo = to.trim().toLowerCase();
     const provider = this.mailProvider();
@@ -378,6 +397,79 @@ export class DocumentalMailService {
             </div>
             <div style="font-size:13px; color:#475569; line-height:1.5;">
               Si requiere más información o desea subsanar las observaciones para reconsiderar su solicitud, comuníquese con el departamento de Gestión Documental.
+            </div>
+          </div>
+          <div class="footer">
+            Coraza Seguridad C.T.A. · PBX: (604) 4447929 · Medellín - Colombia<br>
+            Remitente: <strong>${this.senderEmail}</strong>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private buildReturnEmailTemplate(notice: {
+    requester: string;
+    document: string;
+    returnDate?: string;
+    department?: string;
+  }): string {
+    return `
+      <!DOCTYPE html>
+      <html lang="es">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; margin: 0; padding: 20px; color: #0f172a; }
+          .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; }
+          .header { background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%); color: #ffffff; padding: 24px; text-align: center; }
+          .header h1 { margin: 0; font-size: 20px; font-weight: 800; }
+          .header p { margin: 4px 0 0; font-size: 13px; color: #93c5fd; }
+          .content { padding: 28px 24px; }
+          .badge-ok { display: inline-block; background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 999px; font-weight: 800; font-size: 12px; margin-bottom: 16px; border: 1px solid #86efac; }
+          .greeting { font-size: 16px; font-weight: 700; color: #1e293b; margin-bottom: 12px; }
+          .message { font-size: 14px; line-height: 1.6; color: #475569; margin-bottom: 20px; }
+          .details-card { background: #f8fafc; border: 1px solid #cbd5e1; border-left: 4px solid #16a34a; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+          .detail-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #e2e8f0; font-size: 13px; }
+          .detail-row:last-child { border-bottom: none; }
+          .detail-label { color: #64748b; font-weight: 600; }
+          .detail-value { color: #0f172a; font-weight: 700; text-align: right; }
+          .thanks { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; font-size: 13px; color: #166534; line-height: 1.5; }
+          .footer { background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 24px; text-align: center; font-size: 11px; color: #94a3b8; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>CORAZA SEGURIDAD C.T.A.</h1>
+            <p>Sistema de Gestión Documental · Archivo Central &amp; Custodia</p>
+          </div>
+          <div class="content">
+            <div class="badge-ok">DEVOLUCIÓN REGISTRADA</div>
+            <div class="greeting">Estimado(a) ${notice.requester},</div>
+            <div class="message">
+              Le confirmamos que Gestión Documental recibió y registró la devolución del expediente/documento prestado.
+              <strong>Gracias por el buen cumplimiento</strong> y por devolverlo de forma oportuna.
+            </div>
+            <div class="details-card">
+              <div class="detail-row">
+                <span class="detail-label">Documento / Expediente:</span>
+                <span class="detail-value">${notice.document}</span>
+              </div>
+              ${notice.returnDate ? `
+              <div class="detail-row">
+                <span class="detail-label">Fecha de devolución:</span>
+                <span class="detail-value">${notice.returnDate}</span>
+              </div>` : ''}
+              ${notice.department ? `
+              <div class="detail-row">
+                <span class="detail-label">Área / Dependencia:</span>
+                <span class="detail-value">${notice.department}</span>
+              </div>` : ''}
+            </div>
+            <div class="thanks">
+              Su préstamo queda cerrado en el sistema. Agradecemos su colaboración con el archivo central.
             </div>
           </div>
           <div class="footer">

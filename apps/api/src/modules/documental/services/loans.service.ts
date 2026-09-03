@@ -211,6 +211,20 @@ export class LoansService {
     loan.status = 'DEVUELTO';
     loan.realReturnDate = new Date().toISOString().slice(0, 10);
     const saved = await this.repo.save(loan);
+
+    if (saved.email) {
+      void this.mailService.sendLoanReturnEmail({
+        id: saved.id,
+        requester: saved.requester,
+        email: saved.email,
+        document: saved.document || saved.documentCode || 'Expediente Documental',
+        returnDate: saved.realReturnDate || undefined,
+        department: saved.department || undefined,
+      }).catch((err) => {
+        this.logger.error(`Error enviando correo de devolución a ${saved.email}:`, err);
+      });
+    }
+
     await this.audit.log({
       userId,
       module: 'documental',
