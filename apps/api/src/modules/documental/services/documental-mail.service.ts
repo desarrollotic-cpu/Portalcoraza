@@ -21,32 +21,48 @@ export class DocumentalMailService {
   }
 
   private initTransporter(): void {
-    const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-    const smtpPort = Number(process.env.SMTP_PORT) || 587;
-    const smtpUser = process.env.SMTP_USER || 'documental@corazaseguridadcta.com';
-    const smtpPass = process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn';
-    const isExplicitSsl = process.env.SMTP_SECURE === 'true' && smtpPort === 465;
+    const cfg = this.smtpConfig();
+    if (!cfg) {
+      this.logger.warn('📧 SMTP no configurado (falta SMTP_PASS). Correos irán por Resend si existe RESEND_API_KEY.');
+      return;
+    }
 
     try {
       this.transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: isExplicitSsl,
-        requireTLS: !isExplicitSsl,
+        host: cfg.host,
+        port: cfg.port,
+        secure: cfg.secure,
+        requireTLS: !cfg.secure,
         pool: true,
         maxConnections: 5,
         maxMessages: 100,
-        auth: {
-          user: smtpUser.trim(),
-          pass: smtpPass.trim(),
-        },
+        auth: { user: cfg.user, pass: cfg.pass },
       });
-
-      this.logger.log(`📧 [SMTP INICIADO] Conectado a ${smtpUser} vía ${smtpHost}:${smtpPort} (TLS: ${!isExplicitSsl})`);
+      this.logger.log(`📧 [SMTP] ${cfg.user} vía ${cfg.host}:${cfg.port} (provider=${this.mailProvider()})`);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`❌ Error inicializando pool SMTP: ${errorMsg}`);
+      this.logger.error(`❌ Error inicializando SMTP: ${errorMsg}`);
     }
+  }
+
+  /** smtp = bandeja Enviados de documental@; resend = API externa (no aparece en Gmail). */
+  private mailProvider(): 'smtp' | 'resend' {
+    const p = (process.env.MAIL_PROVIDER || 'smtp').trim().toLowerCase();
+    return p === 'resend' ? 'resend' : 'smtp';
+  }
+
+  private smtpConfig(): { host: string; port: number; user: string; pass: string; secure: boolean } | null {
+    const pass = process.env.SMTP_PASS?.trim();
+    if (!pass) return null;
+    const port = Number(process.env.SMTP_PORT) || 465;
+    const secure = process.env.SMTP_SECURE === 'true' || (process.env.SMTP_SECURE !== 'false' && port === 465);
+    return {
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port,
+      user: (process.env.SMTP_USER || this.senderEmail).trim(),
+      pass,
+      secure,
+    };
   }
 
   /**
@@ -114,120 +130,113 @@ export class DocumentalMailService {
 
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     const cleanTo = to.trim().toLowerCase();
+    const provider = this.mailProvider();
 
-    // 1. Despacho prioritario vía HTTPS REST API (Puerto 443 - Inmune a bloqueos de red en Render Cloud)
-    const resendKey = process.env.RESEND_API_KEY?.trim();
-    if (resendKey) {
-      try {
-        const fromEmail = process.env.MAIL_FROM || 'Gestión Documental Coraza <documental@corazaseguridadcta.com>';
-        let res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: [cleanTo],
-            bcc: [this.senderEmail],
-            reply_to: this.senderEmail,
-            subject,
-            html: htmlBody,
-          }),
-        });
-
-        if (!res.ok) {
-          // Si el remitente personalizado aún no tiene DNS verificado, reintentar con el remitente del onboarding
-          res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: 'Gestión Documental Coraza <onboarding@resend.dev>',
-              to: [cleanTo],
-              bcc: [this.senderEmail],
-              reply_to: this.senderEmail,
-              subject,
-              html: htmlBody,
-            }),
-          });
-        }
-
-        if (res.ok) {
-          const resData = (await res.json()) as any;
-          this.logger.log(`✅ [HTTPS RESEND ENTREGADO + COPIA SOPORTE] Para: ${cleanTo} | CCO: ${this.senderEmail} | ID: ${resData?.id}`);
-          return true;
-        }
-
-        const errText = await res.text();
-        this.logger.warn(`⚠️ Respuesta Resend HTTP (${res.status}): ${errText}`);
-
-        // Fallback infalible: Si el dominio del destinatario aún no está autorizado en Resend,
-        // entregar inmediatamente el soporte completo a la cuenta de Gestión Documental
-        if (cleanTo !== this.senderEmail) {
-          this.logger.log(`🔄 Entregando copia formal directa a ${this.senderEmail} para asegurar el soporte...`);
-          const fallbackRes = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${resendKey}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              from: 'Gestión Documental Coraza <onboarding@resend.dev>',
-              to: [this.senderEmail],
-              reply_to: cleanTo,
-              subject: `${subject} (Destinatario: ${cleanTo})`,
-              html: htmlBody,
-            }),
-          });
-
-          if (fallbackRes.ok) {
-            const fData = (await fallbackRes.json()) as any;
-            this.logger.log(`✅ [SOPORTE OFICIAL ENTREGADO EN BANDEJA DOCUMENTAL] ID: ${fData?.id}`);
-            return true;
-          }
-        }
-      } catch (httpErr: any) {
-        this.logger.warn(`⚠️ Error en despacho HTTPS Resend: ${httpErr.message}`);
-      }
+    if (provider === 'smtp') {
+      const smtpOk = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+      if (smtpOk) return true;
+      this.logger.warn(`⚠️ SMTP falló para ${cleanTo}; intentando Resend como respaldo...`);
     }
 
-    // 2. Fallback secundario a transporte SMTP tradicional
-    try {
-      const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com';
-      const smtpPort = Number(process.env.SMTP_PORT) || 465;
-      const smtpUser = (process.env.SMTP_USER || 'documental@corazaseguridadcta.com').trim();
-      const smtpPass = (process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn').trim();
-      const smtpSecure = process.env.SMTP_SECURE !== 'false';
+    const resendOk = await this.sendViaResend(cleanTo, subject, htmlBody);
+    if (resendOk) return true;
 
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpSecure,
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-      });
+    if (provider === 'resend') {
+      return this.sendViaSmtp(cleanTo, subject, htmlBody);
+    }
+
+    return false;
+  }
+
+  private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<boolean> {
+    const cfg = this.smtpConfig();
+    if (!cfg) {
+      this.logger.error('❌ SMTP_PASS no configurado en el servidor.');
+      return false;
+    }
+
+    try {
+      const transporter =
+        this.transporter ??
+        nodemailer.createTransport({
+          host: cfg.host,
+          port: cfg.port,
+          secure: cfg.secure,
+          auth: { user: cfg.user, pass: cfg.pass },
+        });
 
       const info = await transporter.sendMail({
-        from: `"Gestión Documental Coraza" <${this.senderEmail}>`,
-        to: cleanTo,
+        from: `"Gestión Documental Coraza" <${cfg.user}>`,
+        to,
         bcc: this.senderEmail,
         replyTo: this.senderEmail,
         subject,
         html: htmlBody,
       });
 
-      this.logger.log(`✅ [SMTP ENTREGADO + COPIA SOPORTE] Para: ${cleanTo} | CCO: ${this.senderEmail} | ID: ${info.messageId}`);
+      this.logger.log(`✅ [SMTP] Para: ${to} | CCO: ${this.senderEmail} | ID: ${info.messageId}`);
       return true;
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`❌ Error enviando correo a ${cleanTo}: ${errorMsg}`);
+      this.logger.error(`❌ Error SMTP a ${to}: ${errorMsg}`);
       return false;
     }
+  }
+
+  private async sendViaResend(to: string, subject: string, htmlBody: string): Promise<boolean> {
+    const resendKey = process.env.RESEND_API_KEY?.trim();
+    if (!resendKey) return false;
+
+    try {
+      const fromEmail = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
+      let res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [to],
+          bcc: [this.senderEmail],
+          reply_to: this.senderEmail,
+          subject,
+          html: htmlBody,
+        }),
+      });
+
+      if (!res.ok) {
+        res = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${resendKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Gestión Documental Coraza <onboarding@resend.dev>',
+            to: [to],
+            bcc: [this.senderEmail],
+            reply_to: this.senderEmail,
+            subject,
+            html: htmlBody,
+          }),
+        });
+      }
+
+      if (res.ok) {
+        const resData = (await res.json()) as { id?: string };
+        this.logger.log(`✅ [RESEND] Para: ${to} | ID: ${resData?.id ?? 'ok'}`);
+        return true;
+      }
+
+      const errText = await res.text();
+      this.logger.warn(`⚠️ Resend (${res.status}): ${errText}`);
+    } catch (httpErr: unknown) {
+      const msg = httpErr instanceof Error ? httpErr.message : String(httpErr);
+      this.logger.warn(`⚠️ Error Resend: ${msg}`);
+    }
+
+    return false;
   }
 
   private buildApprovalEmailTemplate(notice: {
