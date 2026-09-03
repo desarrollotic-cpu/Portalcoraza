@@ -20,6 +20,7 @@ import {
   Turno,
 } from '../monthly-scheduling-api.service';
 import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
+import { daysInCalendarMonth } from '../utils/calendar-month';
 
 interface CodeConfig {
   codigo: string;
@@ -1012,7 +1013,14 @@ export class ScheduleBoard implements OnInit {
   readonly cells = signal<Map<string, CellState>>(new Map());
 
   postId = '';
-  month = this.currentMonth();
+  /** Signal para que `days`/`holidays` se recalculen al cambiar el mes (31 días). */
+  private readonly monthKey = signal(this.currentMonth());
+  get month(): string {
+    return this.monthKey();
+  }
+  set month(value: string) {
+    this.monthKey.set(value);
+  }
   tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
   selectedTemplateId = '';
   readonly postSearchQuery = signal('');
@@ -1098,13 +1106,13 @@ export class ScheduleBoard implements OnInit {
   private pendingSavePayload: SavePayload | null = null;
 
   readonly holidays = computed(() => {
-    const [year] = this.month.split('-').map(Number);
+    const [year] = this.monthKey().split('-').map(Number);
     return getColombiaHolidays(year || new Date().getFullYear());
   });
 
   readonly days = computed(() => {
-    const [year, mon] = this.month.split('-').map(Number);
-    const count = new Date(year, mon, 0).getDate();
+    const [year, mon] = this.monthKey().split('-').map(Number);
+    const count = daysInCalendarMonth(year, mon);
     return Array.from({ length: count }, (_, i) => i + 1);
   });
 
@@ -1683,7 +1691,7 @@ export class ScheduleBoard implements OnInit {
     const [yStr, mStr] = month.split('-');
     const year = parseInt(yStr, 10);
     const mNum = parseInt(mStr, 10);
-    const daysInMonth = new Date(year, mNum, 0).getDate();
+    const daysInMonth = daysInCalendarMonth(year, mNum);
     const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
     const monthNames = [
