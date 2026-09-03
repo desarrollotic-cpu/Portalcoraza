@@ -179,6 +179,15 @@ const CODES: CodeConfig[] = [
           >
             Aplicar plantilla
           </button>
+          <button
+            type="button"
+            class="btn-rest-year"
+            (click)="askApplyRestOfYear()"
+            [disabled]="saving() || !canApplyRestOfYear()"
+            title="Copia este puesto al resto de meses del año y sobrescribe lo que ya exista"
+          >
+            Aplicar a los siguientes meses
+          </button>
           @if (schedule()!.status !== 'publicado') {
             <button type="button" class="success" (click)="setStatus('publicado')" [disabled]="saving() || dirty()">
                Publicar Malla Oficial
@@ -196,8 +205,7 @@ const CODES: CodeConfig[] = [
           }
         </div>
         <p class="tpl-hint">
-          Flujo: motor → ajusta celdas a mano → Guardar → Guardar como plantilla.
-          En meses siguientes: Aplicar plantilla (del mismo puesto).
+          Flujo: motor → ajusta celdas a mano → Guardar. Luego «Aplicar a los siguientes meses» copia este puesto al resto del año.
         </p>
 
         <div class="roles-panel">
@@ -466,7 +474,7 @@ const CODES: CodeConfig[] = [
         [title]="confirmTitle()"
         [message]="confirmMessage()"
         [detail]="confirmDetail()"
-        confirmLabel="Programar igual"
+        [confirmLabel]="confirmLabel()"
         cancelLabel="Cancelar"
         [busy]="saving()"
         (confirmed)="onConfirmOk()"
@@ -968,6 +976,14 @@ const CODES: CodeConfig[] = [
     .btn-save-tpl:hover:not(:disabled) {
       background: #0d9488;
     }
+    .btn-rest-year {
+      background: #1e3a5f;
+      color: #fff;
+      border: 1px solid #1e3a5f;
+    }
+    .btn-rest-year:hover:not(:disabled) {
+      background: #27476d;
+    }
 
     .modal-actions {
       flex-shrink: 0;
@@ -1077,6 +1093,7 @@ export class ScheduleBoard implements OnInit {
   readonly confirmTitle = signal('Confirmar');
   readonly confirmMessage = signal('');
   readonly confirmDetail = signal<string | null>(null);
+  readonly confirmLabel = signal('Programar igual');
   private confirmAction: (() => void) | null = null;
   private pendingSavePayload: SavePayload | null = null;
 
@@ -1482,6 +1499,86 @@ export class ScheduleBoard implements OnInit {
     });
   }
 
+  canApplyRestOfYear(): boolean {
+    const [year, mon] = this.month.split('-').map(Number);
+    return Boolean(this.schedule() && mon >= 1 && mon < 12 && this.cells().size);
+  }
+
+  askApplyRestOfYear(): void {
+    const sched = this.schedule();
+    if (!sched || !this.canApplyRestOfYear()) return;
+    const [year, mon] = this.month.split('-').map(Number);
+    const names = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+    ];
+    const from = names[mon] ?? String(mon + 1);
+    const to = names[11];
+    const postName = this.posts().find((p) => p.id === this.postId)?.name ?? 'este puesto';
+    this.confirmTitle.set('Aplicar a los siguientes meses');
+    this.confirmMessage.set(
+      `Se copiará el cuadro de «${postName}» (${this.monthLabel()}) a ${from}–${to} de ${year}. Solo este puesto. Lo que ya esté programado en esos meses se sobrescribe.`,
+    );
+    this.confirmDetail.set(
+      this.dirty()
+        ? 'Hay cambios sin guardar: primero se guarda este mes y después se copia al resto del año.'
+        : `Meses: ${names.slice(mon).join(', ')}.`,
+    );
+    this.confirmLabel.set('Sí, aplicar y sobrescribir');
+    this.confirmAction = () => this.executeApplyRestOfYear();
+    this.confirmOpen.set(true);
+  }
+
+  private executeApplyRestOfYear(): void {
+    const sched = this.schedule();
+    if (!sched) return;
+    const run = (id: string) => {
+      this.saving.set(true);
+      this.error.set(null);
+      this.api.applyRestOfYear(id).subscribe({
+        next: (res) => {
+          this.saving.set(false);
+          this.confirmOpen.set(false);
+          const names = [
+            'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+            'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+          ];
+          const listed = res.applied.map((a) => names[a.month - 1]).join(', ');
+          this.motorOk.set(
+            `Cuadro copiado a ${res.applied.length} mes(es) de este puesto: ${listed}.`,
+          );
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          const msg = (err.error as { message?: string })?.message;
+          this.error.set(
+            typeof msg === 'string' ? msg : 'No se pudo aplicar a los siguientes meses',
+          );
+        },
+      });
+    };
+
+    if (this.dirty()) {
+      this.saving.set(true);
+      this.api.save(sched.id, { ...this.buildSavePayload(), confirmWarnings: true }).subscribe({
+        next: (updated) => {
+          this.applySchedule(updated);
+          run(updated.id);
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          const msg = (err.error as { message?: string })?.message;
+          this.error.set(
+            typeof msg === 'string' ? msg : 'Guarda el cuadro antes de copiarlo al resto del año',
+          );
+        },
+      });
+      return;
+    }
+
+    run(sched.id);
+  }
+
   private buildSavePayload(): SavePayload {
     const assignments = Array.from(this.cells().entries())
       .map(([key, state]) => {
@@ -1546,6 +1643,7 @@ export class ScheduleBoard implements OnInit {
               }
             };
             this.confirmTitle.set('Advertencias de programación');
+            this.confirmLabel.set('Guardar de todos modos');
             this.confirmMessage.set(
               (typeof warnBody.message === 'string'
                 ? warnBody.message
@@ -1899,6 +1997,7 @@ export class ScheduleBoard implements OnInit {
     const warnings = this.previewCellWarnings(ctx.day, this.editAssociateId, this.editCodigo);
     if (warnings.length) {
       this.confirmTitle.set('Confirmar asignación');
+      this.confirmLabel.set('Programar igual');
       this.confirmMessage.set(warnings[0]);
       this.confirmDetail.set(warnings.slice(1).join('\n') || null);
       this.confirmAction = () => this.commitCell();

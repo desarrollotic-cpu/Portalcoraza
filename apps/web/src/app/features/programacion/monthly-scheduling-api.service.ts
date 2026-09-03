@@ -285,6 +285,20 @@ export class MonthlySchedulingApiService {
       {},
     );
   }
+
+  applyRestOfYear(scheduleId: string): Observable<{
+    year: number;
+    fromMonth: number;
+    postId: string;
+    applied: Array<{ month: number; scheduleId: string }>;
+  }> {
+    return this.http.post<{
+      year: number;
+      fromMonth: number;
+      postId: string;
+      applied: Array<{ month: number; scheduleId: string }>;
+    }>(`${this.baseUrl}/${scheduleId}/apply-rest-of-year`, {});
+  }
 }
 
 export interface ScheduleTemplate {

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
@@ -42,6 +42,7 @@ import {
   monthsForAlertsScope,
 } from './monthly-alerts.compute';
 import { MotorTurnosService } from './motor-turnos.service';
+import { mapCopiedDay, remainingMonthsOfYear } from './copy-month-pattern';
 
 const DEFAULT_ROLES: PersonalRole[] = [
   { rol: 'titular_a', associateId: null, turnoId: 'AM', displayName: 'Titular A' },
@@ -1205,6 +1206,99 @@ export class MonthlySchedulingService {
       { personal, assignments },
       userId,
     );
+  }
+
+  /**
+   * Copia personal + celdas de este puesto/mes a los meses siguientes del mismo año.
+   * Sobrescribe cuadros existentes de ese puesto. No toca otros puestos.
+   */
+  async applyRestOfYear(scheduleId: string, userId: string) {
+    const source = await this.getById(scheduleId);
+    const months = remainingMonthsOfYear(source.month);
+    if (!months.length) {
+      throw new BadRequestException('No hay meses siguientes en este año');
+    }
+    const sourceDays = new Date(source.year, source.month, 0).getDate();
+    const cells = (source.assignments ?? []).filter(
+      (a) => a.jornada !== 'sin_asignar' || a.associateId,
+    );
+    if (!cells.length) {
+      throw new BadRequestException(
+        'Este mes no tiene celdas para copiar. Aplica el motor o guarda el cuadro primero.',
+      );
+    }
+
+    const personal = (source.personal ?? []).map((p) => ({ ...p }));
+    const byRoleDay = new Map<string, ScheduleAssignment>();
+    for (const a of cells) {
+      byRoleDay.set(`${a.role}:${a.day}`, a);
+    }
+
+    const applied: Array<{ month: number; scheduleId: string }> = [];
+
+    for (const month of months) {
+      const destDays = new Date(source.year, month, 0).getDate();
+      const dest = await this.createOrGet(
+        { postId: source.postId, year: source.year, month },
+        userId,
+      );
+      const assignments = [];
+      for (let day = 1; day <= destDays; day++) {
+        const srcDay = mapCopiedDay(day, sourceDays);
+        const roles = personal.length
+          ? personal.map((p) => p.rol)
+          : [...new Set(cells.map((c) => c.role))];
+        for (const role of roles) {
+          const src = byRoleDay.get(`${role}:${srcDay}`);
+          if (!src) continue;
+          assignments.push({
+            day,
+            role,
+            associateId: src.associateId,
+            turno: src.turno,
+            jornada: src.jornada,
+            codigo: src.codigo,
+            inicio: src.inicio,
+            fin: src.fin,
+          });
+        }
+      }
+
+      await this.save(
+        dest.id,
+        { personal, assignments, confirmWarnings: true },
+        userId,
+      );
+      if (dest.status !== ScheduleStatus.BORRADOR) {
+        await this.schedulesRepo.update(dest.id, {
+          status: ScheduleStatus.BORRADOR,
+          updatedBy: userId,
+        });
+      }
+      applied.push({ month, scheduleId: dest.id });
+    }
+
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'monthly_schedule.apply_rest_of_year',
+      entityType: 'monthly_schedule',
+      entityId: scheduleId,
+      newValue: {
+        postId: source.postId,
+        year: source.year,
+        fromMonth: source.month,
+        months: applied.map((a) => a.month),
+      },
+    });
+
+    this.clearReportCache();
+    return {
+      year: source.year,
+      fromMonth: source.month,
+      postId: source.postId,
+      applied,
+    };
   }
 
   /**

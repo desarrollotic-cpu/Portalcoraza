@@ -186,4 +186,10 @@ export class MonthlySchedulingController {
   ) {
     return this.service.applyTemplate(id, templateId, user.sub);
   }
+
+  @Post(':id/apply-rest-of-year')
+  @RequirePermissions('scheduling.edit')
+  applyRestOfYear(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.service.applyRestOfYear(id, user.sub);
+  }
 }
