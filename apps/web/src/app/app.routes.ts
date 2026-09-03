@@ -381,7 +381,7 @@ export const routes: Routes = [
         // Gestión Documental nativa (SGD Coraza sobre NestJS + Supabase).
         path: 'documental',
         canActivate: [permissionGuard],
-        data: { permission: 'documental.view' },
+        data: { permissions: ['documental.view', 'documental.loans'] },
         loadComponent: () =>
           import('./features/documental/documental-layout/documental-layout').then(
             (m) => m.DocumentalLayout,
@@ -390,6 +390,8 @@ export const routes: Routes = [
           {
             path: '',
             pathMatch: 'full',
+            canActivate: [permissionGuard],
+            data: { permissions: ['documental.view', 'documental.loans'] },
             loadComponent: () =>
               import('./features/documental/documental-panel/documental-panel').then(
                 (m) => m.DocumentalPanel,
@@ -397,16 +399,22 @@ export const routes: Routes = [
           },
           {
             path: 'buscador',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/search/search').then((m) => m.SearchScreen),
           },
           {
             path: 'informes',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/reports/reports').then((m) => m.ReportsScreen),
           },
           {
             path: 'correspondencia',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/correspondence/correspondence').then(
                 (m) => m.CorrespondenceScreen,
@@ -414,11 +422,15 @@ export const routes: Routes = [
           },
           {
             path: 'minutas',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/minutes/minutes').then((m) => m.MinutesScreen),
           },
           {
             path: 'asociados',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/retired-personnel/retired-personnel').then(
                 (m) => m.RetiredPersonnelScreen,
@@ -426,21 +438,29 @@ export const routes: Routes = [
           },
           {
             path: 'contratos',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/contracts/contracts').then((m) => m.ContractsScreen),
           },
           {
             path: 'prestamos',
+            canActivate: [permissionGuard],
+            data: { permissions: ['documental.view', 'documental.loans'] },
             loadComponent: () =>
               import('./features/documental/loans/loans').then((m) => m.LoansScreen),
           },
           {
             path: 'biblioteca',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/library/library').then((m) => m.LibraryScreen),
           },
           {
             path: 'voxelsera',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.view' },
             loadComponent: () =>
               import('./features/documental/voxelsera/voxelsera').then((m) => m.VoxelseraScreen),
           },

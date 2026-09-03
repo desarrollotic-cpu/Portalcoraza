@@ -1039,8 +1039,16 @@ export class LoansScreen implements OnInit {
     reason?: string;
   } | null>(null);
 
-  readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
-  readonly canManage = computed(() => this.auth.hasPermission('documental.manage'));
+  readonly canCreate = computed(
+    () =>
+      this.auth.hasPermission('documental.create') ||
+      this.auth.hasPermission('documental.loans'),
+  );
+  readonly canManage = computed(
+    () =>
+      this.auth.hasPermission('documental.manage') ||
+      this.auth.hasPermission('documental.loans'),
+  );
 
   readonly pendingCount = computed(() =>
     this.items().filter((l) => l.status === 'PENDIENTE_APROBACION').length,

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
+import { RequireAnyPermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
@@ -13,25 +13,25 @@ export class LoansController {
   constructor(private readonly service: LoansService) {}
 
   @Get()
-  @RequirePermissions('documental.view')
+  @RequireAnyPermissions('documental.view', 'documental.loans')
   list() {
     return this.service.list();
   }
 
   @Post()
-  @RequirePermissions('documental.create')
+  @RequireAnyPermissions('documental.create', 'documental.loans')
   create(@Body() dto: CreateLoanDto, @CurrentUser() user: JwtPayload) {
     return this.service.create(dto, user.sub);
   }
 
   @Put(':id/approve')
-  @RequirePermissions('documental.manage')
+  @RequireAnyPermissions('documental.manage', 'documental.loans')
   approve(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.service.approve(id, user.sub);
   }
 
   @Put(':id/reject')
-  @RequirePermissions('documental.manage')
+  @RequireAnyPermissions('documental.manage', 'documental.loans')
   reject(
     @Param('id') id: string,
     @Body() body: { motivoRechazo?: string },
@@ -41,7 +41,7 @@ export class LoansController {
   }
 
   @Put(':id/return')
-  @RequirePermissions('documental.manage')
+  @RequireAnyPermissions('documental.manage', 'documental.loans')
   returnLoan(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.service.returnLoan(id, user.sub);
   }
@@ -57,7 +57,7 @@ export class LoansController {
   }
 
   @Post(':id/send-reminder')
-  @RequirePermissions('documental.manage')
+  @RequireAnyPermissions('documental.manage', 'documental.loans')
   sendReminder(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.service.sendOverdueEmailManual(id, user.sub);
   }

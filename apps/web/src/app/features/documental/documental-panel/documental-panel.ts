@@ -1,5 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { StatsKpiGrid, StatsKpiItem } from '../../../shared/components/stats-kpi-grid/stats-kpi-grid';
 import { Alert, Analytics, DocumentalApiService } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
@@ -51,6 +53,8 @@ import { DOC_STYLES } from '../documental.styles';
 })
 export class DocumentalPanel implements OnInit {
   private readonly api = inject(DocumentalApiService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
   readonly a = signal<Analytics | null>(null);
   readonly alerts = signal<Alert[]>([]);
   readonly loading = signal(true);
@@ -86,6 +90,13 @@ export class DocumentalPanel implements OnInit {
   });
 
   ngOnInit(): void {
+    if (
+      !this.auth.hasPermission('documental.view') &&
+      this.auth.hasPermission('documental.loans')
+    ) {
+      void this.router.navigate(['/documental/prestamos']);
+      return;
+    }
     forkJoin({ analytics: this.api.analytics(), notifs: this.api.notifications() }).subscribe({
       next: ({ analytics, notifs }) => {
         this.a.set(analytics);

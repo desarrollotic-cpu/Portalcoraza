@@ -1100,7 +1100,7 @@ export class MainLayout implements OnDestroy {
           label: 'Documental',
           route: '/documental',
           icon: LucideClipboardList,
-          permission: 'documental.view',
+          permissions: ['documental.view', 'documental.loans'],
         },
         {
           label: 'Recepción',

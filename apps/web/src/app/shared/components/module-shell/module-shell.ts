@@ -10,6 +10,7 @@ export interface ModuleNavItem {
   label: string;
   route: string;
   permission?: string;
+  permissions?: string[];
   exact?: boolean;
   icon?: Type<unknown>;
   description?: string;
@@ -425,7 +426,12 @@ export class ModuleShell {
   );
 
   readonly visibleNav = computed(() =>
-    this.nav().filter((item) => !item.permission || this.auth.hasPermission(item.permission)),
+    this.nav().filter((item) => {
+      if (item.permissions?.length) {
+        return item.permissions.some((p) => this.auth.hasPermission(p));
+      }
+      return !item.permission || this.auth.hasPermission(item.permission);
+    }),
   );
 
   readonly activeScreen = computed(() => {

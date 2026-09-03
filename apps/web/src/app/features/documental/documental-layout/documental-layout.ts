@@ -1,5 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   LucideBoxes,
   LucideCalendarClock,
@@ -41,6 +42,7 @@ import {
       [nav]="nav"
     >
       <!-- BOTÓN TOPBAR DE ACCIÓN RÁPIDA: COLA DE IMPRESIÓN (AHORRO DE PAPEL) -->
+      @if (canPrintQueue()) {
       <button
         moduleActions
         type="button"
@@ -52,6 +54,7 @@ import {
         <span class="queue-text">Cola de Tiras</span>
         <span class="queue-badge" [class.has-items]="queueCount() > 0">{{ queueCount() }}</span>
       </button>
+      }
 
       <router-outlet />
     </app-module-shell>
@@ -554,7 +557,7 @@ export class DocumentalLayout implements OnInit {
     { label: 'Minutas', route: '/documental/minutas', permission: 'documental.view', icon: LucideClipboardList },
     { label: 'Asociados Retirados', route: '/documental/asociados', permission: 'documental.view', icon: LucideUsersRound },
     { label: 'Contratos', route: '/documental/contratos', permission: 'documental.view', icon: LucideShieldCheck },
-    { label: 'Préstamos', route: '/documental/prestamos', permission: 'documental.view', icon: LucideCalendarClock },
+    { label: 'Préstamos', route: '/documental/prestamos', permissions: ['documental.view', 'documental.loans'], icon: LucideCalendarClock },
     { label: 'Biblioteca', route: '/documental/biblioteca', permission: 'documental.view', icon: LucideBoxes },
     { label: 'VOXELSERA', route: '/documental/voxelsera', permission: 'documental.view', icon: LucideBoxes },
     { label: 'Buscador Universal', route: '/documental/buscador', permission: 'documental.view', icon: LucideSearch },
@@ -569,8 +572,27 @@ export class DocumentalLayout implements OnInit {
   readonly loadingRecent = signal(false);
 
   private readonly api = inject(DocumentalApiService);
+  private readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+
+  canPrintQueue(): boolean {
+    return this.auth.hasPermission('documental.view');
+  }
 
   ngOnInit(): void {
+    if (
+      !this.auth.hasPermission('documental.view') &&
+      this.auth.hasPermission('documental.loans')
+    ) {
+      const path = this.router.url.split('?')[0];
+      if (path === '/documental' || path === '/documental/') {
+        void this.router.navigate(['/documental/prestamos']);
+        return;
+      }
+    }
+    if (!this.auth.hasPermission('documental.view')) {
+      return;
+    }
     this.refreshQueue();
     // Si la cola está vacía, precargar automáticamente los registros recientes para que siempre haya datos listos
     if (this.queueCount() === 0) {
