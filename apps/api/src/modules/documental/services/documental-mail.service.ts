@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import * as tls from 'tls';
 import * as nodemailer from 'nodemailer';
 
 export interface OverdueLoanNotice {
@@ -157,7 +158,10 @@ export class DocumentalMailService {
 
     if (provider === 'resend') {
       const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
-      if (resend.ok) return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+      if (resend.ok) {
+        await this.copyToGmailSent(cleanTo, subject, htmlBody);
+        return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+      }
       if (resend.error) errors.push(resend.error);
       if (!process.env.RENDER) {
         const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
@@ -171,7 +175,10 @@ export class DocumentalMailService {
     if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
     errors.push(smtp.error || 'SMTP falló');
     const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
-    if (resend.ok) return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+    if (resend.ok) {
+      await this.copyToGmailSent(cleanTo, subject, htmlBody);
+      return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+    }
     if (resend.error) errors.push(resend.error);
     return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
   }
@@ -212,6 +219,103 @@ export class DocumentalMailService {
     }
     this.logger.error(`❌ SMTP a ${to}: ${errors.join(' | ')}`);
     return { ok: false, error: errors.join(' | ') };
+  }
+
+  /** Gmail solo muestra Enviados si el mensaje queda en esa carpeta de la cuenta documental@. */
+  private async copyToGmailSent(to: string, subject: string, htmlBody: string): Promise<void> {
+    const cfg = this.smtpConfig();
+    const subj = /^[\x20-\x7E]*$/.test(subject)
+      ? subject
+      : `=?UTF-8?B?${Buffer.from(subject, 'utf8').toString('base64')}?=`;
+    const raw =
+      `From: "Gestión Documental Coraza" <${cfg.user}>\r\n` +
+      `To: ${to}\r\n` +
+      `Subject: ${subj}\r\n` +
+      `MIME-Version: 1.0\r\n` +
+      `Content-Type: text/html; charset=UTF-8\r\n` +
+      `Content-Transfer-Encoding: 8bit\r\n` +
+      `\r\n` +
+      htmlBody.replace(/\r?\n/g, '\r\n');
+    try {
+      await this.imapAppendSent(cfg.user, cfg.pass, raw);
+      this.logger.log(`✅ Copia en Gmail Enviados → ${to}`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`⚠️ No se pudo dejar copia en Enviados: ${msg}`);
+    }
+  }
+
+  private imapAppendSent(user: string, pass: string, raw: string): Promise<void> {
+    const size = Buffer.byteLength(raw, 'utf8');
+    const folders = ['[Gmail]/Sent Mail', '[Gmail]/Enviados'];
+    return new Promise((resolve, reject) => {
+      const socket = tls.connect({
+        host: 'imap.gmail.com',
+        port: 993,
+        servername: 'imap.gmail.com',
+        timeout: 7000,
+      });
+      let buf = '';
+      let step: 'greet' | 'login' | 'wait-plus' | 'wait-ok' = 'greet';
+      let folderIdx = 0;
+      const timer = setTimeout(() => {
+        socket.destroy();
+        reject(new Error('IMAP timeout'));
+      }, 8000);
+      const sendLine = (s: string) => socket.write(s + '\r\n');
+      const finish = (err?: Error) => {
+        clearTimeout(timer);
+        socket.end();
+        if (err) reject(err);
+        else resolve();
+      };
+      socket.on('data', (chunk) => {
+        buf += chunk.toString('utf8');
+        if (step === 'greet' && /\n.*OK /i.test(buf)) {
+          buf = '';
+          step = 'login';
+          sendLine(`a LOGIN "${user}" "${pass}"`);
+        } else if (step === 'login' && /^a (OK|NO|BAD)/im.test(buf)) {
+          if (!/^a OK/im.test(buf)) {
+            finish(new Error('IMAP login rechazado'));
+            return;
+          }
+          buf = '';
+          step = 'wait-plus';
+          sendLine(`b APPEND "${folders[folderIdx]}" (\\Seen) {${size}}`);
+        } else if (step === 'wait-plus' && buf.includes('+')) {
+          buf = '';
+          step = 'wait-ok';
+          socket.write(raw + '\r\n');
+        } else if (step === 'wait-ok' && /^b (OK|NO|BAD)/im.test(buf)) {
+          if (/^b OK/im.test(buf)) {
+            sendLine('c LOGOUT');
+            finish();
+            return;
+          }
+          if (folderIdx === 0) {
+            folderIdx = 1;
+            buf = '';
+            step = 'wait-plus';
+            sendLine(`d APPEND "${folders[1]}" (\\Seen) {${size}}`);
+            return;
+          }
+          finish(new Error(buf.replace(/\s+/g, ' ').slice(0, 160)));
+        } else if (step === 'wait-ok' && /^d (OK|NO|BAD)/im.test(buf)) {
+          if (/^d OK/im.test(buf)) {
+            sendLine('c LOGOUT');
+            finish();
+            return;
+          }
+          finish(new Error(buf.replace(/\s+/g, ' ').slice(0, 160)));
+        }
+      });
+      socket.on('error', (e) => finish(e));
+      socket.on('timeout', () => {
+        socket.destroy();
+        reject(new Error('IMAP socket timeout'));
+      });
+    });
   }
 
   private async postResend(
