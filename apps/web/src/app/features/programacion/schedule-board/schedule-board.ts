@@ -1258,6 +1258,7 @@ export class ScheduleBoard implements OnInit {
     const qMonth = qp.get('month');
     const qYear = qp.get('year');
     const qDay = qp.get('day');
+    if (qPost) this.postId = qPost;
     if (qDay && /^\d+$/.test(qDay)) this.highlightDay.set(Number(qDay));
 
     let monthFromQuery = false;
@@ -1282,6 +1283,19 @@ export class ScheduleBoard implements OnInit {
     });
     this.api.listTemplates().subscribe({
       next: (rows) => this.templates.set(rows),
+    });
+
+    this.route.queryParamMap.subscribe((qp) => {
+      const post = qp.get('postId');
+      const month = qp.get('month');
+      const day = qp.get('day');
+      if (!post) return;
+      const same = post === this.postId && (!month || month === this.month);
+      this.postId = post;
+      if (month && /^\d{4}-\d{2}$/.test(month)) this.month = month;
+      if (day && /^\d+$/.test(day)) this.highlightDay.set(Number(day));
+      this.syncPostSearchLabel();
+      if (!same && this.postId && this.month) this.onSelectionChange();
     });
 
     const afterMonthReady = () => {
