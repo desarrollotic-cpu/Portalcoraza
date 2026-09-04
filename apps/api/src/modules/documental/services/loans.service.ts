@@ -251,6 +251,15 @@ export class LoansService {
       this.logger.error(`No se pudo guardar trazabilidad de correo ${kind}:`, err);
     }
 
+    const stamp = new Date().toISOString().slice(0, 16).replace('T', ' ');
+    const line = result.ok
+      ? `[CORREO ${kind} ${stamp}] Enviado a ${result.to} (${result.via})`
+      : `[CORREO ${kind} ${stamp}] NO enviado a ${result.to || loan.email}: ${result.error || 'error'}`;
+    loan.observations = `${loan.observations ? loan.observations + '\n' : ''}${line}`.slice(-4000);
+    await this.repo.save(loan).catch((err) => {
+      this.logger.error('No se pudo anotar el correo en observaciones:', err);
+    });
+
     if (userId) {
       await this.audit.log({
         userId,

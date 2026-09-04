@@ -22,36 +22,17 @@ export type MailDispatchResult = {
 export class DocumentalMailService {
   private readonly logger = new Logger(DocumentalMailService.name);
   readonly senderEmail = 'documental@corazaseguridadcta.com';
-  private transporter: nodemailer.Transporter | null = null;
 
   constructor() {
-    this.initTransporter();
+    // No abrir pool SMTP al arrancar: en Render el puerto 465/587 hace timeout y bloquea los correos.
   }
 
-  private initTransporter(): void {
-    const cfg = this.smtpConfig();
-    try {
-      this.transporter = nodemailer.createTransport({
-        host: cfg.host,
-        port: cfg.port,
-        secure: cfg.secure,
-        requireTLS: !cfg.secure,
-        pool: true,
-        maxConnections: 5,
-        maxMessages: 100,
-        auth: { user: cfg.user, pass: cfg.pass },
-      });
-      this.logger.log(`📧 [SMTP] ${cfg.user} vía ${cfg.host}:${cfg.port} (provider=${this.mailProvider()})`);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`❌ Error inicializando SMTP: ${errorMsg}`);
-    }
-  }
-
-  /** smtp = bandeja Enviados de documental@; resend = API externa (no aparece en Gmail). */
+  /** En Render el SMTP de Gmail suele estar bloqueado; Resend (HTTPS) va primero. */
   private mailProvider(): 'smtp' | 'resend' {
-    const p = (process.env.MAIL_PROVIDER || 'smtp').trim().toLowerCase();
-    return p === 'resend' ? 'resend' : 'smtp';
+    const explicit = (process.env.MAIL_PROVIDER || '').trim().toLowerCase();
+    if (explicit === 'smtp' || explicit === 'resend') return explicit;
+    if (process.env.RENDER) return 'resend';
+    return 'smtp';
   }
 
   private smtpConfig(): { host: string; port: number; user: string; pass: string; secure: boolean } {
@@ -174,104 +155,131 @@ export class DocumentalMailService {
     const provider = this.mailProvider();
     const errors: string[] = [];
 
-    if (provider === 'smtp') {
-      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
-      errors.push(smtp.error || 'SMTP falló');
-      this.logger.warn(`⚠️ SMTP falló para ${cleanTo}; intentando Resend...`);
+    if (provider === 'resend') {
+      const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
+      if (resend.ok) return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+      if (resend.error) errors.push(resend.error);
+      if (!process.env.RENDER) {
+        const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+        if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+        if (smtp.error) errors.push(smtp.error);
+      }
+      return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
     }
 
+    const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+    if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+    errors.push(smtp.error || 'SMTP falló');
     const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
     if (resend.ok) return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
     if (resend.error) errors.push(resend.error);
-
-    if (provider === 'resend') {
-      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
-      if (smtp.error) errors.push(smtp.error);
-    }
-
     return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
   }
 
   private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
     const cfg = this.smtpConfig();
-    try {
-      const transporter =
-        this.transporter ??
-        nodemailer.createTransport({
+    const attempts = [
+      { port: 587, secure: false },
+      { port: cfg.port, secure: cfg.secure },
+    ];
+    const errors: string[] = [];
+    for (const attempt of attempts) {
+      try {
+        const transporter = nodemailer.createTransport({
           host: cfg.host,
-          port: cfg.port,
-          secure: cfg.secure,
+          port: attempt.port,
+          secure: attempt.secure,
+          requireTLS: !attempt.secure,
+          connectionTimeout: 6000,
+          greetingTimeout: 6000,
+          socketTimeout: 8000,
           auth: { user: cfg.user, pass: cfg.pass },
         });
-
-      const info = await transporter.sendMail({
-        from: `"Gestión Documental Coraza" <${cfg.user}>`,
-        to,
-        bcc: this.senderEmail,
-        replyTo: this.senderEmail,
-        subject,
-        html: htmlBody,
-      });
-
-      this.logger.log(`✅ [SMTP] Para: ${to} | CCO: ${this.senderEmail} | ID: ${info.messageId}`);
-      return { ok: true, error: null };
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`❌ Error SMTP a ${to}: ${errorMsg}`);
-      return { ok: false, error: errorMsg };
+        const info = await transporter.sendMail({
+          from: `"Gestión Documental Coraza" <${cfg.user}>`,
+          to,
+          bcc: this.senderEmail,
+          replyTo: this.senderEmail,
+          subject,
+          html: htmlBody,
+        });
+        this.logger.log(`✅ [SMTP ${attempt.port}] Para: ${to} | ID: ${info.messageId}`);
+        return { ok: true, error: null };
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        errors.push(`SMTP ${attempt.port}: ${errorMsg}`);
+      }
     }
+    this.logger.error(`❌ SMTP a ${to}: ${errors.join(' | ')}`);
+    return { ok: false, error: errors.join(' | ') };
+  }
+
+  private async postResend(
+    resendKey: string,
+    payload: Record<string, unknown>,
+  ): Promise<{ ok: boolean; status: number; body: string }> {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${resendKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    const body = await res.text();
+    return { ok: res.ok, status: res.status, body };
   }
 
   private async sendViaResend(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (!resendKey) return { ok: false, error: null };
 
+    const fromOnboarding = 'Gestión Documental Coraza <onboarding@resend.dev>';
+    const fromCustom = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
+
     try {
-      const fromEmail = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
-      let res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${resendKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: fromEmail,
-          to: [to],
-          bcc: [this.senderEmail],
+      const tries = [
+        { from: fromOnboarding, to: [to] },
+        { from: fromCustom, to: [to] },
+        { from: fromOnboarding, to: [to], bcc: [this.senderEmail] },
+      ];
+      let lastErr = '';
+      for (const t of tries) {
+        const res = await this.postResend(resendKey, {
+          from: t.from,
+          to: t.to,
+          bcc: t.bcc,
           reply_to: this.senderEmail,
           subject,
           html: htmlBody,
-        }),
-      });
-
-      if (!res.ok) {
-        res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'Gestión Documental Coraza <onboarding@resend.dev>',
-            to: [to],
-            bcc: [this.senderEmail],
-            reply_to: this.senderEmail,
-            subject,
-            html: htmlBody,
-          }),
         });
+        if (res.ok) {
+          this.logger.log(`✅ [RESEND] Para: ${to} | ${res.body}`);
+          return { ok: true, error: null };
+        }
+        lastErr = `Resend ${res.status}: ${res.body.slice(0, 220)}`;
       }
 
-      if (res.ok) {
-        const resData = (await res.json()) as { id?: string };
-        this.logger.log(`✅ [RESEND] Para: ${to} | ID: ${resData?.id ?? 'ok'}`);
-        return { ok: true, error: null };
+      // Cuenta Resend en modo prueba: solo entrega al dueño. Deja copia en documental@.
+      if (to !== this.senderEmail) {
+        const copy = await this.postResend(resendKey, {
+          from: fromOnboarding,
+          to: [this.senderEmail],
+          reply_to: to,
+          subject: `${subject} (para: ${to})`,
+          html: `<p><strong>Destinatario original:</strong> ${to}</p>${htmlBody}`,
+        });
+        if (copy.ok) {
+          this.logger.warn(`⚠️ Resend no entrega a ${to}; copia en ${this.senderEmail}`);
+          return {
+            ok: false,
+            error: `${lastErr} | Copia interna dejada en ${this.senderEmail}`,
+          };
+        }
       }
 
-      this.logger.warn(`⚠️ Resend (${res.status})`);
-      return { ok: false, error: `Resend ${res.status}` };
+      this.logger.warn(`⚠️ ${lastErr}`);
+      return { ok: false, error: lastErr || 'Resend falló' };
     } catch (httpErr: unknown) {
       const msg = httpErr instanceof Error ? httpErr.message : String(httpErr);
       this.logger.warn(`⚠️ Error Resend: ${msg}`);
