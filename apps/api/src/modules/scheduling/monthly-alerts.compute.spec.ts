@@ -301,6 +301,100 @@ describe('computeMonthlyAlerts', () => {
     expect(h?.suggestedAction).toMatch(/asignar/i);
     expect(h?.message).toMatch(/Amisi/);
   });
+
+  it('incluye huecos de todos los puestos del catálogo aunque no tengan celdas', () => {
+    const alerts = computeMonthlyAlerts({
+      month: '2026-09',
+      daysInMonth: 1,
+      cells: [],
+      posts: [
+        { postId: 'a', postName: 'Amisi (549)' },
+        { postId: 'b', postName: 'Otro (589)' },
+      ],
+    });
+    const huecos = alerts.filter((a) => a.type === 'hueco_cobertura');
+    expect(huecos.filter((a) => a.postId === 'a')).toHaveLength(2);
+    expect(huecos.filter((a) => a.postId === 'b')).toHaveLength(2);
+  });
+
+  it('puesto D8 (solo diurno 8h) no pide noche', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Portería 8h',
+          day: 1,
+          role: 'titular_a',
+          associateId: 'a1',
+          associateName: 'Ana',
+          associateStatus: 'ACTIVO',
+          codigo: 'D8',
+        },
+      ],
+    });
+    const huecos = alerts.filter((a) => a.type === 'hueco_cobertura');
+    expect(huecos.some((a) => a.shift === 'N')).toBe(false);
+    expect(huecos.some((a) => a.shift === 'D')).toBe(false);
+  });
+
+  it('puesto N8 (solo nocturno 8h) no pide día', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Ronda 8h',
+          day: 1,
+          role: 'titular_a',
+          associateId: 'a1',
+          associateName: 'Ana',
+          associateStatus: 'ACTIVO',
+          codigo: 'N8',
+        },
+      ],
+    });
+    const huecos = alerts.filter((a) => a.type === 'hueco_cobertura');
+    expect(huecos.some((a) => a.shift === 'D')).toBe(false);
+    expect(huecos.some((a) => a.shift === 'N')).toBe(false);
+  });
+
+  it('D 12h sin N sigue pidiendo noche (24h)', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Amisi',
+          day: 1,
+          role: 'titular_a',
+          associateId: 'a1',
+          associateName: 'Ana',
+          associateStatus: 'ACTIVO',
+          codigo: 'D',
+        },
+      ],
+    });
+    expect(
+      alerts.some((a) => a.type === 'hueco_cobertura' && a.shift === 'N' && a.day === 1),
+    ).toBe(true);
+  });
+
+  it('puesto sin cuadro: una sola alerta, no D y N por cada día', () => {
+    const alerts = computeMonthlyAlerts({
+      month: '2026-09',
+      daysInMonth: 10,
+      cells: [],
+      posts: [{ postId: 'p9', postName: 'Navarra (732)', scheduled: false }],
+    });
+    const huecos = alerts.filter((a) => a.type === 'hueco_cobertura' && a.postId === 'p9');
+    expect(huecos).toHaveLength(1);
+    expect(huecos[0].shift).toBeUndefined();
+    expect(huecos[0].day).toBeUndefined();
+  });
 });
 
 describe('isActionableAlert', () => {
@@ -415,5 +509,43 @@ describe('groupHuecosByPost', () => {
     expect(groups[0].daysN).toEqual([4]);
     expect(groups[0].count).toBe(3);
     expect(groups[0].firstDay).toBe(4);
+  });
+
+  it('sin cuadro no inventa turnos D/N en el agrupado', () => {
+    const groups = groupHuecosByPost([
+      {
+        id: 'h',
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month: '2026-09',
+        postId: 'p9',
+        postName: 'Navarra (732)',
+        message: 'x',
+        reason: 'sin_malla',
+        suggestedAction: 'Abrir el cuadro',
+      },
+    ]);
+    expect(groups[0].daysD).toEqual([]);
+    expect(groups[0].daysN).toEqual([]);
+    expect(groups[0].count).toBe(1);
+    expect(groups[0].suggestedAction).toMatch(/abrir el cuadro/i);
+  });
+
+  it('marca sin_malla cuando el hueco no tiene cuadro', () => {
+    const groups = groupHuecosByPost([
+      {
+        id: 'h',
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month: '2026-09',
+        day: 4,
+        postId: 'p9',
+        postName: 'Navarra (732)',
+        shift: 'D',
+        message: 'x',
+        reason: 'sin_malla',
+      },
+    ]);
+    expect(groups[0].kind).toBe('sin_malla');
   });
 });

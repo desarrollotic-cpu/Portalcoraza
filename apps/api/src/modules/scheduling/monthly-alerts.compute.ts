@@ -151,24 +151,58 @@ export function monthsForAlertsScope(opts: {
   return list;
 }
 
+export type AlertPostInput = {
+  postId: string;
+  postName: string;
+  /** false = activo sin cuadro este mes: una alerta, no D/N por día */
+  scheduled?: boolean;
+};
+
+/** D8 sin noche → solo día. N8 sin día → solo noche. D/N 12h o desconocido → las dos. */
+export function inferRequiredShifts(cells: AlertCellInput[]): { d: boolean; n: boolean } {
+  let day8 = false;
+  let night8 = false;
+  let day12 = false;
+  let night12 = false;
+  for (const c of cells) {
+    const code = (c.codigo ?? '').toUpperCase();
+    if (code === 'D8') day8 = true;
+    else if (code === 'N8') night8 = true;
+    else if (code === 'D' || code === 'D9' || code === 'D12') day12 = true;
+    else if (code === 'N' || code === 'N9' || code === 'N12') night12 = true;
+  }
+  if (day8 && !night8 && !day12 && !night12) return { d: true, n: false };
+  if (night8 && !day8 && !day12 && !night12) return { d: false, n: true };
+  return { d: true, n: true };
+}
+
 export function computeMonthlyAlerts(args: {
   month: string;
   daysInMonth: number;
   cells: AlertCellInput[];
   /** Puestos del mes (cuadros). Si se omite, se infieren solo de `cells`. */
-  posts?: Array<{ postId: string; postName: string }>;
+  posts?: AlertPostInput[];
 }): ScheduleAlertItem[] {
   const { month, daysInMonth, cells } = args;
   const alerts: ScheduleAlertItem[] = [];
 
   const postNames = new Map<string, string>();
+  const postScheduled = new Map<string, boolean>();
   for (const p of args.posts ?? []) {
     postNames.set(p.postId, p.postName);
+    if (p.scheduled !== undefined) postScheduled.set(p.postId, p.scheduled);
   }
   for (const c of cells) {
     if (!postNames.has(c.postId)) postNames.set(c.postId, c.postName);
   }
   const postIds = [...postNames.keys()];
+
+  const cellsByPost = new Map<string, AlertCellInput[]>();
+  for (const c of cells) {
+    const list = cellsByPost.get(c.postId) ?? [];
+    list.push(c);
+    cellsByPost.set(c.postId, list);
+  }
 
   const coverage = new Map<string, { d: boolean; n: boolean }>();
   for (const c of cells) {
@@ -184,10 +218,25 @@ export function computeMonthlyAlerts(args: {
 
   for (const postId of postIds) {
     const postName = postNames.get(postId) ?? postId;
+    const postCells = cellsByPost.get(postId) ?? [];
+    if (postScheduled.get(postId) === false && postCells.length === 0) {
+      alerts.push({
+        id: `hueco_cobertura:${month}:${postId}:sin_malla`,
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month,
+        postId,
+        postName,
+        suggestedAction: `Abrir el cuadro de ${postName} y armar la programación del mes.`,
+        message: `${postName} no tiene programación este mes.`,
+      });
+      continue;
+    }
+    const need = inferRequiredShifts(postCells);
     for (let day = 1; day <= daysInMonth; day++) {
       const cov = coverage.get(`${postId}|${day}`);
       const when = weekdayLabel(month, day);
-      if (!cov?.d) {
+      if (need.d && !cov?.d) {
         alerts.push({
           id: `hueco_cobertura:${month}:${postId}:${day}:D`,
           type: 'hueco_cobertura',
@@ -201,7 +250,7 @@ export function computeMonthlyAlerts(args: {
           message: `${postName} · ${when} · falta cobertura diurna (D). El puesto no tiene vigilante de día.`,
         });
       }
-      if (!cov?.n) {
+      if (need.n && !cov?.n) {
         alerts.push({
           id: `hueco_cobertura:${month}:${postId}:${day}:N`,
           type: 'hueco_cobertura',
@@ -352,6 +401,8 @@ export interface HuecoGroup {
   count: number;
   firstDay: number;
   suggestedAction: string;
+  /** sin_malla = puesto activo sin cuadro este mes */
+  kind?: 'sin_malla' | 'sin_cobertura';
 }
 
 export function groupHuecosByPost(alerts: ScheduleAlertItem[]): HuecoGroup[] {
@@ -359,6 +410,8 @@ export function groupHuecosByPost(alerts: ScheduleAlertItem[]): HuecoGroup[] {
   for (const a of alerts) {
     if (a.type !== 'hueco_cobertura') continue;
     const key = `${a.month}|${a.postId}`;
+    const kind: HuecoGroup['kind'] =
+      a.reason === 'sin_malla' ? 'sin_malla' : 'sin_cobertura';
     const cur = map.get(key) ?? {
       postId: a.postId,
       postName: a.postName,
@@ -368,6 +421,7 @@ export function groupHuecosByPost(alerts: ScheduleAlertItem[]): HuecoGroup[] {
       count: 0,
       firstDay: a.day ?? 1,
       suggestedAction: a.suggestedAction ?? `Cubrir ${a.postName}.`,
+      kind,
     };
     cur.count += 1;
     if (a.day) {
@@ -381,7 +435,11 @@ export function groupHuecosByPost(alerts: ScheduleAlertItem[]): HuecoGroup[] {
   for (const g of groups) {
     g.daysD.sort((x, y) => x - y);
     g.daysN.sort((x, y) => x - y);
-    g.suggestedAction = `Asignar cobertura en ${g.postName}: ${g.daysD.length} turno(s) diurno(s) y ${g.daysN.length} nocturno(s) sin cubrir.`;
+    if (g.kind === 'sin_malla' && !g.daysD.length && !g.daysN.length) {
+      g.suggestedAction = `Abrir el cuadro de ${g.postName} y armar la programación del mes.`;
+    } else {
+      g.suggestedAction = `Asignar cobertura en ${g.postName}: ${g.daysD.length} turno(s) diurno(s) y ${g.daysN.length} nocturno(s) sin cubrir.`;
+    }
   }
   return groups.sort((a, b) => b.count - a.count || a.postName.localeCompare(b.postName));
 }

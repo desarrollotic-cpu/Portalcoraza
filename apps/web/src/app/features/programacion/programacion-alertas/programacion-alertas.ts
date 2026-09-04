@@ -77,7 +77,7 @@ const PAGE_SIZE = 12;
       <p class="alerts__now" [attr.aria-live]="'polite'">
         @switch (tab()) {
           @case ('huecos') {
-            Puestos donde falta vigilante de día o de noche.
+            Puestos activos sin gente. Los de 8h (D8/N8) solo avisan la franja que usan; los sin cuadro salen una vez, no como 60 huecos.
           }
           @case ('inactivos') {
             Alguien ya programado que quedó inactivo, de vacaciones o en incapacidad.
@@ -91,6 +91,39 @@ const PAGE_SIZE = 12;
         }
       </p>
 
+      @if (!loading() && tab() === 'huecos') {
+        <div class="alerts__tools">
+          <label class="alerts__search">
+            Buscar puesto
+            <input
+              type="search"
+              [ngModel]="postQuery()"
+              (ngModelChange)="onPostQuery($event)"
+              placeholder="Nombre o código…"
+            />
+          </label>
+          <div class="alerts__chips" role="group" aria-label="Filtrar huecos">
+            <button type="button" [class.chip--on]="huecoKind() === 'todos'" (click)="setHuecoKind('todos')">
+              Todos
+            </button>
+            <button
+              type="button"
+              [class.chip--on]="huecoKind() === 'sin_malla'"
+              (click)="setHuecoKind('sin_malla')"
+            >
+              Sin programar
+            </button>
+            <button
+              type="button"
+              [class.chip--on]="huecoKind() === 'sin_cobertura'"
+              (click)="setHuecoKind('sin_cobertura')"
+            >
+              Sin cubrir
+            </button>
+          </div>
+        </div>
+      }
+
       @if (loading()) {
         <div class="skel" aria-busy="true" aria-label="Cargando alertas">
           <div class="skel__card"></div>
@@ -99,8 +132,12 @@ const PAGE_SIZE = 12;
         </div>
       } @else if (tab() === 'huecos' && huecoGroups().length === 0) {
         <div class="empty">
-          <p>No hay puestos descubiertos de hoy en adelante.</p>
-          <a routerLink="/programacion/cuadro">Ir al cuadro mensual</a>
+          @if (postQuery().trim()) {
+            <p>Ningún puesto coincide con «{{ postQuery() }}».</p>
+          } @else {
+            <p>No hay puestos descubiertos de hoy en adelante.</p>
+            <a routerLink="/programacion/cuadro">Ir al cuadro mensual</a>
+          }
         </div>
       } @else if (tab() !== 'huecos' && filtered().length === 0) {
         <div class="empty">
@@ -121,48 +158,57 @@ const PAGE_SIZE = 12;
               <li class="card">
                 <div class="card__top">
                   <h3>{{ g.postName }}</h3>
-                  <span class="badge">Sin cubrir</span>
+                  <span class="badge" [class.badge--muted]="g.kind === 'sin_malla'">
+                    {{ g.kind === 'sin_malla' ? 'Sin programar' : 'Sin cubrir' }}
+                  </span>
                 </div>
                 <p class="card__lead">
-                  Este puesto no tiene quien trabaje
-                  @if (g.daysD.length && g.daysN.length) {
-                    de <strong>día</strong> ni de <strong>noche</strong>
+                  @if (g.kind === 'sin_malla') {
+                    Todavía no tiene programación este mes. Ábrelo y arma la malla; no asumimos día y noche hasta que exista el cuadro.
+                  } @else if (g.daysD.length && g.daysN.length) {
+                    Este puesto no tiene quien trabaje de <strong>día</strong> ni de <strong>noche</strong>
+                    {{ daySpan(g.daysD.length >= g.daysN.length ? g.daysD : g.daysN) }}.
                   } @else if (g.daysD.length) {
-                    de <strong>día</strong>
+                    Este puesto no tiene quien trabaje de <strong>día</strong> {{ daySpan(g.daysD) }}.
                   } @else {
-                    de <strong>noche</strong>
+                    Este puesto no tiene quien trabaje de <strong>noche</strong> {{ daySpan(g.daysN) }}.
                   }
-                  {{ daySpan(g.daysD.length ? g.daysD : g.daysN) }}.
                 </p>
-                <div class="stats">
-                  <div class="stat">
-                    <app-icon [icon]="icons.Sun" [size]="16" />
-                    <span>Día (D)</span>
-                    <strong>{{ g.daysD.length }}</strong>
-                    <em>turnos vacíos</em>
+                @if (g.daysD.length || g.daysN.length) {
+                  <div class="stats">
+                    @if (g.daysD.length) {
+                      <div class="stat">
+                        <app-icon [icon]="icons.Sun" [size]="16" />
+                        <span>Día (D)</span>
+                        <strong>{{ g.daysD.length }}</strong>
+                        <em>turnos vacíos</em>
+                      </div>
+                    }
+                    @if (g.daysN.length) {
+                      <div class="stat">
+                        <app-icon [icon]="icons.Moon" [size]="16" />
+                        <span>Noche (N)</span>
+                        <strong>{{ g.daysN.length }}</strong>
+                        <em>turnos vacíos</em>
+                      </div>
+                    }
                   </div>
-                  <div class="stat">
-                    <app-icon [icon]="icons.Moon" [size]="16" />
-                    <span>Noche (N)</span>
-                    <strong>{{ g.daysN.length }}</strong>
-                    <em>turnos vacíos</em>
-                  </div>
-                </div>
-                <details class="more">
-                  <summary>Ver los días</summary>
-                  @if (g.daysD.length) {
-                    <p>Día: {{ daySpan(g.daysD) }}</p>
-                  }
-                  @if (g.daysN.length) {
-                    <p>Noche: {{ daySpan(g.daysN) }}</p>
-                  }
-                </details>
+                  <details class="more">
+                    <summary>Ver los días</summary>
+                    @if (g.daysD.length) {
+                      <p>Día: {{ daySpan(g.daysD) }}</p>
+                    }
+                    @if (g.daysN.length) {
+                      <p>Noche: {{ daySpan(g.daysN) }}</p>
+                    }
+                  </details>
+                }
                 <a
                   class="cta"
                   [routerLink]="['/programacion/cuadro']"
                   [queryParams]="{ postId: g.postId, month: g.month, day: g.firstDay }"
                 >
-                  Programar {{ g.postName }}
+                  Programar este puesto
                   <app-icon [icon]="icons.Arrow" [size]="16" />
                 </a>
               </li>
@@ -299,6 +345,19 @@ const PAGE_SIZE = 12;
       padding: 0.2rem 0.55rem; border-radius: 999px; background: #fee2e2; color: #991b1b;
     }
     .badge--warn { background: #fef3c7; color: #92400e; }
+    .badge--muted { background: #e2e8f0; color: #334155; }
+    .alerts__tools { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: flex-end; margin-bottom: 0.5rem; }
+    .alerts__search { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; max-width: 24rem; flex: 1 1 16rem; }
+    .alerts__search input {
+      min-height: 44px; padding: 0.45rem 0.7rem; border: 1px solid var(--coraza-border);
+      border-radius: 10px; background: var(--coraza-surface); color: inherit; font: inherit;
+    }
+    .alerts__chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .alerts__chips button {
+      min-height: 40px; padding: 0.35rem 0.8rem; border-radius: 999px; cursor: pointer; font: inherit;
+      border: 1px solid var(--coraza-border); background: var(--coraza-surface); color: inherit;
+    }
+    .alerts__chips button.chip--on { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
     .card__lead { margin: 0; line-height: 1.45; font-size: 0.95rem; }
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
     .stat {
@@ -374,6 +433,8 @@ export class ProgramacionAlertas implements OnInit {
   readonly data = signal<MonthlyAlertsResponse | null>(null);
   readonly tab = signal<TabKey>('huecos');
   readonly page = signal(1);
+  readonly postQuery = signal('');
+  readonly huecoKind = signal<'todos' | 'sin_malla' | 'sin_cobertura'>('todos');
   readonly monthInput = signal('');
 
   private year = new Date().getFullYear();
@@ -384,7 +445,17 @@ export class ProgramacionAlertas implements OnInit {
     return (this.data()?.alerts ?? []).filter((a) => a.type === type);
   });
 
-  readonly huecoGroups = computed(() => this.data()?.huecoGroups ?? []);
+  readonly allHuecoGroups = computed(() => this.data()?.huecoGroups ?? []);
+
+  readonly huecoGroups = computed(() => {
+    const q = this.postQuery().trim().toLowerCase();
+    const kind = this.huecoKind();
+    return this.allHuecoGroups().filter((g) => {
+      if (kind !== 'todos' && (g.kind ?? 'sin_cobertura') !== kind) return false;
+      if (q && !g.postName.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  });
 
   readonly listLength = computed(() =>
     this.tab() === 'huecos' ? this.huecoGroups().length : this.filtered().length,
@@ -430,7 +501,7 @@ export class ProgramacionAlertas implements OnInit {
   count(key: TabKey): number {
     const t = this.data()?.totals;
     if (!t) return 0;
-    if (key === 'huecos') return this.huecoGroups().length || t.huecos;
+    if (key === 'huecos') return this.allHuecoGroups().length || t.huecos;
     if (key === 'inactivos') return t.inactivos;
     if (key === 'conflictos') return t.conflictos;
     return t.carga;
@@ -476,6 +547,16 @@ export class ProgramacionAlertas implements OnInit {
   goPage(next: number): void {
     if (next < 1 || next > this.totalPages()) return;
     this.page.set(next);
+  }
+
+  onPostQuery(value: string): void {
+    this.postQuery.set(value);
+    this.page.set(1);
+  }
+
+  setHuecoKind(kind: 'todos' | 'sin_malla' | 'sin_cobertura'): void {
+    this.huecoKind.set(kind);
+    this.page.set(1);
   }
 
   onMonth(value: string): void {

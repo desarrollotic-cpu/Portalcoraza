@@ -56,6 +56,15 @@ const DEFAULT_ROLES: PersonalRole[] = [
   { rol: 'relevante', associateId: null, turnoId: 'AM', displayName: 'Relevante' },
 ];
 
+/** Nombre del puesto primero; el código queda entre paréntesis. */
+const POST_LABEL_SQL = `CASE
+  WHEN NULLIF(BTRIM(p.name), '') IS NOT NULL AND NULLIF(BTRIM(p.code), '') IS NOT NULL AND BTRIM(p.name) <> BTRIM(p.code)
+    THEN BTRIM(p.name) || ' (' || BTRIM(p.code) || ')'
+  WHEN NULLIF(BTRIM(p.name), '') IS NOT NULL THEN BTRIM(p.name)
+  WHEN NULLIF(BTRIM(p.code), '') IS NOT NULL THEN BTRIM(p.code)
+  ELSE LEFT(s.post_id::text, 8)
+END`;
+
 /** Cache corto en memoria para reportes pesados (alertas / recargos). */
 const REPORT_CACHE_TTL_MS = 45_000;
 
@@ -269,7 +278,7 @@ export class MonthlySchedulingService {
       todayDay: today.day,
     });
 
-    const cacheKey = `alerts:${scope}:${months.map((m) => `${m.year}-${m.month}`).join(',')}`;
+    const cacheKey = `alerts:v4-shifts:${scope}:${months.map((m) => `${m.year}-${m.month}`).join(',')}`;
     const cached = this.readReportCache<{
       generatedAt: string;
       months: string[];
@@ -284,15 +293,30 @@ export class MonthlySchedulingService {
   private async buildMonthAlerts(months: Array<{ year: number; month: number }>) {
     const alerts: ScheduleAlertItem[] = [];
     const monthLabels: string[] = [];
+    const catalog = await this.loadActivePosts();
     for (const m of months) {
       const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
       monthLabels.push(label);
-      const [posts, cells] = await Promise.all([
+      const [scheduled, cells] = await Promise.all([
         this.loadMonthPosts(m.year, m.month),
         this.loadAlertCells(m.year, m.month),
       ]);
+      const scheduledIds = new Set(scheduled.map((p) => p.postId));
       const daysInMonth = new Date(m.year, m.month, 0).getDate();
-      alerts.push(...computeMonthlyAlerts({ month: label, daysInMonth, cells, posts }));
+      const monthAlerts = computeMonthlyAlerts({
+        month: label,
+        daysInMonth,
+        cells,
+        posts: catalog.map((p) => ({
+          ...p,
+          scheduled: scheduledIds.has(p.postId),
+        })),
+      });
+      for (const a of monthAlerts) {
+        if (a.type !== 'hueco_cobertura') continue;
+        a.reason = scheduledIds.has(a.postId) ? 'sin_cobertura' : 'sin_malla';
+      }
+      alerts.push(...monthAlerts);
     }
     return { generatedAt: new Date().toISOString(), months: monthLabels, alerts };
   }
@@ -507,13 +531,31 @@ export class MonthlySchedulingService {
       .where('s.year = :year AND s.month = :month', { year, month })
       .select('s.post_id', 'postId')
       .addSelect(
-        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        POST_LABEL_SQL,
         'postName',
       )
       .getRawMany<{ postId: string; postName: string }>();
     return rows.map((r) => ({
       postId: r.postId,
       postName: r.postName || r.postId.slice(0, 8),
+    }));
+  }
+
+  private formatPostLabel(p: { id: string; name?: string | null; code?: string | null }): string {
+    const name = p.name?.trim();
+    const code = p.code?.trim();
+    if (name && code && name !== code) return `${name} (${code})`;
+    return name || code || p.id.slice(0, 8);
+  }
+
+  private async loadActivePosts(): Promise<Array<{ postId: string; postName: string }>> {
+    const rows = await this.dataSource.getRepository(Post).find({
+      where: { status: PostStatus.ACTIVO },
+      select: ['id', 'code', 'name'],
+    });
+    return rows.map((p) => ({
+      postId: p.id,
+      postName: this.formatPostLabel(p),
     }));
   }
 
@@ -547,7 +589,7 @@ export class MonthlySchedulingService {
     const rows = await qb
       .select([
         's.post_id AS "postId"',
-        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        `${POST_LABEL_SQL} AS "postName"`,
         'a.day AS day',
         'a.role AS role',
         'a.associate_id AS "associateId"',
@@ -592,7 +634,7 @@ export class MonthlySchedulingService {
       )
       .select([
         's.post_id AS "postId"',
-        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8)) AS "postName"`,
+        `${POST_LABEL_SQL} AS "postName"`,
         'a.day AS day',
         'a.role AS role',
         'a.associate_id AS "associateId"',
@@ -664,8 +706,9 @@ export class MonthlySchedulingService {
     const post =
       (await this.dataSource.getRepository(Post).findOne({ where: { id: schedule.postId } })) ??
       null;
-    const postName =
-      post?.code || post?.name || schedule.postId.slice(0, 8);
+    const postName = this.formatPostLabel(
+      post ?? { id: schedule.postId, name: null, code: null },
+    );
 
     const dtoCells: AlertCellInput[] = dto.assignments.map((a) => {
       const info = a.associateId ? statusMap.get(a.associateId) : undefined;
@@ -1058,7 +1101,7 @@ export class MonthlySchedulingService {
       .andWhere(`a.jornada != 'sin_asignar'`)
       .select('s.post_id', 'postId')
       .addSelect(
-        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        POST_LABEL_SQL,
         'label',
       )
       .addSelect('COUNT(*)::int', 'value')
@@ -1176,7 +1219,7 @@ export class MonthlySchedulingService {
       .select('a.inicio', 'inicio')
       .addSelect('a.turno', 'turno')
       .addSelect(
-        `COALESCE(NULLIF(p.code, ''), NULLIF(p.name, ''), LEFT(s.post_id::text, 8))`,
+        POST_LABEL_SQL,
         'postLabel',
       )
       .getRawMany<{ inicio: string; turno: string | null; postLabel: string }>();

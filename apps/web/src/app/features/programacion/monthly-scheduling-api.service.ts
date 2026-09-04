@@ -144,6 +144,7 @@ export interface HuecoGroup {
   count: number;
   firstDay: number;
   suggestedAction: string;
+  kind?: 'sin_malla' | 'sin_cobertura';
 }
 
 export interface MonthlyAlertsResponse {
