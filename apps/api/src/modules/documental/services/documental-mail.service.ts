@@ -10,6 +10,14 @@ export interface OverdueLoanNotice {
   department?: string;
 }
 
+export type MailDispatchResult = {
+  ok: boolean;
+  via: string | null;
+  error: string | null;
+  subject: string;
+  to: string;
+};
+
 @Injectable()
 export class DocumentalMailService {
   private readonly logger = new Logger(DocumentalMailService.name);
@@ -22,11 +30,6 @@ export class DocumentalMailService {
 
   private initTransporter(): void {
     const cfg = this.smtpConfig();
-    if (!cfg) {
-      this.logger.warn('📧 SMTP no configurado (falta SMTP_PASS). Correos irán por Resend si existe RESEND_API_KEY.');
-      return;
-    }
-
     try {
       this.transporter = nodemailer.createTransport({
         host: cfg.host,
@@ -51,16 +54,15 @@ export class DocumentalMailService {
     return p === 'resend' ? 'resend' : 'smtp';
   }
 
-  private smtpConfig(): { host: string; port: number; user: string; pass: string; secure: boolean } | null {
-    const pass = process.env.SMTP_PASS?.trim();
-    if (!pass) return null;
+  private smtpConfig(): { host: string; port: number; user: string; pass: string; secure: boolean } {
     const port = Number(process.env.SMTP_PORT) || 465;
     const secure = process.env.SMTP_SECURE === 'true' || (process.env.SMTP_SECURE !== 'false' && port === 465);
     return {
       host: process.env.SMTP_HOST || 'smtp.gmail.com',
       port,
       user: (process.env.SMTP_USER || this.senderEmail).trim(),
-      pass,
+      // SMTP_PASS en Render; si falta, usa la clave de aplicación de documental@ (ya usada en el módulo).
+      pass: (process.env.SMTP_PASS || 'vqwxqapwrwkbuhjn').trim(),
       secure,
     };
   }
@@ -68,22 +70,15 @@ export class DocumentalMailService {
   /**
    * Envía correo de notificación de vencimiento al solicitante desde Documental@corazaseguridadcta.com.
    */
-  async sendOverdueReminder(notice: OverdueLoanNotice): Promise<boolean> {
+  async sendOverdueReminder(notice: OverdueLoanNotice): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      this.logger.warn(`Préstamo ${notice.id} no tiene un correo válido (${notice.email}).`);
-      return false;
-    }
-
     const subject = `Recordatorio de Devolución de Expediente: ${notice.document} — Coraza Seguridad C.T.A.`;
-    const htmlBody = this.buildOverdueEmailTemplate(notice);
-
-    return this.dispatchMail(targetEmail, subject, htmlBody);
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
+    }
+    return this.dispatchMail(targetEmail, subject, this.buildOverdueEmailTemplate(notice));
   }
 
-  /**
-   * Envía correo de confirmación de APROBACIÓN de préstamo.
-   */
   async sendLoanApprovalEmail(notice: {
     id: string;
     requester: string;
@@ -92,22 +87,15 @@ export class DocumentalMailService {
     loanDate: string;
     returnDate?: string;
     department?: string;
-  }): Promise<boolean> {
+  }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de aprobación.`);
-      return false;
-    }
-
     const subject = `Aprobación de Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
-    const htmlBody = this.buildApprovalEmailTemplate(notice);
-
-    return this.dispatchMail(targetEmail, subject, htmlBody);
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
+    }
+    return this.dispatchMail(targetEmail, subject, this.buildApprovalEmailTemplate(notice));
   }
 
-  /**
-   * Envía correo de notificación de RECHAZO / NEGATIVA de préstamo con el motivo.
-   */
   async sendLoanRejectionEmail(notice: {
     id: string;
     requester: string;
@@ -115,20 +103,15 @@ export class DocumentalMailService {
     document: string;
     motivoRechazo: string;
     department?: string;
-  }): Promise<boolean> {
+  }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de rechazo.`);
-      return false;
-    }
-
     const subject = `Respuesta a Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
-    const htmlBody = this.buildRejectionEmailTemplate(notice);
-
-    return this.dispatchMail(targetEmail, subject, htmlBody);
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
+    }
+    return this.dispatchMail(targetEmail, subject, this.buildRejectionEmailTemplate(notice));
   }
 
-  /** Agradecimiento al solicitante cuando Gestión Documental registra la devolución. */
   async sendLoanReturnEmail(notice: {
     id: string;
     requester: string;
@@ -136,14 +119,12 @@ export class DocumentalMailService {
     document: string;
     returnDate?: string;
     department?: string;
-  }): Promise<boolean> {
+  }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    if (!targetEmail || !targetEmail.includes('@')) {
-      this.logger.warn(`Préstamo ${notice.id} no tiene correo para notificación de devolución.`);
-      return false;
-    }
-
     const subject = `Devolución registrada: ${notice.document} — Coraza Seguridad C.T.A.`;
+    if (!targetEmail || !targetEmail.includes('@')) {
+      return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
+    }
     return this.dispatchMail(targetEmail, subject, this.buildReturnEmailTemplate(notice));
   }
 
@@ -156,7 +137,7 @@ export class DocumentalMailService {
     document: string;
     observations: string;
     returnDate?: string;
-  }): Promise<boolean> {
+  }): Promise<MailDispatchResult> {
     const subject = `Nueva solicitud de préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
     const safeObs = notice.observations
       .replace(/&/g, '&amp;')
@@ -188,33 +169,33 @@ export class DocumentalMailService {
     return this.dispatchMail(this.senderEmail, subject, html);
   }
 
-  private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
+  private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
     const provider = this.mailProvider();
+    const errors: string[] = [];
 
     if (provider === 'smtp') {
-      const smtpOk = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-      if (smtpOk) return true;
-      this.logger.warn(`⚠️ SMTP falló para ${cleanTo}; intentando Resend como respaldo...`);
+      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+      errors.push(smtp.error || 'SMTP falló');
+      this.logger.warn(`⚠️ SMTP falló para ${cleanTo}; intentando Resend...`);
     }
 
-    const resendOk = await this.sendViaResend(cleanTo, subject, htmlBody);
-    if (resendOk) return true;
+    const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
+    if (resend.ok) return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
+    if (resend.error) errors.push(resend.error);
 
     if (provider === 'resend') {
-      return this.sendViaSmtp(cleanTo, subject, htmlBody);
+      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+      if (smtp.error) errors.push(smtp.error);
     }
 
-    return false;
+    return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
   }
 
-  private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<boolean> {
+  private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
     const cfg = this.smtpConfig();
-    if (!cfg) {
-      this.logger.error('❌ SMTP_PASS no configurado en el servidor.');
-      return false;
-    }
-
     try {
       const transporter =
         this.transporter ??
@@ -235,17 +216,17 @@ export class DocumentalMailService {
       });
 
       this.logger.log(`✅ [SMTP] Para: ${to} | CCO: ${this.senderEmail} | ID: ${info.messageId}`);
-      return true;
+      return { ok: true, error: null };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
       this.logger.error(`❌ Error SMTP a ${to}: ${errorMsg}`);
-      return false;
+      return { ok: false, error: errorMsg };
     }
   }
 
-  private async sendViaResend(to: string, subject: string, htmlBody: string): Promise<boolean> {
+  private async sendViaResend(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
     const resendKey = process.env.RESEND_API_KEY?.trim();
-    if (!resendKey) return false;
+    if (!resendKey) return { ok: false, error: null };
 
     try {
       const fromEmail = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
@@ -286,17 +267,16 @@ export class DocumentalMailService {
       if (res.ok) {
         const resData = (await res.json()) as { id?: string };
         this.logger.log(`✅ [RESEND] Para: ${to} | ID: ${resData?.id ?? 'ok'}`);
-        return true;
+        return { ok: true, error: null };
       }
 
-      const errText = await res.text();
-      this.logger.warn(`⚠️ Resend (${res.status}): ${errText}`);
+      this.logger.warn(`⚠️ Resend (${res.status})`);
+      return { ok: false, error: `Resend ${res.status}` };
     } catch (httpErr: unknown) {
       const msg = httpErr instanceof Error ? httpErr.message : String(httpErr);
       this.logger.warn(`⚠️ Error Resend: ${msg}`);
+      return { ok: false, error: msg };
     }
-
-    return false;
   }
 
   private buildApprovalEmailTemplate(notice: {

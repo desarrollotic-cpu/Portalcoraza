@@ -126,6 +126,18 @@ export interface Loan {
   observations: string | null;
   email: string | null;
   overdueNotifiedAt: string | null;
+  mail?: { ok: boolean; via?: string | null; error?: string | null; to?: string };
+}
+
+export interface LoanMailLog {
+  id: string;
+  kind: string;
+  toEmail: string;
+  subject: string | null;
+  success: boolean;
+  provider: string | null;
+  error: string | null;
+  createdAt: string;
 }
 
 export interface Workflow {
@@ -318,6 +330,9 @@ export class DocumentalApiService {
   }
   sendLoanReminder(id: string): Observable<{ success: boolean; message: string }> {
     return this.http.post<{ success: boolean; message: string }>(`${this.baseUrl}/loans/${id}/send-reminder`, {});
+  }
+  listLoanMails(id: string): Observable<LoanMailLog[]> {
+    return this.http.get<LoanMailLog[]>(`${this.baseUrl}/loans/${id}/mails`);
   }
 
   // Biblioteca

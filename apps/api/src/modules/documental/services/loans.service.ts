@@ -6,7 +6,8 @@ import { AuditService } from '../../audit/audit.service';
 import { CreateLoanDto } from '../dto/create-loan.dto';
 import { PublicLoanRequestDto } from '../dto/public-loan-request.dto';
 import { Loan } from '../entities/loan.entity';
-import { DocumentalMailService } from './documental-mail.service';
+import { LoanMailLog } from '../entities/loan-mail-log.entity';
+import { DocumentalMailService, MailDispatchResult } from './documental-mail.service';
 
 const TIPO_LABEL: Record<string, string> = {
   PERSONAL_RETIRADO: 'Personal retirado',
@@ -73,6 +74,8 @@ export class LoansService {
   constructor(
     @InjectRepository(Loan)
     private readonly repo: Repository<Loan>,
+    @InjectRepository(LoanMailLog)
+    private readonly mailLogRepo: Repository<LoanMailLog>,
     private readonly audit: AuditService,
     private readonly mailService: DocumentalMailService,
   ) {}
@@ -126,17 +129,16 @@ export class LoansService {
       const lastNotified = loan.overdueNotifiedAt ? new Date(loan.overdueNotifiedAt).getTime() : 0;
       if (!lastNotified || now - lastNotified > TWENTY_HOURS_MS) {
         this.logger.log(`📧 [RECORDATORIO RECURRENTE] Enviando aviso diario de devolución para préstamo #${loan.id} a ${loan.email}`);
-        await this.mailService.sendOverdueReminder({
-          id: loan.id,
-          requester: loan.requester,
-          email: loan.email,
-          document: loan.document || loan.documentCode || 'Expediente Documental',
-          returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
-          department: loan.department || undefined,
-        }).catch((err) => {
-          this.logger.error(`Error enviando recordatorio diario a ${loan.email}:`, err);
-        });
-
+        await this.notifyLoan(loan, 'VENCIMIENTO', () =>
+          this.mailService.sendOverdueReminder({
+            id: loan.id,
+            requester: loan.requester,
+            email: loan.email ?? '',
+            document: loan.document || loan.documentCode || 'Expediente Documental',
+            returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
+            department: loan.department || undefined,
+          }),
+        );
         loan.overdueNotifiedAt = new Date();
         await this.repo.save(loan);
       }
@@ -192,8 +194,8 @@ export class LoansService {
       }),
     );
 
-    void this.mailService
-      .sendNewLoanRequestToArchive({
+    void this.notifyLoan(saved, 'SOLICITUD_NUEVA', () =>
+      this.mailService.sendNewLoanRequestToArchive({
         id: saved.id,
         requester: saved.requester,
         email: saved.email ?? '',
@@ -201,12 +203,66 @@ export class LoansService {
         document: saved.document ?? '',
         observations: ficha.observations,
         returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
-      })
-      .catch((err) => {
-        this.logger.error(`Error notificando solicitud nueva ${saved.id}:`, err);
-      });
+      }),
+    );
 
     return { id: saved.id };
+  }
+
+  listMails(loanId: string) {
+    return this.mailLogRepo.find({
+      where: { loanId },
+      order: { createdAt: 'DESC' },
+      take: 50,
+    });
+  }
+
+  private async notifyLoan(
+    loan: Loan,
+    kind: string,
+    send: () => Promise<MailDispatchResult>,
+    userId?: string,
+  ): Promise<MailDispatchResult> {
+    const result = await send().catch((err: unknown) => {
+      const error = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Error enviando correo ${kind} préstamo ${loan.id}:`, err);
+      return {
+        ok: false,
+        via: null,
+        error,
+        subject: kind,
+        to: loan.email || '',
+      } as MailDispatchResult;
+    });
+
+    try {
+      await this.mailLogRepo.save(
+        this.mailLogRepo.create({
+          loanId: loan.id,
+          kind,
+          toEmail: result.to || loan.email || '',
+          subject: result.subject,
+          success: result.ok,
+          provider: result.via,
+          error: result.error,
+        }),
+      );
+    } catch (err) {
+      this.logger.error(`No se pudo guardar trazabilidad de correo ${kind}:`, err);
+    }
+
+    if (userId) {
+      await this.audit.log({
+        userId,
+        module: 'documental',
+        action: `loan.mail.${kind.toLowerCase()}`,
+        entityType: 'doc_loans',
+        entityId: loan.id,
+        newValue: { ok: result.ok, via: result.via, to: result.to, error: result.error },
+      });
+    }
+
+    return result;
   }
 
   private async setStatus(id: string): Promise<Loan> {
@@ -225,20 +281,20 @@ export class LoansService {
     loan.status = 'ACTIVO';
     loan.loanDate = new Date().toISOString().slice(0, 10);
     const saved = await this.repo.save(loan);
-
-    // Enviar correo formal de confirmación de aprobación al solicitante de manera asíncrona
+    let mail: MailDispatchResult | null = null;
     if (saved.email) {
-      void this.mailService.sendLoanApprovalEmail({
-        id: saved.id,
-        requester: saved.requester,
-        email: saved.email,
-        document: saved.document || saved.documentCode || 'Expediente Documental',
-        loanDate: saved.loanDate || new Date().toISOString().slice(0, 10),
-        returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
-        department: saved.department || undefined,
-      }).catch((err) => {
-        this.logger.error(`Error enviando correo de aprobación a ${saved.email}:`, err);
-      });
+      mail = await this.notifyLoan(saved, 'APROBACION', () =>
+        this.mailService.sendLoanApprovalEmail({
+          id: saved.id,
+          requester: saved.requester,
+          email: saved.email ?? '',
+          document: saved.document || saved.documentCode || 'Expediente Documental',
+          loanDate: saved.loanDate || new Date().toISOString().slice(0, 10),
+          returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
+          department: saved.department || undefined,
+        }),
+        userId,
+      );
     }
 
     await this.audit.log({
@@ -248,7 +304,7 @@ export class LoansService {
       entityType: 'doc_loans',
       entityId: id,
     });
-    return saved;
+    return { ...saved, mail };
   }
 
   async reject(id: string, motivo: string | undefined, userId: string) {
@@ -260,19 +316,19 @@ export class LoansService {
     loan.status = 'RECHAZADO';
     loan.observations = `${loan.observations ? loan.observations + ' | ' : ''}RECHAZADO: ${motivoFinal}`;
     const saved = await this.repo.save(loan);
-
-    // Enviar correo formal de rechazo con el motivo al solicitante de manera asíncrona
+    let mail: MailDispatchResult | null = null;
     if (saved.email) {
-      void this.mailService.sendLoanRejectionEmail({
-        id: saved.id,
-        requester: saved.requester,
-        email: saved.email,
-        document: saved.document || saved.documentCode || 'Expediente Documental',
-        motivoRechazo: motivoFinal,
-        department: saved.department || undefined,
-      }).catch((err) => {
-        this.logger.error(`Error enviando correo de rechazo a ${saved.email}:`, err);
-      });
+      mail = await this.notifyLoan(saved, 'RECHAZO', () =>
+        this.mailService.sendLoanRejectionEmail({
+          id: saved.id,
+          requester: saved.requester,
+          email: saved.email ?? '',
+          document: saved.document || saved.documentCode || 'Expediente Documental',
+          motivoRechazo: motivoFinal,
+          department: saved.department || undefined,
+        }),
+        userId,
+      );
     }
 
     await this.audit.log({
@@ -282,7 +338,7 @@ export class LoansService {
       entityType: 'doc_loans',
       entityId: id,
     });
-    return saved;
+    return { ...saved, mail };
   }
 
   async returnLoan(id: string, userId: string) {
@@ -293,18 +349,19 @@ export class LoansService {
     loan.status = 'DEVUELTO';
     loan.realReturnDate = new Date().toISOString().slice(0, 10);
     const saved = await this.repo.save(loan);
-
+    let mail: MailDispatchResult | null = null;
     if (saved.email) {
-      void this.mailService.sendLoanReturnEmail({
-        id: saved.id,
-        requester: saved.requester,
-        email: saved.email,
-        document: saved.document || saved.documentCode || 'Expediente Documental',
-        returnDate: saved.realReturnDate || undefined,
-        department: saved.department || undefined,
-      }).catch((err) => {
-        this.logger.error(`Error enviando correo de devolución a ${saved.email}:`, err);
-      });
+      mail = await this.notifyLoan(saved, 'DEVOLUCION', () =>
+        this.mailService.sendLoanReturnEmail({
+          id: saved.id,
+          requester: saved.requester,
+          email: saved.email ?? '',
+          document: saved.document || saved.documentCode || 'Expediente Documental',
+          returnDate: saved.realReturnDate || undefined,
+          department: saved.department || undefined,
+        }),
+        userId,
+      );
     }
 
     await this.audit.log({
@@ -314,7 +371,7 @@ export class LoansService {
       entityType: 'doc_loans',
       entityId: id,
     });
-    return saved;
+    return { ...saved, mail };
   }
 
   /** Permite al administrador reenviar manualmente la notificación por correo al solicitante. */
@@ -324,17 +381,22 @@ export class LoansService {
       throw new BadRequestException('Este préstamo no tiene registrado un correo electrónico.');
     }
 
-    const success = await this.mailService.sendOverdueReminder({
-      id: loan.id,
-      requester: loan.requester,
-      email: loan.email,
-      document: loan.document || loan.documentCode || 'Expediente Documental',
-      returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
-      department: loan.department || undefined,
-    });
+    const result = await this.notifyLoan(loan, 'VENCIMIENTO', () =>
+      this.mailService.sendOverdueReminder({
+        id: loan.id,
+        requester: loan.requester,
+        email: loan.email ?? '',
+        document: loan.document || loan.documentCode || 'Expediente Documental',
+        returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
+        department: loan.department || undefined,
+      }),
+      userId,
+    );
 
-    loan.overdueNotifiedAt = new Date();
-    await this.repo.save(loan);
+    if (result.ok) {
+      loan.overdueNotifiedAt = new Date();
+      await this.repo.save(loan);
+    }
 
     await this.audit.log({
       userId,
@@ -344,7 +406,12 @@ export class LoansService {
       entityId: id,
     });
 
-    return { success, message: `Correo de recordatorio enviado a ${loan.email}` };
+    return {
+      success: result.ok,
+      message: result.ok
+        ? `Correo de recordatorio enviado a ${loan.email}`
+        : `No se pudo enviar el correo: ${result.error || 'error desconocido'}`,
+    };
   }
 
   async testDirectEmail() {

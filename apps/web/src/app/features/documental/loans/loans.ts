@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
@@ -14,12 +15,12 @@ import {
 } from '@lucide/angular';
 import { AuthService } from '../../../core/services/auth.service';
 import { Icon } from '../../../shared/components/icon/icon';
-import { DocumentalApiService, Loan } from '../documental-api.service';
+import { DocumentalApiService, Loan, LoanMailLog } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
 
 @Component({
   selector: 'app-doc-loans',
-  imports: [FormsModule, Icon],
+  imports: [FormsModule, Icon, DatePipe],
   template: `
     <div class="loans-container">
       <!-- HEADER Y ACCIONES PRINCIPALES -->
@@ -437,6 +438,26 @@ import { DOC_STYLES } from '../documental.styles';
                   <div class="obs-content-text">{{ loan.observations }}</div>
                 </div>
               }
+
+              <div class="detail-item full-width obs-card-box">
+                <span class="detail-label">📧 Trazabilidad de correos (Gestión Documental)</span>
+                @if (mailLogs().length === 0) {
+                  <div class="obs-content-text muted">Aún no hay correos registrados para este préstamo.</div>
+                } @else {
+                  <ul class="mail-log-list">
+                    @for (m of mailLogs(); track m.id) {
+                      <li>
+                        <span class="mail-kind">{{ mailKindLabel(m.kind) }}</span>
+                        <span [class.mail-ok]="m.success" [class.mail-fail]="!m.success">{{ m.success ? 'Enviado' : 'Falló' }}</span>
+                        <span class="mail-meta">{{ m.toEmail }} · {{ m.createdAt | date:'short' }}</span>
+                        @if (!m.success && m.error) {
+                          <span class="mail-err">{{ m.error }}</span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                }
+              </div>
             </div>
           </div>
 
@@ -1004,6 +1025,13 @@ import { DOC_STYLES } from '../documental.styles';
       border-top: 1px solid #f1f5f9;
       background: #f8fafc;
     }
+    .mail-log-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
+    .mail-log-list li { font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; align-items: baseline; }
+    .mail-kind { font-weight: 800; color: #0c4a6e; }
+    .mail-ok { color: #15803d; font-weight: 700; }
+    .mail-fail { color: #b91c1c; font-weight: 700; }
+    .mail-meta { color: #64748b; }
+    .mail-err { width: 100%; color: #9a3412; font-size: 0.74rem; }
   `,
   ],
 })
@@ -1033,6 +1061,7 @@ export class LoansScreen implements OnInit {
   readonly copied = signal(false);
   readonly emailStatusMsg = signal<string | null>(null);
   readonly selectedLoan = signal<Loan | null>(null);
+  readonly mailLogs = signal<LoanMailLog[]>([]);
   readonly confirmModal = signal<{
     type: 'approve' | 'reject' | 'notify' | 'return';
     loan: Loan;
@@ -1084,10 +1113,35 @@ export class LoansScreen implements OnInit {
 
   openDetailModal(l: Loan): void {
     this.selectedLoan.set(l);
+    this.mailLogs.set([]);
+    this.api.listLoanMails(l.id).subscribe({ next: (rows) => this.mailLogs.set(rows) });
   }
 
   closeDetailModal(): void {
     this.selectedLoan.set(null);
+    this.mailLogs.set([]);
+  }
+
+  mailKindLabel(kind: string): string {
+    const map: Record<string, string> = {
+      APROBACION: 'Aprobación',
+      RECHAZO: 'Negación',
+      VENCIMIENTO: 'Vencimiento / devolución pendiente',
+      DEVOLUCION: 'Devolución registrada',
+      SOLICITUD_NUEVA: 'Nueva solicitud (archivo)',
+    };
+    return map[kind] || kind;
+  }
+
+  private toastMail(loan: Loan, result: Loan['mail'] | undefined, okMsg: string, failPrefix: string): void {
+    if (!loan.email) {
+      this.emailStatusMsg.set(okMsg);
+    } else if (result?.ok) {
+      this.emailStatusMsg.set(`${okMsg} Correo enviado a ${loan.email}.`);
+    } else {
+      this.emailStatusMsg.set(`${failPrefix}: ${result?.error || 'no se pudo enviar. Revise trazabilidad en Detalles.'}`);
+    }
+    setTimeout(() => this.emailStatusMsg.set(null), 7000);
   }
 
   requestApprove(loan: Loan): void {
@@ -1132,11 +1186,8 @@ export class LoansScreen implements OnInit {
 
     if (type === 'approve') {
       this.api.approveLoan(loan.id).subscribe({
-        next: () => {
-          if (loan.email) {
-            this.emailStatusMsg.set(`✅ Solicitud Aprobada / Confirmada. Notificación formal enviada a ${loan.email}`);
-            setTimeout(() => this.emailStatusMsg.set(null), 5000);
-          }
+        next: (res) => {
+          this.toastMail(loan, res.mail, 'Solicitud aprobada.', 'Aprobada, pero el correo no salió');
           this.load();
         },
         error: () => {
@@ -1147,11 +1198,8 @@ export class LoansScreen implements OnInit {
     } else if (type === 'reject') {
       const motivoFinal = reason?.trim() || 'No cumple con los requisitos o expediente no disponible temporalmente';
       this.api.rejectLoan(loan.id, motivoFinal).subscribe({
-        next: () => {
-          if (loan.email) {
-            this.emailStatusMsg.set(`❌ Solicitud Rechazada. Notificación del motivo enviada a ${loan.email}`);
-            setTimeout(() => this.emailStatusMsg.set(null), 5000);
-          }
+        next: (res) => {
+          this.toastMail(loan, res.mail, 'Solicitud rechazada.', 'Rechazada, pero el correo no salió');
           this.load();
         },
         error: () => {
@@ -1162,10 +1210,10 @@ export class LoansScreen implements OnInit {
     } else if (type === 'notify') {
       if (!loan.email) return;
       this.api.sendLoanReminder(loan.id).subscribe({
-        next: () => {
-          this.emailStatusMsg.set(`📧 Correo de recordatorio formal enviado a ${loan.email}`);
+        next: (res) => {
+          this.emailStatusMsg.set(res.message);
           this.load();
-          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+          setTimeout(() => this.emailStatusMsg.set(null), 7000);
         },
         error: () => {
           this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
@@ -1174,9 +1222,8 @@ export class LoansScreen implements OnInit {
       });
     } else if (type === 'return') {
       this.api.returnLoan(loan.id).subscribe({
-        next: () => {
-          this.emailStatusMsg.set('✅ Devolución física registrada en archivo.');
-          setTimeout(() => this.emailStatusMsg.set(null), 5000);
+        next: (res) => {
+          this.toastMail(loan, res.mail, 'Devolución registrada.', 'Devolución registrada, pero el correo no salió');
           this.load();
         },
       });

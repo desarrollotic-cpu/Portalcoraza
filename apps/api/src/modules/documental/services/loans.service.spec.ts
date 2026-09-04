@@ -10,8 +10,14 @@ describe('LoansService state machine', () => {
       createQueryBuilder: jest.fn(),
     };
     const audit = { log: jest.fn(async () => undefined) };
-    const mailService = { sendLoanStatusEmail: jest.fn(async () => undefined) };
-    return { service: new LoansService(repo as never, audit as never, mailService as never), repo, loan };
+    const mailService = {
+      sendLoanApprovalEmail: jest.fn(async () => ({ ok: true, via: 'smtp', error: null, subject: 'ok', to: 'a@b.com' })),
+      sendLoanRejectionEmail: jest.fn(async () => ({ ok: true, via: 'smtp', error: null, subject: 'ok', to: 'a@b.com' })),
+      sendLoanReturnEmail: jest.fn(async () => ({ ok: true, via: 'smtp', error: null, subject: 'ok', to: 'a@b.com' })),
+      sendNewLoanRequestToArchive: jest.fn(async () => ({ ok: true, via: 'smtp', error: null, subject: 'ok', to: 'a@b.com' })),
+    };
+    const mailLogRepo = { save: jest.fn(async (x: unknown) => x), create: (x: unknown) => x, find: jest.fn() };
+    return { service: new LoansService(repo as never, mailLogRepo as never, audit as never, mailService as never), repo, loan };
   }
 
   it('rejects approve when not pending', async () => {
@@ -36,9 +42,19 @@ describe('LoansService state machine', () => {
       save: jest.fn(async (row: Record<string, unknown>) => ({ id: 'loan-1', ...row })),
       create: (row: Record<string, unknown>) => row,
     };
-    const mailService = { sendNewLoanRequestToArchive: jest.fn(async () => true) };
+    const mailService = {
+      sendNewLoanRequestToArchive: jest.fn(async () => ({
+        ok: true,
+        via: 'smtp',
+        error: null,
+        subject: 'ok',
+        to: 'documental@corazaseguridadcta.com',
+      })),
+    };
+    const mailLogRepo = { save: jest.fn(async (x: unknown) => x), create: (x: unknown) => x };
     const service = new LoansService(
       repo as never,
+      mailLogRepo as never,
       { log: jest.fn() } as never,
       mailService as never,
     );

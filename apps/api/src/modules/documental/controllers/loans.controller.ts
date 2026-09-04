@@ -24,6 +24,22 @@ export class LoansController {
     return this.service.create(dto, user.sub);
   }
 
+  @Get('test-email-direct')
+  async testEmailDirect() {
+    try {
+      const res = await this.service.testDirectEmail();
+      return { success: true, detail: res };
+    } catch (err: any) {
+      return { success: false, error: err.message, stack: err.stack };
+    }
+  }
+
+  @Get(':id/mails')
+  @RequireAnyPermissions('documental.view', 'documental.loans')
+  listMails(@Param('id') id: string) {
+    return this.service.listMails(id);
+  }
+
   @Put(':id/approve')
   @RequireAnyPermissions('documental.manage', 'documental.loans')
   approve(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
@@ -44,16 +60,6 @@ export class LoansController {
   @RequireAnyPermissions('documental.manage', 'documental.loans')
   returnLoan(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.service.returnLoan(id, user.sub);
-  }
-
-  @Get('test-email-direct')
-  async testEmailDirect() {
-    try {
-      const res = await this.service.testDirectEmail();
-      return { success: true, detail: res };
-    } catch (err: any) {
-      return { success: false, error: err.message, stack: err.stack };
-    }
   }
 
   @Post(':id/send-reminder')

@@ -21,6 +21,7 @@ import { DocumentType } from './entities/document-type.entity';
 import { LibraryFile } from './entities/library-file.entity';
 import { LibraryFolder } from './entities/library-folder.entity';
 import { Loan } from './entities/loan.entity';
+import { LoanMailLog } from './entities/loan-mail-log.entity';
 import { Minute } from './entities/minute.entity';
 import { RetentionItem } from './entities/retention-item.entity';
 import { RetiredPersonnel } from './entities/retired-personnel.entity';
@@ -49,6 +50,7 @@ import { WorkflowsService } from './services/workflows.service';
       Contract,
       Workflow,
       Loan,
+      LoanMailLog,
       LibraryFolder,
       LibraryFile,
     ]),
