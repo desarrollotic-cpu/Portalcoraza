@@ -27,7 +27,7 @@ const PAGE_SIZE = 25;
       <header class="alerts__head">
         <div>
           <h2>Alertas de programación</h2>
-          <p>Huecos, inactivos, conflictos de turno y carga &gt;24 (solo D/N 12 h).</p>
+          <p>Huecos, inactivos, conflictos de turno (misma persona en dos puestos el mismo día y horario) y carga &gt;24 (solo D/N 12 h). Clic en una alerta abre el cuadro de ese puesto.</p>
         </div>
         <label class="alerts__month">
           Mes
@@ -73,8 +73,24 @@ const PAGE_SIZE = 25;
           @for (a of pageItems(); track a.id) {
             <li [class.sev-error]="a.severity === 'error'" [class.sev-warn]="a.severity === 'warning'">
               <button type="button" class="alerts__item" (click)="openBoard(a)">
+                <span class="kind">{{ kindLabel(a.type) }}</span>
                 <span class="msg">{{ a.message }}</span>
-                <span class="meta">{{ a.month }}@if (a.day) { · día {{ a.day }} }</span>
+                <span class="meta">
+                  {{ a.month }}
+                  @if (a.day) { · día {{ a.day }} }
+                  @if (a.postName) { · {{ a.postName }} }
+                  @if (a.shift) { · turno {{ a.shift === 'D' ? 'diurno (D)' : 'nocturno (N)' }} }
+                  @if (a.associateName) { · {{ a.associateName }} }
+                  @if (a.documentNumber) { · CC {{ a.documentNumber }} }
+                  @if (a.otherPostName) { · también en {{ a.otherPostName }} }
+                </span>
+                @if (a.reason) {
+                  <span class="reason">Motivo: {{ a.reason }}</span>
+                }
+                @if (a.suggestedAction) {
+                  <span class="action">Qué hacer: {{ a.suggestedAction }}</span>
+                }
+                <span class="go">Abrir cuadro de este puesto →</span>
               </button>
             </li>
           }
@@ -140,7 +156,14 @@ const PAGE_SIZE = 25;
     .sev-error .alerts__item { border-left: 4px solid #b91c1c; }
     .sev-warn .alerts__item { border-left: 4px solid #b45309; }
     .msg { font-size: 0.92rem; }
+    .kind {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+      color: var(--coraza-primary, #1d4ed8);
+    }
     .meta { font-size: 0.8rem; color: var(--text-muted); }
+    .reason, .action { font-size: 0.82rem; color: var(--text-secondary, #334155); }
+    .action { font-weight: 600; }
+    .go { font-size: 0.78rem; color: var(--coraza-primary, #1d4ed8); }
     .alerts__foot { font-size: 0.85rem; }
     .alerts__foot a { color: var(--coraza-primary, #1d4ed8); }
   `,
@@ -210,6 +233,13 @@ export class ProgramacionAlertas implements OnInit {
     if (key === 'inactivos') return t.inactivos;
     if (key === 'conflictos') return t.conflictos;
     return t.carga;
+  }
+
+  kindLabel(type: ScheduleAlertType): string {
+    if (type === 'hueco_cobertura') return 'Hueco de cobertura';
+    if (type === 'asociado_inactivo') return 'Vigilante no disponible';
+    if (type === 'conflicto_mismo_turno') return 'Doble puesto mismo horario';
+    return 'Carga de turnos';
   }
 
   selectTab(key: TabKey): void {

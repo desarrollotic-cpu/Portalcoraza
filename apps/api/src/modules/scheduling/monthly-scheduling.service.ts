@@ -44,6 +44,7 @@ import {
 import { MotorTurnosService } from './motor-turnos.service';
 import { buildPlanillaWorkbook } from './planilla-excel';
 import { mapCopiedDay, remainingMonthsOfYear } from './copy-month-pattern';
+import { backfillPersonalAssociates } from './personal-hydrate';
 
 const DEFAULT_ROLES: PersonalRole[] = [
   { rol: 'titular_a', associateId: null, turnoId: 'AM', displayName: 'Titular A' },
@@ -102,10 +103,12 @@ export class MonthlySchedulingService {
   }
 
   async getOne(query: GetMonthlyScheduleDto): Promise<MonthlySchedule | null> {
-    return this.schedulesRepo.findOne({
+    const schedule = await this.schedulesRepo.findOne({
       where: { postId: query.postId, year: query.year, month: query.month },
       relations: { assignments: true },
     });
+    if (!schedule) return null;
+    return this.hydrateSchedule(schedule);
   }
 
   /**
@@ -401,6 +404,85 @@ export class MonthlySchedulingService {
       .trim();
   }
 
+  private toResolvedAssociate(a: Associate) {
+    return {
+      id: a.id,
+      documentNumber: a.documentNumber,
+      firstName: [a.firstName, a.secondName].filter(Boolean).join(' '),
+      lastName: [a.firstLastName, a.secondLastName].filter(Boolean).join(' '),
+      status: a.status,
+    };
+  }
+
+  private async hydrateSchedule(schedule: MonthlySchedule): Promise<MonthlySchedule> {
+    const ids = [
+      ...new Set(
+        [
+          ...(schedule.personal ?? []).map((p) => p.associateId),
+          ...(schedule.assignments ?? []).map((a) => a.associateId),
+        ].filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const rows = ids.length
+      ? await this.dataSource.getRepository(Associate).find({
+          where: { id: In(ids) },
+          select: [
+            'id',
+            'documentNumber',
+            'firstName',
+            'secondName',
+            'firstLastName',
+            'secondLastName',
+            'status',
+          ],
+        })
+      : [];
+    const names = new Map(rows.map((a) => [a.id, this.associateDisplayName(a)]));
+    schedule.personal = backfillPersonalAssociates(
+      schedule.personal ?? [],
+      schedule.assignments ?? [],
+      names,
+    );
+    schedule.resolvedAssociates = rows.map((a) => this.toResolvedAssociate(a));
+    return schedule;
+  }
+
+  private mapAlertCellRow(r: {
+    postId: string;
+    postName: string;
+    day: string | number;
+    role: string;
+    associateId: string | null;
+    codigo: string | null;
+    jornada?: string | null;
+    associateStatus: AssociateStatus | null;
+    documentNumber?: string | null;
+    firstName: string | null;
+    secondName: string | null;
+    firstLastName: string | null;
+    secondLastName: string | null;
+  }): AlertCellInput {
+    return {
+      postId: r.postId,
+      postName: r.postName || r.postId.slice(0, 8),
+      day: Number(r.day),
+      role: r.role,
+      associateId: r.associateId,
+      associateName: r.associateId
+        ? this.associateDisplayName({
+            firstName: r.firstName ?? undefined,
+            secondName: r.secondName,
+            firstLastName: r.firstLastName ?? undefined,
+            secondLastName: r.secondLastName,
+          }) || null
+        : null,
+      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
+      codigo: r.codigo,
+      jornada: r.jornada ?? null,
+      documentNumber: r.documentNumber ?? null,
+    };
+  }
+
   private async loadMonthPosts(
     year: number,
     month: number,
@@ -456,7 +538,9 @@ export class MonthlySchedulingService {
         'a.role AS role',
         'a.associate_id AS "associateId"',
         'a.codigo AS codigo',
+        'a.jornada AS jornada',
         'assoc.status AS "associateStatus"',
+        'assoc.document_number AS "documentNumber"',
         'assoc.first_name AS "firstName"',
         'assoc.second_name AS "secondName"',
         'assoc.first_last_name AS "firstLastName"',
@@ -469,30 +553,16 @@ export class MonthlySchedulingService {
         role: string;
         associateId: string | null;
         codigo: string | null;
+        jornada: string | null;
         associateStatus: AssociateStatus | null;
+        documentNumber: string | null;
         firstName: string | null;
         secondName: string | null;
         firstLastName: string | null;
         secondLastName: string | null;
       }>();
 
-    return rows.map((r) => ({
-      postId: r.postId,
-      postName: r.postName || r.postId.slice(0, 8),
-      day: Number(r.day),
-      role: r.role,
-      associateId: r.associateId,
-      associateName: r.associateId
-        ? this.associateDisplayName({
-            firstName: r.firstName ?? undefined,
-            secondName: r.secondName,
-            firstLastName: r.firstLastName ?? undefined,
-            secondLastName: r.secondLastName,
-          }) || null
-        : null,
-      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
-      codigo: r.codigo,
-    }));
+    return rows.map((r) => this.mapAlertCellRow(r));
   }
 
   private async loadAlertCells(year: number, month: number): Promise<AlertCellInput[]> {
@@ -504,7 +574,7 @@ export class MonthlySchedulingService {
       .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
       .where('s.year = :year AND s.month = :month', { year, month })
       .andWhere(
-        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8'))`,
+        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8','D9','N9','D12','N12','IN','VAC','LIC','SUS','ACC'))`,
       )
       .select([
         's.post_id AS "postId"',
@@ -513,7 +583,9 @@ export class MonthlySchedulingService {
         'a.role AS role',
         'a.associate_id AS "associateId"',
         'a.codigo AS codigo',
+        'a.jornada AS jornada',
         'assoc.status AS "associateStatus"',
+        'assoc.document_number AS "documentNumber"',
         'assoc.first_name AS "firstName"',
         'assoc.second_name AS "secondName"',
         'assoc.first_last_name AS "firstLastName"',
@@ -526,30 +598,16 @@ export class MonthlySchedulingService {
         role: string;
         associateId: string | null;
         codigo: string | null;
+        jornada: string | null;
         associateStatus: AssociateStatus | null;
+        documentNumber: string | null;
         firstName: string | null;
         secondName: string | null;
         firstLastName: string | null;
         secondLastName: string | null;
       }>();
 
-    return rows.map((r) => ({
-      postId: r.postId,
-      postName: r.postName || r.postId.slice(0, 8),
-      day: Number(r.day),
-      role: r.role,
-      associateId: r.associateId,
-      associateName: r.associateId
-        ? this.associateDisplayName({
-            firstName: r.firstName ?? undefined,
-            secondName: r.secondName,
-            firstLastName: r.firstLastName ?? undefined,
-            secondLastName: r.secondLastName,
-          }) || null
-        : null,
-      associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
-      codigo: r.codigo,
-    }));
+    return rows.map((r) => this.mapAlertCellRow(r));
   }
 
   private async collectSaveWarnings(
@@ -572,7 +630,10 @@ export class MonthlySchedulingService {
           .filter((id): id is string => !!id),
       ),
     ];
-    const statusMap = new Map<string, { status: AssociateStatus; name: string }>();
+    const statusMap = new Map<
+      string,
+      { status: AssociateStatus; name: string; documentNumber: string }
+    >();
     if (associateIds.length) {
       const associates = await this.dataSource.getRepository(Associate).find({
         where: { id: In(associateIds) },
@@ -581,6 +642,7 @@ export class MonthlySchedulingService {
         statusMap.set(a.id, {
           status: a.status,
           name: this.associateDisplayName(a),
+          documentNumber: a.documentNumber,
         });
       }
     }
@@ -602,6 +664,8 @@ export class MonthlySchedulingService {
         associateName: info?.name ?? null,
         associateStatus: (info?.status as AssociateStatusCode | undefined) ?? null,
         codigo: a.codigo ?? null,
+        jornada: a.jornada ?? null,
+        documentNumber: info?.documentNumber ?? null,
       };
     });
 
@@ -624,7 +688,7 @@ export class MonthlySchedulingService {
       relations: { assignments: true },
     });
     if (existing) {
-      return existing;
+      return this.hydrateSchedule(existing);
     }
 
     const inherited = await this.inheritPersonal(dto.postId, dto.year, dto.month);
@@ -1370,7 +1434,7 @@ export class MonthlySchedulingService {
     if (!schedule) {
       throw new NotFoundException('Programación no encontrada');
     }
-    return schedule;
+    return this.hydrateSchedule(schedule);
   }
 
   /**

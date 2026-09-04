@@ -1275,9 +1275,12 @@ export class ScheduleBoard implements OnInit {
 
     if (!force && this.scheduleCache.has(cacheKey)) {
       const cached = this.scheduleCache.get(cacheKey) ?? null;
-      this.applySchedule(cached);
-      this.loading.set(false);
-      return;
+      if (!cached || cached.resolvedAssociates !== undefined) {
+        this.applySchedule(cached);
+        this.loading.set(false);
+        this.reloadBoardAlerts(year, mon);
+        return;
+      }
     }
 
     this.loading.set(true);
@@ -1655,7 +1658,13 @@ export class ScheduleBoard implements OnInit {
             body && typeof body.message === 'object' && body.message ? body.message : body;
           if (err.status === 409 && warnBody?.code === 'SCHEDULING_WARNINGS') {
             const warnings = warnBody.warnings ?? body?.warnings ?? [];
-            const msgs = warnings.map((w) => w.message).join('\n');
+            const msgs = warnings
+              .map((w) =>
+                [w.message, w.suggestedAction ? `Qué hacer: ${w.suggestedAction}` : '']
+                  .filter(Boolean)
+                  .join('\n'),
+              )
+              .join('\n\n');
             this.pendingSavePayload = savePayload;
             this.confirmAction = () => {
               if (this.pendingSavePayload) {
@@ -1940,9 +1949,17 @@ export class ScheduleBoard implements OnInit {
     this.dirty.set(true);
   }
 
-  updateRoleTitular(index: number, associateId: string | null): void {
+  updateRoleTitular(index: number, associateId: string | null, associateName?: string | null): void {
     this.personal.update((list) =>
-      list.map((r, i) => (i === index ? { ...r, associateId } : r)),
+      list.map((r, i) =>
+        i === index
+          ? {
+              ...r,
+              associateId,
+              associateName: associateId ? (associateName ?? r.associateName ?? null) : null,
+            }
+          : r,
+      ),
     );
     this.dirty.set(true);
   }
@@ -1951,7 +1968,8 @@ export class ScheduleBoard implements OnInit {
     if (this.titularPickerIndex() === index) return this.titularPickerQuery();
     if (!associateId) return '';
     const a = this.associateMap().get(associateId);
-    return a ? `${this.associateName(a)} (CC: ${a.documentNumber})` : '';
+    if (a) return `${this.associateName(a)} (CC: ${a.documentNumber})`;
+    return this.personal()[index]?.associateName?.trim() || '';
   }
 
   openTitularPicker(index: number): void {
@@ -1959,7 +1977,7 @@ export class ScheduleBoard implements OnInit {
     const role = this.personal()[index];
     if (role?.associateId) {
       const a = this.associateMap().get(role.associateId);
-      this.titularPickerQuery.set(a ? this.associateName(a) : '');
+      this.titularPickerQuery.set(a ? this.associateName(a) : role.associateName?.trim() || '');
     } else {
       this.titularPickerQuery.set('');
     }
@@ -1971,7 +1989,8 @@ export class ScheduleBoard implements OnInit {
   }
 
   selectTitular(index: number, associateId: string | null): void {
-    this.updateRoleTitular(index, associateId);
+    const a = associateId ? this.associateMap().get(associateId) : undefined;
+    this.updateRoleTitular(index, associateId, a ? this.associateName(a) : null);
     this.titularPickerIndex.set(null);
     this.titularPickerQuery.set('');
   }
@@ -2014,7 +2033,11 @@ export class ScheduleBoard implements OnInit {
       this.editCodigo === 'D' ||
       this.editCodigo === 'N' ||
       this.editCodigo === 'D8' ||
-      this.editCodigo === 'N8';
+      this.editCodigo === 'N8' ||
+      this.editCodigo === 'D9' ||
+      this.editCodigo === 'N9' ||
+      this.editCodigo === 'D12' ||
+      this.editCodigo === 'N12';
     return Boolean(isWorkingShift || this.editInicio || this.editFin);
   }
 
@@ -2064,7 +2087,11 @@ export class ScheduleBoard implements OnInit {
   ): string[] {
     if (!associateId || !codigo) return [];
     const fringe =
-      codigo === 'D' || codigo === 'D8' ? 'D' : codigo === 'N' || codigo === 'N8' ? 'N' : null;
+      codigo === 'D' || codigo === 'D8' || codigo === 'D9' || codigo === 'D12'
+        ? 'D'
+        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N12'
+          ? 'N'
+          : null;
     if (!fringe) return [];
 
     const msgs: string[] = [];
@@ -2191,7 +2218,10 @@ export class ScheduleBoard implements OnInit {
     const alertMsg = alert?.messages?.length ? ` | ${alert.messages.join(' · ')}` : '';
     if (!state) return `Sin asignar — clic para editar${alertMsg}`;
     const associate = state.associateId ? this.associateMap().get(state.associateId) : null;
-    const name = associate ? this.associateName(associate) : 'Sin asociado';
+    const stored = this.personal().find(
+      (p) => p.rol === role && p.associateId === state.associateId,
+    )?.associateName;
+    const name = associate ? this.associateName(associate) : stored?.trim() || 'Sin asociado';
     const hours =
       state.inicio && state.fin ? ` (${state.inicio}–${state.fin})` : '';
     return `${state.codigo ?? 'Sin asignar'}${hours} — ${name}${alertMsg}`;
@@ -2205,7 +2235,8 @@ export class ScheduleBoard implements OnInit {
   titularName(role: PersonalRole): string {
     if (!role.associateId) return 'Sin titular';
     const a = this.associateMap().get(role.associateId);
-    return a ? this.associateName(a) : 'Sin titular';
+    if (a) return this.associateName(a);
+    return role.associateName?.trim() || 'Sin titular';
   }
 
   statusLabel(): string {
@@ -2261,7 +2292,37 @@ export class ScheduleBoard implements OnInit {
     return hName ? `⭐ ${prefix} — FESTIVO: ${hName}` : prefix;
   }
 
+  private mergeResolvedAssociates(
+    rows?: Array<{
+      id: string;
+      documentNumber: string;
+      firstName: string;
+      lastName: string;
+      status: string;
+    }>,
+  ): void {
+    if (!rows?.length) return;
+    this.associates.update((list) => {
+      const map = new Map(list.map((a) => [a.id, a]));
+      for (const r of rows) {
+        const prev = map.get(r.id);
+        map.set(r.id, {
+          id: r.id,
+          documentNumber: r.documentNumber,
+          firstName: r.firstName,
+          lastName: r.lastName,
+          phone: prev?.phone ?? null,
+          email: prev?.email ?? null,
+          status: (r.status as Associate['status']) ?? prev?.status ?? 'ACTIVO',
+        });
+      }
+      return [...map.values()];
+    });
+  }
+
   private applySchedule(sched: MonthlySchedule | null): void {
+    this.titularPickerIndex.set(null);
+    this.titularPickerQuery.set('');
     this.schedule.set(sched);
     if (!sched) {
       this.personal.set([]);
@@ -2269,6 +2330,7 @@ export class ScheduleBoard implements OnInit {
       this.dirty.set(false);
       return;
     }
+    this.mergeResolvedAssociates(sched.resolvedAssociates);
     this.personal.set(sched.personal.map((p) => ({ ...p })));
     const map = new Map<string, CellState>();
     for (const a of sched.assignments ?? []) {

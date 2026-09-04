@@ -218,12 +218,14 @@ export class MotorTurnosService {
 
   /** Códigos que cubren franja diurna (12h o 8h). */
   isDayCode(codigo: string | null | undefined): boolean {
-    return codigo === 'D' || codigo === 'D8';
+    const c = (codigo ?? '').toUpperCase();
+    return c === 'D' || c === 'D8' || c === 'D9' || c === 'D12';
   }
 
   /** Códigos que cubren franja nocturna (12h o 8h). */
   isNightCode(codigo: string | null | undefined): boolean {
-    return codigo === 'N' || codigo === 'N8';
+    const c = (codigo ?? '').toUpperCase();
+    return c === 'N' || c === 'N8' || c === 'N9' || c === 'N12';
   }
 
   isWorkCode(codigo: string | null | undefined): boolean {

@@ -19,6 +19,8 @@ export interface PersonalRole {
   associateId: string | null;
   turnoId: string | null;
   displayName?: string;
+  /** Nombre al leer/guardar el cuadro; no sustituye associates. */
+  associateName?: string | null;
 }
 
 @Entity('monthly_schedules')
@@ -62,4 +64,13 @@ export class MonthlySchedule {
 
   @OneToMany(() => ScheduleAssignment, (assignment) => assignment.schedule)
   assignments!: ScheduleAssignment[];
+
+  /** Solo respuesta API: vigilantes del cuadro para mostrar nombres sin lookup masivo. */
+  resolvedAssociates?: Array<{
+    id: string;
+    documentNumber: string;
+    firstName: string;
+    lastName: string;
+    status: string;
+  }>;
 }

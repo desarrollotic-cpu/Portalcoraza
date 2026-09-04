@@ -34,6 +34,10 @@ export class PersonalRoleDto {
   @IsOptional()
   @IsString()
   displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  associateName?: string | null;
 }
 
 export class AssignmentDto {

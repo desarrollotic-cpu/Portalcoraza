@@ -23,6 +23,7 @@ export interface PersonalRole {
   associateId: string | null;
   turnoId: string | null;
   displayName?: string;
+  associateName?: string | null;
 }
 
 export interface ScheduleAssignment {
@@ -48,6 +49,13 @@ export interface MonthlySchedule {
   assignments: ScheduleAssignment[];
   createdAt: string;
   updatedAt: string;
+  resolvedAssociates?: Array<{
+    id: string;
+    documentNumber: string;
+    firstName: string;
+    lastName: string;
+    status: string;
+  }>;
 }
 
 export interface SchedulePostSummary {
@@ -117,9 +125,13 @@ export interface ScheduleAlertItem {
   postName: string;
   associateId?: string;
   associateName?: string;
+  documentNumber?: string;
+  role?: string;
   shift?: 'D' | 'N';
   otherPostId?: string;
   otherPostName?: string;
+  reason?: string;
+  suggestedAction?: string;
   message: string;
 }
 

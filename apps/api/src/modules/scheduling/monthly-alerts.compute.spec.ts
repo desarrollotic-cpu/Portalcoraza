@@ -190,4 +190,113 @@ describe('computeMonthlyAlerts', () => {
     expect(carga?.severity).toBe('warning');
     expect(carga?.message).toMatch(/25/);
   });
+
+  it('D9 cubre diurno (no hueco D ese día)', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Amisi',
+          day: 1,
+          role: 'vigilante_1',
+          associateId: 'a1',
+          associateName: 'Ana',
+          associateStatus: 'ACTIVO',
+          codigo: 'D9',
+        },
+        {
+          postId: 'p1',
+          postName: 'Amisi',
+          day: 1,
+          role: 'vigilante_2',
+          associateId: 'a2',
+          associateName: 'Bob',
+          associateStatus: 'ACTIVO',
+          codigo: 'N9',
+        },
+      ],
+    });
+    expect(alerts.filter((a) => a.type === 'hueco_cobertura')).toHaveLength(0);
+  });
+
+  it('incapacidad en celda: alerta nominada + hueco a cubrir', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Amisi',
+          day: 1,
+          role: 'titular_a',
+          associateId: 'a1',
+          associateName: 'Ana Perez',
+          associateStatus: 'ACTIVO',
+          codigo: 'IN',
+          jornada: 'incapacidad',
+          documentNumber: '123',
+        },
+      ],
+    });
+    const inact = alerts.find((a) => a.type === 'asociado_inactivo');
+    expect(inact).toBeTruthy();
+    expect(inact?.reason).toMatch(/incapacidad/i);
+    expect(inact?.documentNumber).toBe('123');
+    expect(inact?.suggestedAction).toBeTruthy();
+    expect(inact?.message).toMatch(/Ana Perez/);
+    expect(alerts.some((a) => a.type === 'hueco_cobertura' && a.shift === 'D')).toBe(true);
+    expect(alerts.some((a) => a.type === 'hueco_cobertura' && a.shift === 'N')).toBe(true);
+  });
+
+  it('conflicto incluye cédula, los dos puestos y qué hacer', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 3,
+      cells: [
+        {
+          postId: 'p1',
+          postName: 'Amisi',
+          day: 3,
+          role: 'vigilante_1',
+          associateId: 'a1',
+          associateName: 'Ana Perez',
+          associateStatus: 'ACTIVO',
+          codigo: 'D',
+          documentNumber: '1090',
+        },
+        {
+          postId: 'p2',
+          postName: 'Otro',
+          day: 3,
+          role: 'vigilante_1',
+          associateId: 'a1',
+          associateName: 'Ana Perez',
+          associateStatus: 'ACTIVO',
+          codigo: 'D',
+          documentNumber: '1090',
+        },
+      ],
+    });
+    const c = alerts.find((a) => a.type === 'conflicto_mismo_turno' && a.postId === 'p1');
+    expect(c?.documentNumber).toBe('1090');
+    expect(c?.otherPostName).toBe('Otro');
+    expect(c?.suggestedAction).toMatch(/un solo puesto/i);
+    expect(c?.message).toMatch(/1090/);
+    expect(c?.message).toMatch(/Amisi/);
+    expect(c?.message).toMatch(/Otro/);
+  });
+
+  it('hueco trae acción sugerida', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      daysInMonth: 1,
+      cells: [],
+      posts: [{ postId: 'p1', postName: 'Amisi' }],
+    });
+    const h = alerts.find((a) => a.type === 'hueco_cobertura' && a.shift === 'D');
+    expect(h?.suggestedAction).toMatch(/asignar/i);
+    expect(h?.message).toMatch(/Amisi/);
+  });
 });
