@@ -7,6 +7,7 @@ import { CreateLoanDto } from '../dto/create-loan.dto';
 import { PublicLoanRequestDto } from '../dto/public-loan-request.dto';
 import { Loan } from '../entities/loan.entity';
 import { LoanMailLog } from '../entities/loan-mail-log.entity';
+import { emailDomainReceivesMail } from './email-mailbox.check';
 import { DocumentalMailService, MailDispatchResult } from './documental-mail.service';
 
 const TIPO_LABEL: Record<string, string> = {
@@ -177,8 +178,16 @@ export class LoansService {
     return saved;
   }
 
+  /** Comprueba formato, typos y que el dominio reciba correo (MX). */
+  async verifyPublicEmail(email: string) {
+    const error = await emailDomainReceivesMail(email);
+    if (error) throw new BadRequestException(error);
+    return { ok: true };
+  }
+
   /** Endpoint público: crea solicitud PENDIENTE_APROBACION y avisa a archivo con ficha completa. */
   async publicRequest(dto: PublicLoanRequestDto) {
+    await this.verifyPublicEmail(dto.email);
     const ficha = formatPublicLoan(dto);
     const saved = await this.repo.save(
       this.repo.create({

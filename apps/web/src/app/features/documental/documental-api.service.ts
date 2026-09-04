@@ -328,6 +328,9 @@ export class DocumentalApiService {
   publicLoanRequest(payload: Record<string, unknown>): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(`${environment.apiUrl}/public/documental/loan-request`, payload);
   }
+  verifyPublicEmail(email: string): Observable<{ ok: boolean }> {
+    return this.http.post<{ ok: boolean }>(`${environment.apiUrl}/public/documental/verify-email`, { email });
+  }
   sendLoanReminder(id: string): Observable<{ success: boolean; kind?: string; message: string }> {
     return this.http.post<{ success: boolean; kind?: string; message: string }>(`${this.baseUrl}/loans/${id}/send-reminder`, {});
   }

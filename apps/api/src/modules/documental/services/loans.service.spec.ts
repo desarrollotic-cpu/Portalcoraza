@@ -1,6 +1,10 @@
 import { BadRequestException } from '@nestjs/common';
 import { LoansService } from './loans.service';
 
+jest.mock('./email-mailbox.check', () => ({
+  emailDomainReceivesMail: jest.fn(async () => null),
+}));
+
 describe('LoansService state machine', () => {
   function svcWithLoan(status: string) {
     const loan = { id: '1', status, observations: '', loanDate: null as string | null, realReturnDate: null as string | null };

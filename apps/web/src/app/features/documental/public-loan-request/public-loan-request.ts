@@ -171,8 +171,26 @@ import { DocumentalApiService } from '../documental-api.service';
 
               <label class="form-group span-2">
                 <span class="label-text">Correo para notificaciones *</span>
-                <input type="email" [(ngModel)]="model.email" name="email" required placeholder="Ej: funcionario@corazaseguridadcta.com" />
-                <span class="hint">Le llegará confirmación y recordatorio desde Documental&#64;corazaseguridadcta.com</span>
+                <input
+                  type="email"
+                  [(ngModel)]="model.email"
+                  name="email"
+                  required
+                  placeholder="Ej: funcionario@corazaseguridadcta.com"
+                  [class.invalid]="!!emailError()"
+                  [class.valid]="emailOk()"
+                  (ngModelChange)="onEmailChange()"
+                  (blur)="verifyEmailField()"
+                />
+                @if (emailChecking()) {
+                  <span class="hint">Comprobando que el correo exista...</span>
+                } @else if (emailError()) {
+                  <span class="field-error">{{ emailError() }}</span>
+                } @else if (emailOk()) {
+                  <span class="field-ok">Correo válido: el dominio sí recibe mensajes.</span>
+                } @else {
+                  <span class="hint">Si el correo no existe o está mal escrito, no podrá radicar. Le llegará confirmación desde Documental&#64;corazaseguridadcta.com</span>
+                }
               </label>
 
               <label class="form-group span-2">
@@ -182,8 +200,8 @@ import { DocumentalApiService } from '../documental-api.service';
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn-submit" [disabled]="submitting()">
-                {{ submitting() ? 'Radicando...' : ' Radicar Solicitud de Préstamo' }}
+              <button type="submit" class="btn-submit" [disabled]="submitting() || emailChecking()">
+                {{ submitting() || emailChecking() ? 'Verificando...' : ' Radicar Solicitud de Préstamo' }}
               </button>
             </div>
           </form>
@@ -269,12 +287,16 @@ import { DocumentalApiService } from '../documental-api.service';
       background: #f8fafc;
       transition: all 0.2s;
     }
-    input:focus, select:focus, textarea:focus {
-      border-color: #0369a1;
-      background: #ffffff;
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    input.invalid {
+      border-color: #dc2626;
+      background: #fef2f2;
     }
+    input.valid {
+      border-color: #16a34a;
+      background: #f0fdf4;
+    }
+    .field-error { font-size: 0.78rem; color: #b91c1c; font-weight: 700; }
+    .field-ok { font-size: 0.78rem; color: #15803d; font-weight: 700; }
 
     .form-actions { margin-top: 1.25rem; }
     .btn-submit {
@@ -372,6 +394,50 @@ export class PublicLoanRequestComponent {
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
   readonly successId = signal<string | null>(null);
+  readonly emailError = signal<string | null>(null);
+  readonly emailOk = signal(false);
+  readonly emailChecking = signal(false);
+  private verifiedEmail = '';
+
+  onEmailChange(): void {
+    this.emailOk.set(false);
+    this.emailError.set(null);
+    this.verifiedEmail = '';
+  }
+
+  verifyEmailField(thenSubmit = false): void {
+    const email = this.model.email.trim();
+    if (!email) {
+      this.emailError.set('Escriba un correo electrónico.');
+      this.emailOk.set(false);
+      return;
+    }
+    if (this.verifiedEmail === email && this.emailOk()) {
+      if (thenSubmit) this.sendRequest();
+      return;
+    }
+    this.emailChecking.set(true);
+    this.emailError.set(null);
+    this.api.verifyPublicEmail(email).subscribe({
+      next: () => {
+        this.emailChecking.set(false);
+        this.emailOk.set(true);
+        this.emailError.set(null);
+        this.verifiedEmail = email;
+        if (thenSubmit) this.sendRequest();
+      },
+      error: (err) => {
+        this.emailChecking.set(false);
+        this.emailOk.set(false);
+        this.verifiedEmail = '';
+        const apiMsg = err?.error?.message;
+        this.emailError.set(
+          Array.isArray(apiMsg) ? apiMsg.join(' ') : apiMsg || 'Ese correo no es válido. Corríjalo para continuar.',
+        );
+        if (thenSubmit) this.submitting.set(false);
+      },
+    });
+  }
 
   submit(): void {
     const msg = validatePublicLoan(this.model);
@@ -381,7 +447,10 @@ export class PublicLoanRequestComponent {
     }
     this.submitting.set(true);
     this.error.set(null);
+    this.verifyEmailField(true);
+  }
 
+  private sendRequest(): void {
     this.api.publicLoanRequest(this.model).subscribe({
       next: (res) => {
         this.submitting.set(false);
@@ -400,6 +469,9 @@ export class PublicLoanRequestComponent {
   resetForm(): void {
     this.successId.set(null);
     this.model = emptyModel();
+    this.emailError.set(null);
+    this.emailOk.set(false);
+    this.verifiedEmail = '';
   }
 }
 
