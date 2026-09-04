@@ -2,6 +2,8 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
+  LucideAlertTriangle,
+  LucideArchive,
   LucideCheck,
   LucideClock,
   LucideCopy,
@@ -13,6 +15,8 @@ import {
   LucideQrCode,
   LucideX,
 } from '@lucide/angular';
+
+type LoanInbox = 'PENDIENTE_APROBACION' | 'ACTIVO' | 'VENCIDO' | 'RECHAZADO' | 'DEVUELTO';
 import { AuthService } from '../../../core/services/auth.service';
 import { Icon } from '../../../shared/components/icon/icon';
 import { DocumentalApiService, Loan, LoanMailLog } from '../documental-api.service';
@@ -68,13 +72,13 @@ import { DOC_STYLES } from '../documental.styles';
 
       <!-- ALERTAS DE SOLICITUDES PENDIENTES -->
       @if (pendingCount() > 0) {
-        <div class="pending-alert-box">
-          <div class="alert-icon">⏳</div>
+        <button type="button" class="pending-alert-box" (click)="selectBox('PENDIENTE_APROBACION')">
+          <div class="alert-icon" aria-hidden="true">⏳</div>
           <div class="alert-content">
             <strong>Hay {{ pendingCount() }} solicitud(es) pública(s) pendiente(s) de aprobación</strong>
-            <p>Revisa la disponibilidad del expediente y pulsa Aprobar o Rechazar.</p>
+            <p>Pulsa aquí para verlas y aprobar o rechazar.</p>
           </div>
-        </div>
+        </button>
       }
 
       @if (emailStatusMsg()) {
@@ -130,10 +134,48 @@ import { DOC_STYLES } from '../documental.styles';
         </form>
       }
 
+      <!-- CAJAS POR ESTADO: seguimiento separado del archivo -->
+      <div class="loan-boxes" role="tablist" aria-label="Organizar préstamos por estado">
+        <button type="button" class="loan-box warn" role="tab" [class.active]="activeBox() === 'PENDIENTE_APROBACION'" [attr.aria-selected]="activeBox() === 'PENDIENTE_APROBACION'" (click)="selectBox('PENDIENTE_APROBACION')">
+          <app-icon [icon]="icons.Clock" [size]="18" [strokeWidth]="2" />
+          <span class="loan-box-label">Pendientes</span>
+          <strong class="loan-box-count">{{ boxCounts().PENDIENTE_APROBACION }}</strong>
+          <span class="loan-box-hint">Por aprobar</span>
+        </button>
+        <button type="button" class="loan-box ok" role="tab" [class.active]="activeBox() === 'ACTIVO'" [attr.aria-selected]="activeBox() === 'ACTIVO'" (click)="selectBox('ACTIVO')">
+          <app-icon [icon]="icons.Check" [size]="18" [strokeWidth]="2" />
+          <span class="loan-box-label">Vigentes</span>
+          <strong class="loan-box-count">{{ boxCounts().ACTIVO }}</strong>
+          <span class="loan-box-hint">En seguimiento</span>
+        </button>
+        <button type="button" class="loan-box crit" role="tab" [class.active]="activeBox() === 'VENCIDO'" [attr.aria-selected]="activeBox() === 'VENCIDO'" (click)="selectBox('VENCIDO')">
+          <app-icon [icon]="icons.Alert" [size]="18" [strokeWidth]="2" />
+          <span class="loan-box-label">Vencidos</span>
+          <strong class="loan-box-count">{{ boxCounts().VENCIDO }}</strong>
+          <span class="loan-box-hint">Devolver ya</span>
+        </button>
+        <button type="button" class="loan-box reject" role="tab" [class.active]="activeBox() === 'RECHAZADO'" [attr.aria-selected]="activeBox() === 'RECHAZADO'" (click)="selectBox('RECHAZADO')">
+          <app-icon [icon]="icons.X" [size]="18" [strokeWidth]="2" />
+          <span class="loan-box-label">Rechazados</span>
+          <strong class="loan-box-count">{{ boxCounts().RECHAZADO }}</strong>
+          <span class="loan-box-hint">No autorizados</span>
+        </button>
+        <button type="button" class="loan-box archive" role="tab" [class.active]="activeBox() === 'DEVUELTO'" [attr.aria-selected]="activeBox() === 'DEVUELTO'" (click)="selectBox('DEVUELTO')">
+          <app-icon [icon]="icons.Archive" [size]="18" [strokeWidth]="2" />
+          <span class="loan-box-label">Devueltos</span>
+          <strong class="loan-box-count">{{ boxCounts().DEVUELTO }}</strong>
+          <span class="loan-box-hint">Archivo · pulse para consultar</span>
+        </button>
+      </div>
+
       <!-- LISTADO TABLA DE PRÉSTAMOS -->
       @if (loading()) {
         <div class="loading-box"><p>Cargando préstamos...</p></div>
       } @else {
+        <div class="box-table-head">
+          <h4>{{ boxTitle() }}</h4>
+          <p>{{ boxHint() }}</p>
+        </div>
         <div class="table-wrap">
           <table>
             <thead>
@@ -148,7 +190,7 @@ import { DOC_STYLES } from '../documental.styles';
               </tr>
             </thead>
             <tbody>
-              @for (l of items(); track l.id) {
+              @for (l of visibleLoans(); track l.id) {
                 <tr [class.row-pending]="l.status === 'PENDIENTE_APROBACION'" [class.row-vencido]="l.status === 'VENCIDO'">
                   <td>
                     <strong>{{ l.requester }}</strong>
@@ -158,8 +200,8 @@ import { DOC_STYLES } from '../documental.styles';
                         <span>{{ l.email }}</span>
                       </div>
                     }
-                    @if (l.observations) {
-                      <div class="obs-text">{{ l.observations }}</div>
+                    @if (rowNote(l)) {
+                      <div class="obs-text">{{ rowNote(l) }}</div>
                     }
                   </td>
                   <td>{{ l.department ?? '—' }}</td>
@@ -185,7 +227,7 @@ import { DOC_STYLES } from '../documental.styles';
                       [class.crit]="l.status === 'VENCIDO' || l.status === 'RECHAZADO'"
                       [class.warn]="l.status === 'PENDIENTE_APROBACION'"
                     >
-                      {{ l.status }}
+                      {{ statusLabel(l.status) }}
                     </span>
                   </td>
                   <td style="text-align:right">
@@ -250,7 +292,7 @@ import { DOC_STYLES } from '../documental.styles';
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">Sin préstamos registrados en el sistema.</td></tr>
+                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">{{ emptyBoxMsg() }}</td></tr>
               }
             </tbody>
           </table>
@@ -638,15 +680,61 @@ import { DOC_STYLES } from '../documental.styles';
       display: flex;
       align-items: center;
       gap: 0.85rem;
+      width: 100%;
+      text-align: left;
+      font: inherit;
       background: #fffbeb;
       border: 1px solid #fde68a;
       border-left: 4px solid #f59e0b;
       padding: 0.85rem 1.15rem;
       border-radius: 0.65rem;
+      cursor: pointer;
+      min-height: 44px;
     }
+    .pending-alert-box:hover { background: #fef3c7; }
     .alert-icon { font-size: 1.5rem; }
     .alert-content strong { display: block; font-size: 0.88rem; color: #92400e; }
     .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #b45309; }
+
+    .loan-boxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.65rem;
+    }
+    .loan-box {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.2rem;
+      min-height: 88px;
+      padding: 0.75rem 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      background: var(--surface);
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .loan-box:hover { border-color: #94a3b8; }
+    .loan-box.active { box-shadow: 0 0 0 3px rgba(12, 74, 110, 0.14); }
+    .loan-box.warn { border-left: 4px solid #f59e0b; }
+    .loan-box.warn.active { background: #fffbeb; border-color: #f59e0b; }
+    .loan-box.ok { border-left: 4px solid #16a34a; }
+    .loan-box.ok.active { background: #f0fdf4; border-color: #16a34a; }
+    .loan-box.crit { border-left: 4px solid #dc2626; }
+    .loan-box.crit.active { background: #fef2f2; border-color: #dc2626; }
+    .loan-box.reject { border-left: 4px solid #64748b; }
+    .loan-box.reject.active { background: #f8fafc; border-color: #64748b; }
+    .loan-box.archive { border-left: 4px solid #0369a1; }
+    .loan-box.archive.active { background: #f0f9ff; border-color: #0369a1; }
+    .loan-box-label { font-size: 0.78rem; font-weight: 800; color: #334155; }
+    .loan-box-count { font-size: 1.35rem; font-weight: 900; color: #0f172a; line-height: 1.1; }
+    .loan-box-hint { font-size: 0.7rem; color: #64748b; font-weight: 600; }
+    .box-table-head { margin: 0.15rem 0 0.35rem; }
+    .box-table-head h4 { margin: 0; font-size: 0.95rem; font-weight: 800; color: #0f172a; }
+    .box-table-head p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #64748b; }
 
     .email-toast {
       background: #ecfdf5;
@@ -1053,6 +1141,8 @@ export class LoansScreen implements OnInit {
     Check: LucideCheck,
     Clock: LucideClock,
     Copy: LucideCopy,
+    Alert: LucideAlertTriangle,
+    Archive: LucideArchive,
     ExternalLink: LucideExternalLink,
     Eye: LucideEye,
     FileText: LucideFileText,
@@ -1063,6 +1153,7 @@ export class LoansScreen implements OnInit {
   };
 
   readonly items = signal<Loan[]>([]);
+  readonly activeBox = signal<LoanInbox>('ACTIVO');
   readonly loading = signal(true);
   readonly showForm = signal(false);
   readonly saving = signal(false);
@@ -1093,6 +1184,24 @@ export class LoansScreen implements OnInit {
     this.items().filter((l) => l.status === 'PENDIENTE_APROBACION').length,
   );
 
+  readonly boxCounts = computed(() => {
+    const c = {
+      PENDIENTE_APROBACION: 0,
+      ACTIVO: 0,
+      VENCIDO: 0,
+      RECHAZADO: 0,
+      DEVUELTO: 0,
+    };
+    for (const l of this.items()) {
+      if (l.status in c) c[l.status as LoanInbox]++;
+    }
+    return c;
+  });
+
+  readonly visibleLoans = computed(() =>
+    this.items().filter((l) => l.status === this.activeBox()),
+  );
+
   readonly publicUrl = computed(() => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://portalcoraza-web.onrender.com';
     return `${origin}/#/solicitud-prestamo`;
@@ -1115,6 +1224,63 @@ export class LoansScreen implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  selectBox(box: LoanInbox): void {
+    this.activeBox.set(box);
+  }
+
+  statusLabel(status: string): string {
+    const map: Record<string, string> = {
+      PENDIENTE_APROBACION: 'Pendiente',
+      ACTIVO: 'Vigente',
+      VENCIDO: 'Vencido',
+      RECHAZADO: 'Rechazado',
+      DEVUELTO: 'Devuelto',
+    };
+    return map[status] || status;
+  }
+
+  boxTitle(): string {
+    const map: Record<LoanInbox, string> = {
+      PENDIENTE_APROBACION: 'Solicitudes pendientes de aprobación',
+      ACTIVO: 'Préstamos vigentes en seguimiento',
+      VENCIDO: 'Préstamos vencidos — devolución pendiente',
+      RECHAZADO: 'Solicitudes rechazadas',
+      DEVUELTO: 'Archivo de préstamos devueltos',
+    };
+    return map[this.activeBox()];
+  }
+
+  boxHint(): string {
+    const map: Record<LoanInbox, string> = {
+      PENDIENTE_APROBACION: 'Apruebe o rechace para que el expediente salga o quede en archivo.',
+      ACTIVO: 'Expedientes prestados con fecha de devolución vigente.',
+      VENCIDO: 'La fecha límite ya pasó. Notifique o registre la devolución.',
+      RECHAZADO: 'Quedan aquí por si hay que reconsiderar o reenviar el correo.',
+      DEVUELTO: 'Historial cerrado. No aparecen en el seguimiento diario.',
+    };
+    return map[this.activeBox()];
+  }
+
+  emptyBoxMsg(): string {
+    const map: Record<LoanInbox, string> = {
+      PENDIENTE_APROBACION: 'No hay solicitudes pendientes.',
+      ACTIVO: 'No hay préstamos vigentes en este momento.',
+      VENCIDO: 'No hay préstamos vencidos.',
+      RECHAZADO: 'No hay solicitudes rechazadas.',
+      DEVUELTO: 'Aún no hay devoluciones en el archivo.',
+    };
+    return map[this.activeBox()];
+  }
+
+  rowNote(loan: Loan): string {
+    return (loan.observations || '')
+      .split(/\n|\|/)
+      .map((s) => s.trim())
+      .filter((s) => s && !s.startsWith('[CORREO'))
+      .join(' · ')
+      .slice(0, 90);
   }
 
   toggle(): void {
@@ -1230,6 +1396,7 @@ export class LoansScreen implements OnInit {
       this.api.approveLoan(loan.id).subscribe({
         next: (res) => {
           this.toastMail(loan, res.mail, 'Solicitud aprobada.', 'Aprobada, pero el correo no salió');
+          this.activeBox.set('ACTIVO');
           this.load();
         },
         error: () => {
