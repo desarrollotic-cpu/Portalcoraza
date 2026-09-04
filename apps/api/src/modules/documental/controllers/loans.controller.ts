@@ -62,6 +62,7 @@ export class LoansController {
     return this.service.returnLoan(id, user.sub);
   }
 
+  /** Envía el correo según estado + fecha (aprobación, vencimiento, rechazo o devolución). */
   @Post(':id/send-reminder')
   @RequireAnyPermissions('documental.manage', 'documental.loans')
   sendReminder(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

@@ -383,26 +383,70 @@ export class LoansService {
     return { ...saved, mail };
   }
 
-  /** Permite al administrador reenviar manualmente la notificación por correo al solicitante. */
+  /** Reenvía el correo según el estado y la fecha de devolución (no siempre vencimiento). */
   async sendOverdueEmailManual(id: string, userId: string) {
     const loan = await this.setStatus(id);
     if (!loan.email) {
       throw new BadRequestException('Este préstamo no tiene registrado un correo electrónico.');
     }
 
-    const result = await this.notifyLoan(loan, 'VENCIMIENTO', () =>
-      this.mailService.sendOverdueReminder({
-        id: loan.id,
-        requester: loan.requester,
-        email: loan.email ?? '',
-        document: loan.document || loan.documentCode || 'Expediente Documental',
-        returnDate: loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada',
-        department: loan.department || undefined,
-      }),
-      userId,
-    );
+    if (loan.status === 'PENDIENTE_APROBACION') {
+      throw new BadRequestException('Apruebe o rechace la solicitud para enviar el correo.');
+    }
 
-    if (result.ok) {
+    const kind = this.mailKindForLoan(loan);
+    const doc = loan.document || loan.documentCode || 'Expediente Documental';
+    const email = loan.email ?? '';
+    const returnDate = loan.returnDate ? String(loan.returnDate).slice(0, 10) : undefined;
+
+    const senders: Record<string, () => Promise<MailDispatchResult>> = {
+      APROBACION: () =>
+        this.mailService.sendLoanApprovalEmail({
+          id: loan.id,
+          requester: loan.requester,
+          email,
+          document: doc,
+          loanDate: loan.loanDate || new Date().toISOString().slice(0, 10),
+          returnDate,
+          department: loan.department || undefined,
+        }),
+      VENCIMIENTO: () =>
+        this.mailService.sendOverdueReminder({
+          id: loan.id,
+          requester: loan.requester,
+          email,
+          document: doc,
+          returnDate: returnDate || 'Fecha no especificada',
+          department: loan.department || undefined,
+        }),
+      RECHAZO: () =>
+        this.mailService.sendLoanRejectionEmail({
+          id: loan.id,
+          requester: loan.requester,
+          email,
+          document: doc,
+          motivoRechazo: this.extractRejectReason(loan.observations),
+          department: loan.department || undefined,
+        }),
+      DEVOLUCION: () =>
+        this.mailService.sendLoanReturnEmail({
+          id: loan.id,
+          requester: loan.requester,
+          email,
+          document: doc,
+          returnDate: loan.realReturnDate || returnDate,
+          department: loan.department || undefined,
+        }),
+    };
+
+    const send = senders[kind];
+    if (!send) {
+      throw new BadRequestException(`No hay correo de notificación para el estado ${loan.status}`);
+    }
+
+    const result = await this.notifyLoan(loan, kind, send, userId);
+
+    if (kind === 'VENCIMIENTO' && result.ok) {
       loan.overdueNotifiedAt = new Date();
       await this.repo.save(loan);
     }
@@ -413,14 +457,41 @@ export class LoansService {
       action: 'loan.send_email_reminder',
       entityType: 'doc_loans',
       entityId: id,
+      newValue: { kind, ok: result.ok },
     });
 
+    const labels: Record<string, string> = {
+      APROBACION: 'aprobación / préstamo vigente',
+      VENCIMIENTO: 'vencimiento / devolución pendiente',
+      RECHAZO: 'negación',
+      DEVOLUCION: 'devolución',
+    };
     return {
       success: result.ok,
+      kind,
       message: result.ok
-        ? `Correo de recordatorio enviado a ${loan.email}`
-        : `No se pudo enviar el correo: ${result.error || 'error desconocido'}`,
+        ? `Correo de ${labels[kind]} enviado a ${loan.email}`
+        : `No se pudo enviar el correo de ${labels[kind]}: ${result.error || 'error desconocido'}`,
     };
+  }
+
+  /** Vencido solo si el estado es VENCIDO o la fecha de devolución ya pasó. */
+  private mailKindForLoan(loan: Loan): string {
+    if (loan.status === 'RECHAZADO') return 'RECHAZO';
+    if (loan.status === 'DEVUELTO') return 'DEVOLUCION';
+    if (loan.status === 'VENCIDO') return 'VENCIMIENTO';
+    if (loan.status === 'ACTIVO') {
+      const until = loan.returnDate ? String(loan.returnDate).slice(0, 10) : '';
+      const today = new Date().toISOString().slice(0, 10);
+      if (until && until < today) return 'VENCIMIENTO';
+      return 'APROBACION';
+    }
+    throw new BadRequestException(`No hay correo de notificación para el estado ${loan.status}`);
+  }
+
+  private extractRejectReason(obs: string | null): string {
+    const m = obs?.match(/RECHAZADO:\s*(.+)$/i);
+    return m?.[1]?.trim() || 'No cumple con los requisitos o expediente no disponible temporalmente';
   }
 
   async testDirectEmail() {

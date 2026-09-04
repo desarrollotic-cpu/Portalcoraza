@@ -210,7 +210,7 @@ import { DOC_STYLES } from '../documental.styles';
                             Aprobar / Confirmar
                           </button>
                           @if (l.email) {
-                            <button type="button" class="btn-notify-email" (click)="requestReject(l)" title="Reenviar notificación de rechazo con motivo">
+                            <button type="button" class="btn-notify-email" (click)="requestNotify(l)" title="Reenviar correo de rechazo">
                               <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
                               <span>Notificar</span>
                             </button>
@@ -221,7 +221,7 @@ import { DOC_STYLES } from '../documental.styles';
                               type="button"
                               class="btn-notify-email"
                               (click)="requestNotify(l)"
-                              title="Enviar recordatorio de devolución por correo"
+                              title="Enviar correo según el estado del préstamo"
                             >
                               <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
                               <span>Notificar</span>
@@ -233,6 +233,16 @@ import { DOC_STYLES } from '../documental.styles';
                           </button>
                           <button type="button" class="btn-ghost btn-return" (click)="requestReturn(l)">
                              Devolver
+                          </button>
+                        } @else if (l.status === 'DEVUELTO' && l.email) {
+                          <button
+                            type="button"
+                            class="btn-notify-email"
+                            (click)="requestNotify(l)"
+                            title="Reenviar correo de devolución"
+                          >
+                            <app-icon [icon]="icons.Mail" [size]="12" [strokeWidth]="2" />
+                            <span>Notificar</span>
                           </button>
                         }
                       }
@@ -272,8 +282,8 @@ import { DOC_STYLES } from '../documental.styles';
                 <h4>¿Confirmar Rechazo de Solicitud?</h4>
                 <p>Se registrará el rechazo y se notificará el motivo</p>
               } @else if (cm.type === 'notify') {
-                <h4>¿Confirmar Envío de Notificación?</h4>
-                <p>Se enviará el recordatorio por correo electrónico</p>
+                <h4>{{ notifyTitle(cm.loan) }}</h4>
+                <p>{{ notifyHint(cm.loan) }}</p>
               } @else {
                 <h4>¿Confirmar Devolución Física?</h4>
                 <p>Se cerrará el préstamo y se detendrán los avisos</p>
@@ -1166,6 +1176,38 @@ export class LoansScreen implements OnInit {
     });
   }
 
+  /** Mismo criterio que la API: el correo sigue el estado y la fecha de devolución. */
+  notifyKind(loan: Loan): 'APROBACION' | 'VENCIMIENTO' | 'RECHAZO' | 'DEVOLUCION' {
+    if (loan.status === 'RECHAZADO') return 'RECHAZO';
+    if (loan.status === 'DEVUELTO') return 'DEVOLUCION';
+    if (loan.status === 'VENCIDO') return 'VENCIMIENTO';
+    const until = loan.returnDate ? String(loan.returnDate).slice(0, 10) : '';
+    const n = new Date();
+    const today = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    if (until && until < today) return 'VENCIMIENTO';
+    return 'APROBACION';
+  }
+
+  notifyTitle(loan: Loan): string {
+    const titles = {
+      APROBACION: '¿Enviar notificación de préstamo aprobado?',
+      VENCIMIENTO: '¿Enviar aviso de vencimiento?',
+      RECHAZO: '¿Reenviar notificación de rechazo?',
+      DEVOLUCION: '¿Enviar confirmación de devolución?',
+    };
+    return titles[this.notifyKind(loan)];
+  }
+
+  notifyHint(loan: Loan): string {
+    const hints = {
+      APROBACION: 'Correo de préstamo autorizado (no es vencimiento). Incluye la fecha límite de devolución.',
+      VENCIMIENTO: 'La fecha de devolución ya venció o el estado es VENCIDO. Se enviará el aviso de devolución pendiente.',
+      RECHAZO: 'Se reenviará el correo de solicitud no aprobada.',
+      DEVOLUCION: 'Se enviará el correo de agradecimiento por la devolución.',
+    };
+    return hints[this.notifyKind(loan)];
+  }
+
   requestReturn(loan: Loan): void {
     this.confirmModal.set({
       type: 'return',
@@ -1216,7 +1258,7 @@ export class LoansScreen implements OnInit {
           setTimeout(() => this.emailStatusMsg.set(null), 7000);
         },
         error: () => {
-          this.emailStatusMsg.set('No se pudo enviar el recordatorio.');
+          this.emailStatusMsg.set('No se pudo enviar el correo.');
           setTimeout(() => this.emailStatusMsg.set(null), 4000);
         },
       });
@@ -1243,8 +1285,20 @@ export class LoansScreen implements OnInit {
       subject = `❌ Respuesta a Solicitud de Préstamo #${loan.documentCode || loan.document || 'Oficial'} — Coraza Seguridad C.T.A.`;
       body = `Cordial saludo, ${loan.requester || ''}.\n\nSe le notifica que su solicitud de préstamo para el expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" NO PUDO SER APROBADA en este momento.\n\nMotivo del Rechazo: ${reason || 'Documento no disponible temporalmente o en consulta por auditoría interna'}.\n\nPara mayor información o radicación formal, favor comunicarse con el área de Gestión Documental.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
     } else if (type === 'notify') {
-      subject = `⚠️ Recordatorio de Devolución de Expediente — Coraza Seguridad C.T.A.`;
-      body = `Cordial saludo, ${loan.requester || ''}.\n\nLe recordamos comedidamente que el préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" se encuentra pendiente de devolución física en el archivo central.\n\nFecha de Devolución Programada: ${loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Vencida'}\n\nFavor realizar la entrega física para el cierre formal del acta de préstamo.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+      const kind = this.notifyKind(loan);
+      if (kind === 'APROBACION') {
+        subject = `✅ Notificación de Préstamo de Expediente #${loan.documentCode || loan.document || 'Oficial'} — Coraza Seguridad C.T.A.`;
+        body = `Cordial saludo, ${loan.requester || ''}.\n\nSe le informa que su solicitud de préstamo para el expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" ha sido APROBADA y autorizada por la administración de Gestión Documental.\n\nFecha de Préstamo: ${loan.loanDate ? String(loan.loanDate).slice(0, 10) : new Date().toISOString().slice(0, 10)}\nFecha Límite de Devolución: ${loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Fecha no especificada'}\n\nPor favor acérquese al archivo físico para la recepción del material documental.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+      } else if (kind === 'RECHAZO') {
+        subject = `❌ Respuesta a Solicitud de Préstamo #${loan.documentCode || loan.document || 'Oficial'} — Coraza Seguridad C.T.A.`;
+        body = `Cordial saludo, ${loan.requester || ''}.\n\nSe le notifica que su solicitud de préstamo para el expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" NO PUDO SER APROBADA en este momento.\n\nMotivo del Rechazo: ${reason || 'Documento no disponible temporalmente o en consulta por auditoría interna'}.\n\nPara mayor información o radicación formal, favor comunicarse con el área de Gestión Documental.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+      } else if (kind === 'DEVOLUCION') {
+        subject = `📋 Acta de Devolución de Expediente — Coraza Seguridad C.T.A.`;
+        body = `Cordial saludo, ${loan.requester || ''}.\n\nSe confirma la recepción física y cierre formal del préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}".\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+      } else {
+        subject = `⚠️ Recordatorio de Devolución de Expediente — Coraza Seguridad C.T.A.`;
+        body = `Cordial saludo, ${loan.requester || ''}.\n\nLe recordamos comedidamente que el préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}" se encuentra PENDIENTE DE DEVOLUCIÓN porque la fecha límite ya venció.\n\nFecha de Devolución Programada: ${loan.returnDate ? String(loan.returnDate).slice(0, 10) : 'Vencida'}\n\nFavor realizar la entrega física para el cierre formal del acta de préstamo.\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
+      }
     } else {
       subject = `📋 Acta de Devolución de Expediente — Coraza Seguridad C.T.A.`;
       body = `Cordial saludo, ${loan.requester || ''}.\n\nSe confirma la recepción física y cierre formal del préstamo del expediente "${loan.document || loan.documentCode || 'Expediente Documental'}".\n\nAtentamente,\nGestión Documental & Archivo Central\nCORAZA SEGURIDAD C.T.A.`;
