@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
+  HuecoGroup,
   MonthlyAlertsResponse,
   MonthlySchedulingApiService,
   ScheduleAlertItem,
@@ -27,7 +28,7 @@ const PAGE_SIZE = 25;
       <header class="alerts__head">
         <div>
           <h2>Alertas de programación</h2>
-          <p>Huecos, inactivos, conflictos de turno (misma persona en dos puestos el mismo día y horario) y carga &gt;24 (solo D/N 12 h). Clic en una alerta abre el cuadro de ese puesto.</p>
+          <p>Solo días de hoy en adelante. Huecos agrupados por puesto. Clic abre el cuadro en el primer día con problema.</p>
         </div>
         <label class="alerts__month">
           Mes
@@ -40,7 +41,7 @@ const PAGE_SIZE = 25;
       }
 
       <div class="alerts__totals">
-        <span>Huecos: {{ data()?.totals?.huecos ?? '—' }}</span>
+        <span>Huecos: {{ data()?.totals?.huecos ?? '—' }}@if (huecoGroups().length) { · {{ huecoGroups().length }} puestos }</span>
         <span>Inactivos: {{ data()?.totals?.inactivos ?? '—' }}</span>
         <span>Conflictos: {{ data()?.totals?.conflictos ?? '—' }}</span>
         <span>Carga: {{ data()?.totals?.carga ?? '—' }}</span>
@@ -61,7 +62,9 @@ const PAGE_SIZE = 25;
 
       @if (loading()) {
         <p class="alerts__muted">Cargando…</p>
-      } @else if (filtered().length === 0) {
+      } @else if (tab() === 'huecos' && huecoGroups().length === 0) {
+        <p class="alerts__muted">Sin huecos pendientes de hoy en adelante.</p>
+      } @else if (tab() !== 'huecos' && filtered().length === 0) {
         <p class="alerts__muted">Sin alertas en esta pestaña.</p>
       } @else {
         <div class="alerts__pager">
@@ -69,32 +72,54 @@ const PAGE_SIZE = 25;
           <span>{{ rangeLabel() }} · Página {{ page() }} de {{ totalPages() }}</span>
           <button type="button" [disabled]="page() >= totalPages()" (click)="goPage(page() + 1)">Siguiente</button>
         </div>
-        <ul class="alerts__list">
-          @for (a of pageItems(); track a.id) {
-            <li [class.sev-error]="a.severity === 'error'" [class.sev-warn]="a.severity === 'warning'">
-              <button type="button" class="alerts__item" (click)="openBoard(a)">
-                <span class="kind">{{ kindLabel(a.type) }}</span>
-                <span class="msg">{{ a.message }}</span>
-                <span class="meta">
-                  {{ a.month }}
-                  @if (a.day) { · día {{ a.day }} }
-                  @if (a.postName) { · {{ a.postName }} }
-                  @if (a.shift) { · turno {{ a.shift === 'D' ? 'diurno (D)' : 'nocturno (N)' }} }
-                  @if (a.associateName) { · {{ a.associateName }} }
-                  @if (a.documentNumber) { · CC {{ a.documentNumber }} }
-                  @if (a.otherPostName) { · también en {{ a.otherPostName }} }
-                </span>
-                @if (a.reason) {
-                  <span class="reason">Motivo: {{ a.reason }}</span>
-                }
-                @if (a.suggestedAction) {
-                  <span class="action">Qué hacer: {{ a.suggestedAction }}</span>
-                }
-                <span class="go">Abrir cuadro de este puesto →</span>
-              </button>
-            </li>
-          }
-        </ul>
+        @if (tab() === 'huecos') {
+          <ul class="alerts__list">
+            @for (g of pageGroups(); track g.postId + g.month) {
+              <li class="sev-error">
+                <button type="button" class="alerts__item" (click)="openHueco(g)">
+                  <span class="kind">Hueco de cobertura</span>
+                  <span class="msg">{{ g.postName }} · {{ g.count }} huecos ({{ g.daysD.length }} diurnos, {{ g.daysN.length }} nocturnos)</span>
+                  <span class="meta">{{ g.month }}</span>
+                  @if (g.daysD.length) {
+                    <span class="days">Diurnos sin cubrir: {{ formatDays(g.daysD) }}</span>
+                  }
+                  @if (g.daysN.length) {
+                    <span class="days">Nocturnos sin cubrir: {{ formatDays(g.daysN) }}</span>
+                  }
+                  <span class="action">Qué hacer: {{ g.suggestedAction }}</span>
+                  <span class="go">Abrir cuadro en el día {{ g.firstDay }} →</span>
+                </button>
+              </li>
+            }
+          </ul>
+        } @else {
+          <ul class="alerts__list">
+            @for (a of pageItems(); track a.id) {
+              <li [class.sev-error]="a.severity === 'error'" [class.sev-warn]="a.severity === 'warning'">
+                <button type="button" class="alerts__item" (click)="openBoard(a)">
+                  <span class="kind">{{ kindLabel(a.type) }}</span>
+                  <span class="msg">{{ a.message }}</span>
+                  <span class="meta">
+                    {{ a.month }}
+                    @if (a.day) { · día {{ a.day }} }
+                    @if (a.postName) { · {{ a.postName }} }
+                    @if (a.shift) { · turno {{ a.shift === 'D' ? 'diurno (D)' : 'nocturno (N)' }} }
+                    @if (a.associateName) { · {{ a.associateName }} }
+                    @if (a.documentNumber) { · CC {{ a.documentNumber }} }
+                    @if (a.otherPostName) { · también en {{ a.otherPostName }} }
+                  </span>
+                  @if (a.reason) {
+                    <span class="reason">Motivo: {{ a.reason }}</span>
+                  }
+                  @if (a.suggestedAction) {
+                    <span class="action">Qué hacer: {{ a.suggestedAction }}</span>
+                  }
+                  <span class="go">Abrir cuadro de este puesto →</span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
         @if (totalPages() > 1) {
           <div class="alerts__pager">
             <button type="button" [disabled]="page() <= 1" (click)="goPage(page() - 1)">Anterior</button>
@@ -163,6 +188,7 @@ const PAGE_SIZE = 25;
     .meta { font-size: 0.8rem; color: var(--text-muted); }
     .reason, .action { font-size: 0.82rem; color: var(--text-secondary, #334155); }
     .action { font-weight: 600; }
+    .days { font-size: 0.82rem; color: var(--text-secondary, #334155); }
     .go { font-size: 0.78rem; color: var(--coraza-primary, #1d4ed8); }
     .alerts__foot { font-size: 0.85rem; }
     .alerts__foot a { color: var(--coraza-primary, #1d4ed8); }
@@ -194,8 +220,14 @@ export class ProgramacionAlertas implements OnInit {
     return (this.data()?.alerts ?? []).filter((a) => a.type === type);
   });
 
+  readonly huecoGroups = computed(() => this.data()?.huecoGroups ?? []);
+
+  readonly listLength = computed(() =>
+    this.tab() === 'huecos' ? this.huecoGroups().length : this.filtered().length,
+  );
+
   readonly totalPages = computed(() =>
-    Math.max(1, Math.ceil(this.filtered().length / PAGE_SIZE)),
+    Math.max(1, Math.ceil(this.listLength() / PAGE_SIZE)),
   );
 
   readonly pageItems = computed(() => {
@@ -203,8 +235,13 @@ export class ProgramacionAlertas implements OnInit {
     return this.filtered().slice(start, start + PAGE_SIZE);
   });
 
+  readonly pageGroups = computed(() => {
+    const start = (this.page() - 1) * PAGE_SIZE;
+    return this.huecoGroups().slice(start, start + PAGE_SIZE);
+  });
+
   readonly rangeLabel = computed(() => {
-    const total = this.filtered().length;
+    const total = this.listLength();
     if (!total) return '0';
     const from = (this.page() - 1) * PAGE_SIZE + 1;
     const to = Math.min(this.page() * PAGE_SIZE, total);
@@ -264,8 +301,23 @@ export class ProgramacionAlertas implements OnInit {
 
   openBoard(a: ScheduleAlertItem): void {
     void this.router.navigate(['/programacion/cuadro'], {
-      queryParams: { postId: a.postId || undefined, month: a.month },
+      queryParams: {
+        postId: a.postId || undefined,
+        month: a.month,
+        day: a.day || undefined,
+      },
     });
+  }
+
+  openHueco(g: HuecoGroup): void {
+    void this.router.navigate(['/programacion/cuadro'], {
+      queryParams: { postId: g.postId, month: g.month, day: g.firstDay },
+    });
+  }
+
+  formatDays(days: number[]): string {
+    if (days.length <= 12) return days.join(', ');
+    return `${days.slice(0, 12).join(', ')}…`;
   }
 
   private reload(): void {

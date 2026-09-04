@@ -135,6 +135,17 @@ export interface ScheduleAlertItem {
   message: string;
 }
 
+export interface HuecoGroup {
+  postId: string;
+  postName: string;
+  month: string;
+  daysD: number[];
+  daysN: number[];
+  count: number;
+  firstDay: number;
+  suggestedAction: string;
+}
+
 export interface MonthlyAlertsResponse {
   generatedAt: string;
   months: string[];
@@ -145,6 +156,7 @@ export interface MonthlyAlertsResponse {
     carga: number;
   };
   alerts: ScheduleAlertItem[];
+  huecoGroups?: HuecoGroup[];
 }
 
 export interface BoardAlertsResponse {
@@ -157,6 +169,12 @@ export interface BoardAlertsResponse {
     messages: string[];
   }>;
   associateLoad: ScheduleAlertItem[];
+  summary?: {
+    huecos: number;
+    inactivos: number;
+    conflictos: number;
+    carga: number;
+  };
   placements?: Array<{
     associateId: string;
     associateName: string | null;

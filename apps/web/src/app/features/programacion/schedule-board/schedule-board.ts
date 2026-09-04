@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
@@ -57,7 +57,7 @@ const CODES: CodeConfig[] = [
 
 @Component({
   selector: 'app-schedule-board',
-  imports: [FormsModule, DeliveryHistory, ConfirmDialog],
+  imports: [FormsModule, DeliveryHistory, ConfirmDialog, RouterLink],
   template: `
     <section>
       <header class="toolbar">
@@ -217,6 +217,17 @@ const CODES: CodeConfig[] = [
         <p class="tpl-hint">
           Flujo: motor → ajusta celdas a mano → Guardar. Luego «Aplicar a los siguientes meses» copia este puesto al resto del año.
         </p>
+        @if (boardSummary().total) {
+          <div class="alerts-board-banner">
+            Este puesto (hoy en adelante):
+            @if (boardSummary().huecos) { {{ boardSummary().huecos }} huecos }
+            @if (boardSummary().conflictos) { · {{ boardSummary().conflictos }} conflictos }
+            @if (boardSummary().inactivos) { · {{ boardSummary().inactivos }} no disponibles }
+            @if (boardSummary().carga) { · {{ boardSummary().carga }} con carga &gt;24 }
+            · las columnas marcadas tienen alerta
+            <a routerLink="/programacion/alertas">Ver listado</a>
+          </div>
+        }
 
         <div class="roles-panel">
           <h3>Personal / Roles</h3>
@@ -277,9 +288,12 @@ const CODES: CodeConfig[] = [
                 <th class="sticky-col">Rol / Titular</th>
                 @for (day of days(); track day) {
                   <th
+                    [attr.data-day]="day"
                     [class.col-sunday]="isSunday(day)"
                     [class.col-saturday]="isSaturday(day)"
                     [class.col-holiday]="isHoliday(day)"
+                    [class.col-alert]="dayHasAlert(day)"
+                    [class.col-focus]="highlightDay() === day"
                     [title]="dayTooltip(day)"
                   >
                     <div class="day-dow">{{ dayOfWeekLetter(day) }}</div>
@@ -309,6 +323,8 @@ const CODES: CodeConfig[] = [
                       [class.col-sunday]="isSunday(day)"
                       [class.col-saturday]="isSaturday(day)"
                       [class.col-holiday]="isHoliday(day)"
+                      [class.col-alert]="dayHasAlert(day)"
+                      [class.col-focus]="highlightDay() === day"
                       (click)="openCell(role, day)"
                       [title]="cellTitle(role.rol, day)"
                     >
@@ -583,6 +599,31 @@ const CODES: CodeConfig[] = [
       background-color: #f0f9ff;
       border-color: #e0f2fe;
     }
+    th.col-alert {
+      box-shadow: inset 0 -3px 0 #dc2626;
+    }
+    td.col-alert {
+      outline: 1px solid rgba(220, 38, 38, 0.35);
+      outline-offset: -1px;
+    }
+    th.col-focus, td.col-focus {
+      outline: 2px solid #1d4ed8;
+      outline-offset: -2px;
+    }
+    .alerts-board-banner {
+      margin: 0 0 0.75rem;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #991b1b;
+      font-size: 0.88rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.5rem;
+      align-items: center;
+    }
+    .alerts-board-banner a { color: #1d4ed8; font-weight: 600; }
 
     .day-dow {
       font-size: 0.65rem;
@@ -1108,6 +1149,15 @@ export class ScheduleBoard implements OnInit {
   });
 
   readonly boardAlerts = signal<BoardAlertsResponse | null>(null);
+  readonly highlightDay = signal<number | null>(null);
+  readonly boardSummary = computed(() => {
+    const s = this.boardAlerts()?.summary;
+    const huecos = s?.huecos ?? 0;
+    const inactivos = s?.inactivos ?? 0;
+    const conflictos = s?.conflictos ?? 0;
+    const carga = s?.carga ?? 0;
+    return { huecos, inactivos, conflictos, carga, total: huecos + inactivos + conflictos + carga };
+  });
   readonly monthConflictAlerts = signal<ScheduleAlertItem[]>([]);
   readonly confirmOpen = signal(false);
   readonly confirmTitle = signal('Confirmar');
@@ -1207,7 +1257,8 @@ export class ScheduleBoard implements OnInit {
     const qPost = qp.get('postId');
     const qMonth = qp.get('month');
     const qYear = qp.get('year');
-    if (qPost) this.postId = qPost;
+    const qDay = qp.get('day');
+    if (qDay && /^\d+$/.test(qDay)) this.highlightDay.set(Number(qDay));
 
     let monthFromQuery = false;
     if (qMonth && /^\d{4}-\d{2}$/.test(qMonth)) {
@@ -1279,6 +1330,7 @@ export class ScheduleBoard implements OnInit {
         this.applySchedule(cached);
         this.loading.set(false);
         this.reloadBoardAlerts(year, mon);
+        this.scrollToHighlightDay();
         return;
       }
     }
@@ -1291,6 +1343,7 @@ export class ScheduleBoard implements OnInit {
         this.applySchedule(sched);
         this.loading.set(false);
         this.reloadBoardAlerts(year, mon);
+        this.scrollToHighlightDay();
       },
       error: () => {
         this.loading.set(false);
@@ -2203,13 +2256,34 @@ export class ScheduleBoard implements OnInit {
 
     // Solo marcar alerta si este guardia específico tiene un cruce de turno en otro puesto
     const placements = this.boardAlerts()?.placements ?? [];
-    const fringe = codigo === 'D' || codigo === 'D8' ? 'D' : codigo === 'N' || codigo === 'N8' ? 'N' : null;
+    const fringe =
+      codigo === 'D' || codigo === 'D8' || codigo === 'D9' || codigo === 'D12'
+        ? 'D'
+        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N12'
+          ? 'N'
+          : null;
     const hasConflict = placements.some(
       (p) => p.associateId === state.associateId && p.day === day && p.postId !== this.postId && (!fringe || p.shift === fringe)
     );
 
     if (hasConflict) return `${base} alert-error`;
     return base;
+  }
+
+  dayHasAlert(day: number): boolean {
+    return Boolean(this.boardAlerts()?.cells.some((c) => c.day === day));
+  }
+
+  private scrollToHighlightDay(): void {
+    const day = this.highlightDay();
+    if (!day) return;
+    setTimeout(() => {
+      document.querySelector(`[data-day="${day}"]`)?.scrollIntoView({
+        inline: 'center',
+        block: 'nearest',
+        behavior: 'smooth',
+      });
+    }, 80);
   }
 
   cellTitle(role: string, day: number): string {

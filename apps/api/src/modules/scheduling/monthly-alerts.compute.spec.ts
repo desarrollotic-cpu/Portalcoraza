@@ -1,5 +1,7 @@
 import {
   computeMonthlyAlerts,
+  groupHuecosByPost,
+  isActionableAlert,
   monthsForAlertsScope,
 } from './monthly-alerts.compute';
 
@@ -298,5 +300,120 @@ describe('computeMonthlyAlerts', () => {
     const h = alerts.find((a) => a.type === 'hueco_cobertura' && a.shift === 'D');
     expect(h?.suggestedAction).toMatch(/asignar/i);
     expect(h?.message).toMatch(/Amisi/);
+  });
+});
+
+describe('isActionableAlert', () => {
+  const today = { year: 2026, month: 9, day: 4 };
+
+  it('oculta huecos de días ya pasados del mes actual', () => {
+    expect(
+      isActionableAlert(
+        {
+          id: '1',
+          type: 'hueco_cobertura',
+          severity: 'error',
+          month: '2026-09',
+          day: 3,
+          postId: 'p1',
+          postName: 'Amisi',
+          shift: 'D',
+          message: 'x',
+        },
+        today,
+      ),
+    ).toBe(false);
+  });
+
+  it('deja el día de hoy y meses futuros', () => {
+    expect(
+      isActionableAlert(
+        {
+          id: '2',
+          type: 'hueco_cobertura',
+          severity: 'error',
+          month: '2026-09',
+          day: 4,
+          postId: 'p1',
+          postName: 'Amisi',
+          shift: 'D',
+          message: 'x',
+        },
+        today,
+      ),
+    ).toBe(true);
+    expect(
+      isActionableAlert(
+        {
+          id: '3',
+          type: 'hueco_cobertura',
+          severity: 'error',
+          month: '2026-10',
+          day: 1,
+          postId: 'p1',
+          postName: 'Amisi',
+          shift: 'N',
+          message: 'x',
+        },
+        today,
+      ),
+    ).toBe(true);
+  });
+});
+
+describe('groupHuecosByPost', () => {
+  it('agrupa por puesto y lista días D/N', () => {
+    const groups = groupHuecosByPost([
+      {
+        id: 'a',
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month: '2026-09',
+        day: 4,
+        postId: 'p1',
+        postName: 'Amisi',
+        shift: 'D',
+        message: 'x',
+        suggestedAction: 'Asignar D',
+      },
+      {
+        id: 'b',
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month: '2026-09',
+        day: 5,
+        postId: 'p1',
+        postName: 'Amisi',
+        shift: 'D',
+        message: 'x',
+      },
+      {
+        id: 'c',
+        type: 'hueco_cobertura',
+        severity: 'error',
+        month: '2026-09',
+        day: 4,
+        postId: 'p1',
+        postName: 'Amisi',
+        shift: 'N',
+        message: 'x',
+      },
+      {
+        id: 'd',
+        type: 'conflicto_mismo_turno',
+        severity: 'error',
+        month: '2026-09',
+        day: 4,
+        postId: 'p1',
+        postName: 'Amisi',
+        message: 'y',
+      },
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].postName).toBe('Amisi');
+    expect(groups[0].daysD).toEqual([4, 5]);
+    expect(groups[0].daysN).toEqual([4]);
+    expect(groups[0].count).toBe(3);
+    expect(groups[0].firstDay).toBe(4);
   });
 });

@@ -332,3 +332,56 @@ export function computeMonthlyAlerts(args: {
 
   return alerts;
 }
+
+export function isActionableAlert(
+  a: ScheduleAlertItem,
+  today: { year: number; month: number; day: number },
+): boolean {
+  if (!a.day) return true;
+  const [y, m] = a.month.split('-').map(Number);
+  if (y !== today.year || m !== today.month) return true;
+  return a.day >= today.day;
+}
+
+export interface HuecoGroup {
+  postId: string;
+  postName: string;
+  month: string;
+  daysD: number[];
+  daysN: number[];
+  count: number;
+  firstDay: number;
+  suggestedAction: string;
+}
+
+export function groupHuecosByPost(alerts: ScheduleAlertItem[]): HuecoGroup[] {
+  const map = new Map<string, HuecoGroup>();
+  for (const a of alerts) {
+    if (a.type !== 'hueco_cobertura') continue;
+    const key = `${a.month}|${a.postId}`;
+    const cur = map.get(key) ?? {
+      postId: a.postId,
+      postName: a.postName,
+      month: a.month,
+      daysD: [] as number[],
+      daysN: [] as number[],
+      count: 0,
+      firstDay: a.day ?? 1,
+      suggestedAction: a.suggestedAction ?? `Cubrir ${a.postName}.`,
+    };
+    cur.count += 1;
+    if (a.day) {
+      if (a.shift === 'D' && !cur.daysD.includes(a.day)) cur.daysD.push(a.day);
+      if (a.shift === 'N' && !cur.daysN.includes(a.day)) cur.daysN.push(a.day);
+      if (a.day < cur.firstDay) cur.firstDay = a.day;
+    }
+    map.set(key, cur);
+  }
+  const groups = [...map.values()];
+  for (const g of groups) {
+    g.daysD.sort((x, y) => x - y);
+    g.daysN.sort((x, y) => x - y);
+    g.suggestedAction = `Asignar cobertura en ${g.postName}: ${g.daysD.length} turno(s) diurno(s) y ${g.daysN.length} nocturno(s) sin cubrir.`;
+  }
+  return groups.sort((a, b) => b.count - a.count || a.postName.localeCompare(b.postName));
+}

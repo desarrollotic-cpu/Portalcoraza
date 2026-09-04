@@ -40,6 +40,10 @@ import {
   ScheduleAlertItem,
   computeMonthlyAlerts,
   monthsForAlertsScope,
+  isActionableAlert,
+  groupHuecosByPost,
+  isDayCode,
+  isNightCode,
 } from './monthly-alerts.compute';
 import { MotorTurnosService } from './motor-turnos.service';
 import { buildPlanillaWorkbook } from './planilla-excel';
@@ -269,19 +273,17 @@ export class MonthlySchedulingService {
     const cached = this.readReportCache<{
       generatedAt: string;
       months: string[];
-      totals: {
-        huecos: number;
-        inactivos: number;
-        conflictos: number;
-        carga: number;
-      };
       alerts: ScheduleAlertItem[];
     }>(cacheKey);
-    if (cached) return cached;
 
+    const raw = cached ?? (await this.buildMonthAlerts(months));
+    if (!cached) this.writeReportCache(cacheKey, raw);
+    return this.presentAlerts(raw.alerts, raw.months, raw.generatedAt, today);
+  }
+
+  private async buildMonthAlerts(months: Array<{ year: number; month: number }>) {
     const alerts: ScheduleAlertItem[] = [];
     const monthLabels: string[] = [];
-
     for (const m of months) {
       const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
       monthLabels.push(label);
@@ -290,26 +292,30 @@ export class MonthlySchedulingService {
         this.loadAlertCells(m.year, m.month),
       ]);
       const daysInMonth = new Date(m.year, m.month, 0).getDate();
-      alerts.push(
-        ...computeMonthlyAlerts({ month: label, daysInMonth, cells, posts }),
-      );
+      alerts.push(...computeMonthlyAlerts({ month: label, daysInMonth, cells, posts }));
     }
+    return { generatedAt: new Date().toISOString(), months: monthLabels, alerts };
+  }
 
-    const totals = {
-      huecos: alerts.filter((a) => a.type === 'hueco_cobertura').length,
-      inactivos: alerts.filter((a) => a.type === 'asociado_inactivo').length,
-      conflictos: alerts.filter((a) => a.type === 'conflicto_mismo_turno').length,
-      carga: alerts.filter((a) => a.type === 'carga_sobre_24').length,
+  private presentAlerts(
+    alerts: ScheduleAlertItem[],
+    months: string[],
+    generatedAt: string,
+    today: { year: number; month: number; day: number },
+  ) {
+    const actionable = alerts.filter((a) => isActionableAlert(a, today));
+    return {
+      generatedAt,
+      months,
+      alerts: actionable,
+      totals: {
+        huecos: actionable.filter((a) => a.type === 'hueco_cobertura').length,
+        inactivos: actionable.filter((a) => a.type === 'asociado_inactivo').length,
+        conflictos: actionable.filter((a) => a.type === 'conflicto_mismo_turno').length,
+        carga: actionable.filter((a) => a.type === 'carga_sobre_24').length,
+      },
+      huecoGroups: groupHuecosByPost(actionable),
     };
-
-    const result = {
-      generatedAt: new Date().toISOString(),
-      months: monthLabels,
-      totals,
-      alerts,
-    };
-    this.writeReportCache(cacheKey, result);
-    return result;
   }
 
   async getBoardAlerts(query: BoardAlertsQueryDto) {
@@ -317,6 +323,8 @@ export class MonthlySchedulingService {
     const cells = await this.loadAlertCellsForPost(query.postId, query.year, query.month);
     const daysInMonth = new Date(query.year, query.month, 0).getDate();
     const all = computeMonthlyAlerts({ month, daysInMonth, cells });
+    const today = this.bogotaYmd();
+    const actionableAll = all.filter((a) => isActionableAlert(a, today));
 
     const associateIdsOnPost = new Set(
       cells
@@ -324,7 +332,7 @@ export class MonthlySchedulingService {
         .map((c) => c.associateId as string),
     );
 
-    const relevant = all.filter((a) => {
+    const relevant = actionableAll.filter((a) => {
       if (a.postId === query.postId) return true;
       if (a.type === 'carga_sobre_24' && a.associateId && associateIdsOnPost.has(a.associateId)) {
         return true;
@@ -367,13 +375,19 @@ export class MonthlySchedulingService {
       postId: query.postId,
       cells: [...byDay.values()].sort((a, b) => a.day - b.day),
       associateLoad: relevant.filter((a) => a.type === 'carga_sobre_24'),
+      summary: {
+        huecos: relevant.filter((a) => a.type === 'hueco_cobertura' && a.postId === query.postId).length,
+        inactivos: relevant.filter((a) => a.type === 'asociado_inactivo' && a.postId === query.postId).length,
+        conflictos: relevant.filter((a) => a.type === 'conflicto_mismo_turno').length,
+        carga: relevant.filter((a) => a.type === 'carga_sobre_24').length,
+      },
       placements: cells
-        .filter((c) => c.associateId && (c.codigo === 'D' || c.codigo === 'N' || c.codigo === 'D8' || c.codigo === 'N8'))
+        .filter((c) => c.associateId && (isDayCode(c.codigo) || isNightCode(c.codigo)))
         .map((c) => ({
           associateId: c.associateId as string,
           associateName: c.associateName,
           day: c.day,
-          shift: (c.codigo === 'D' || c.codigo === 'D8' ? 'D' : 'N') as 'D' | 'N',
+          shift: (isDayCode(c.codigo) ? 'D' : 'N') as 'D' | 'N',
           postId: c.postId,
           postName: c.postName,
         })),
