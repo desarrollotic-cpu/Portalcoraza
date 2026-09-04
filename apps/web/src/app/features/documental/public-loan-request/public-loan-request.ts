@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DEPARTAMENTOS_CORAZA } from '../departamentos-coraza';
 import { DocumentalApiService } from '../documental-api.service';
 
 @Component({
@@ -71,13 +72,9 @@ import { DocumentalApiService } from '../documental-api.service';
                 <span class="label-text">Departamento / Área *</span>
                 <select [(ngModel)]="model.departamento" name="departamento" required>
                   <option value="">-- Seleccionar Área --</option>
-                  <option value="OPERACIONES">Operaciones / Vigilancia</option>
-                  <option value="GESTION_HUMANA">Gestión Humana / RRHH</option>
-                  <option value="ADMINISTRATIVO">Administrativo y Financiero</option>
-                  <option value="COMERCIAL">Comercial</option>
-                  <option value="SST">Seguridad y Salud (SST)</option>
-                  <option value="GERENCIA">Gerencia General</option>
-                  <option value="OTRO">Otra Dependencia</option>
+                  @for (d of areas; track d.code) {
+                    <option [value]="d.name">{{ d.name }}</option>
+                  }
                 </select>
               </label>
 
@@ -388,6 +385,7 @@ import { DocumentalApiService } from '../documental-api.service';
 })
 export class PublicLoanRequestComponent {
   private readonly api = inject(DocumentalApiService);
+  readonly areas = DEPARTAMENTOS_CORAZA;
 
   model = emptyModel();
 
