@@ -8,6 +8,64 @@ import { PublicLoanRequestDto } from '../dto/public-loan-request.dto';
 import { Loan } from '../entities/loan.entity';
 import { DocumentalMailService } from './documental-mail.service';
 
+const TIPO_LABEL: Record<string, string> = {
+  PERSONAL_RETIRADO: 'Personal retirado',
+  CONTRATO: 'Contrato',
+  MINUTA: 'Minuta',
+  OTRO: 'Otro documento',
+};
+
+function digits(v: string | undefined): string {
+  return String(v ?? '').replace(/\D/g, '');
+}
+
+function formatPublicLoan(dto: PublicLoanRequestDto): {
+  document: string;
+  documentCode: string | null;
+  observations: string;
+} {
+  const lines: string[] = [`TIPO: ${TIPO_LABEL[dto.tipo] ?? dto.tipo}`];
+  let document = '';
+  let documentCode: string | null = null;
+
+  if (dto.tipo === 'PERSONAL_RETIRADO') {
+    const full = `${dto.nombresRetirado ?? ''} ${dto.apellidosRetirado ?? ''}`.replace(/\s+/g, ' ').trim();
+    const cc = digits(dto.cedulaRetirado);
+    document = `Personal retirado: ${full} — CC ${cc}`;
+    documentCode = dto.carpeta?.trim() || null;
+    lines.push(`Nombres: ${(dto.nombresRetirado ?? '').trim()}`);
+    lines.push(`Apellidos: ${(dto.apellidosRetirado ?? '').trim()}`);
+    lines.push(`Cédula del expediente: ${cc}`);
+    if (documentCode) lines.push(`N° carpeta: ${documentCode}`);
+  } else if (dto.tipo === 'CONTRATO') {
+    const nit = (dto.nitContrato ?? '').trim();
+    const num = dto.numeroContrato?.trim() || '';
+    document = `Contrato${num ? ` ${num}` : ''} — ${(dto.clienteContrato ?? '').trim()} (NIT ${nit})`;
+    documentCode = num || null;
+    if (dto.tipoContrato) lines.push(`Tipo de contrato: ${dto.tipoContrato}`);
+    lines.push(`Cliente: ${(dto.clienteContrato ?? '').trim()}`);
+    lines.push(`NIT: ${nit}`);
+    if (num) lines.push(`N° contrato: ${num}`);
+  } else if (dto.tipo === 'MINUTA') {
+    document = `Minuta ${dto.tipoMinuta} — Puesto ${(dto.puestoMinuta ?? '').trim()}`;
+    documentCode = dto.codigoMinuta?.trim() || null;
+    lines.push(`Tipo de minuta: ${dto.tipoMinuta ?? ''}`);
+    lines.push(`Puesto: ${(dto.puestoMinuta ?? '').trim()}`);
+    if (dto.fechaMinuta) lines.push(`Fecha / período: ${dto.fechaMinuta}`);
+    if (documentCode) lines.push(`Código minuta: ${documentCode}`);
+  } else {
+    document = (dto.documento ?? '').trim();
+    lines.push(`Documento: ${document}`);
+  }
+
+  lines.push(`Motivo: ${dto.motivo.trim()}`);
+  return {
+    document: document.slice(0, 200),
+    documentCode,
+    observations: `SOLICITUD PUBLICA\n${lines.join('\n')}`,
+  };
+}
+
 @Injectable()
 export class LoansService {
   private readonly logger = new Logger(LoansService.name);
@@ -117,20 +175,37 @@ export class LoansService {
     return saved;
   }
 
-  /** Endpoint público: crea solicitud PENDIENTE_APROBACION con correo de notificación. */
+  /** Endpoint público: crea solicitud PENDIENTE_APROBACION y avisa a archivo con ficha completa. */
   async publicRequest(dto: PublicLoanRequestDto) {
+    const ficha = formatPublicLoan(dto);
     const saved = await this.repo.save(
       this.repo.create({
-        requester: `${dto.nombre} (CC: ${dto.cedula})`,
+        requester: `${dto.nombre.trim()} (CC: ${digits(dto.cedula)})`,
         department: dto.departamento ?? null,
-        document: dto.documento ?? null,
+        document: ficha.document,
+        documentCode: ficha.documentCode,
         email: dto.email ?? null,
         loanDate: new Date().toISOString().slice(0, 10),
         returnDate: dto.fechaDevolucion ?? null,
-        observations: `SOLICITUD PUBLICA: ${dto.motivo ?? ''}`,
+        observations: ficha.observations,
         status: 'PENDIENTE_APROBACION',
       }),
     );
+
+    void this.mailService
+      .sendNewLoanRequestToArchive({
+        id: saved.id,
+        requester: saved.requester,
+        email: saved.email ?? '',
+        department: saved.department ?? undefined,
+        document: saved.document ?? '',
+        observations: ficha.observations,
+        returnDate: saved.returnDate ? String(saved.returnDate).slice(0, 10) : undefined,
+      })
+      .catch((err) => {
+        this.logger.error(`Error notificando solicitud nueva ${saved.id}:`, err);
+      });
+
     return { id: saved.id };
   }
 

@@ -30,4 +30,38 @@ describe('LoansService state machine', () => {
     expect(saved.status).toBe('ACTIVO');
     expect(repo.save).toHaveBeenCalled();
   });
+
+  it('publicRequest arma ficha de personal retirado (nombres, apellidos, cédula)', async () => {
+    const repo = {
+      save: jest.fn(async (row: Record<string, unknown>) => ({ id: 'loan-1', ...row })),
+      create: (row: Record<string, unknown>) => row,
+    };
+    const mailService = { sendNewLoanRequestToArchive: jest.fn(async () => true) };
+    const service = new LoansService(
+      repo as never,
+      { log: jest.fn() } as never,
+      mailService as never,
+    );
+    const res = await service.publicRequest({
+      tipo: 'PERSONAL_RETIRADO',
+      nombre: 'Ana Ruiz',
+      cedula: '10101010',
+      departamento: 'GESTION_HUMANA',
+      email: 'ana@corazaseguridadcta.com',
+      fechaDevolucion: '2026-09-20',
+      motivo: 'Consulta de hoja de vida para proceso laboral',
+      nombresRetirado: 'Carlos Andres',
+      apellidosRetirado: 'Perez Gomez',
+      cedulaRetirado: '1.098.765.432',
+      carpeta: 'HV-44',
+    });
+    expect(res.id).toBe('loan-1');
+    expect(repo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        document: expect.stringMatching(/Personal retirado: Carlos Andres Perez Gomez — CC 1098765432/),
+        documentCode: 'HV-44',
+        observations: expect.stringContaining('Cédula del expediente: 1098765432'),
+      }),
+    );
+  });
 });

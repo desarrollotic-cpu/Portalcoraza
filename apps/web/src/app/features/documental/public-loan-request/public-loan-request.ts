@@ -46,29 +46,29 @@ import { DocumentalApiService } from '../documental-api.service';
 
             <div class="form-grid">
               <label class="form-group span-2">
-                <span class="label-text">Nombre Completo del Solicitante *</span>
-                <input
-                  type="text"
-                  [(ngModel)]="model.nombre"
-                  name="nombre"
-                  required
-                  placeholder="Ej: Juan Carlos Pérez Gómez"
-                />
+                <span class="label-text">¿Qué expediente necesita? *</span>
+                <select [(ngModel)]="model.tipo" name="tipo" required>
+                  <option value="">-- Seleccione el tipo (obligatorio) --</option>
+                  <option value="PERSONAL_RETIRADO">Personal retirado / hoja de vida</option>
+                  <option value="CONTRATO">Contrato</option>
+                  <option value="MINUTA">Minuta de puesto</option>
+                  <option value="OTRO">Otro documento del archivo</option>
+                </select>
+                <span class="hint">No escriba un texto suelto. El tipo define los datos que debe completar para localizar el expediente.</span>
+              </label>
+
+              <label class="form-group span-2">
+                <span class="label-text">Nombre completo del solicitante *</span>
+                <input type="text" [(ngModel)]="model.nombre" name="nombre" required placeholder="Nombres y apellidos de quien pide el préstamo" />
               </label>
 
               <label class="form-group">
-                <span class="label-text">Cédula de Ciudadanía *</span>
-                <input
-                  type="text"
-                  [(ngModel)]="model.cedula"
-                  name="cedula"
-                  required
-                  placeholder="Ej: 1069469248"
-                />
+                <span class="label-text">Cédula del solicitante *</span>
+                <input type="text" [(ngModel)]="model.cedula" name="cedula" required placeholder="Solo números" />
               </label>
 
               <label class="form-group">
-                <span class="label-text">Departamento / Área Solicitante *</span>
+                <span class="label-text">Departamento / Área *</span>
                 <select [(ngModel)]="model.departamento" name="departamento" required>
                   <option value="">-- Seleccionar Área --</option>
                   <option value="OPERACIONES">Operaciones / Vigilancia</option>
@@ -81,50 +81,103 @@ import { DocumentalApiService } from '../documental-api.service';
                 </select>
               </label>
 
+              @if (model.tipo === 'PERSONAL_RETIRADO') {
+                <p class="block-title span-2">Datos del expediente de personal retirado</p>
+                <label class="form-group">
+                  <span class="label-text">Nombres del retirado *</span>
+                  <input type="text" [(ngModel)]="model.nombresRetirado" name="nombresRetirado" required placeholder="Nombres completos" />
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Apellidos del retirado *</span>
+                  <input type="text" [(ngModel)]="model.apellidosRetirado" name="apellidosRetirado" required placeholder="Apellidos completos" />
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Cédula del retirado *</span>
+                  <input type="text" [(ngModel)]="model.cedulaRetirado" name="cedulaRetirado" required placeholder="Cédula de la carpeta" />
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Número de carpeta (opcional)</span>
+                  <input type="text" [(ngModel)]="model.carpeta" name="carpeta" placeholder="Si lo conoce" />
+                </label>
+              }
+
+              @if (model.tipo === 'CONTRATO') {
+                <p class="block-title span-2">Datos del contrato (para localizarlo en archivo)</p>
+                <label class="form-group">
+                  <span class="label-text">Tipo de contrato</span>
+                  <select [(ngModel)]="model.tipoContrato" name="tipoContrato">
+                    <option value="">-- Si lo conoce --</option>
+                    <option value="VIGILANCIA FIJA">Vigilancia fija / control de acceso</option>
+                    <option value="VIGILANCIA MOVIL">Vigilancia móvil</option>
+                    <option value="ESCOLTA">Escolta</option>
+                    <option value="SEGURIDAD ELECTRONICA">Seguridad electrónica / CCTV</option>
+                    <option value="CONSULTORIA">Consultoría</option>
+                    <option value="CONVENIO CTA">Convenio CTA</option>
+                    <option value="ARRENDAMIENTO">Arrendamiento</option>
+                    <option value="PROVEEDOR">Proveedor / suministros</option>
+                    <option value="OTRO">Otro</option>
+                  </select>
+                </label>
+                <label class="form-group">
+                  <span class="label-text">N° de contrato (si lo conoce)</span>
+                  <input type="text" [(ngModel)]="model.numeroContrato" name="numeroContrato" placeholder="Ej: CTR-120-2026" />
+                </label>
+                <label class="form-group span-2">
+                  <span class="label-text">Cliente / Parte B *</span>
+                  <input type="text" [(ngModel)]="model.clienteContrato" name="clienteContrato" required placeholder="Razón social del cliente o proveedor" />
+                </label>
+                <label class="form-group span-2">
+                  <span class="label-text">NIT / cédula del cliente *</span>
+                  <input type="text" [(ngModel)]="model.nitContrato" name="nitContrato" required placeholder="Ej: 900.123.456-7" />
+                </label>
+              }
+
+              @if (model.tipo === 'MINUTA') {
+                <p class="block-title span-2">Datos de la minuta</p>
+                <label class="form-group">
+                  <span class="label-text">Tipo de minuta *</span>
+                  <select [(ngModel)]="model.tipoMinuta" name="tipoMinuta" required>
+                    <option value="">-- Seleccionar --</option>
+                    <option value="SERVICIO">Servicio — puesto de vigilancia</option>
+                    <option value="VISITANTES">Visitantes — control de ingreso</option>
+                    <option value="CORRESPONDENCIA">Correspondencia — paquetería</option>
+                  </select>
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Nombre del puesto *</span>
+                  <input type="text" [(ngModel)]="model.puestoMinuta" name="puestoMinuta" required placeholder="Ej: Shangrila, Torre Norte..." />
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Fecha de la minuta *</span>
+                  <input type="date" [(ngModel)]="model.fechaMinuta" name="fechaMinuta" required />
+                </label>
+                <label class="form-group">
+                  <span class="label-text">Código (si lo conoce)</span>
+                  <input type="text" [(ngModel)]="model.codigoMinuta" name="codigoMinuta" placeholder="Ej: MIN-VIS-004" />
+                </label>
+              }
+
+              @if (model.tipo === 'OTRO') {
+                <label class="form-group span-2">
+                  <span class="label-text">Describa el documento con datos precisos *</span>
+                  <textarea [(ngModel)]="model.documento" name="documento" rows="2" required placeholder="Nombre del documento, código, fechas, carpeta o persona. No escriba solo 'el archivo' o 'un contrato'."></textarea>
+                </label>
+              }
+
               <label class="form-group span-2">
-                <span class="label-text">Documento, Carpeta o Expediente Requerido *</span>
-                <input
-                  type="text"
-                  [(ngModel)]="model.documento"
-                  name="documento"
-                  required
-                  placeholder="Ej: Hoja de Vida Asociado X, Contrato Cliente Y, Minuta Puesto Z..."
-                />
+                <span class="label-text">Motivo o justificación del préstamo *</span>
+                <textarea [(ngModel)]="model.motivo" name="motivo" rows="3" required placeholder="Trámite, consulta o auditoría. Mínimo una frase clara."></textarea>
               </label>
 
               <label class="form-group span-2">
-                <span class="label-text">Motivo o Justificación del Préstamo *</span>
-                <textarea
-                  [(ngModel)]="model.motivo"
-                  name="motivo"
-                  rows="3"
-                  required
-                  placeholder="Describe brevemente el trámite, consulta o auditoría que requiere este documento..."
-                ></textarea>
+                <span class="label-text">Correo para notificaciones *</span>
+                <input type="email" [(ngModel)]="model.email" name="email" required placeholder="Ej: funcionario@corazaseguridadcta.com" />
+                <span class="hint">Le llegará confirmación y recordatorio desde Documental&#64;corazaseguridadcta.com</span>
               </label>
 
               <label class="form-group span-2">
-                <span class="label-text">Correo Electrónico para Notificaciones y Alertas de Devolución *</span>
-                <input
-                  type="email"
-                  [(ngModel)]="model.email"
-                  name="email"
-                  required
-                  placeholder="Ej: funcionario@corazaseguridadcta.com o correo personal"
-                />
-                <span style="font-size:0.72rem;color:#64748b;margin-top:2px">
-                   Te llegará un recordatorio oficial desde <strong>Documental&#64;corazaseguridadcta.com</strong> cuando venza la fecha de devolución.
-                </span>
-              </label>
-
-              <label class="form-group span-2">
-                <span class="label-text">Fecha Estimada de Devolución *</span>
-                <input
-                  type="date"
-                  [(ngModel)]="model.fechaDevolucion"
-                  name="fechaDevolucion"
-                  required
-                />
+                <span class="label-text">Fecha estimada de devolución *</span>
+                <input type="date" [(ngModel)]="model.fechaDevolucion" name="fechaDevolucion" required />
               </label>
             </div>
 
@@ -197,6 +250,16 @@ import { DocumentalApiService } from '../documental-api.service';
 
     .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
     .label-text { font-size: 0.82rem; font-weight: 700; color: #334155; }
+    .hint { font-size: 0.72rem; color: #64748b; }
+    .block-title {
+      margin: 0.25rem 0 0;
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: #0c4a6e;
+      letter-spacing: 0.02em;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 0.85rem;
+    }
     input, select, textarea {
       font: inherit;
       border: 1px solid #cbd5e1;
@@ -304,23 +367,16 @@ import { DocumentalApiService } from '../documental-api.service';
 export class PublicLoanRequestComponent {
   private readonly api = inject(DocumentalApiService);
 
-  model = {
-    nombre: '',
-    cedula: '',
-    departamento: '',
-    documento: '',
-    motivo: '',
-    email: '',
-    fechaDevolucion: '',
-  };
+  model = emptyModel();
 
   readonly submitting = signal(false);
   readonly error = signal<string | null>(null);
   readonly successId = signal<string | null>(null);
 
   submit(): void {
-    if (!this.model.nombre || !this.model.cedula || !this.model.documento || !this.model.email) {
-      this.error.set('Por favor completa todos los campos requeridos (*), incluyendo tu correo electrónico.');
+    const msg = validatePublicLoan(this.model);
+    if (msg) {
+      this.error.set(msg);
       return;
     }
     this.submitting.set(true);
@@ -331,23 +387,70 @@ export class PublicLoanRequestComponent {
         this.submitting.set(false);
         this.successId.set(res.id);
       },
-      error: () => {
+      error: (err) => {
         this.submitting.set(false);
-        this.error.set('No se pudo radicar la solicitud. Por favor intenta de nuevo.');
+        const apiMsg = err?.error?.message;
+        this.error.set(
+          Array.isArray(apiMsg) ? apiMsg.join(' ') : apiMsg || 'No se pudo radicar la solicitud. Complete los campos del tipo de expediente.',
+        );
       },
     });
   }
 
   resetForm(): void {
     this.successId.set(null);
-    this.model = {
-      nombre: '',
-      cedula: '',
-      departamento: '',
-      documento: '',
-      motivo: '',
-      email: '',
-      fechaDevolucion: '',
-    };
+    this.model = emptyModel();
   }
+}
+
+function emptyModel() {
+  return {
+    tipo: '',
+    nombre: '',
+    cedula: '',
+    departamento: '',
+    email: '',
+    fechaDevolucion: '',
+    motivo: '',
+    nombresRetirado: '',
+    apellidosRetirado: '',
+    cedulaRetirado: '',
+    carpeta: '',
+    clienteContrato: '',
+    nitContrato: '',
+    numeroContrato: '',
+    tipoContrato: '',
+    tipoMinuta: '',
+    puestoMinuta: '',
+    fechaMinuta: '',
+    codigoMinuta: '',
+    documento: '',
+  };
+}
+
+function validatePublicLoan(m: ReturnType<typeof emptyModel>): string | null {
+  if (!m.tipo) return 'Seleccione qué tipo de expediente necesita.';
+  if (!m.nombre.trim() || !m.cedula.trim() || !m.departamento || !m.email || !m.fechaDevolucion) {
+    return 'Complete solicitante, cédula, área, correo y fecha de devolución.';
+  }
+  if (m.motivo.trim().length < 12) return 'El motivo debe explicar para qué necesita el documento.';
+  if (m.tipo === 'PERSONAL_RETIRADO') {
+    if (!m.nombresRetirado.trim() || !m.apellidosRetirado.trim() || !m.cedulaRetirado.trim()) {
+      return 'En personal retirado son obligatorios nombres, apellidos y cédula del expediente.';
+    }
+  }
+  if (m.tipo === 'CONTRATO') {
+    if (!m.clienteContrato.trim() || !m.nitContrato.trim()) {
+      return 'En contratos son obligatorios el cliente y el NIT. El número de contrato si lo conoce.';
+    }
+  }
+  if (m.tipo === 'MINUTA') {
+    if (!m.tipoMinuta || !m.puestoMinuta.trim() || !m.fechaMinuta) {
+      return 'En minutas son obligatorios tipo, puesto y fecha.';
+    }
+  }
+  if (m.tipo === 'OTRO' && m.documento.trim().length < 12) {
+    return 'Describa el documento con nombre, fechas o código. No escriba un texto genérico.';
+  }
+  return null;
 }

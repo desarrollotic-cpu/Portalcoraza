@@ -53,8 +53,9 @@ async function diagnoseLiveApi() {
         cedula: '99887766',
         email: 'documental@corazaseguridadcta.com',
         departamento: 'Gestion Documental',
-        documento: 'Expediente Prueba Test Directo',
-        motivo: 'Verificar despacho inmediato de correo',
+        tipo: 'OTRO',
+        documento: 'Expediente Prueba Test Directo de archivo',
+        motivo: 'Verificar despacho inmediato de correo de prestamo',
         fechaDevolucion: '2026-08-31',
       }),
     });

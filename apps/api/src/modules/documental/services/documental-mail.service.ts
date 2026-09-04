@@ -147,6 +147,47 @@ export class DocumentalMailService {
     return this.dispatchMail(targetEmail, subject, this.buildReturnEmailTemplate(notice));
   }
 
+  /** Aviso interno a documental@ con la ficha completa de una solicitud pública. */
+  async sendNewLoanRequestToArchive(notice: {
+    id: string;
+    requester: string;
+    email: string;
+    department?: string;
+    document: string;
+    observations: string;
+    returnDate?: string;
+  }): Promise<boolean> {
+    const subject = `Nueva solicitud de préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const safeObs = notice.observations
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    const html = `
+      <!DOCTYPE html>
+      <html lang="es"><head><meta charset="UTF-8">
+      <style>
+        body { font-family: Segoe UI, Roboto, sans-serif; background:#f1f5f9; padding:20px; color:#0f172a; }
+        .box { max-width:640px; margin:0 auto; background:#fff; border-radius:12px; border:1px solid #e2e8f0; overflow:hidden; }
+        .h { background:#0c4a6e; color:#fff; padding:18px 22px; }
+        .h h1 { margin:0; font-size:18px; }
+        .c { padding:22px; font-size:14px; line-height:1.5; }
+        pre { white-space:pre-wrap; background:#f8fafc; border:1px solid #e2e8f0; border-radius:8px; padding:14px; font-size:13px; }
+      </style></head>
+      <body><div class="box">
+        <div class="h"><h1>Nueva solicitud de préstamo</h1></div>
+        <div class="c">
+          <p>Radicado: <strong>${notice.id}</strong></p>
+          <p>Solicitante: <strong>${notice.requester}</strong><br>
+          Correo del solicitante: ${notice.email || '—'}<br>
+          Área: ${notice.department || '—'}<br>
+          Devolución estimada: ${notice.returnDate || '—'}</p>
+          <p><strong>Expediente:</strong> ${notice.document}</p>
+          <pre>${safeObs}</pre>
+        </div>
+      </div></body></html>`;
+    return this.dispatchMail(this.senderEmail, subject, html);
+  }
+
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<boolean> {
     const cleanTo = to.trim().toLowerCase();
     const provider = this.mailProvider();

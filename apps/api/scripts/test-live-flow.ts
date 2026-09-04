@@ -10,8 +10,9 @@ async function testLiveFlow() {
       cedula: '123456789',
       email: 'documental@corazaseguridadcta.com',
       departamento: 'Gestion Documental',
-      documento: 'Expediente Prueba Live #999',
-      motivo: 'Verificacion de notificaciones automaticas',
+      tipo: 'OTRO',
+      documento: 'Expediente Prueba Live archivo central 999',
+      motivo: 'Verificacion de notificaciones automaticas de prestamo',
       fechaDevolucion: '2026-08-30',
     }),
   });
