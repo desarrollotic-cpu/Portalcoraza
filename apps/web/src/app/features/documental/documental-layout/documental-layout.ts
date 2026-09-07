@@ -106,7 +106,7 @@ import {
                 <div class="empty-queue">
                   <div class="empty-icon" aria-hidden="true">—</div>
                   <strong>La cola de impresión está vacía</strong>
-                  <p>Cada vez que registres una Minuta, Contrato o Asociado (o pulses el botón "Rótulo" en cualquier tabla), se guardará aquí automáticamente para imprimir en lote.</p>
+                  <p>Cada vez que registres una Minuta, Contrato, Correspondencia o Asociado (o pulses el botón "Rótulo" en cualquier tabla), se guardará aquí automáticamente para imprimir en lote.</p>
                   <div style="display:flex;gap:0.5rem;justify-content:center;margin-top:1rem;flex-wrap:wrap;">
                     <button type="button" class="btn-goto-history" (click)="loadRecentMinutes()" [disabled]="loadingRecent()">
                       <app-icon [icon]="icons.Refresh" [size]="14" [strokeWidth]="2" />
@@ -425,6 +425,7 @@ import {
     .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
     .item-badge[data-mod='CONTRATOS'] { background: #e0e7ff; color: #3730a3; }
     .item-badge[data-mod='PERSONAL'] { background: #fef3c7; color: #92400e; }
+    .item-badge[data-mod='CORRESPONDENCIA'] { background: #e0f2fe; color: #0369a1; }
     .item-code { color: #0369a1; font-size: 0.92rem; }
     .item-title { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
     .item-slot { font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 0.3rem; }

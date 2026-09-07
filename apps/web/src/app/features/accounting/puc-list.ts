@@ -1,12 +1,14 @@
 import { CurrencyPipe, DatePipe, CommonModule } from '@angular/common';
 import { Component, OnInit, signal, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 import { AccountingEntry, PucAccount, AccountingService } from './accounting.service';
 import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
 
 @Component({
   selector: 'app-puc-list',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DatePipe, PayrollPeriodsComponent],
+  imports: [CommonModule, CurrencyPipe, DatePipe, PayrollPeriodsComponent, RouterLink],
   template: `
     <div class="page-container">
       <header class="page-header">
@@ -24,6 +26,9 @@ import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
           <button class="nav-pill" [class.active]="activeTab() === 'puc'" (click)="activeTab.set('puc')">
              Catálogo PUC
           </button>
+          @if (auth.hasPermission('associates.view')) {
+            <a class="nav-pill" routerLink="/rrhh/asociados">Personal</a>
+          }
         </div>
       </header>
 
@@ -127,6 +132,7 @@ import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
     }
     .nav-pill:hover { background: #e2e8f0; color: #0f172a; }
     .nav-pill.active { background: #0f766e; color: #ffffff; box-shadow: 0 2px 4px rgba(15, 118, 110, 0.2); }
+    a.nav-pill { text-decoration: none; display: inline-block; }
     .card { padding: 1.25rem; background: #fff; border-radius: 0.75rem; border: 1px solid #e2e8f0; }
     .card-title-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .card-title-bar h3 { margin: 0; font-size: 1.05rem; font-weight: 700; color: #0f172a; }
@@ -154,6 +160,7 @@ import { PayrollPeriodsComponent } from '../payroll/payroll-periods';
 })
 export class PucListComponent implements OnInit {
   private accountingService = inject(AccountingService);
+  readonly auth = inject(AuthService);
 
   activeTab = signal<'payroll' | 'entries' | 'puc'>('payroll');
   entries = signal<AccountingEntry[]>([]);

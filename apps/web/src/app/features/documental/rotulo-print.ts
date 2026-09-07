@@ -97,6 +97,7 @@ function stripHtml(item: RotuloItem): string {
   const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
   const fechas = item.fechas || '';
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
+  const esCorr = item.modulo.toUpperCase().includes('CORRESPONDENCIA');
 
   if (esMinuta) {
     // Extraer únicamente los dígitos numéricos del consecutivo (ej. 0098 o 0529)
@@ -118,6 +119,28 @@ function stripHtml(item: RotuloItem): string {
         ${fechas ? `<div class="strip-fec">${escapeHtml(fechas)}</div>` : ''}
         <div class="strip-slot">MINUTAS · ${escapeHtml(slot)}</div>
         <div class="strip-ver">SGD CORAZA 2027</div>
+      </div>`;
+  }
+
+  if (esCorr) {
+    const logo = 'https://portalcoraza-web.onrender.com/brand/logo-coraza-cta.png';
+    return `
+      <div class="rotulo-corr">
+        <div class="rotulo-corr-head">
+          <img class="rotulo-corr-logo" src="${logo}" alt="Coraza" />
+          <div class="rotulo-corr-brand">
+            <strong>CORAZA SEGURIDAD C.T.A.</strong>
+            <span>Gestión Documental · Correspondencia</span>
+          </div>
+          <div class="rotulo-corr-slot">${escapeHtml(slot)}</div>
+        </div>
+        <div class="rotulo-corr-codebox">
+          <span class="rotulo-corr-lbl">RADICADO TRD</span>
+          <div class="rotulo-corr-code">${escapeHtml(codClean)}</div>
+        </div>
+        <div class="rotulo-corr-tit">${escapeHtml(tit)}</div>
+        ${fechas ? `<div class="rotulo-corr-meta">${escapeHtml(fechas)}</div>` : ''}
+        <div class="rotulo-corr-foot">Recorte por la línea punteada · SGD CORAZA 2027</div>
       </div>`;
   }
 
@@ -253,6 +276,108 @@ const PRINT_CSS = `
     font-size: 0.55rem;
     font-weight: 700;
     color: #475569;
+  }
+
+  /* ========================================================= */
+  /* CORRESPONDENCIA — marquilla para sobre/hoja 90mm x 44mm   */
+  /* ========================================================= */
+  .rotulo-corr {
+    width: 90mm;
+    height: 44mm;
+    border: 1.5px dashed #0c4a6e;
+    padding: 2.8mm 3.2mm;
+    margin: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.6mm;
+    page-break-inside: avoid;
+    background: #ffffff;
+    color: #0f172a;
+  }
+  .rotulo-corr-head {
+    display: flex;
+    align-items: center;
+    gap: 2mm;
+    border-bottom: 1px solid #0c4a6e;
+    padding-bottom: 1.5mm;
+  }
+  .rotulo-corr-logo {
+    width: 8mm;
+    height: 8mm;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .rotulo-corr-brand {
+    flex: 1;
+    min-width: 0;
+  }
+  .rotulo-corr-brand strong {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+  .rotulo-corr-brand span {
+    display: block;
+    font-size: 6pt;
+    font-weight: 700;
+    color: #0369a1;
+    margin-top: 0.3mm;
+  }
+  .rotulo-corr-slot {
+    font-size: 5.5pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #0c4a6e;
+    background: #e0f2fe;
+    border: 1px solid #7dd3fc;
+    padding: 0.6mm 1.3mm;
+    white-space: nowrap;
+  }
+  .rotulo-corr-codebox {
+    border: 1.5px solid #0c4a6e;
+    background: #f0f9ff;
+    text-align: center;
+    padding: 1.2mm 1.8mm 1.1mm;
+  }
+  .rotulo-corr-lbl {
+    display: block;
+    font-size: 5.5pt;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #0369a1;
+  }
+  .rotulo-corr-code {
+    font-size: 10pt;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    color: #0c4a6e;
+    line-height: 1.12;
+    word-break: break-all;
+    margin-top: 0.3mm;
+  }
+  .rotulo-corr-tit {
+    font-size: 7.5pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.15;
+    word-break: break-word;
+    max-height: 6.5mm;
+    overflow: hidden;
+  }
+  .rotulo-corr-meta {
+    font-size: 6.5pt;
+    font-weight: 700;
+    color: #334155;
+  }
+  .rotulo-corr-foot {
+    margin-top: auto;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 1mm;
+    font-size: 5pt;
+    font-weight: 700;
+    color: #64748b;
   }
 
   /* ========================================================= */
@@ -428,5 +553,5 @@ function printHtml(content: string, title: string): void {
     } catch {
       window.print();
     }
-  }, 350);
+  }, 600);
 }

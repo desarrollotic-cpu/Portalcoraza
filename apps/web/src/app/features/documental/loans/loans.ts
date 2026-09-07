@@ -568,8 +568,11 @@ import { DOC_STYLES } from '../documental.styles';
           <div class="qr-modal-body">
             <div class="qr-box-inner" id="printableQrBox">
               <div class="qr-corp-header">
-                <strong>CORAZA SEGURIDAD C.T.A.</strong>
-                <span>Sistema de Gestión Documental</span>
+                <img src="/brand/logo-coraza-cta.png" width="48" height="48" alt="Coraza Seguridad C.T.A." />
+                <div>
+                  <strong>CORAZA SEGURIDAD C.T.A.</strong>
+                  <span>Sistema de Gestión Documental</span>
+                </div>
               </div>
               <div class="qr-image-wrap">
                 <img
@@ -1091,6 +1094,18 @@ import { DOC_STYLES } from '../documental.styles';
       flex-direction: column;
       align-items: center;
     }
+    .qr-corp-header {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-align: left;
+    }
+    .qr-corp-header img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
     .qr-corp-header strong { display: block; font-size: 0.9rem; color: #0f172a; font-weight: 900; }
     .qr-corp-header span { font-size: 0.75rem; color: #64748b; }
     .qr-image-wrap { margin: 1rem 0; padding: 0.5rem; background: #ffffff; border-radius: 0.5rem; }
@@ -1501,6 +1516,7 @@ export class LoansScreen implements OnInit {
   printQrSheet(): void {
     const url = this.publicUrl();
     const qrImg = this.qrImageUrl();
+    const logo = `${window.location.origin}/brand/logo-coraza-cta.png`;
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
@@ -1517,8 +1533,9 @@ export class LoansScreen implements OnInit {
               border-radius: 20px; padding: 30px;
             }
             h1 { font-size: 22px; color: #0c4a6e; margin: 0; }
+            .print-logo { width: 72px; height: 72px; object-fit: contain; margin: 0 auto 10px; display: block; }
             h2 { font-size: 16px; color: #475569; margin: 5px 0 20px; font-weight: normal; }
-            img { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
+            .qr-print { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
             .inst { font-size: 14px; font-weight: bold; color: #0c4a6e; margin-top: 15px; }
             .desc { font-size: 12px; color: #64748b; margin-top: 5px; }
             .url { font-size: 11px; color: #0369a1; margin-top: 15px; word-break: break-all; }
@@ -1527,9 +1544,10 @@ export class LoansScreen implements OnInit {
         </head>
         <body>
           <div class="card">
+            <img class="print-logo" src="${logo}" alt="Coraza Seguridad C.T.A." />
             <h1>CORAZA SEGURIDAD C.T.A.</h1>
             <h2>Sistema de Gestión Documental · Archivo Central</h2>
-            <img src="${qrImg}" alt="QR" />
+            <img class="qr-print" src="${qrImg}" alt="QR" />
             <div class="inst">ESCANEA ESTE CÓDIGO QR CON TU CELULAR</div>
             <div class="desc">Para radicar solicitudes de préstamo y consulta de expedientes físicos sin iniciar sesión.</div>
             <div class="url">${url}</div>

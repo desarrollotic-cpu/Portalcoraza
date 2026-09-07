@@ -143,6 +143,9 @@ export class AuthService {
     if (user.role?.code === 'DOCUMENTAL') {
       return '/documental';
     }
+    if (user.role?.code === 'BIENESTAR') {
+      return '/rrhh/asociados';
+    }
     if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
       return '/sig';
     }
@@ -152,12 +155,12 @@ export class AuthService {
     if (this.hasPermission('reception.view')) return '/recepcion';
     if (this.hasPermission('documental.view')) return '/documental';
     if (this.hasPermission('inventory.view')) return '/dotacion';
-    if (this.hasPermission('associates.view') || this.hasPermission('hr_dashboard.view')) return '/rrhh';
     if (this.hasPermission('scheduling.view')) return '/programacion';
+    if (this.hasPermission('accounting.view')) return '/contabilidad';
+    if (this.hasPermission('associates.view') || this.hasPermission('hr_dashboard.view')) return '/rrhh';
     if (this.hasPermission('minuta.view')) return '/minutas';
     if (this.hasPermission('sst.view')) return '/sst';
     if (this.hasPermission('operations.view')) return '/operaciones';
-    if (this.hasPermission('accounting.view')) return '/contabilidad';
     if (this.hasPermission('payroll.view')) return '/nomina';
     if (this.hasPermission('sig.view')) return '/sig';
     return '/sin-acceso';
