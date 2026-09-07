@@ -21,6 +21,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { Icon } from '../../../shared/components/icon/icon';
 import { DocumentalApiService, Loan, LoanMailLog } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
+import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
 
 @Component({
   selector: 'app-doc-loans',
@@ -120,7 +121,7 @@ import { DOC_STYLES } from '../documental.styles';
               <input type="date" [(ngModel)]="model.loanDate" name="loanDate" required />
             </label>
             <label>
-              <span>Fecha Estimada de Devolución</span>
+              <span>Fecha Estimada de Devolución ({{ loanDays }} días hábiles)</span>
               <input type="date" [(ngModel)]="model.returnDate" name="returnDate" />
             </label>
           </div>
@@ -1234,8 +1235,10 @@ export class LoansScreen implements OnInit {
     documentCode: '',
     email: '',
     loanDate: new Date().toISOString().slice(0, 10),
-    returnDate: '',
+    returnDate: loanReturnDeadlineYmd(),
   };
+
+  readonly loanDays = LOAN_MAX_BUSINESS_DAYS;
 
   ngOnInit(): void {
     this.load();
@@ -1587,7 +1590,7 @@ export class LoansScreen implements OnInit {
           documentCode: '',
           email: '',
           loanDate: new Date().toISOString().slice(0, 10),
-          returnDate: '',
+          returnDate: loanReturnDeadlineYmd(),
         };
         this.load();
       },

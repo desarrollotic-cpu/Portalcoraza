@@ -9,6 +9,7 @@ import { Loan } from '../entities/loan.entity';
 import { LoanMailLog } from '../entities/loan-mail-log.entity';
 import { emailDomainReceivesMail } from './email-mailbox.check';
 import { DocumentalMailService, MailDispatchResult } from './documental-mail.service';
+import { loanReturnDeadlineYmd } from '../loan-term';
 
 const TIPO_LABEL: Record<string, string> = {
   PERSONAL_RETIRADO: 'Personal retirado',
@@ -197,7 +198,7 @@ export class LoansService {
         documentCode: ficha.documentCode,
         email: dto.email ?? null,
         loanDate: new Date().toISOString().slice(0, 10),
-        returnDate: dto.fechaDevolucion ?? null,
+        returnDate: loanReturnDeadlineYmd(),
         observations: ficha.observations,
         status: 'PENDIENTE_APROBACION',
       }),

@@ -2,6 +2,11 @@ import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DEPARTAMENTOS_CORAZA } from '../departamentos-coraza';
 import { DocumentalApiService } from '../documental-api.service';
+import {
+  formatLoanDeadlineEs,
+  LOAN_MAX_BUSINESS_DAYS,
+  loanReturnDeadlineYmd,
+} from '../loan-term';
 
 @Component({
   selector: 'app-public-loan-request',
@@ -193,8 +198,9 @@ import { DocumentalApiService } from '../documental-api.service';
               </label>
 
               <label class="form-group span-2">
-                <span class="label-text">Fecha estimada de devolución *</span>
-                <input type="date" [(ngModel)]="model.fechaDevolucion" name="fechaDevolucion" required />
+                <span class="label-text">Fecha límite de devolución</span>
+                <input type="text" [value]="fechaDevolucionLabel" readonly class="inp-readonly" />
+                <span class="hint">Plazo de Gestión Documental: {{ loanDays }} días hábiles. La fecha la asigna el archivo; no se elige a gusto.</span>
               </label>
             </div>
 
@@ -301,6 +307,12 @@ import { DocumentalApiService } from '../documental-api.service';
       border-color: #16a34a;
       background: #f0fdf4;
     }
+    .inp-readonly {
+      background: #e2e8f0;
+      color: #0f172a;
+      font-weight: 700;
+      cursor: default;
+    }
     .field-error { font-size: 0.78rem; color: #b91c1c; font-weight: 700; }
     .field-ok { font-size: 0.78rem; color: #15803d; font-weight: 700; }
 
@@ -395,6 +407,8 @@ import { DocumentalApiService } from '../documental-api.service';
 export class PublicLoanRequestComponent {
   private readonly api = inject(DocumentalApiService);
   readonly areas = DEPARTAMENTOS_CORAZA;
+  readonly loanDays = LOAN_MAX_BUSINESS_DAYS;
+  readonly fechaDevolucionLabel = formatLoanDeadlineEs(loanReturnDeadlineYmd());
 
   model = emptyModel();
 
@@ -489,7 +503,7 @@ function emptyModel() {
     cedula: '',
     departamento: '',
     email: '',
-    fechaDevolucion: '',
+    fechaDevolucion: loanReturnDeadlineYmd(),
     motivo: '',
     nombresRetirado: '',
     apellidosRetirado: '',
