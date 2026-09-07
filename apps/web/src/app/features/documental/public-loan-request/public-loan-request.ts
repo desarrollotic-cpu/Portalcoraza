@@ -10,7 +10,9 @@ import { DocumentalApiService } from '../documental-api.service';
     <div class="public-page">
       <div class="card-container">
         <header class="header">
-          <div class="logo-box" aria-hidden="true">C</div>
+          <div class="logo-box">
+            <img src="/brand/logo-coraza-cta.png" width="58" height="58" alt="Coraza Seguridad C.T.A." />
+          </div>
           <div class="header-text">
             <h2>CORAZA SEGURIDAD C.T.A.</h2>
             <h3>Sistema de Gestión Documental · Solicitud de Préstamo</h3>
@@ -240,15 +242,22 @@ import { DocumentalApiService } from '../documental-api.service';
       gap: 1.25rem;
     }
     .logo-box {
-      font-size: 2.4rem;
-      background: rgba(255, 255, 255, 0.15);
       width: 58px;
       height: 58px;
       border-radius: 14px;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      overflow: hidden;
+      padding: 4px;
+    }
+    .logo-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
     }
     .header-text h2 { margin: 0; font-size: 1.15rem; font-weight: 900; letter-spacing: 0.05em; }
     .header-text h3 { margin: 0.2rem 0; font-size: 0.95rem; font-weight: 700; color: #93c5fd; }
