@@ -19,8 +19,14 @@ export class PostsService {
     private readonly auditService: AuditService,
   ) {}
 
-  findAll() {
-    return this.postsRepo.find({ order: { name: 'ASC' } });
+  async findAll() {
+    const rows = await this.postsRepo.find();
+    return rows.sort((a, b) => {
+      const za = Number(String(a.zone ?? '').match(/\d+/)?.[0] ?? -1);
+      const zb = Number(String(b.zone ?? '').match(/\d+/)?.[0] ?? -1);
+      if (zb !== za) return zb - za;
+      return a.name.localeCompare(b.name, 'es');
+    });
   }
 
   /** Conteo canónico del catálogo operativo (misma base que Operaciones → Puestos). */

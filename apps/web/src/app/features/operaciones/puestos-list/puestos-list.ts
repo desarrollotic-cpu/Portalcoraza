@@ -15,6 +15,11 @@ type Draft = CreateOperacionesPostPayload & { id?: string };
 /** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
 const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
 
+function zoneNumber(zone: string | null | undefined): number {
+  const n = Number(String(zone ?? '').match(/\d+/)?.[0]);
+  return Number.isFinite(n) ? n : -1;
+}
+
 /** Valores reales del archivo (no son solo SI/NO). */
 const STATUS_HINTS = [
   'SI',
@@ -107,6 +112,15 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
             <option value="">Todos</option>
             <option value="ACTIVO">Activos</option>
             <option value="INACTIVO">Inactivos</option>
+          </select>
+          <select [ngModel]="zoneFilter()" (ngModelChange)="zoneFilter.set($event)">
+            <option value="">Todas las zonas</option>
+            @for (z of zoneOptions(); track z) {
+              <option [value]="z">Zona {{ z }}</option>
+            }
+            @if (hasUnzoned()) {
+              <option value="none">Sin zona</option>
+            }
           </select>
           @if (canCreatePosts()) {
             <button type="button" class="primary" (click)="startCreate()">Nuevo puesto</button>
@@ -487,18 +501,39 @@ export class PuestosList implements OnInit {
   readonly editing = signal<Draft | null>(null);
   readonly query = signal('');
   readonly statusFilter = signal<'' | PostStatus>('');
+  readonly zoneFilter = signal('');
+
+  readonly zoneOptions = computed(() => {
+    const nums = new Set<number>();
+    for (const p of this.posts()) {
+      const n = zoneNumber(p.zone);
+      if (n >= 0) nums.add(n);
+    }
+    return [...nums].sort((a, b) => b - a);
+  });
+
+  readonly hasUnzoned = computed(() => this.posts().some((p) => zoneNumber(p.zone) < 0));
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
     const st = this.statusFilter();
-    return this.posts().filter((p) => {
-      if (st && p.status !== st) return false;
-      if (!q) return true;
-      return [p.code, p.name, p.clientName ?? '', p.address ?? '', p.zone ?? '', p.nit ?? '', p.city ?? '']
-        .join(' ')
-        .toLowerCase()
-        .includes(q);
-    });
+    const zf = this.zoneFilter();
+    return this.posts()
+      .filter((p) => {
+        if (st && p.status !== st) return false;
+        if (zf === 'none' && zoneNumber(p.zone) >= 0) return false;
+        if (zf && zf !== 'none' && zoneNumber(p.zone) !== Number(zf)) return false;
+        if (!q) return true;
+        return [p.code, p.name, p.clientName ?? '', p.address ?? '', p.zone ?? '', p.nit ?? '', p.city ?? '']
+          .join(' ')
+          .toLowerCase()
+          .includes(q);
+      })
+      .sort((a, b) => {
+        const z = zoneNumber(b.zone) - zoneNumber(a.zone);
+        if (z) return z;
+        return a.name.localeCompare(b.name, 'es');
+      });
   });
 
   ngOnInit(): void {
