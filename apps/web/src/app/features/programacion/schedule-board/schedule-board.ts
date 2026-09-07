@@ -2239,8 +2239,8 @@ export class ScheduleBoard implements OnInit {
         }
       : {
           associateId: this.editAssociateId,
-          jornada: 'descanso_remunerado',
-          codigo: 'DR',
+          jornada: 'sin_asignar',
+          codigo: null,
           turno: null,
           inicio: null,
           fin: null,
@@ -2272,14 +2272,7 @@ export class ScheduleBoard implements OnInit {
     if (!ctx) return;
     this.cells.update((map) => {
       const next = new Map(map);
-      next.set(`${ctx.role.rol}:${ctx.day}`, {
-        associateId: ctx.role.associateId,
-        jornada: 'descanso_remunerado',
-        codigo: 'DR',
-        turno: null,
-        inicio: null,
-        fin: null,
-      });
+      next.delete(`${ctx.role.rol}:${ctx.day}`);
       return next;
     });
     this.dirty.set(true);
@@ -2462,23 +2455,6 @@ export class ScheduleBoard implements OnInit {
         inicio: a.inicio,
         fin: a.fin,
       });
-    }
-    const daysInMonth = this.days().length;
-    for (const role of sched.personal) {
-      if (!role.associateId) continue;
-      for (let day = 1; day <= daysInMonth; day++) {
-        const key = `${role.rol}:${day}`;
-        const cur = map.get(key);
-        if (cur?.codigo) continue;
-        map.set(key, {
-          associateId: cur?.associateId ?? role.associateId,
-          jornada: 'descanso_remunerado',
-          codigo: 'DR',
-          turno: null,
-          inicio: null,
-          fin: null,
-        });
-      }
     }
     this.cells.set(map);
     this.dirty.set(false);
