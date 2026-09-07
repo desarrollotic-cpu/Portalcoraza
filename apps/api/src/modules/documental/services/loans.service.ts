@@ -9,7 +9,7 @@ import { Loan } from '../entities/loan.entity';
 import { LoanMailLog } from '../entities/loan-mail-log.entity';
 import { emailDomainReceivesMail } from './email-mailbox.check';
 import { DocumentalMailService, MailDispatchResult } from './documental-mail.service';
-import { loanReturnDeadlineYmd } from '../loan-term';
+import { loanDaysForRequest, loanReturnDeadlineYmd } from '../loan-term';
 
 const TIPO_LABEL: Record<string, string> = {
   PERSONAL_RETIRADO: 'Personal retirado',
@@ -62,6 +62,9 @@ function formatPublicLoan(dto: PublicLoanRequestDto): {
   }
 
   lines.push(`Motivo: ${dto.motivo.trim()}`);
+  if (dto.prorroga) {
+    lines.push('PRORROGA SOLICITADA: 10 días hábiles (5 de plazo + 5 extra). Documental puede aprobar o dejar 5.');
+  }
   return {
     document: document.slice(0, 200),
     documentCode,
@@ -198,7 +201,7 @@ export class LoansService {
         documentCode: ficha.documentCode,
         email: dto.email ?? null,
         loanDate: new Date().toISOString().slice(0, 10),
-        returnDate: loanReturnDeadlineYmd(),
+        returnDate: loanReturnDeadlineYmd(new Date(), loanDaysForRequest(!!dto.prorroga)),
         observations: ficha.observations,
         status: 'PENDIENTE_APROBACION',
       }),

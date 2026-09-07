@@ -4,7 +4,10 @@ import { DEPARTAMENTOS_CORAZA } from '../departamentos-coraza';
 import { DocumentalApiService } from '../documental-api.service';
 import {
   formatLoanDeadlineEs,
+  LOAN_ABSOLUTE_MAX_BUSINESS_DAYS,
+  LOAN_EXTENSION_BUSINESS_DAYS,
   LOAN_MAX_BUSINESS_DAYS,
+  loanDaysForRequest,
   loanReturnDeadlineYmd,
 } from '../loan-term';
 
@@ -199,8 +202,17 @@ import {
 
               <label class="form-group span-2">
                 <span class="label-text">Fecha límite de devolución</span>
-                <input type="text" [value]="fechaDevolucionLabel" readonly class="inp-readonly" />
-                <span class="hint">Plazo de Gestión Documental: {{ loanDays }} días hábiles. La fecha la asigna el archivo; no se elige a gusto.</span>
+                <input type="text" [value]="fechaDevolucionLabel()" readonly class="inp-readonly" />
+                <div class="check-prorroga">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="model.prorroga"
+                    name="prorroga"
+                    (ngModelChange)="syncDeadline()"
+                  />
+                  <span>Necesito más tiempo: prórroga de {{ extraDays }} días hábiles (máximo {{ maxDays }} en total). Gestión Documental puede aprobarla o dejar el plazo de {{ loanDays }}.</span>
+                </div>
+                <span class="hint">Plazo estándar: {{ loanDays }} días hábiles. La fecha la calcula el archivo; no se elige a gusto.</span>
               </label>
             </div>
 
@@ -313,6 +325,22 @@ import {
       font-weight: 700;
       cursor: default;
     }
+    .check-prorroga {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.55rem;
+      margin-top: 0.55rem;
+      padding: 0.65rem 0.75rem;
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 0.6rem;
+      font-size: 0.8rem;
+      color: #0c4a6e;
+      font-weight: 600;
+      line-height: 1.35;
+      cursor: pointer;
+    }
+    .check-prorroga input { width: 1.05rem; height: 1.05rem; margin-top: 0.1rem; flex-shrink: 0; }
     .field-error { font-size: 0.78rem; color: #b91c1c; font-weight: 700; }
     .field-ok { font-size: 0.78rem; color: #15803d; font-weight: 700; }
 
@@ -408,7 +436,8 @@ export class PublicLoanRequestComponent {
   private readonly api = inject(DocumentalApiService);
   readonly areas = DEPARTAMENTOS_CORAZA;
   readonly loanDays = LOAN_MAX_BUSINESS_DAYS;
-  readonly fechaDevolucionLabel = formatLoanDeadlineEs(loanReturnDeadlineYmd());
+  readonly extraDays = LOAN_EXTENSION_BUSINESS_DAYS;
+  readonly maxDays = LOAN_ABSOLUTE_MAX_BUSINESS_DAYS;
 
   model = emptyModel();
 
@@ -419,6 +448,17 @@ export class PublicLoanRequestComponent {
   readonly emailOk = signal(false);
   readonly emailChecking = signal(false);
   private verifiedEmail = '';
+
+  fechaDevolucionLabel(): string {
+    return formatLoanDeadlineEs(this.model.fechaDevolucion);
+  }
+
+  syncDeadline(): void {
+    this.model.fechaDevolucion = loanReturnDeadlineYmd(
+      new Date(),
+      loanDaysForRequest(!!this.model.prorroga),
+    );
+  }
 
   onEmailChange(): void {
     this.emailOk.set(false);
@@ -504,6 +544,7 @@ function emptyModel() {
     departamento: '',
     email: '',
     fechaDevolucion: loanReturnDeadlineYmd(),
+    prorroga: false,
     motivo: '',
     nombresRetirado: '',
     apellidosRetirado: '',

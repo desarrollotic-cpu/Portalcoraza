@@ -1,5 +1,8 @@
-/** Plazo estándar de préstamo interno de expediente físico (SGD / archivo central). */
+/** Plazo estándar de préstamo interno. Prórroga: +5 hábiles (máximo 10). */
 export const LOAN_MAX_BUSINESS_DAYS = 5;
+export const LOAN_EXTENSION_BUSINESS_DAYS = 5;
+export const LOAN_ABSOLUTE_MAX_BUSINESS_DAYS =
+  LOAN_MAX_BUSINESS_DAYS + LOAN_EXTENSION_BUSINESS_DAYS;
 
 export function ymd(d: Date): string {
   const y = d.getFullYear();
@@ -19,8 +22,12 @@ export function addBusinessDays(from: Date, days: number): Date {
   return d;
 }
 
-export function loanReturnDeadlineYmd(from = new Date()): string {
-  return ymd(addBusinessDays(from, LOAN_MAX_BUSINESS_DAYS));
+export function loanDaysForRequest(prorroga: boolean): number {
+  return prorroga ? LOAN_ABSOLUTE_MAX_BUSINESS_DAYS : LOAN_MAX_BUSINESS_DAYS;
+}
+
+export function loanReturnDeadlineYmd(from = new Date(), days = LOAN_MAX_BUSINESS_DAYS): string {
+  return ymd(addBusinessDays(from, days));
 }
 
 export function formatLoanDeadlineEs(ymdStr: string): string {

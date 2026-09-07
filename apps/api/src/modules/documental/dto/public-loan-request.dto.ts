@@ -1,4 +1,6 @@
+import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsIn,
@@ -38,6 +40,11 @@ export class PublicLoanRequestDto {
 
   @IsDateString()
   fechaDevolucion!: string;
+
+  @IsOptional()
+  @Transform(({ value }) => value === true || value === 'true')
+  @IsBoolean()
+  prorroga?: boolean;
 
   @IsString()
   @MinLength(12, { message: 'Explique el motivo con al menos 12 caracteres' })
