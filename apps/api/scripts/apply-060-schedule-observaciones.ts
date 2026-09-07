@@ -11,7 +11,7 @@ async function main() {
   const url = process.env.DATABASE_URL;
   if (!url) throw new Error('Falta DATABASE_URL');
   const sql = fs.readFileSync(
-    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '058_schedule_observaciones.sql'),
+    path.join(__dirname, '..', '..', '..', 'supabase', 'migrations', '060_schedule_observaciones.sql'),
     'utf8',
   );
   const client = new Client({
@@ -25,7 +25,7 @@ async function main() {
       `SELECT column_name FROM information_schema.columns
        WHERE table_name = 'monthly_schedules' AND column_name = 'observaciones'`,
     );
-    console.log('OK 058', r.rows[0]);
+    console.log('OK 060', r.rows[0]);
   } finally {
     await client.end();
   }
