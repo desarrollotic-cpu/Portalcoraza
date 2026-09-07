@@ -97,6 +97,7 @@ function stripHtml(item: RotuloItem): string {
   const slot = slotRaw.startsWith('ESTANTE') ? slotRaw : `ESTANTE ${slotRaw}`;
   const fechas = item.fechas || '';
   const esMinuta = item.modulo.toUpperCase().includes('MINUTA');
+  const esCorr = item.modulo.toUpperCase().includes('CORRESPONDENCIA');
 
   if (esMinuta) {
     // Extraer únicamente los dígitos numéricos del consecutivo (ej. 0098 o 0529)
@@ -118,6 +119,28 @@ function stripHtml(item: RotuloItem): string {
         ${fechas ? `<div class="strip-fec">${escapeHtml(fechas)}</div>` : ''}
         <div class="strip-slot">MINUTAS · ${escapeHtml(slot)}</div>
         <div class="strip-ver">SGD CORAZA 2027</div>
+      </div>`;
+  }
+
+  if (esCorr) {
+    const logo = 'https://portalcoraza-web.onrender.com/brand/logo-coraza-cta.png';
+    return `
+      <div class="rotulo-corr">
+        <div class="rotulo-corr-head">
+          <img class="rotulo-corr-logo" src="${logo}" alt="Coraza" />
+          <div class="rotulo-corr-brand">
+            <strong>CORAZA SEGURIDAD C.T.A.</strong>
+            <span>Gestión Documental · Correspondencia</span>
+          </div>
+          <div class="rotulo-corr-slot">${escapeHtml(slot)}</div>
+        </div>
+        <div class="rotulo-corr-codebox">
+          <span class="rotulo-corr-lbl">RADICADO TRD</span>
+          <div class="rotulo-corr-code">${escapeHtml(codClean)}</div>
+        </div>
+        <div class="rotulo-corr-tit">${escapeHtml(tit)}</div>
+        ${fechas ? `<div class="rotulo-corr-meta">${escapeHtml(fechas)}</div>` : ''}
+        <div class="rotulo-corr-foot">Recorte por la línea punteada · SGD CORAZA 2027</div>
       </div>`;
   }
 
@@ -253,6 +276,106 @@ const PRINT_CSS = `
     font-size: 0.55rem;
     font-weight: 700;
     color: #475569;
+  }
+
+  /* ========================================================= */
+  /* CORRESPONDENCIA — rótulo de archivo 140mm x 75mm          */
+  /* ========================================================= */
+  .rotulo-corr {
+    width: 140mm;
+    height: 75mm;
+    border: 2px dashed #0c4a6e;
+    padding: 6mm 7mm;
+    margin: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3.5mm;
+    page-break-inside: avoid;
+    background: #ffffff;
+    color: #0f172a;
+  }
+  .rotulo-corr-head {
+    display: flex;
+    align-items: center;
+    gap: 4mm;
+    border-bottom: 1.5px solid #0c4a6e;
+    padding-bottom: 3mm;
+  }
+  .rotulo-corr-logo {
+    width: 14mm;
+    height: 14mm;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .rotulo-corr-brand {
+    flex: 1;
+    min-width: 0;
+  }
+  .rotulo-corr-brand strong {
+    display: block;
+    font-size: 12pt;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    line-height: 1.15;
+  }
+  .rotulo-corr-brand span {
+    display: block;
+    font-size: 8.5pt;
+    font-weight: 700;
+    color: #0369a1;
+    margin-top: 1mm;
+  }
+  .rotulo-corr-slot {
+    font-size: 8pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: #0c4a6e;
+    background: #e0f2fe;
+    border: 1px solid #7dd3fc;
+    padding: 1.5mm 2.5mm;
+    white-space: nowrap;
+  }
+  .rotulo-corr-codebox {
+    border: 2px solid #0c4a6e;
+    background: #f0f9ff;
+    text-align: center;
+    padding: 3mm 3mm 2.5mm;
+  }
+  .rotulo-corr-lbl {
+    display: block;
+    font-size: 7.5pt;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #0369a1;
+  }
+  .rotulo-corr-code {
+    font-size: 16pt;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #0c4a6e;
+    line-height: 1.2;
+    word-break: break-all;
+    margin-top: 1mm;
+  }
+  .rotulo-corr-tit {
+    font-size: 11pt;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+  .rotulo-corr-meta {
+    font-size: 9pt;
+    font-weight: 700;
+    color: #334155;
+  }
+  .rotulo-corr-foot {
+    margin-top: auto;
+    border-top: 1px solid #cbd5e1;
+    padding-top: 2mm;
+    font-size: 7pt;
+    font-weight: 700;
+    color: #64748b;
   }
 
   /* ========================================================= */
@@ -428,5 +551,5 @@ function printHtml(content: string, title: string): void {
     } catch {
       window.print();
     }
-  }, 350);
+  }, 600);
 }
