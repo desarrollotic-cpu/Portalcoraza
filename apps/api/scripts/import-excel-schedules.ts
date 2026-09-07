@@ -46,6 +46,9 @@ function normalizeCode(raw: string): { codigo: string | null; jornada: string; t
   if (c === 'N8' || c === '8N' || c === 'N-8') {
     return { codigo: 'N8', jornada: 'normal', turno: 'PM', inicio: '22:00', fin: '06:00' };
   }
+  if (c === 'N10' || c === '10N' || c === 'N-10') {
+    return { codigo: 'N10', jornada: 'normal', turno: 'PM', inicio: '20:00', fin: '06:00' };
+  }
   if (c === 'DR' || c === 'R' || c === 'DESC' || c === 'DES') {
     return { codigo: 'DR', jornada: 'descanso_remunerado', turno: null, inicio: null, fin: null };
   }

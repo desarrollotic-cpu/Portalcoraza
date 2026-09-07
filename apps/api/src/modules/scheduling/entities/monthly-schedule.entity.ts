@@ -50,6 +50,10 @@ export class MonthlySchedule {
   @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
   personal!: PersonalRole[];
 
+  /** Nota del puesto en este mes (planilla Excel: Observaciones). */
+  @Column({ type: 'text', nullable: true })
+  observaciones!: string | null;
+
   @Column({ name: 'created_by', type: 'uuid', nullable: true })
   createdBy!: string | null;
 

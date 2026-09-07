@@ -151,8 +151,8 @@ export class MotorTurnosService {
 
   /**
    * Genera las asignaciones del mes para cada rol del personal.
-   * Titulares siguen el ciclo (12x3, etc.). Roles `relevante*` solo cubren
-   * huecos D/N que dejan los titulares ese día (resto: NR = libre en este puesto).
+   * Titulares siguen el ciclo. `ronda*` tiene ciclo propio (no cubre portería).
+   * Roles `relevante*` solo cubren huecos D/N de los fijos (no de ronda).
    */
   generate(
     personal: PersonalRole[],
@@ -162,13 +162,16 @@ export class MotorTurnosService {
     tipoCicloByRole?: Record<string, TipoCiclo>,
   ): GeneratedAssignment[] {
     const isRelev = (p: PersonalRole) => this.isRelevanteRole(p.rol, p.displayName);
-    const titulares = personal.filter((p) => !isRelev(p));
+    const isRonda = (p: PersonalRole) => this.isRondaRole(p.rol, p.displayName);
+    const titulares = personal.filter((p) => !isRelev(p) && !isRonda(p));
+    const rondas = personal.filter(isRonda);
     const relevantes = personal.filter(isRelev);
-    const cycleRoles = titulares.length > 0 ? titulares : personal;
+    const cycleRoles = [...titulares, ...rondas];
+    const generateRoles = cycleRoles.length > 0 ? cycleRoles : personal;
 
     const result: GeneratedAssignment[] = [];
 
-    cycleRoles.forEach((role, index) => {
+    generateRoles.forEach((role, index) => {
       const cycleKey =
         tipoCicloByRole?.[role.rol] ??
         (role as PersonalRole & { tipoCiclo?: TipoCiclo }).tipoCiclo ??
@@ -197,12 +200,21 @@ export class MotorTurnosService {
     });
 
     if (titulares.length > 0 && relevantes.length > 0) {
+      const titularOnly = result.filter(
+        (a) => !this.isRondaRole(a.role) && !this.isRelevanteRole(a.role),
+      );
       result.push(
-        ...this.generateRelevanteGapFill(relevantes, result, daysInMonth),
+        ...this.generateRelevanteGapFill(relevantes, titularOnly, daysInMonth),
       );
     }
 
     return result;
+  }
+
+  /** `ronda`, `ronda_2` — ciclo propio, no cubre portería ni alimenta al relevante. */
+  isRondaRole(rol: string, displayName?: string): boolean {
+    const text = `${rol} ${displayName ?? ''}`.toLowerCase().trim();
+    return /^ronda(_\d+)?$/i.test(rol.trim()) || /\bronda\b/.test(text);
   }
 
   /** `relevante`, `relevante_1`, `Relevo`, etc. */
@@ -225,7 +237,7 @@ export class MotorTurnosService {
   /** Códigos que cubren franja nocturna (12h o 8h). */
   isNightCode(codigo: string | null | undefined): boolean {
     const c = (codigo ?? '').toUpperCase();
-    return c === 'N' || c === 'N8' || c === 'N9' || c === 'N12';
+    return c === 'N' || c === 'N8' || c === 'N9' || c === 'N10' || c === 'N12';
   }
 
   isWorkCode(codigo: string | null | undefined): boolean {

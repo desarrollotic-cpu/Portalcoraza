@@ -46,6 +46,7 @@ export interface MonthlySchedule {
   month: number;
   status: ScheduleStatus;
   personal: PersonalRole[];
+  observaciones?: string | null;
   assignments: ScheduleAssignment[];
   createdAt: string;
   updatedAt: string;
@@ -96,6 +97,7 @@ export interface ProgramacionOverview {
 
 export interface SavePayload {
   personal: PersonalRole[];
+  observaciones?: string | null;
   assignments: Array<{
     day: number;
     role: string;

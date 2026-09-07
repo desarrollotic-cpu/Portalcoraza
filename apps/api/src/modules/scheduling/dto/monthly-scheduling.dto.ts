@@ -134,6 +134,10 @@ export class SaveMonthlyScheduleDto {
   @IsOptional()
   @IsBoolean()
   confirmWarnings?: boolean;
+
+  @IsOptional()
+  @IsString()
+  observaciones?: string | null;
 }
 
 export class MonthlyAlertsQueryDto {

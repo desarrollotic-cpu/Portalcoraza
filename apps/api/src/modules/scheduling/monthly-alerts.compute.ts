@@ -65,7 +65,7 @@ export function isDayCode(codigo: string | null | undefined): boolean {
 
 export function isNightCode(codigo: string | null | undefined): boolean {
   const c = (codigo ?? '').toUpperCase();
-  return c === 'N' || c === 'N8' || c === 'N9' || c === 'N12';
+  return c === 'N' || c === 'N8' || c === 'N9' || c === 'N10' || c === 'N12';
 }
 
 /** Solo 12h: cuenta para tope >24. */
@@ -167,7 +167,7 @@ export function inferRequiredShifts(cells: AlertCellInput[]): { d: boolean; n: b
   for (const c of cells) {
     const code = (c.codigo ?? '').toUpperCase();
     if (code === 'D8') day8 = true;
-    else if (code === 'N8') night8 = true;
+    else if (code === 'N8' || code === 'N10') night8 = true;
     else if (code === 'D' || code === 'D9' || code === 'D12') day12 = true;
     else if (code === 'N' || code === 'N9' || code === 'N12') night12 = true;
   }

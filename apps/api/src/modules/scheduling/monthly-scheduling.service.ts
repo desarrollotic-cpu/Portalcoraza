@@ -630,7 +630,7 @@ export class MonthlySchedulingService {
       .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
       .where('s.year = :year AND s.month = :month', { year, month })
       .andWhere(
-        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8','D9','N9','D12','N12','IN','VAC','LIC','SUS','ACC'))`,
+        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8','D9','N9','D12','N12','N10','IN','VAC','LIC','SUS','ACC'))`,
       )
       .select([
         's.post_id AS "postId"',
@@ -791,6 +791,7 @@ export class MonthlySchedulingService {
     await this.runInTenantTx(async (manager) => {
       await manager.update(MonthlySchedule, id, {
         personal: dto.personal as PersonalRole[],
+        observaciones: dto.observaciones === undefined ? schedule.observaciones : dto.observaciones,
         updatedBy: userId,
       });
 
@@ -1388,7 +1389,7 @@ export class MonthlySchedulingService {
 
       await this.save(
         dest.id,
-        { personal, assignments, confirmWarnings: true },
+        { personal, assignments, confirmWarnings: true, observaciones: source.observaciones ?? null },
         userId,
       );
       if (dest.status !== ScheduleStatus.BORRADOR) {

@@ -54,4 +54,36 @@ describe('MotorTurnosService relevante gap-fill', () => {
       'N', 'N', 'N',
     ]);
   });
+
+  it('ronda tiene ciclo propio y no tapa huecos de los fijos para el relevante', () => {
+    const withRonda: PersonalRole[] = [
+      ...personal,
+      { rol: 'ronda', associateId: 'x', turnoId: 'PM', displayName: 'Ronda' },
+    ];
+    const rows = motor.generate(withRonda, 15, {
+      titular_a: 0,
+      titular_b: 6,
+      ronda: 0,
+    });
+    expect(motor.isRondaRole('ronda', 'Ronda')).toBe(true);
+    expect(motor.isRelevanteRole('ronda', 'Ronda')).toBe(false);
+
+    const rondaCodes = rows
+      .filter((r) => r.role === 'ronda')
+      .sort((a, b) => a.day - b.day)
+      .map((r) => r.codigo);
+    expect(rondaCodes).toHaveLength(15);
+    expect(rondaCodes.some((c) => c === 'D' || c === 'N')).toBe(true);
+
+    const rel = rows
+      .filter((r) => r.role === 'relevante')
+      .sort((a, b) => a.day - b.day)
+      .map((r) => r.codigo);
+    expect(rel).toEqual([
+      'NR', 'NR', 'NR', 'NR', 'NR', 'NR',
+      'D', 'D', 'D',
+      'NR', 'NR', 'NR',
+      'N', 'N', 'N',
+    ]);
+  });
 });

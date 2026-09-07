@@ -21,6 +21,7 @@ import {
 } from '../monthly-scheduling-api.service';
 import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
 import { daysInCalendarMonth } from '../utils/calendar-month';
+import { guardMetrics, type GuardMetrics } from '../utils/schedule-metrics';
 
 interface CodeConfig {
   codigo: string;
@@ -46,6 +47,7 @@ const CODES: CodeConfig[] = [
   { codigo: 'N', label: 'N — Nocturno 12h (18–06)', jornada: 'normal', turno: 'PM', inicio: '18:00', fin: '06:00', cssClass: 'c-n' },
   { codigo: 'D8', label: 'D8 — Diurno 8h (06–14)', jornada: 'normal', turno: 'AM', inicio: '06:00', fin: '14:00', cssClass: 'c-d8' },
   { codigo: 'N8', label: 'N8 — Nocturno 8h (22–06)', jornada: 'normal', turno: 'PM', inicio: '22:00', fin: '06:00', cssClass: 'c-n8' },
+  { codigo: 'N10', label: 'N10 — Nocturno 10h (20–06)', jornada: 'normal', turno: 'PM', inicio: '20:00', fin: '06:00', cssClass: 'c-n10' },
   { codigo: 'DR', label: 'DR — Descanso remunerado', jornada: 'descanso_remunerado', turno: null, inicio: null, fin: null, cssClass: 'c-dr' },
   { codigo: 'NR', label: 'NR — Descanso no remunerado', jornada: 'descanso_no_remunerado', turno: null, inicio: null, fin: null, cssClass: 'c-nr' },
   { codigo: 'VAC', label: 'VAC — Vacaciones', jornada: 'vacacion', turno: null, inicio: null, fin: null, cssClass: 'c-vac' },
@@ -279,6 +281,17 @@ const CODES: CodeConfig[] = [
             }
           </div>
           <button type="button" class="sm" (click)="addRole()">+ Agregar rol</button>
+          <button type="button" class="sm" (click)="addRonda()">+ Ronda</button>
+          <label class="obs-label">
+            Observaciones del puesto
+            <textarea
+              rows="3"
+              maxlength="4000"
+              [ngModel]="observaciones()"
+              (ngModelChange)="onObservaciones($event)"
+              placeholder="Ej. Portería D12 06–18, N12 18–06. Turno N10 20:00–06:00…"
+            ></textarea>
+          </label>
         </div>
 
         <div class="matrix-wrap">
@@ -303,10 +316,10 @@ const CODES: CodeConfig[] = [
                     }
                   </th>
                 }
-                <th class="summary-th" title="Días Laborados">Días</th>
-                <th class="summary-th" title="Turnos Diurnos">D</th>
-                <th class="summary-th" title="Turnos Nocturnos">N</th>
-                <th class="summary-th" title="Total Horas Liquidables">Horas</th>
+                    <th class="summary-th" title="Días trabajados (D/N, no descansos)">Días</th>
+                    <th class="summary-th" title="Turnos de día">D</th>
+                    <th class="summary-th" title="Turnos de noche">N</th>
+                    <th class="summary-th" title="Horas totales trabajadas">Horas</th>
               </tr>
             </thead>
             <tbody>
@@ -331,11 +344,12 @@ const CODES: CodeConfig[] = [
                       {{ cellLabel(role.rol, day) }}
                     </td>
                   }
-                  <td class="summary-td">{{ getGuardMetrics(role.rol).dias }}</td>
-                  <td class="summary-td diurno-td">{{ getGuardMetrics(role.rol).turnosD }}</td>
-                  <td class="summary-td nocturno-td">{{ getGuardMetrics(role.rol).turnosN }}</td>
-                  <td class="summary-td hours-td" [class.hours-over]="getGuardMetrics(role.rol).totalHoras > 240">
-                    <strong>{{ getGuardMetrics(role.rol).totalHoras }}h</strong>
+                  @let m = metricsByRole()[role.rol];
+                  <td class="summary-td">{{ m?.dias ?? 0 }}</td>
+                  <td class="summary-td diurno-td">{{ m?.turnosD ?? 0 }}</td>
+                  <td class="summary-td nocturno-td">{{ m?.turnosN ?? 0 }}</td>
+                  <td class="summary-td hours-td" [class.hours-over]="(m?.totalHoras ?? 0) > 240">
+                    <strong>{{ m?.totalHoras ?? 0 }}h</strong>
                   </td>
                 </tr>
               } @empty {
@@ -456,6 +470,7 @@ const CODES: CodeConfig[] = [
                 <button type="button" class="btn-q c-n" (click)="quickSelectCode('N')"> N (12h)</button>
                 <button type="button" class="btn-q c-d8" (click)="quickSelectCode('D8')"> D8 (8h)</button>
                 <button type="button" class="btn-q c-n8" (click)="quickSelectCode('N8')"> N8 (8h)</button>
+                <button type="button" class="btn-q c-n10" (click)="quickSelectCode('N10')"> N10 (20–06)</button>
                 <button type="button" class="btn-q c-dr" (click)="quickSelectCode('DR')"> Descanso</button>
                 <button type="button" class="btn-q c-vac" (click)="quickSelectCode('VAC')"> Vacaciones</button>
                 <button type="button" class="btn-q c-in" (click)="quickSelectCode('IN')"> Incapacidad</button>
@@ -567,6 +582,12 @@ const CODES: CodeConfig[] = [
     }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
+    .obs-label { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.85rem; font-size: 0.85rem; font-weight: 600; }
+    .obs-label textarea {
+      min-height: 4.5rem; padding: 0.5rem 0.65rem; border: 1px solid var(--coraza-border);
+      border-radius: 10px; background: var(--coraza-surface); color: inherit; font: inherit; font-weight: 400;
+      resize: vertical;
+    }
     .roles-grid { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem; }
     .role-row { display: grid; grid-template-columns: 1fr 1.5fr auto; gap: 0.5rem; align-items: center; }
     .titular-autocomplete-wrap { position: relative; min-width: 0; }
@@ -685,6 +706,7 @@ const CODES: CodeConfig[] = [
     .c-n { background: #cfe2ff; color: #084298; }
     .c-d8 { background: #b7e4c7; color: #1b4332; }
     .c-n8 { background: #9ec5fe; color: #052c65; }
+    .c-n10 { background: #6ea8fe; color: #031633; }
     .c-dr { background: #e9ecef; color: #495057; }
     .c-nr { background: #ced4da; color: #212529; }
     .c-vac { background: #fff3cd; color: #664d03; }
@@ -1062,6 +1084,7 @@ export class ScheduleBoard implements OnInit {
   readonly associates = signal<Associate[]>([]);
   readonly schedule = signal<MonthlySchedule | null>(null);
   readonly personal = signal<PersonalRole[]>([]);
+  readonly observaciones = signal('');
   readonly cells = signal<Map<string, CellState>>(new Map());
 
   postId = '';
@@ -1215,37 +1238,20 @@ export class ScheduleBoard implements OnInit {
     }
   }
 
-  getGuardMetrics(roleKey: string): { dias: number; turnosD: number; turnosN: number; totalHoras: number } {
-    let dias = 0;
-    let turnosD = 0;
-    let turnosN = 0;
-    let totalHoras = 0;
-
-    for (const d of this.days()) {
-      const state = this.cells().get(`${roleKey}:${d}`);
-      if (!state || !state.codigo) continue;
-      const c = state.codigo;
-      if (c === 'D') {
-        dias++;
-        turnosD++;
-        totalHoras += 12;
-      } else if (c === 'N') {
-        dias++;
-        turnosN++;
-        totalHoras += 12;
-      } else if (c === 'D8') {
-        dias++;
-        turnosD++;
-        totalHoras += 8;
-      } else if (c === 'N8') {
-        dias++;
-        turnosN++;
-        totalHoras += 8;
-      }
+  readonly metricsByRole = computed(() => {
+    const cells = this.cells();
+    const days = this.days();
+    const out: Record<string, GuardMetrics> = {};
+    for (const role of this.personal()) {
+      out[role.rol] = guardMetrics(
+        days.map((d) => {
+          const state = cells.get(`${role.rol}:${d}`);
+          return { codigo: state?.codigo ?? null, inicio: state?.inicio, fin: state?.fin };
+        }),
+      );
     }
-
-    return { dias, turnosD, turnosN, totalHoras };
-  }
+    return out;
+  });
 
   quickSelectCode(code: string): void {
     this.editCodigo = code;
@@ -1689,6 +1695,7 @@ export class ScheduleBoard implements OnInit {
 
     return {
       personal: this.personal(),
+      observaciones: this.observaciones().trim() || null,
       assignments,
     };
   }
@@ -1996,6 +2003,21 @@ export class ScheduleBoard implements OnInit {
     this.dirty.set(true);
   }
 
+  addRonda(): void {
+    const n = this.personal().filter((r) => /^ronda(_\d+)?$/i.test(r.rol)).length;
+    const rol = n === 0 ? 'ronda' : `ronda_${n + 1}`;
+    this.personal.update((list) => [
+      ...list,
+      { rol, associateId: null, turnoId: 'PM', displayName: n === 0 ? 'Ronda' : `Ronda ${n + 1}` },
+    ]);
+    this.dirty.set(true);
+  }
+
+  onObservaciones(value: string): void {
+    this.observaciones.set(value);
+    this.dirty.set(true);
+  }
+
   removeRole(index: number): void {
     const role = this.personal()[index];
     this.personal.update((list) => list.filter((_, i) => i !== index));
@@ -2104,7 +2126,8 @@ export class ScheduleBoard implements OnInit {
       this.editCodigo === 'D9' ||
       this.editCodigo === 'N9' ||
       this.editCodigo === 'D12' ||
-      this.editCodigo === 'N12';
+      this.editCodigo === 'N12' ||
+      this.editCodigo === 'N10';
     return Boolean(isWorkingShift || this.editInicio || this.editFin);
   }
 
@@ -2156,7 +2179,7 @@ export class ScheduleBoard implements OnInit {
     const fringe =
       codigo === 'D' || codigo === 'D8' || codigo === 'D9' || codigo === 'D12'
         ? 'D'
-        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N12'
+        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N10' || codigo === 'N12'
           ? 'N'
           : null;
     if (!fringe) return [];
@@ -2216,8 +2239,8 @@ export class ScheduleBoard implements OnInit {
         }
       : {
           associateId: this.editAssociateId,
-          jornada: 'sin_asignar',
-          codigo: null,
+          jornada: 'descanso_remunerado',
+          codigo: 'DR',
           turno: null,
           inicio: null,
           fin: null,
@@ -2249,7 +2272,14 @@ export class ScheduleBoard implements OnInit {
     if (!ctx) return;
     this.cells.update((map) => {
       const next = new Map(map);
-      next.delete(`${ctx.role.rol}:${ctx.day}`);
+      next.set(`${ctx.role.rol}:${ctx.day}`, {
+        associateId: ctx.role.associateId,
+        jornada: 'descanso_remunerado',
+        codigo: 'DR',
+        turno: null,
+        inicio: null,
+        fin: null,
+      });
       return next;
     });
     this.dirty.set(true);
@@ -2273,7 +2303,7 @@ export class ScheduleBoard implements OnInit {
     const fringe =
       codigo === 'D' || codigo === 'D8' || codigo === 'D9' || codigo === 'D12'
         ? 'D'
-        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N12'
+        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N10' || codigo === 'N12'
           ? 'N'
           : null;
     const hasConflict = placements.some(
@@ -2414,12 +2444,14 @@ export class ScheduleBoard implements OnInit {
     this.schedule.set(sched);
     if (!sched) {
       this.personal.set([]);
+      this.observaciones.set('');
       this.cells.set(new Map());
       this.dirty.set(false);
       return;
     }
     this.mergeResolvedAssociates(sched.resolvedAssociates);
     this.personal.set(sched.personal.map((p) => ({ ...p })));
+    this.observaciones.set(sched.observaciones?.trim() || '');
     const map = new Map<string, CellState>();
     for (const a of sched.assignments ?? []) {
       map.set(`${a.role}:${a.day}`, {
@@ -2430,6 +2462,23 @@ export class ScheduleBoard implements OnInit {
         inicio: a.inicio,
         fin: a.fin,
       });
+    }
+    const daysInMonth = this.days().length;
+    for (const role of sched.personal) {
+      if (!role.associateId) continue;
+      for (let day = 1; day <= daysInMonth; day++) {
+        const key = `${role.rol}:${day}`;
+        const cur = map.get(key);
+        if (cur?.codigo) continue;
+        map.set(key, {
+          associateId: cur?.associateId ?? role.associateId,
+          jornada: 'descanso_remunerado',
+          codigo: 'DR',
+          turno: null,
+          inicio: null,
+          fin: null,
+        });
+      }
     }
     this.cells.set(map);
     this.dirty.set(false);
