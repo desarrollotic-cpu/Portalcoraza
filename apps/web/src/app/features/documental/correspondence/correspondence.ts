@@ -16,6 +16,7 @@ import { Icon } from '../../../shared/components/icon/icon';
 import { Correspondence, DocumentalApiService } from '../documental-api.service';
 import { DEPARTAMENTOS_CORAZA } from '../departamentos-coraza';
 import { DOC_STYLES } from '../documental.styles';
+import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotulo-print';
 
 export interface TrdOption {
   val: string;
@@ -125,12 +126,19 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
           <h3>Correspondencia y Radicación TRD</h3>
           <p class="muted">Gestión oficial de correspondencia interna y externa bajo norma AGN.</p>
         </div>
-        @if (canCreate()) {
-          <button class="btn-primary" (click)="toggle()">
-            <app-icon [icon]="showForm() ? icons.X : icons.Plus" [size]="16" [strokeWidth]="2" />
-            <span>{{ showForm() ? 'Cerrar' : 'Radicar Documento' }}</span>
-          </button>
-        }
+        <div class="actions-inline">
+          @if (queueCount() > 0) {
+            <button type="button" class="btn-ghost" (click)="printCola()">
+              Cola de impresión ({{ queueCount() }})
+            </button>
+          }
+          @if (canCreate()) {
+            <button class="btn-primary" (click)="toggle()">
+              <app-icon [icon]="showForm() ? icons.X : icons.Plus" [size]="16" [strokeWidth]="2" />
+              <span>{{ showForm() ? 'Cerrar' : 'Radicar Documento' }}</span>
+            </button>
+          }
+        </div>
       </div>
 
       <!-- FORMULARIO DE RADICACIÓN CON BARRAS DESPLEGABLES PRECONFIGURADAS -->
@@ -295,6 +303,14 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
         </form>
       }
 
+      @if (lastSaved()) {
+        <div class="toast-ok">
+          Correspondencia <strong>{{ lastSaved()!.documentCode }}</strong> radicada y agregada a la cola de impresión.
+          <button type="button" class="btn-primary" (click)="printSaved()">Imprimir rótulo</button>
+          <button type="button" class="btn-ghost" (click)="lastSaved.set(null)">Cerrar</button>
+        </div>
+      }
+
       <!-- GUÍA VISUAL DE ESTADOS -->
       <div class="status-guide-card">
         <div class="guide-header">
@@ -347,6 +363,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 <th>Asunto</th>
                 <th>Estado</th>
                 <th>Fecha</th>
+                <th>Rótulo</th>
               </tr>
             </thead>
             <tbody>
@@ -386,9 +403,14 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                     </span>
                   </td>
                   <td>{{ r.documentDate ?? (r.createdAt | slice: 0:10) }}</td>
+                  <td>
+                    <button type="button" class="btn-ghost" (click)="printOne(r)" title="Generar rótulo para imprimir">
+                      Imprimir rótulo
+                    </button>
+                  </td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="muted" style="text-align:center;padding:2rem">Sin correspondencia registrada.</td></tr>
+                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">Sin correspondencia registrada.</td></tr>
               }
             </tbody>
           </table>
@@ -400,6 +422,13 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
     DOC_STYLES,
     `
     .corr-container { display: flex; flex-direction: column; gap: 1.25rem; }
+    .actions-inline { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .toast-ok {
+      display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
+      padding: .85rem 1rem;
+      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+      font-size: .9rem;
+    }
     
     .form-corr {
       background: var(--surface);
@@ -536,6 +565,8 @@ export class CorrespondenceScreen implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
+  readonly lastSaved = signal<Correspondence | null>(null);
+  readonly queueCount = signal(0);
 
   readonly seriesDisponibles = signal<TrdOption[]>([]);
   readonly previewCode = signal('Calculando radicado...');
@@ -558,6 +589,7 @@ export class CorrespondenceScreen implements OnInit {
   };
 
   ngOnInit(): void {
+    this.queueCount.set(getPrintQueue().length);
     this.load();
     this.onOriginDeptChange(this.model.originDept);
   }
@@ -643,9 +675,12 @@ export class CorrespondenceScreen implements OnInit {
 
     const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));
     this.api.createCorrespondence(payload).subscribe({
-      next: () => {
+      next: (saved) => {
         this.saving.set(false);
         this.showForm.set(false);
+        addToPrintQueue(this.toRotulo(saved));
+        this.queueCount.set(getPrintQueue().length);
+        this.lastSaved.set(saved);
         this.model.subject = '';
         this.model.detail = '';
         this.load();
@@ -655,5 +690,29 @@ export class CorrespondenceScreen implements OnInit {
         this.error.set('No se pudo radicar la correspondencia.');
       },
     });
+  }
+
+  printOne(c: Correspondence): void {
+    printRotulo(this.toRotulo(c));
+  }
+
+  printSaved(): void {
+    const c = this.lastSaved();
+    if (c) this.printOne(c);
+  }
+
+  printCola(): void {
+    printQueue();
+  }
+
+  private toRotulo(c: Correspondence) {
+    return {
+      id: c.id,
+      modulo: 'CORRESPONDENCIA' as const,
+      codigo: c.documentCode || String(c.numericCode ?? c.id),
+      titulo: c.subject || c.documentType || 'CORRESPONDENCIA',
+      fechas: `${c.originDept} → ${c.destinationDept || '—'} · ${c.documentDate || ''}`,
+      slotFisico: c.voxelsera || 'Estante D',
+    };
   }
 }
