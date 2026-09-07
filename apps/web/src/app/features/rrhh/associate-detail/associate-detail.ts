@@ -121,14 +121,16 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
           >
             <app-icon [icon]="icons.Briefcase" [size]="16" /> Laboral
           </button>
-          <button
-            type="button"
-            class="hr-tab"
-            [class.active]="tab() === 'documentos'"
-            (click)="tab.set('documentos')"
-          >
-            <app-icon [icon]="icons.FileText" [size]="16" /> Documentos ({{ documents().length }})
-          </button>
+          @if (auth.hasPermission('hr_documents.view')) {
+            <button
+              type="button"
+              class="hr-tab"
+              [class.active]="tab() === 'documentos'"
+              (click)="tab.set('documentos')"
+            >
+              <app-icon [icon]="icons.FileText" [size]="16" /> Documentos ({{ documents().length }})
+            </button>
+          }
           @if (auth.hasPermission('absences.view')) {
             <button
               type="button"
@@ -139,14 +141,16 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
               <app-icon [icon]="icons.CalendarOff" [size]="16" /> Ausencias ({{ absences().length }})
             </button>
           }
-          <button
-            type="button"
-            class="hr-tab"
-            [class.active]="tab() === 'alertas'"
-            (click)="tab.set('alertas')"
-          >
-            <app-icon [icon]="icons.Bell" [size]="16" /> Alertas y bitácora
-          </button>
+          @if (auth.hasPermission('hr_alerts.view')) {
+            <button
+              type="button"
+              class="hr-tab"
+              [class.active]="tab() === 'alertas'"
+              (click)="tab.set('alertas')"
+            >
+              <app-icon [icon]="icons.Bell" [size]="16" /> Alertas y bitácora
+            </button>
+          }
         </nav>
 
         <!-- Personal -->

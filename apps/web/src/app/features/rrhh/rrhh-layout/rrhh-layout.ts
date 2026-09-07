@@ -38,7 +38,7 @@ export class RrhhLayout {
       exact: true,
     },
     {
-      label: 'Asociados',
+      label: 'Personal',
       route: '/rrhh/asociados',
       permission: 'associates.view',
       icon: LucideUsersRound,

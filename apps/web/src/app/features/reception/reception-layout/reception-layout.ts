@@ -32,6 +32,12 @@ export class ReceptionLayout {
       icon: LucideLayoutDashboard,
     },
     {
+      label: 'Personal',
+      route: '/rrhh/asociados',
+      permission: 'associates.view',
+      icon: LucideUsersRound,
+    },
+    {
       label: 'Informe de puestos',
       route: '/recepcion/puestos',
       permission: 'reception.view',

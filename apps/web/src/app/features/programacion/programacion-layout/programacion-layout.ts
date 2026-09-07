@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import {
-  LucideCalendarClock,
-  LucideLayoutDashboard,
   LucideAlertTriangle,
   LucideCalculator,
+  LucideCalendarClock,
+  LucideLayoutDashboard,
+  LucideUsersRound,
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
@@ -28,6 +29,12 @@ export class ProgramacionLayout {
       route: '/programacion/panel',
       permission: 'scheduling.view',
       icon: LucideLayoutDashboard,
+    },
+    {
+      label: 'Personal',
+      route: '/rrhh/asociados',
+      permission: 'associates.view',
+      icon: LucideUsersRound,
     },
     {
       label: 'Cuadro de Turnos',
