@@ -279,17 +279,17 @@ const PRINT_CSS = `
   }
 
   /* ========================================================= */
-  /* CORRESPONDENCIA — marquilla para sobre/hoja 100mm x 50mm  */
+  /* CORRESPONDENCIA — marquilla para sobre/hoja 90mm x 44mm   */
   /* ========================================================= */
   .rotulo-corr {
-    width: 100mm;
-    height: 50mm;
+    width: 90mm;
+    height: 44mm;
     border: 1.5px dashed #0c4a6e;
-    padding: 3.5mm 4mm;
+    padding: 2.8mm 3.2mm;
     margin: 4px;
     display: flex;
     flex-direction: column;
-    gap: 2mm;
+    gap: 1.6mm;
     page-break-inside: avoid;
     background: #ffffff;
     color: #0f172a;
@@ -297,13 +297,13 @@ const PRINT_CSS = `
   .rotulo-corr-head {
     display: flex;
     align-items: center;
-    gap: 2.5mm;
+    gap: 2mm;
     border-bottom: 1px solid #0c4a6e;
-    padding-bottom: 2mm;
+    padding-bottom: 1.5mm;
   }
   .rotulo-corr-logo {
-    width: 9mm;
-    height: 9mm;
+    width: 8mm;
+    height: 8mm;
     object-fit: contain;
     flex-shrink: 0;
   }
@@ -313,69 +313,69 @@ const PRINT_CSS = `
   }
   .rotulo-corr-brand strong {
     display: block;
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 900;
     letter-spacing: 0.02em;
     line-height: 1.1;
   }
   .rotulo-corr-brand span {
     display: block;
-    font-size: 6.5pt;
+    font-size: 6pt;
     font-weight: 700;
     color: #0369a1;
-    margin-top: 0.4mm;
+    margin-top: 0.3mm;
   }
   .rotulo-corr-slot {
-    font-size: 6pt;
+    font-size: 5.5pt;
     font-weight: 800;
     text-transform: uppercase;
     color: #0c4a6e;
     background: #e0f2fe;
     border: 1px solid #7dd3fc;
-    padding: 0.8mm 1.6mm;
+    padding: 0.6mm 1.3mm;
     white-space: nowrap;
   }
   .rotulo-corr-codebox {
     border: 1.5px solid #0c4a6e;
     background: #f0f9ff;
     text-align: center;
-    padding: 1.6mm 2mm 1.4mm;
+    padding: 1.2mm 1.8mm 1.1mm;
   }
   .rotulo-corr-lbl {
     display: block;
-    font-size: 6pt;
+    font-size: 5.5pt;
     font-weight: 800;
     letter-spacing: 0.1em;
     color: #0369a1;
   }
   .rotulo-corr-code {
-    font-size: 11pt;
+    font-size: 10pt;
     font-weight: 900;
     letter-spacing: 0.03em;
     color: #0c4a6e;
-    line-height: 1.15;
+    line-height: 1.12;
     word-break: break-all;
-    margin-top: 0.4mm;
+    margin-top: 0.3mm;
   }
   .rotulo-corr-tit {
-    font-size: 8pt;
+    font-size: 7.5pt;
     font-weight: 800;
     text-transform: uppercase;
-    line-height: 1.2;
+    line-height: 1.15;
     word-break: break-word;
-    max-height: 7.5mm;
+    max-height: 6.5mm;
     overflow: hidden;
   }
   .rotulo-corr-meta {
-    font-size: 7pt;
+    font-size: 6.5pt;
     font-weight: 700;
     color: #334155;
   }
   .rotulo-corr-foot {
     margin-top: auto;
     border-top: 1px solid #cbd5e1;
-    padding-top: 1.2mm;
-    font-size: 5.5pt;
+    padding-top: 1mm;
+    font-size: 5pt;
     font-weight: 700;
     color: #64748b;
   }
