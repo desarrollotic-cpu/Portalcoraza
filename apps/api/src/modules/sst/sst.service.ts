@@ -292,17 +292,16 @@ export class SstService {
       await this.applyResponse(insp, byItem.get(row.itemId), row, !!dto.completar);
     }
 
-    const fresh = await this.getInspection(id);
-    const stats = computeCompliance(fresh.respuestas.map((r) => r.valoracion));
-    fresh.cumplimientoGlobal = stats.percent != null ? String(stats.percent) : null;
-    fresh.nivelRiesgo = stats.nivel;
+    const stats = computeCompliance(insp.respuestas.map((r) => r.valoracion));
+    insp.cumplimientoGlobal = stats.percent != null ? String(stats.percent) : null;
+    insp.nivelRiesgo = stats.nivel;
 
     if (dto.completar) {
-      this.assertCompletable(fresh);
-      fresh.estado = SstInspectionStatus.COMPLETADA;
+      this.assertCompletable(insp);
+      insp.estado = SstInspectionStatus.COMPLETADA;
     }
 
-    await this.inspections.save(fresh);
+    await this.inspections.save(insp);
     return this.getInspection(id);
   }
 
@@ -447,23 +446,11 @@ export class SstService {
     existing.responsablePlanAccion = row.responsablePlanAccion?.trim() || null;
     existing.fechaCompromiso = row.fechaCompromiso ?? null;
 
-    // Manejo de evidencias fotográficas:
-    // Al completar la inspección (finalize = true), las fotos ya quedaron consolidadas en el PDF oficial
-    // generado y se purgan de la BD para optimizar espacio y rendimiento.
+    await this.responses.save(existing);
+
+    // Fotos: no se persisten. Van al PDF oficial; al completar se limpia cualquier rastro.
     if (finalize) {
       await this.evidences.delete({ responseId: existing.id });
-    } else if (row.evidenciasUrls !== undefined) {
-      await this.evidences.delete({ responseId: existing.id });
-      for (const url of row.evidenciasUrls || []) {
-        if (!url?.trim()) continue;
-        await this.evidences.save(
-          this.evidences.create({
-            responseId: existing.id,
-            urlArchivo: url.trim(),
-            descripcion: null,
-          }),
-        );
-      }
     }
   }
 }

@@ -593,7 +593,6 @@ export class SstInspectionDetail implements OnInit {
         planAccionPropuesto: d.planAccionPropuesto || undefined,
         responsablePlanAccion: d.responsablePlanAccion || undefined,
         fechaCompromiso: d.fechaCompromiso || undefined,
-        evidenciasUrls: d.evidencias.length ? d.evidencias : undefined,
       }));
 
     if (completar && respuestas.length < this.drafts().length) {
