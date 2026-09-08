@@ -92,6 +92,13 @@ interface DraftRow {
           </div>
         </header>
 
+        @if (canAttachPhotos()) {
+          <p class="photo-hint">
+            Las fotos no se almacenan en la plataforma. Si reabres este documento, adjúntalas de nuevo
+            en cada ítem y luego pulsa <strong>PDF Oficial Membrete</strong>.
+          </p>
+        }
+
         <label class="obs">
           Observaciones generales
           <textarea
@@ -174,7 +181,7 @@ interface DraftRow {
                     <div class="evidence-box evidence-box-risk">
                       <div class="evidence-top">
                         <span class="evidence-label">📷 Evidencias fotográficas del hallazgo ({{ row.evidencias.length }})</span>
-                        @if (canEdit()) {
+                        @if (canAttachPhotos()) {
                           <label class="btn-upload-photo">
                             <input
                               type="file"
@@ -192,7 +199,7 @@ interface DraftRow {
                           @for (photo of row.evidencias; track $index; let idx = $index) {
                             <div class="thumb-card">
                               <img [src]="photo" alt="Evidencia" (click)="previewPhoto.set(photo)" />
-                              @if (canEdit()) {
+                              @if (canAttachPhotos()) {
                                 <button type="button" class="btn-del-photo" (click)="removePhoto(row, idx)" title="Eliminar foto">✕</button>
                               }
                             </div>
@@ -224,7 +231,7 @@ interface DraftRow {
                     <div class="evidence-box evidence-box-safe">
                       <div class="evidence-top">
                         <span class="evidence-label evidence-label-safe">📷 Foto de verificación ({{ row.evidencias.length }})</span>
-                        @if (canEdit()) {
+                        @if (canAttachPhotos()) {
                           <label class="btn-upload-photo btn-upload-safe">
                             <input
                               type="file"
@@ -242,7 +249,7 @@ interface DraftRow {
                           @for (photo of row.evidencias; track $index; let idx = $index) {
                             <div class="thumb-card">
                               <img [src]="photo" alt="Verificación" (click)="previewPhoto.set(photo)" />
-                              @if (canEdit()) {
+                              @if (canAttachPhotos()) {
                                 <button type="button" class="btn-del-photo" (click)="removePhoto(row, idx)" title="Eliminar foto">✕</button>
                               }
                             </div>
@@ -278,6 +285,17 @@ interface DraftRow {
     .badge-status {
       background: #f1f5f9; padding: 0.15rem 0.45rem; border-radius: 0.3rem;
       border: 1px solid #e2e8f0; font-size: 0.8rem;
+    }
+    .photo-hint {
+      margin: 0;
+      padding: 0.55rem 0.8rem;
+      background: #fffbeb;
+      border: 1px solid #fcd34d;
+      border-radius: 0.5rem;
+      font-size: 0.82rem;
+      color: #92400e;
+      font-weight: 600;
+      line-height: 1.4;
     }
     .live { margin: 0.35rem 0 0 !important; font-weight: 600; font-size: 0.88rem; }
     .risk[data-nivel='BAJO'] { color: #15803d; font-weight: 700; }
@@ -414,6 +432,12 @@ export class SstInspectionDetail implements OnInit {
     return !!i && i.estado === 'BORRADOR' && this.auth.hasPermission('sst.inspect');
   });
 
+  /** Fotos solo en el navegador: se pueden re-adjuntar en borrador o completada para el PDF. */
+  readonly canAttachPhotos = computed(() => {
+    const i = this.insp();
+    return !!i && i.estado !== 'CERRADA' && this.auth.hasPermission('sst.inspect');
+  });
+
   readonly canClose = computed(() => {
     const i = this.insp();
     return (
@@ -501,8 +525,9 @@ export class SstInspectionDetail implements OnInit {
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.82);
-          row.evidencias.push(compressedDataUrl);
-          this.toast.success('Foto adjuntada como evidencia');
+          row.evidencias = [...row.evidencias, compressedDataUrl];
+          this.drafts.set([...this.drafts()]);
+          this.toast.success('Foto adjuntada. No se guarda en la plataforma: genera el PDF ahora o vuelve a adjuntarla si recargas.');
         }
       };
       img.src = e.target?.result as string;
@@ -512,7 +537,8 @@ export class SstInspectionDetail implements OnInit {
   }
 
   removePhoto(row: DraftRow, index: number): void {
-    row.evidencias.splice(index, 1);
+    row.evidencias = row.evidencias.filter((_, i) => i !== index);
+    this.drafts.set([...this.drafts()]);
   }
 
   generateOfficialPdf(): void {
@@ -559,7 +585,13 @@ export class SstInspectionDetail implements OnInit {
     });
   }
 
-  private apply(insp: SstInspection): void {
+  private apply(insp: SstInspection, keepLocalPhotos = false): void {
+    const prevPhotos = new Map<string, string[]>();
+    if (keepLocalPhotos) {
+      for (const d of this.drafts()) {
+        if (d.evidencias.length) prevPhotos.set(d.itemId, d.evidencias);
+      }
+    }
     this.insp.set(insp);
     this.observaciones = insp.observacionesGenerales || '';
     this.drafts.set(
@@ -575,7 +607,7 @@ export class SstInspectionDetail implements OnInit {
         responsablePlanAccion: r.responsablePlanAccion || '',
         fechaCompromiso: r.fechaCompromiso || '',
         reincidenciaCount: r.reincidenciaCount || 0,
-        evidencias: (r.evidencias ?? []).map((ev) => ev.urlArchivo),
+        evidencias: prevPhotos.get(r.itemId) ?? (r.evidencias ?? []).map((ev) => ev.urlArchivo),
       })),
     );
     this.loading.set(false);
@@ -615,11 +647,11 @@ export class SstInspectionDetail implements OnInit {
       .subscribe({
         next: (insp) => {
           this.busy.set(false);
-          this.apply(insp);
+          this.apply(insp, true);
           this.toast.success(
             completar
               ? '✓ Inspección completada y PDF oficial generado con éxito'
-              : 'Borrador guardado',
+              : 'Borrador guardado. Las fotos siguen en esta pantalla para el PDF; si recargas, debes adjuntarlas de nuevo.',
           );
         },
         error: (e: { error?: { message?: string } }) => {
