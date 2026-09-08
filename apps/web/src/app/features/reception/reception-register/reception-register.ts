@@ -143,26 +143,28 @@ import {
 
           <fieldset>
             <legend>Datos de desplazamiento</legend>
-            <label>
-              Medio de desplazamiento
-              <select [(ngModel)]="form.transportMeans" name="transportMeans">
-                <option value="">—</option>
-                <option value="MOTO">Moto</option>
-                <option value="CARRO">Carro</option>
-                <option value="TRANSPORTE_PUBLICO">Transporte público</option>
-                <option value="OTRO">Otro</option>
-                <option value="NINGUNO">Ninguno / a pie</option>
-              </select>
-            </label>
-            <label>
-              Tiempo de desplazamiento (minutos)
-              <input
-                type="number"
-                min="0"
-                [(ngModel)]="form.travelTimeMinutes"
-                name="travelTimeMinutes"
-              />
-            </label>
+            <div class="pair">
+              <label>
+                Medio de desplazamiento
+                <select [(ngModel)]="form.transportMeans" name="transportMeans">
+                  <option value="">—</option>
+                  <option value="MOTO">Moto</option>
+                  <option value="CARRO">Carro</option>
+                  <option value="TRANSPORTE_PUBLICO">Transporte público</option>
+                  <option value="OTRO">Otro</option>
+                  <option value="NINGUNO">Ninguno / a pie</option>
+                </select>
+              </label>
+              <label>
+                Tiempo de desplazamiento (minutos)
+                <input
+                  type="number"
+                  min="0"
+                  [(ngModel)]="form.travelTimeMinutes"
+                  name="travelTimeMinutes"
+                />
+              </label>
+            </div>
             <label class="wide">
               Notas
               <input [(ngModel)]="form.notes" name="notes" autocomplete="off" />
@@ -229,7 +231,21 @@ import {
       color: var(--text-secondary);
     }
     label.wide { grid-column: 1 / -1; }
+    .pair {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      align-items: stretch;
+    }
+    .pair label > input,
+    .pair label > select {
+      margin-top: auto;
+    }
     input, select {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 2.5rem;
       padding: 0.5rem 0.65rem;
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
