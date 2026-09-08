@@ -72,8 +72,11 @@ export function buildMarkdownReport(insp: SstInspection): string {
     i++;
     md += `\n### 3.${i} ${cat}\n`;
     const hallazgos = items.filter((r) => r.valoracion === SstValoracion.RIESGOSO);
-    if (!hallazgos.length) {
-      md += `*Sin hallazgos en esta categoría.*\n`;
+    const seguroObs = items.filter(
+      (r) => r.valoracion === SstValoracion.SEGURO && r.hallazgo?.trim(),
+    );
+    if (!hallazgos.length && !seguroObs.length) {
+      md += `*Sin hallazgos ni observaciones en esta categoría.*\n`;
       continue;
     }
     for (const h of hallazgos) {
@@ -86,6 +89,13 @@ export function buildMarkdownReport(insp: SstInspection): string {
   **Plan de acción propuesto:** ${h.planAccionPropuesto ?? '—'}
   **Responsable / fecha compromiso:** ${h.responsablePlanAccion ?? '—'} — ${h.fechaCompromiso ?? '—'}
   **Estado:** ${h.estadoPlanAccion ?? '—'} (Reincidente #${h.reincidenciaCount ?? 0})
+`;
+    }
+    for (const s of seguroObs) {
+      md += `
+- **Ítem:** ${s.item?.pregunta ?? s.itemId}
+  **Valoración:** SEGURO
+  **Observación / nota de verificación:** ${s.hallazgo ?? '—'}
 `;
     }
   }
@@ -153,6 +163,21 @@ export function buildAsciiReport(insp: SstInspection): string {
     t += `   Responsable : ${h.responsablePlanAccion ?? '—'}   Fecha: ${h.fechaCompromiso ?? '—'}\n`;
     t += `   Estado      : ${h.estadoPlanAccion ?? '—'} (#${h.reincidenciaCount ?? 0})\n`;
     t += ' --------------------------------------------------------------------------\n';
+  }
+  t += '--------------------------------------------------------------------------------\n';
+  t += '3b. OBSERVACIONES EN ITEMS SEGURO\n';
+  t += '--------------------------------------------------------------------------------\n';
+  const seguroNotas = respuestas.filter(
+    (r) => r.valoracion === SstValoracion.SEGURO && r.hallazgo?.trim(),
+  );
+  if (!seguroNotas.length) {
+    t += ' (sin observaciones en ítems SEGURO)\n';
+  } else {
+    for (const s of seguroNotas) {
+      t += ` > Item        : ${s.item?.pregunta ?? s.itemId}\n`;
+      t += `   Observacion : ${s.hallazgo}\n`;
+      t += ' --------------------------------------------------------------------------\n';
+    }
   }
   t += '5. OBSERVACIONES\n';
   t += `${insp.observacionesGenerales ?? '—'}\n`;

@@ -88,8 +88,13 @@ export class SstPdfService {
       categoriesMap.set(cat, list);
     }
 
-    // Filtrar ítems riesgosos para la sección de hallazgos y fotos
+    // Riesgosos: hallazgos. Seguro con nota o foto: observación de verificación.
     const hallazgosItems = d.items.filter((i) => i.valoracion === 'RIESGOSO');
+    const seguroObsItems = d.items.filter(
+      (i) =>
+        i.valoracion === 'SEGURO' &&
+        (!!(i.hallazgo && i.hallazgo.trim()) || (i.evidencias && i.evidencias.length > 0)),
+    );
 
     // Filas de las 34 preguntas
     let tableCategoriesHtml = '';
@@ -112,11 +117,17 @@ export class SstPdfService {
             : it.valoracion === 'RIESGOSO'
               ? 'RIESGOSO'
               : 'N/A';
+        const note =
+          it.valoracion === 'SEGURO' && it.hallazgo?.trim()
+            ? `<div class="item-obs">Obs.: ${this.escape(it.hallazgo.trim())}</div>`
+            : it.valoracion === 'RIESGOSO' && it.hallazgo?.trim()
+              ? `<div class="item-obs item-obs-risk">Hallazgo: ${this.escape(it.hallazgo.trim())}</div>`
+              : '';
 
         tableCategoriesHtml += `
           <tr class="item-row ${it.valoracion === 'RIESGOSO' ? 'row-highlight-risk' : ''}">
             <td class="col-code">#${it.codigo}</td>
-            <td class="col-desc">${this.escape(it.pregunta)}</td>
+            <td class="col-desc">${this.escape(it.pregunta)}${note}</td>
             <td class="col-val"><span class="badge-val ${valClass}">${valLabel}</span></td>
           </tr>
         `;
@@ -181,6 +192,56 @@ export class SstPdfService {
         <div class="section-title">DETALLE DE HALLAZGOS Y EVIDENCIAS FOTOGRÁFICAS</div>
         <div class="no-hallazgos-box">
           ✓ No se evidenciaron hallazgos riesgosos durante la inspección planeada. Todas las condiciones evaluadas cumplen con los estándares de seguridad.
+        </div>
+      `;
+    }
+
+    let seguroObsHtml = '';
+    if (seguroObsItems.length > 0) {
+      seguroObsHtml = `
+        <div class="section-title">OBSERVACIONES EN ÍTEMS SEGURO (NOTA DE VERIFICACIÓN)</div>
+        <div class="hallazgos-grid">
+          ${seguroObsItems
+            .map((h) => {
+              let photosHtml = '';
+              if (h.evidencias && h.evidencias.length > 0) {
+                photosHtml = `
+                  <div class="photos-container">
+                    ${h.evidencias
+                      .map(
+                        (src) => `
+                      <div class="photo-card">
+                        <img src="${src}" alt="Foto de verificación" />
+                        <div class="photo-caption">Verificación # ${h.codigo}</div>
+                      </div>
+                    `,
+                      )
+                      .join('')}
+                  </div>
+                `;
+              }
+
+              const obsText = h.hallazgo?.trim()
+                ? this.escape(h.hallazgo.trim())
+                : 'Verificación fotográfica adjunta.';
+
+              return `
+                <div class="hallazgo-card hallazgo-card-safe">
+                  <div class="hallazgo-header hallazgo-header-safe">
+                    <span class="hallazgo-badge hallazgo-badge-safe">ÍTEM #${h.codigo} · SEGURO</span>
+                    <span class="hallazgo-question hallazgo-question-safe">${this.escape(h.pregunta)}</span>
+                  </div>
+                  <div class="hallazgo-body">
+                    <div class="h-row">
+                      <strong class="label-success">Observación / nota de verificación:</strong>
+                      <p class="h-text">${obsText}</p>
+                    </div>
+                    ${photosHtml}
+                  </div>
+                </div>
+              `;
+            })
+            .join('')}
         </div>
       `;
     }
@@ -408,6 +469,16 @@ export class SstPdfService {
     .row-highlight-risk {
       background: #fff1f2;
     }
+    .item-obs {
+      margin-top: 3px;
+      font-size: 7.5pt;
+      color: #0f766e;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .item-obs-risk {
+      color: #991b1b;
+    }
 
     /* Hallazgos y Fotos */
     .hallazgos-grid {
@@ -444,6 +515,19 @@ export class SstPdfService {
       font-size: 8.5pt;
       font-weight: 700;
       color: #991b1b;
+    }
+    .hallazgo-card-safe {
+      border-color: #34d399;
+    }
+    .hallazgo-header-safe {
+      background: #ecfdf5;
+      border-bottom-color: #a7f3d0;
+    }
+    .hallazgo-badge-safe {
+      background: #059669;
+    }
+    .hallazgo-question-safe {
+      color: #065f46;
     }
     .hallazgo-body {
       padding: 6px 10px;
@@ -653,6 +737,9 @@ export class SstPdfService {
 
   <!-- Detalle de Hallazgos y Fotografías -->
   ${hallazgosHtml}
+
+  <!-- Observaciones en ítems SEGURO -->
+  ${seguroObsHtml}
 
   <!-- Observaciones Generales -->
   ${
