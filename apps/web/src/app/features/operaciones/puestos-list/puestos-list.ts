@@ -234,9 +234,14 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                     Tipo de servicio
                     <input [name]="'cSvc' + i" [(ngModel)]="c.serviceType" maxlength="80" />
                   </label>
-                  <label>
-                    Valor de factura
-                    <input [name]="'cVal' + i" [(ngModel)]="c.invoiceValue" maxlength="80" />
+                  <label class="span-2">
+                    Valor
+                    <input
+                      [name]="'cVal' + i"
+                      [(ngModel)]="c.invoiceValue"
+                      maxlength="80"
+                      placeholder="Valor de la factura"
+                    />
                   </label>
                   <label class="check">
                     <input type="checkbox" [name]="'cArmed' + i" [(ngModel)]="c.armed" />
