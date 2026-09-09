@@ -21,7 +21,8 @@ function bascLabel(v: string | boolean | null | undefined): string {
 
 function dash(v: string | null | undefined): string {
   const t = v?.trim();
-  return t ? t : '—';
+  if (!t) return '—';
+  return /^\d+\.0+$/.test(t) ? t.replace(/\.0+$/, '') : t;
 }
 
 const DOC_FIELDS: { key: keyof OperacionesPost; label: string }[] = [
@@ -126,7 +127,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
               @for (p of pageRows(); track p.id) {
                 <tr [class.active]="selected()?.id === p.id">
                   <td><strong>{{ p.name }}</strong></td>
-                  <td>{{ p.nit || '—' }}</td>
+                  <td>{{ dash(p.nit) }}</td>
                   <td>{{ p.zone || '—' }}</td>
                   <td>{{ p.status }}</td>
                   <td>

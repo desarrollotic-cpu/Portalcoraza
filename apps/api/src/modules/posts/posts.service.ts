@@ -16,7 +16,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { PostContract } from './entities/post-contract.entity';
 import { PostOtrosi } from './entities/post-otrosi.entity';
 import { Post, PostStatus, PostType } from './entities/post.entity';
-import { blank, contractEmpty, otrosiEmpty } from './post-agreements.util';
+import { blank, contractEmpty, otrosiEmpty, stripExcelId } from './post-agreements.util';
 
 function splitAgreements(dto: CreatePostDto | UpdatePostDto) {
   const { contracts, otrosi, ...rest } = dto;
@@ -147,6 +147,8 @@ export class PostsService {
       ...rest,
       code,
       name: dto.name.trim(),
+      nit: stripExcelId(rest.nit),
+      legalRepId: stripExcelId(rest.legalRepId),
     });
     this.applyLastContract(post, contracts);
     const saved = await this.postsRepo.save(post);
@@ -184,6 +186,8 @@ export class PostsService {
       ...rest,
       ...(rest.code !== undefined ? { code: rest.code.trim() } : {}),
       ...(rest.name !== undefined ? { name: rest.name.trim() } : {}),
+      ...(rest.nit !== undefined ? { nit: stripExcelId(rest.nit) } : {}),
+      ...(rest.legalRepId !== undefined ? { legalRepId: stripExcelId(rest.legalRepId) } : {}),
     });
     this.applyLastContract(existing, contracts);
     const saved = await this.postsRepo.save(existing);
@@ -207,14 +211,27 @@ export class PostsService {
   private withAgreements(post: Post) {
     const contracts = [...(post.contracts ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
     const otrosi = [...(post.otrosi ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
-    return { ...post, contracts, otrosi };
+    return {
+      ...post,
+      contracts: contracts.map((c) => ({
+        ...c,
+        contractNumber: stripExcelId(c.contractNumber),
+      })),
+      otrosi: otrosi.map((o) => ({
+        ...o,
+        number: stripExcelId(o.number),
+      })),
+      nit: stripExcelId(post.nit),
+      legalRepId: stripExcelId(post.legalRepId),
+      contractNumber: stripExcelId(post.contractNumber),
+    };
   }
 
   private applyLastContract(post: Post, contracts?: PostContractItemDto[]) {
     if (!contracts) return;
     const last = [...contracts].reverse().find((c) => !contractEmpty(c));
     if (!last) return;
-    post.contractNumber = blank(last.contractNumber);
+    post.contractNumber = stripExcelId(last.contractNumber);
     post.contractStart = blank(last.contractStart);
     post.contractTerm = blank(last.contractTerm);
     post.contractEnd = blank(last.contractEnd);
@@ -235,7 +252,7 @@ export class PostsService {
         this.contractsRepo.create({
           postId,
           sortOrder: i,
-          contractNumber: blank(c.contractNumber),
+          contractNumber: stripExcelId(c.contractNumber),
           contractStart: blank(c.contractStart),
           contractTerm: blank(c.contractTerm),
           contractEnd: blank(c.contractEnd),
@@ -253,7 +270,7 @@ export class PostsService {
         this.otrosiRepo.create({
           postId,
           sortOrder: i,
-          number: blank(o.number),
+          number: stripExcelId(o.number),
           typeText: blank(o.typeText),
           dateText: blank(o.dateText),
           term: blank(o.term),

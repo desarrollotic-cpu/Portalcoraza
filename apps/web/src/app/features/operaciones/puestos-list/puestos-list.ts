@@ -32,6 +32,12 @@ function emptyContract(): PostContractRow {
   };
 }
 
+/** Solo dígitos + .0 de Excel. No toca 800.1, 857-1 ni decimales reales. */
+function stripExcelId(v: string | null | undefined): string {
+  const t = String(v ?? '').trim();
+  return /^\d+\.0+$/.test(t) ? t.replace(/\.0+$/, '') : t;
+}
+
 function emptyOtrosi(): PostOtrosiRow {
   return {
     number: '',
@@ -747,13 +753,13 @@ export class PuestosList implements OnInit {
       zone: p.zone ?? '',
       contactName: p.contactName ?? '',
       phone: p.phone ?? '',
-      contractNumber: p.contractNumber ?? '',
+      contractNumber: stripExcelId(p.contractNumber),
       serviceType: p.serviceType ?? '',
       armed: !!p.armed,
       contracts: (p.contracts?.length ? p.contracts : [this.seedContract(p)]).map((c) => ({
         ...emptyContract(),
         ...c,
-        contractNumber: c.contractNumber ?? '',
+        contractNumber: stripExcelId(c.contractNumber),
         contractStart: c.contractStart ?? '',
         contractTerm: c.contractTerm ?? '',
         contractEnd: c.contractEnd ?? '',
@@ -765,7 +771,7 @@ export class PuestosList implements OnInit {
       otrosi: (p.otrosi ?? []).map((o) => ({
         ...emptyOtrosi(),
         ...o,
-        number: o.number ?? '',
+        number: stripExcelId(o.number),
         typeText: o.typeText ?? '',
         dateText: o.dateText ?? '',
         term: o.term ?? '',
@@ -775,7 +781,7 @@ export class PuestosList implements OnInit {
       })),
       requirements: p.requirements ?? '',
       instructions: p.instructions ?? '',
-      nit: p.nit ?? '',
+      nit: stripExcelId(p.nit),
       sector: p.sector ?? undefined,
       basc: p.basc,
       contractStart: p.contractStart ?? '',
@@ -783,7 +789,7 @@ export class PuestosList implements OnInit {
       contractTerm: p.contractTerm ?? '',
       city: p.city ?? '',
       legalRepName: p.legalRepName ?? '',
-      legalRepId: p.legalRepId ?? '',
+      legalRepId: stripExcelId(p.legalRepId),
       contactEmail: p.contactEmail ?? '',
       observations: p.observations ?? '',
       docCamaraComercio: p.docCamaraComercio ?? '',
@@ -827,7 +833,7 @@ export class PuestosList implements OnInit {
   private seedContract(p: OperacionesPost): PostContractRow {
     return {
       ...emptyContract(),
-      contractNumber: p.contractNumber ?? '',
+      contractNumber: stripExcelId(p.contractNumber),
       contractStart: p.contractStart ?? '',
       contractTerm: p.contractTerm ?? '',
       contractEnd: p.contractEnd ?? '',
@@ -876,10 +882,12 @@ export class PuestosList implements OnInit {
       zone: trimStr(draft.zone),
       contactName: trimStr(draft.contactName),
       phone: trimStr(draft.phone),
-      contractNumber: trimStr(draft.contracts.at(-1)?.contractNumber ?? draft.contractNumber),
+      contractNumber: trimStr(
+        stripExcelId(draft.contracts.at(-1)?.contractNumber ?? draft.contractNumber),
+      ),
       serviceType: trimStr(draft.contracts.at(-1)?.serviceType ?? draft.serviceType),
       contracts: draft.contracts.map((c) => ({
-        contractNumber: trimStr(c.contractNumber) ?? '',
+        contractNumber: trimStr(stripExcelId(c.contractNumber)) ?? '',
         contractStart: trimStr(c.contractStart) ?? '',
         contractTerm: trimStr(c.contractTerm) ?? '',
         contractEnd: trimStr(c.contractEnd) ?? '',
@@ -889,7 +897,7 @@ export class PuestosList implements OnInit {
         armed: !!c.armed,
       })),
       otrosi: draft.otrosi.map((o) => ({
-        number: trimStr(o.number) ?? '',
+        number: trimStr(stripExcelId(o.number)) ?? '',
         typeText: trimStr(o.typeText) ?? '',
         dateText: trimStr(o.dateText) ?? '',
         term: trimStr(o.term) ?? '',
@@ -899,11 +907,11 @@ export class PuestosList implements OnInit {
       })),
       requirements: trimStr(draft.requirements),
       instructions: trimStr(draft.instructions),
-      nit: trimStr(draft.nit),
+      nit: trimStr(stripExcelId(draft.nit)),
       sector: trimStr(draft.sector),
       city: trimStr(draft.city),
       legalRepName: trimStr(draft.legalRepName),
-      legalRepId: trimStr(draft.legalRepId),
+      legalRepId: trimStr(stripExcelId(draft.legalRepId)),
       contactEmail: trimStr(draft.contactEmail),
       observations: trimStr(draft.observations),
       docEstadosFinancieros: trimStr(draft.docEstadosFinancieros),
