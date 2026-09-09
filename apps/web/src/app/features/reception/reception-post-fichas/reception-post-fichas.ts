@@ -5,6 +5,7 @@ import {
   OperacionesApiService,
   OperacionesPost,
   PostContractRow,
+  PostStatus,
 } from '../../operaciones/operaciones-api.service';
 
 function zoneNumber(zone: string | null | undefined): number {
@@ -90,12 +91,19 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
           <h2>Fichas de puestos</h2>
           <p>Consulta la ficha completa. Para crear o editar usa Gestionar puestos.</p>
         </div>
-        <input
-          type="search"
-          placeholder="Buscar nombre, NIT o cliente…"
-          [ngModel]="query()"
-          (ngModelChange)="setQuery($event)"
-        />
+        <div class="filters">
+          <input
+            type="search"
+            placeholder="Buscar nombre, NIT o cliente…"
+            [ngModel]="query()"
+            (ngModelChange)="setQuery($event)"
+          />
+          <select [ngModel]="statusFilter()" (ngModelChange)="setStatusFilter($event)">
+            <option value="">Todos</option>
+            <option value="ACTIVO">Activos</option>
+            <option value="INACTIVO">Inactivos</option>
+          </select>
+        </div>
       </header>
 
       @if (loading()) {
@@ -261,10 +269,12 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
     .head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
     .head p { margin: 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; max-width: 36rem; }
-    input[type='search'] {
+    .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    input[type='search'], select {
       border: 1px solid var(--border, #d1d5db); border-radius: 8px;
-      padding: 0.45rem 0.65rem; min-width: 240px; font: inherit;
+      padding: 0.45rem 0.65rem; font: inherit; background: #fff;
     }
+    input[type='search'] { min-width: 240px; }
     .table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border, #eee); }
@@ -305,6 +315,7 @@ export class ReceptionPostFichas implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly query = signal('');
+  readonly statusFilter = signal<'' | PostStatus>('');
   readonly page = signal(1);
   readonly pageSize = 50;
   readonly selected = signal<OperacionesPost | null>(null);
@@ -315,8 +326,10 @@ export class ReceptionPostFichas implements OnInit {
 
   readonly filtered = computed(() => {
     const q = this.query().trim().toLowerCase();
+    const st = this.statusFilter();
     return this.posts()
       .filter((p) => {
+        if (st && p.status !== st) return false;
         if (!q) return true;
         return [p.name, p.nit ?? '', p.clientName ?? '', p.zone ?? '']
           .join(' ')
@@ -348,6 +361,11 @@ export class ReceptionPostFichas implements OnInit {
 
   setQuery(value: string): void {
     this.query.set(value);
+    this.page.set(1);
+  }
+
+  setStatusFilter(value: '' | PostStatus): void {
+    this.statusFilter.set(value);
     this.page.set(1);
   }
 
