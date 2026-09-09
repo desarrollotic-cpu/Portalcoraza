@@ -15,6 +15,8 @@ export class PostOtrosiItemDto {
   @IsOptional() @IsString() @MaxLength(80) number?: string;
   @IsOptional() @IsString() @MaxLength(200) typeText?: string;
   @IsOptional() @IsString() @MaxLength(80) dateText?: string;
+  @IsOptional() @IsString() @MaxLength(80) term?: string;
+  @IsOptional() @IsString() @MaxLength(80) dateEnd?: string;
   @IsOptional() @IsString() @MaxLength(80) invoiceValue?: string;
   @IsOptional() @IsString() @MaxLength(80) serviceType?: string;
 }

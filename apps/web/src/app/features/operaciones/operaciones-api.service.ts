@@ -76,6 +76,8 @@ export interface PostOtrosiRow {
   number: string | null;
   typeText: string | null;
   dateText: string | null;
+  term: string | null;
+  dateEnd: string | null;
   invoiceValue: string | null;
   serviceType: string | null;
 }

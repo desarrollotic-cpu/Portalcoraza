@@ -36,6 +36,12 @@ export class PostOtrosi {
   @Column({ name: 'date_text', type: 'varchar', nullable: true, length: 80 })
   dateText!: string | null;
 
+  @Column({ type: 'varchar', nullable: true, length: 80 })
+  term!: string | null;
+
+  @Column({ name: 'date_end', type: 'varchar', nullable: true, length: 80 })
+  dateEnd!: string | null;
+
   @Column({ name: 'invoice_value', type: 'varchar', nullable: true, length: 80 })
   invoiceValue!: string | null;
 

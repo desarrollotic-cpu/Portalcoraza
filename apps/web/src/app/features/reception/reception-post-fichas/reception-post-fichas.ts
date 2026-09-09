@@ -179,7 +179,9 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                   <dl>
                     <dt>N.º otro sí</dt><dd>{{ dash(o.number) }}</dd>
                     <dt>Tipo de otro sí</dt><dd>{{ dash(o.typeText) }}</dd>
-                    <dt>Fecha</dt><dd>{{ dash(o.dateText) }}</dd>
+                    <dt>Fecha inicial</dt><dd>{{ dash(o.dateText) }}</dd>
+                    <dt>Tiempo de otro sí</dt><dd>{{ dash(o.term) }}</dd>
+                    <dt>Fecha final</dt><dd>{{ dash(o.dateEnd) }}</dd>
                     <dt>Valor</dt><dd>{{ dash(o.invoiceValue) }}</dd>
                     <dt>Tipo de servicio</dt><dd>{{ dash(o.serviceType) }}</dd>
                   </dl>

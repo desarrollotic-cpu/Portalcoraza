@@ -26,6 +26,8 @@ export function otrosiEmpty(o: PostOtrosiItemDto): boolean {
     !blank(o.number) &&
     !blank(o.typeText) &&
     !blank(o.dateText) &&
+    !blank(o.term) &&
+    !blank(o.dateEnd) &&
     !blank(o.invoiceValue) &&
     !blank(o.serviceType)
   );

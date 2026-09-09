@@ -37,6 +37,8 @@ function emptyOtrosi(): PostOtrosiRow {
     number: '',
     typeText: '',
     dateText: '',
+    term: '',
+    dateEnd: '',
     invoiceValue: '',
     serviceType: '',
   };
@@ -276,8 +278,16 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                     <input [name]="'oType' + i" [(ngModel)]="o.typeText" maxlength="200" />
                   </label>
                   <label>
-                    Fecha
-                    <input [name]="'oDate' + i" [(ngModel)]="o.dateText" maxlength="80" />
+                    Fecha inicial
+                    <input [name]="'oStart' + i" [(ngModel)]="o.dateText" maxlength="80" />
+                  </label>
+                  <label>
+                    Tiempo de otro sí
+                    <input [name]="'oTerm' + i" [(ngModel)]="o.term" maxlength="80" list="term-hints" />
+                  </label>
+                  <label>
+                    Fecha final
+                    <input [name]="'oEnd' + i" [(ngModel)]="o.dateEnd" maxlength="80" />
                   </label>
                   <label>
                     Valor
@@ -758,6 +768,8 @@ export class PuestosList implements OnInit {
         number: o.number ?? '',
         typeText: o.typeText ?? '',
         dateText: o.dateText ?? '',
+        term: o.term ?? '',
+        dateEnd: o.dateEnd ?? '',
         invoiceValue: o.invoiceValue ?? '',
         serviceType: o.serviceType ?? '',
       })),
@@ -880,6 +892,8 @@ export class PuestosList implements OnInit {
         number: trimStr(o.number) ?? '',
         typeText: trimStr(o.typeText) ?? '',
         dateText: trimStr(o.dateText) ?? '',
+        term: trimStr(o.term) ?? '',
+        dateEnd: trimStr(o.dateEnd) ?? '',
         invoiceValue: trimStr(o.invoiceValue) ?? '',
         serviceType: trimStr(o.serviceType) ?? '',
       })),

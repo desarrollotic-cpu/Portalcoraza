@@ -256,6 +256,8 @@ export class PostsService {
           number: blank(o.number),
           typeText: blank(o.typeText),
           dateText: blank(o.dateText),
+          term: blank(o.term),
+          dateEnd: blank(o.dateEnd),
           invoiceValue: blank(o.invoiceValue),
           serviceType: blank(o.serviceType),
         }),
