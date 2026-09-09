@@ -3,6 +3,7 @@ import { RouterOutlet } from '@angular/router';
 import {
   LucideBriefcaseBusiness,
   LucideClipboardPen,
+  LucideFileText,
   LucideHistory,
   LucideLayoutDashboard,
   LucideUsersRound,
@@ -43,6 +44,12 @@ export class ReceptionLayout {
       permission: 'reception.view',
       exact: true,
       icon: LucideBriefcaseBusiness,
+    },
+    {
+      label: 'Fichas de puestos',
+      route: '/recepcion/puestos/fichas',
+      permission: 'reception.view',
+      icon: LucideFileText,
     },
     {
       label: 'Gestionar puestos',

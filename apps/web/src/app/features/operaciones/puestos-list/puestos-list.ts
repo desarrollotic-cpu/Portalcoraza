@@ -7,10 +7,39 @@ import {
   CreateOperacionesPostPayload,
   OperacionesApiService,
   OperacionesPost,
+  PostContractRow,
+  PostOtrosiRow,
   PostStatus,
 } from '../operaciones-api.service';
 
-type Draft = CreateOperacionesPostPayload & { id?: string };
+type Draft = CreateOperacionesPostPayload & {
+  id?: string;
+  contracts: PostContractRow[];
+  otrosi: PostOtrosiRow[];
+};
+
+function emptyContract(): PostContractRow {
+  return {
+    contractNumber: '',
+    contractStart: '',
+    contractTerm: '',
+    contractEnd: '',
+    basc: '',
+    serviceType: '',
+    invoiceValue: '',
+    armed: false,
+  };
+}
+
+function emptyOtrosi(): PostOtrosiRow {
+  return {
+    number: '',
+    typeText: '',
+    dateText: '',
+    invoiceValue: '',
+    serviceType: '',
+  };
+}
 
 /** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
 const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
@@ -162,69 +191,99 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
             </div>
           </details>
 
-          <!-- 2. Contrato -->
           <details open>
-            <summary>Contrato</summary>
-            <div class="grid">
-              <label>
-                N.º contrato
-                <input name="contractNumber" [(ngModel)]="editing()!.contractNumber" maxlength="80" />
-              </label>
-              <label>
-                Fecha inicial ctto
-                <input
-                  name="contractStart"
-                  [(ngModel)]="editing()!.contractStart"
-                  maxlength="80"
-                  placeholder="2022-09-07 o tal cual el archivo"
-                />
-              </label>
-              <label>
-                Tiempo del ctto
-                <input
-                  name="contractTerm"
-                  [(ngModel)]="editing()!.contractTerm"
-                  maxlength="80"
-                  list="term-hints"
-                  placeholder="INDEFINIDO, 24 MESES, 2027-11-30 00:00:00…"
-                />
-              </label>
-              <label>
-                Fecha final ccto
-                <input
-                  name="contractEnd"
-                  [(ngModel)]="editing()!.contractEnd"
-                  maxlength="80"
-                  placeholder="INDEFINIDO, 24 MESES, 2027-11-30 00:00:00…"
-                />
-              </label>
-              <label>
-                BASC
-                <select name="basc" [ngModel]="boolStr(editing()!.basc)" (ngModelChange)="editing()!.basc = strBool($event)">
-                  <option [ngValue]="''">—</option>
-                  <option [ngValue]="'true'">SI</option>
-                  <option [ngValue]="'false'">NO</option>
-                </select>
-              </label>
-              <label>
-                Tipo de servicio
-                <input name="serviceType" [(ngModel)]="editing()!.serviceType" maxlength="80" />
-              </label>
-              <label>
-                Prioridad
-                <select name="priority" [(ngModel)]="editing()!.priority">
-                  <option [ngValue]="undefined">—</option>
-                  <option [ngValue]="'baja'">Baja</option>
-                  <option [ngValue]="'media'">Media</option>
-                  <option [ngValue]="'alta'">Alta</option>
-                  <option [ngValue]="'critica'">Crítica</option>
-                </select>
-              </label>
-              <label class="check">
-                <input type="checkbox" name="armed" [(ngModel)]="editing()!.armed" />
-                Con armamento
-              </label>
-            </div>
+            <summary>
+              Contrato
+              <button type="button" class="add" (click)="addContract($event)">+ Agregar contrato</button>
+            </summary>
+            @for (c of editing()!.contracts; track $index; let i = $index) {
+              <div class="subblock">
+                <div class="subhead">
+                  <strong>Contrato {{ i + 1 }}</strong>
+                  @if (i > 0) {
+                    <button type="button" class="link danger" (click)="removeContract(i)">Quitar</button>
+                  }
+                </div>
+                <div class="grid">
+                  <label>
+                    N.º contrato
+                    <input [name]="'cNum' + i" [(ngModel)]="c.contractNumber" maxlength="80" />
+                  </label>
+                  <label>
+                    Fecha inicial ctto
+                    <input [name]="'cStart' + i" [(ngModel)]="c.contractStart" maxlength="80" />
+                  </label>
+                  <label>
+                    Tiempo del ctto
+                    <input [name]="'cTerm' + i" [(ngModel)]="c.contractTerm" maxlength="80" list="term-hints" />
+                  </label>
+                  <label>
+                    Fecha final ccto
+                    <input [name]="'cEnd' + i" [(ngModel)]="c.contractEnd" maxlength="80" />
+                  </label>
+                  <label>
+                    BASC
+                    <select [name]="'cBasc' + i" [(ngModel)]="c.basc">
+                      <option [ngValue]="''">—</option>
+                      <option [ngValue]="'SI'">Sí</option>
+                      <option [ngValue]="'NO_APLICA'">No aplica</option>
+                    </select>
+                  </label>
+                  <label>
+                    Tipo de servicio
+                    <input [name]="'cSvc' + i" [(ngModel)]="c.serviceType" maxlength="80" />
+                  </label>
+                  <label>
+                    Valor de factura
+                    <input [name]="'cVal' + i" [(ngModel)]="c.invoiceValue" maxlength="80" />
+                  </label>
+                  <label class="check">
+                    <input type="checkbox" [name]="'cArmed' + i" [(ngModel)]="c.armed" />
+                    Con armamento
+                  </label>
+                </div>
+              </div>
+            }
+          </details>
+
+          <details open>
+            <summary>
+              Otro sí
+              <button type="button" class="add" (click)="addOtrosi($event)">+ Agregar otro sí</button>
+            </summary>
+            @if (!editing()!.otrosi.length) {
+              <p class="hint">No hay otrosí. Usa + para agregar uno.</p>
+            }
+            @for (o of editing()!.otrosi; track $index; let i = $index) {
+              <div class="subblock">
+                <div class="subhead">
+                  <strong>Otro sí {{ i + 1 }}</strong>
+                  <button type="button" class="link danger" (click)="removeOtrosi(i)">Quitar</button>
+                </div>
+                <div class="grid">
+                  <label>
+                    N.º otro sí
+                    <input [name]="'oNum' + i" [(ngModel)]="o.number" maxlength="80" />
+                  </label>
+                  <label>
+                    Tipo de otro sí
+                    <input [name]="'oType' + i" [(ngModel)]="o.typeText" maxlength="200" />
+                  </label>
+                  <label>
+                    Fecha
+                    <input [name]="'oDate' + i" [(ngModel)]="o.dateText" maxlength="80" />
+                  </label>
+                  <label>
+                    Valor
+                    <input [name]="'oVal' + i" [(ngModel)]="o.invoiceValue" maxlength="80" />
+                  </label>
+                  <label>
+                    Tipo de servicio
+                    <input [name]="'oSvc' + i" [(ngModel)]="o.serviceType" maxlength="80" />
+                  </label>
+                </div>
+              </div>
+            }
           </details>
 
           <!-- 3. Ubicación -->
@@ -448,7 +507,19 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     details > summary {
       cursor: pointer; font-weight: 600; font-size: 0.88rem; padding: 0.35rem 0;
       color: var(--text, #111827);
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     }
+    button.add {
+      border: 1px dashed var(--border, #d1d5db); background: #fff; color: inherit;
+      border-radius: 8px; padding: 0.2rem 0.55rem; font: inherit; font-size: 0.78rem;
+      cursor: pointer;
+    }
+    .subblock {
+      margin-top: 0.75rem; padding-top: 0.65rem;
+      border-top: 1px solid var(--border, #e5e7eb);
+    }
+    .subhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
+    .hint { margin: 0.5rem 0 0; font-size: 0.82rem; color: var(--text-muted, #6b7280); }
     .grid {
       display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.75rem; margin-top: 0.5rem;
@@ -552,12 +623,32 @@ export class PuestosList implements OnInit {
     return this.auth.hasPermission('posts.create') && this.router.url.startsWith('/recepcion');
   }
 
-  boolStr(v: boolean | null | undefined): string {
-    return v === true ? 'true' : v === false ? 'false' : '';
+  addContract(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const draft = this.editing();
+    if (!draft) return;
+    this.editing.set({ ...draft, contracts: [...draft.contracts, emptyContract()] });
   }
 
-  strBool(v: string): boolean | undefined {
-    return v === 'true' ? true : v === 'false' ? false : undefined;
+  removeContract(i: number): void {
+    const draft = this.editing();
+    if (!draft || i <= 0) return;
+    this.editing.set({ ...draft, contracts: draft.contracts.filter((_, idx) => idx !== i) });
+  }
+
+  addOtrosi(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const draft = this.editing();
+    if (!draft) return;
+    this.editing.set({ ...draft, otrosi: [...draft.otrosi, emptyOtrosi()] });
+  }
+
+  removeOtrosi(i: number): void {
+    const draft = this.editing();
+    if (!draft) return;
+    this.editing.set({ ...draft, otrosi: draft.otrosi.filter((_, idx) => idx !== i) });
   }
 
   getStr(key: keyof CreateOperacionesPostPayload): string {
@@ -595,6 +686,8 @@ export class PuestosList implements OnInit {
       type: 'SERVICIO_ESPECIAL',
       status: 'ACTIVO',
       armed: false,
+      contracts: [emptyContract()],
+      otrosi: [],
     });
   }
 
@@ -611,10 +704,30 @@ export class PuestosList implements OnInit {
       zone: p.zone ?? '',
       contactName: p.contactName ?? '',
       phone: p.phone ?? '',
-      priority: p.priority ?? '',
       contractNumber: p.contractNumber ?? '',
       serviceType: p.serviceType ?? '',
       armed: !!p.armed,
+      contracts: (p.contracts?.length ? p.contracts : [this.seedContract(p)]).map((c) => ({
+        ...emptyContract(),
+        ...c,
+        contractNumber: c.contractNumber ?? '',
+        contractStart: c.contractStart ?? '',
+        contractTerm: c.contractTerm ?? '',
+        contractEnd: c.contractEnd ?? '',
+        basc: c.basc ?? '',
+        serviceType: c.serviceType ?? '',
+        invoiceValue: c.invoiceValue ?? '',
+        armed: !!c.armed,
+      })),
+      otrosi: (p.otrosi ?? []).map((o) => ({
+        ...emptyOtrosi(),
+        ...o,
+        number: o.number ?? '',
+        typeText: o.typeText ?? '',
+        dateText: o.dateText ?? '',
+        invoiceValue: o.invoiceValue ?? '',
+        serviceType: o.serviceType ?? '',
+      })),
       requirements: p.requirements ?? '',
       instructions: p.instructions ?? '',
       nit: p.nit ?? '',
@@ -666,6 +779,19 @@ export class PuestosList implements OnInit {
     this.editing.set(null);
   }
 
+  private seedContract(p: OperacionesPost): PostContractRow {
+    return {
+      ...emptyContract(),
+      contractNumber: p.contractNumber ?? '',
+      contractStart: p.contractStart ?? '',
+      contractTerm: p.contractTerm ?? '',
+      contractEnd: p.contractEnd ?? '',
+      basc: p.basc === true ? 'SI' : p.basc === false ? 'NO_APLICA' : '',
+      serviceType: p.serviceType ?? '',
+      armed: !!p.armed,
+    };
+  }
+
   /** Código interno no visible; la BD lo exige único. */
   private autoCode(name: string): string {
     const slug = name
@@ -705,9 +831,25 @@ export class PuestosList implements OnInit {
       zone: trimStr(draft.zone),
       contactName: trimStr(draft.contactName),
       phone: trimStr(draft.phone),
-      priority: trimStr(draft.priority),
-      contractNumber: trimStr(draft.contractNumber),
-      serviceType: trimStr(draft.serviceType),
+      contractNumber: trimStr(draft.contracts.at(-1)?.contractNumber ?? draft.contractNumber),
+      serviceType: trimStr(draft.contracts.at(-1)?.serviceType ?? draft.serviceType),
+      contracts: draft.contracts.map((c) => ({
+        contractNumber: trimStr(c.contractNumber) ?? '',
+        contractStart: trimStr(c.contractStart) ?? '',
+        contractTerm: trimStr(c.contractTerm) ?? '',
+        contractEnd: trimStr(c.contractEnd) ?? '',
+        basc: trimStr(c.basc) ?? '',
+        serviceType: trimStr(c.serviceType) ?? '',
+        invoiceValue: trimStr(c.invoiceValue) ?? '',
+        armed: !!c.armed,
+      })),
+      otrosi: draft.otrosi.map((o) => ({
+        number: trimStr(o.number) ?? '',
+        typeText: trimStr(o.typeText) ?? '',
+        dateText: trimStr(o.dateText) ?? '',
+        invoiceValue: trimStr(o.invoiceValue) ?? '',
+        serviceType: trimStr(o.serviceType) ?? '',
+      })),
       requirements: trimStr(draft.requirements),
       instructions: trimStr(draft.instructions),
       nit: trimStr(draft.nit),

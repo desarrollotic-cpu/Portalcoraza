@@ -59,6 +59,27 @@ export interface PostClientFields {
   verifSupersociedades: string | null;
 }
 
+export interface PostContractRow {
+  id?: string;
+  contractNumber: string | null;
+  contractStart: string | null;
+  contractTerm: string | null;
+  contractEnd: string | null;
+  basc: string | null;
+  serviceType: string | null;
+  invoiceValue: string | null;
+  armed: boolean;
+}
+
+export interface PostOtrosiRow {
+  id?: string;
+  number: string | null;
+  typeText: string | null;
+  dateText: string | null;
+  invoiceValue: string | null;
+  serviceType: string | null;
+}
+
 export interface OperacionesPost extends PostClientFields {
   id: string;
   code: string;
@@ -80,6 +101,8 @@ export interface OperacionesPost extends PostClientFields {
   workCenterId: string | null;
   createdAt: string;
   updatedAt: string;
+  contracts?: PostContractRow[];
+  otrosi?: PostOtrosiRow[];
 }
 
 export type CreateOperacionesPostPayload = {
@@ -99,6 +122,8 @@ export type CreateOperacionesPostPayload = {
   armed?: boolean;
   requirements?: string;
   instructions?: string;
+  contracts?: PostContractRow[];
+  otrosi?: PostOtrosiRow[];
 } & Partial<PostClientFields>;
 
 export type UpdateOperacionesPostPayload = Partial<CreateOperacionesPostPayload>;

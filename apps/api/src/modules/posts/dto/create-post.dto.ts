@@ -1,12 +1,16 @@
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsOptional,
   IsString,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 // ponytail: fechas de contrato y verif_* son texto libre (tal cual el archivo).
 import { PostStatus, PostType } from '../entities/post.entity';
+import { PostContractItemDto, PostOtrosiItemDto } from './post-agreements.dto';
 
 export class CreatePostDto {
   @IsString()
@@ -80,4 +84,16 @@ export class CreatePostDto {
   @IsOptional() @IsString() @MaxLength(30) verifContraloriaRevFiscalSup?: string;
   @IsOptional() @IsString() @MaxLength(30) verifContraloriaMiembrosJunta?: string;
   @IsOptional() @IsString() @MaxLength(30) verifSupersociedades?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PostContractItemDto)
+  contracts?: PostContractItemDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PostOtrosiItemDto)
+  otrosi?: PostOtrosiItemDto[];
 }

@@ -545,6 +545,18 @@ export const routes: Routes = [
               ).then((m) => m.ReceptionPostsDashboard),
           },
           {
+            path: 'puestos/fichas',
+            canActivate: [permissionGuard],
+            data: {
+              permissions: ['reception.view', 'posts.view'],
+              permissionMode: 'any',
+            },
+            loadComponent: () =>
+              import(
+                './features/reception/reception-post-fichas/reception-post-fichas'
+              ).then((m) => m.ReceptionPostFichas),
+          },
+          {
             path: 'puestos/gestionar',
             canActivate: [permissionGuard],
             data: { permission: 'posts.create' },

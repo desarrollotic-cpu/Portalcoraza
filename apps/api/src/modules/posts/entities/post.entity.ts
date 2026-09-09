@@ -2,9 +2,12 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { PostContract } from './post-contract.entity';
+import { PostOtrosi } from './post-otrosi.entity';
 
 export enum PostStatus {
   ACTIVO = 'ACTIVO',
@@ -221,6 +224,12 @@ export class Post {
 
   @Column({ name: 'verif_supersociedades', type: 'varchar', nullable: true, length: 30 })
   verifSupersociedades!: string | null;
+
+  @OneToMany(() => PostContract, (row) => row.post)
+  contracts?: PostContract[];
+
+  @OneToMany(() => PostOtrosi, (row) => row.post)
+  otrosi?: PostOtrosi[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
