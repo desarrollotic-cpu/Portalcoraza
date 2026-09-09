@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { of, switchMap } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { getTallasDisponibles, requiereTalla } from '../config/tallas.config';
 import { InventoryApiService, InventoryVariant } from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
@@ -197,6 +198,7 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
 })
 export class AddStockDialog {
   private readonly api = inject(InventoryApiService);
+  private readonly auth = inject(AuthService);
   private readonly fb = inject(FormBuilder);
 
   readonly open = input(false);
@@ -245,8 +247,17 @@ export class AddStockDialog {
   });
 
   readonly displayStock = computed(() => {
+    const warehouseId =
+      this.auth.currentUser()?.warehouseId ?? this.auth.currentUser()?.warehouse?.id ?? null;
+    const qty = (v: InventoryVariant | null | undefined) => {
+      if (!v) return 0;
+      if (warehouseId) {
+        return Number(v.stocks?.find((s) => s.warehouseId === warehouseId)?.quantity ?? 0);
+      }
+      return Number(v.stockOwn ?? 0);
+    };
     if (!this.needsSize()) {
-      return this.variant()?.stockOwn ?? this.variant()?.stockCurrent ?? 0;
+      return qty(this.variant());
     }
     const { genero, talla } = this.selection();
     if (talla) {
@@ -255,9 +266,9 @@ export class AddStockDialog {
         if (!this.needsGender()) return true;
         return variantGenero(x) === genero;
       });
-      if (matched) return matched.stockOwn ?? matched.stockCurrent ?? 0;
+      if (matched) return qty(matched);
     }
-    return this.variant()?.stockOwn ?? this.variant()?.stockCurrent ?? 0;
+    return qty(this.variant());
   });
 
   constructor() {

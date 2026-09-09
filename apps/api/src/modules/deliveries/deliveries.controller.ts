@@ -75,8 +75,8 @@ export class DeliveriesController {
 
   @Get('overview')
   @RequirePermissions('inventory.view')
-  overview() {
-    return this.deliveriesService.getOverview();
+  overview(@CurrentUser() user: JwtPayload) {
+    return this.deliveriesService.getOverview(user.sub);
   }
 
   @Get('without-dotacion')

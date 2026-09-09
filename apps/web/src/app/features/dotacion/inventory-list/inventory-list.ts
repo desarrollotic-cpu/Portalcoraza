@@ -1,18 +1,21 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { AddStockDialog } from '../add-stock-dialog/add-stock-dialog';
-import { InventoryApiService, InventoryItem, InventoryVariant } from '../inventory-api.service';
+import {
+  InventoryApiService,
+  InventoryItem,
+  InventoryVariant,
+  InventoryWarehouse,
+} from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
 
 interface ItemRow {
   item: InventoryItem;
   variants: InventoryVariant[];
   groups: VariantGroup[];
-  stockMedellin: number;
-  stockRionegro: number;
   primaryVariant: InventoryVariant | null;
 }
 
@@ -67,8 +70,13 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       <header class="toolbar">
         <div>
           <h2>Inventario de Dotación</h2>
-          @if (auth.currentUser()?.warehouse?.name; as wh) {
-            <p class="muted">Tu almacén: <strong>{{ wh }}</strong>. Ves las dos sedes; solo cargas y trasladas desde la tuya.</p>
+          @if (ownWarehouseName(); as wh) {
+            <p class="muted">
+              Entregas e ingresos salen de <strong>{{ wh }}</strong>.
+              @if (!canWriteSelected()) {
+                Estás consultando otro almacén: solo lectura.
+              }
+            </p>
           }
         </div>
         @if (auth.hasPermission('inventory.create')) {
@@ -81,14 +89,30 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       } @else if (error()) {
         <p class="error">{{ error() }}</p>
       } @else {
+        <nav class="wh-tabs" aria-label="Almacenes">
+          @for (w of warehouses(); track w.id) {
+            <button
+              type="button"
+              class="wh-tab"
+              [class.active]="selectedCode() === w.code"
+              (click)="selectedCode.set(w.code)"
+            >
+              Almacén {{ w.name }}
+              @if (ownCode() === w.code) {
+                <span class="wh-tag">Tu almacén</span>
+              } @else if (ownCode()) {
+                <span class="wh-tag muted">Solo lectura</span>
+              }
+            </button>
+          }
+        </nav>
         <table>
           <thead>
             <tr>
               <th>Elemento</th>
               <th>Código</th>
               <th>Categoría</th>
-              <th>Medellín</th>
-              <th>Rionegro</th>
+              <th>Stock {{ selectedName() }}</th>
               <th>Acciones</th>
             </tr>
           </thead>
@@ -111,12 +135,8 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
                             @for (v of group.variants; track v.id) {
                               <span class="size-chip">
                                 <span class="size-chip__main">{{ chipLabel(v, !!group.label) }}</span>
-                                <span class="size-chip__stock">
-                                  M&nbsp;{{ stockOf(v, 'MEDELLIN') }}
-                                  <span class="size-chip__sep">·</span>
-                                  R&nbsp;{{ stockOf(v, 'RIONEGRO') }}
-                                </span>
-                                @if (auth.hasPermission('inventory.move')) {
+                                <span class="size-chip__stock">{{ stockOf(v, selectedCode()) }}</span>
+                                @if (canWriteSelected()) {
                                   <button type="button" class="chip-btn" (click)="openAddStock(v, row.item, row.variants)">+ stock</button>
                                   <button type="button" class="chip-btn" (click)="openTransfer(v, row.item)">traslado</button>
                                 }
@@ -131,17 +151,12 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
                 <td><code>{{ row.item.code }}</code></td>
                 <td>{{ row.item.category?.name ?? '—' }}</td>
                 <td>
-                  <span [class.stock-ok]="row.stockMedellin > 0" [class.stock-zero]="row.stockMedellin === 0">
-                    {{ row.stockMedellin }}
-                  </span>
-                </td>
-                <td>
-                  <span [class.stock-ok]="row.stockRionegro > 0" [class.stock-zero]="row.stockRionegro === 0">
-                    {{ row.stockRionegro }}
+                  <span [class.stock-ok]="stockSelected(row) > 0" [class.stock-zero]="stockSelected(row) === 0">
+                    {{ stockSelected(row) }}
                   </span>
                 </td>
                 <td class="actions-cell">
-                  @if (row.primaryVariant && auth.hasPermission('inventory.move')) {
+                  @if (row.primaryVariant && canWriteSelected()) {
                     <button
                       type="button"
                       class="btn-stock"
@@ -169,7 +184,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
               </tr>
             } @empty {
               <tr>
-                <td colspan="6">No hay elementos. Usa “Agregar elemento” para crear el primero.</td>
+                <td colspan="5">No hay elementos. Usa “Agregar elemento” para crear el primero.</td>
               </tr>
             }
           </tbody>
@@ -196,7 +211,9 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
         </p>
         <p class="muted">
           Sale de <strong>{{ auth.currentUser()?.warehouse?.name ?? 'tu almacén' }}</strong>
-          ({{ v.stockCurrent }} und. en tu sede).
+          hacia <strong>{{ destWarehouseName() }}</strong>
+          ({{ stockOf(v, ownCode() ?? selectedCode()) }} und. en tu sede).
+          No puedes sacar stock del almacén contrario.
         </p>
         <label class="transfer-qty">
           Cantidad
@@ -255,6 +272,40 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       flex-wrap: wrap;
     }
     h2 { margin: 0; font-size: 1.2rem; }
+    .wh-tabs {
+      display: flex;
+      gap: 0.4rem;
+      margin: 0 0 1rem;
+      flex-wrap: wrap;
+    }
+    .wh-tab {
+      border: 1px solid var(--coraza-border, #e5e5e5);
+      background: #fff;
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      cursor: pointer;
+      font: inherit;
+      font-size: 0.88rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .wh-tab.active {
+      background: var(--primary, #1d4ed8);
+      border-color: var(--primary, #1d4ed8);
+      color: #fff;
+    }
+    .wh-tag {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      background: rgba(255,255,255,0.2);
+      border-radius: 999px;
+      padding: 0.1rem 0.4rem;
+    }
+    .wh-tab:not(.active) .wh-tag { background: #e2e8f0; color: #475569; }
+    .wh-tag.muted { font-weight: 600; }
     .btn-primary {
       display: inline-block;
       padding: 0.55rem 1rem;
@@ -437,6 +488,8 @@ export class InventoryList implements OnInit {
   readonly auth = inject(AuthService);
 
   readonly rows = signal<ItemRow[]>([]);
+  readonly warehouses = signal<InventoryWarehouse[]>([]);
+  readonly selectedCode = signal('MEDELLIN');
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly stockDialogOpen = signal(false);
@@ -454,7 +507,23 @@ export class InventoryList implements OnInit {
   readonly deleting = signal(false);
   readonly deleteError = signal<string | null>(null);
 
+  readonly ownCode = computed(() => this.auth.currentUser()?.warehouse?.code ?? null);
+  readonly ownWarehouseName = computed(() => this.auth.currentUser()?.warehouse?.name ?? null);
+  readonly selectedName = computed(
+    () => this.warehouses().find((w) => w.code === this.selectedCode())?.name ?? this.selectedCode(),
+  );
+  readonly canWriteSelected = computed(() => {
+    const own = this.ownCode();
+    return !!own && own === this.selectedCode() && this.auth.hasPermission('inventory.move');
+  });
+  readonly destWarehouseName = computed(() => {
+    const own = this.ownCode();
+    return this.warehouses().find((w) => w.code !== own)?.name ?? 'la otra sede';
+  });
+
   ngOnInit(): void {
+    const own = this.auth.currentUser()?.warehouse?.code;
+    if (own) this.selectedCode.set(own);
     this.reload();
   }
 
@@ -474,8 +543,13 @@ export class InventoryList implements OnInit {
     return parts.length ? parts.join(' · ') : v.sku;
   }
 
-  stockOf(v: InventoryVariant, code: string): number {
+  stockOf(v: InventoryVariant, code: string | null): number {
+    if (!code) return 0;
     return v.stocks?.find((s) => s.warehouseCode === code)?.quantity ?? 0;
+  }
+
+  stockSelected(row: ItemRow): number {
+    return row.variants.reduce((sum, v) => sum + this.stockOf(v, this.selectedCode()), 0);
   }
 
   openAddStock(variant: InventoryVariant, item: InventoryItem, variants?: InventoryVariant[]): void {
@@ -572,8 +646,13 @@ export class InventoryList implements OnInit {
     forkJoin({
       items: this.api.listItems(),
       variants: this.api.listVariants(),
+      warehouses: this.api.listWarehouses(),
     }).subscribe({
-      next: ({ items, variants }) => {
+      next: ({ items, variants, warehouses }) => {
+        this.warehouses.set(warehouses);
+        if (!warehouses.some((w) => w.code === this.selectedCode()) && warehouses[0]) {
+          this.selectedCode.set(this.ownCode() ?? warehouses[0].code);
+        }
         const byItem = new Map<string, InventoryVariant[]>();
         for (const v of variants) {
           const list = byItem.get(v.itemId) ?? [];
@@ -587,8 +666,6 @@ export class InventoryList implements OnInit {
               item,
               variants: itemVariants,
               groups: groupVariants(itemVariants),
-              stockMedellin: itemVariants.reduce((sum, v) => sum + this.stockOf(v, 'MEDELLIN'), 0),
-              stockRionegro: itemVariants.reduce((sum, v) => sum + this.stockOf(v, 'RIONEGRO'), 0),
               primaryVariant: itemVariants[0] ?? null,
             };
           }),

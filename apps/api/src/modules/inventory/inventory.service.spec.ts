@@ -38,4 +38,13 @@ describe('InventoryService warehouse writes', () => {
       ),
     ).rejects.toThrow(ForbiddenException);
   });
+
+  it('quantityAt lee solo el almacén pedido', async () => {
+    const stockRepo = { findOne: jest.fn().mockResolvedValue({ quantity: 4 }) };
+    const { service } = buildService({ stockRepo });
+    await expect(service.quantityAt('v1', 'wh-rio')).resolves.toBe(4);
+    expect(stockRepo.findOne).toHaveBeenCalledWith({
+      where: { variantId: 'v1', warehouseId: 'wh-rio' },
+    });
+  });
 });

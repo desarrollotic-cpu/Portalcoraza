@@ -6,7 +6,6 @@ import {
   LucideLayoutDashboard,
   LucidePackageSearch,
   LucideUsers,
-  LucideUsersRound,
 } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
@@ -38,12 +37,6 @@ export class DotacionLayout {
       permission: 'inventory.view',
       exact: true,
       icon: LucideUsers,
-    },
-    {
-      label: 'Personal',
-      route: '/rrhh/asociados',
-      permission: 'associates.view',
-      icon: LucideUsersRound,
     },
     {
       label: 'Inventario',

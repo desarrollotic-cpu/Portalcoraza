@@ -196,7 +196,7 @@ export class DeliveriesService {
     };
   }
 
-  async getOverview(): Promise<DotacionOverviewDto> {
+  async getOverview(userId?: string): Promise<DotacionOverviewDto> {
     const now = new Date();
     const todayStart = new Date(now);
     todayStart.setHours(0, 0, 0, 0);
@@ -204,9 +204,12 @@ export class DeliveriesService {
     weekStart.setDate(weekStart.getDate() - 7);
     weekStart.setHours(0, 0, 0, 0);
 
+    const actorWh = userId ? await this.inventoryService.findActorWarehouse(userId) : null;
+    const warehouseId = actorWh?.id ?? null;
+
     // Secuencial a propósito (pooler Supabase session ~5).
-    const lowStockCount = await this.inventoryService.countLowStockVariants();
-    const lowStockVariants = await this.inventoryService.listLowStockVariants(8);
+    const lowStockCount = await this.inventoryService.countLowStockVariants(warehouseId);
+    const lowStockVariants = await this.inventoryService.listLowStockVariants(8, warehouseId);
     const pendingDeliveries = await this.deliveriesRepo.count({
       where: { status: DeliveryStatus.PENDING },
     });
@@ -492,6 +495,15 @@ export class DeliveriesService {
 
     if (variants.length !== variantIds.length) {
       throw new NotFoundException('Variante de inventario no encontrada');
+    }
+
+    for (const line of dto.items) {
+      const available = await this.inventoryService.quantityAt(line.variantId, warehouse.id);
+      if (available < line.quantity) {
+        throw new ConflictException(
+          `No hay stock en ${warehouse.name} para completar esta entrega`,
+        );
+      }
     }
 
     const delivery = await this.deliveriesRepo.save(

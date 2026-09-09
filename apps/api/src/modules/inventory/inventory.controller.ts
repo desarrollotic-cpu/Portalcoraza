@@ -91,8 +91,8 @@ export class InventoryController {
 
   @Get('variants')
   @RequirePermissions('inventory.view')
-  listVariants(@Query('itemId') itemId?: string, @CurrentUser() user?: JwtPayload) {
-    return this.inventoryService.listVariants(itemId, user?.sub);
+  listVariants(@CurrentUser() user: JwtPayload, @Query('itemId') itemId?: string) {
+    return this.inventoryService.listVariants(itemId, user.sub);
   }
 
   @Post('variants')
@@ -142,12 +142,12 @@ export class InventoryController {
   @Get('variants/available-stock')
   @RequirePermissions('inventory.view')
   availableStock(
+    @CurrentUser() user: JwtPayload,
     @Query('category') category: string,
     @Query('talla') talla?: string,
     @Query('genero') genero?: string,
-    @CurrentUser() user?: JwtPayload,
   ) {
-    return this.inventoryService.getAvailableStock(category, talla, genero, user?.sub);
+    return this.inventoryService.getAvailableStock(category, talla, genero, user.sub);
   }
 
   @Post('validate-stock')

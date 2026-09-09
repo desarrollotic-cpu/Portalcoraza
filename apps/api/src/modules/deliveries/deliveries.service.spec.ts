@@ -19,6 +19,8 @@ describe('DeliveriesService', () => {
   let inventoryService: {
     requireActorWarehouse: jest.Mock;
     changeStocks: jest.Mock;
+    findActorWarehouse: jest.Mock;
+    quantityAt: jest.Mock;
   };
   let storage: {
     uploadPublicObject: jest.Mock;
@@ -104,6 +106,12 @@ describe('DeliveriesService', () => {
               name: 'Medellín',
             }),
             changeStocks: jest.fn().mockResolvedValue(undefined),
+            findActorWarehouse: jest.fn().mockResolvedValue({
+              id: 'wh-med',
+              code: 'MEDELLIN',
+              name: 'Medellín',
+            }),
+            quantityAt: jest.fn().mockResolvedValue(99),
           },
         },
       ],

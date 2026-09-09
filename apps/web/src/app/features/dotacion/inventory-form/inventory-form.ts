@@ -1,12 +1,13 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   InventoryApiService,
   InventoryCategory,
   InventoryVariant,
 } from '../inventory-api.service';
-import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
+import { ModalShell } from '../modal-shell/modal-shell';
 
 /**
  * Alta simple al estilo de la app de almacén:
@@ -15,7 +16,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
  */
 @Component({
   selector: 'app-inventory-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, ModalShell],
   template: `
     <section class="inv-form">
       <header class="inv-form__head">
@@ -26,7 +27,8 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
             @if (!itemId()) {
               Se crea para hombre y mujer. El stock se agrega después, solo en tu almacén.
             } @else {
-              Código del sistema: <strong>{{ assignedCode() || '—' }}</strong>
+              Código del sistema: <strong>{{ assignedCode() || '—' }}</strong>.
+              El stock no se edita aquí: se mueve con ingresos, entregas, traslados o reversiones.
             }
           </p>
         </div>
@@ -36,7 +38,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
         <p class="error">{{ error() }}</p>
       }
 
-      <form [formGroup]="form" (ngSubmit)="saveItem()" class="card">
+      <form [formGroup]="form" (ngSubmit)="askSaveItem()" class="card">
         <label class="field-name">
           Nombre del elemento *
           <input
@@ -64,23 +66,6 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
             Stock mínimo
             <input formControlName="lowStockThreshold" type="number" min="0" />
           </label>
-          @if (!itemId()) {
-            <label>
-              Cantidad inicial
-              <input formControlName="initialStock" type="number" min="0" />
-            </label>
-            @if ((form.controls.initialStock.value || 0) > 0) {
-              <label>
-                Motivo de entrada *
-                <select formControlName="initialStockReason">
-                  <option value="">Seleccione...</option>
-                  @for (r of entryReasons; track r) {
-                    <option [value]="r">{{ r }}</option>
-                  }
-                </select>
-              </label>
-            }
-          }
         </div>
 
         @if (!itemId()) {
@@ -100,6 +85,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
           <h3>Tallas / variantes</h3>
           <p class="hint">
             El elemento ya tiene línea hombre y mujer. Agrega tallas por género si hace falta.
+            Para cargar unidades usa “Agregar stock” en el inventario.
           </p>
 
           @if (variants().length) {
@@ -107,7 +93,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
               @for (v of variants(); track v.id) {
                 <li>
                   <strong>{{ v.sku }}</strong>
-                  <span>stock {{ v.stockCurrent }}</span>
+                  <span>stock {{ variantStock(v) }}</span>
                   @if (attrsLabel(v)) {
                     <span class="muted">{{ attrsLabel(v) }}</span>
                   }
@@ -116,7 +102,7 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
             </ul>
           }
 
-          <form [formGroup]="variantForm" (ngSubmit)="addVariant()" class="variant-form">
+          <form [formGroup]="variantForm" (ngSubmit)="askAddVariant()" class="variant-form">
             <div class="grid">
               <label>Género *
                 <select formControlName="genero">
@@ -126,18 +112,6 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
               </label>
               <label>Talla<input formControlName="talla" placeholder="Ej. M, 40..." /></label>
               <label>Color<input formControlName="color" placeholder="Opcional" /></label>
-              <label>Stock inicial<input formControlName="initialStock" type="number" min="0" /></label>
-              @if ((variantForm.controls.initialStock.value || 0) > 0) {
-                <label>
-                  Motivo de entrada *
-                  <select formControlName="entryReason">
-                    <option value="">Seleccione...</option>
-                    @for (r of entryReasons; track r) {
-                      <option [value]="r">{{ r }}</option>
-                    }
-                  </select>
-                </label>
-              }
             </div>
             <button type="submit" class="btn-ghost" [disabled]="saving()">
               Agregar talla
@@ -145,6 +119,22 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
           </form>
         </section>
       }
+
+      <app-modal-shell
+        [open]="confirmOpen()"
+        [title]="confirmTitle()"
+        (closed)="closeConfirm()"
+      >
+        <p class="confirm-text">{{ confirmBody() }}</p>
+        <div class="confirm-actions">
+          <button type="button" class="btn-ghost" (click)="closeConfirm()" [disabled]="saving()">
+            Cancelar
+          </button>
+          <button type="button" class="btn-primary" (click)="acceptConfirm()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : 'Aceptar' }}
+          </button>
+        </div>
+      </app-modal-shell>
     </section>
   `,
   styles: `
@@ -247,6 +237,8 @@ import { ENTRY_REASONS } from '../add-stock-dialog/add-stock-dialog';
     .variant-form { margin-top: 0.75rem; }
     .error { color: #b91c1c; }
     .field-warn { color: #b45309; margin-top: 0.25rem; font-size: 0.8rem; }
+    .confirm-text { margin: 0 0 1rem; font-size: 0.95rem; line-height: 1.45; }
+    .confirm-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
   `,
 })
 export class InventoryForm implements OnInit {
@@ -254,6 +246,7 @@ export class InventoryForm implements OnInit {
   private readonly api = inject(InventoryApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly auth = inject(AuthService);
 
   readonly itemId = signal<string | null>(null);
   readonly assignedCode = signal<string>('');
@@ -261,25 +254,38 @@ export class InventoryForm implements OnInit {
   readonly variants = signal<InventoryVariant[]>([]);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
+  readonly confirmOpen = signal(false);
+  readonly confirmKind = signal<'item' | 'variant' | null>(null);
 
   readonly title = computed(() => (this.itemId() ? 'Editar elemento' : 'Agregar elemento'));
+  readonly confirmTitle = computed(() =>
+    this.confirmKind() === 'variant'
+      ? 'Confirmar talla'
+      : this.itemId()
+        ? 'Confirmar edición'
+        : 'Confirmar elemento',
+  );
+  readonly confirmBody = computed(() => {
+    if (this.confirmKind() === 'variant') {
+      return '¿Está seguro que desea agregar esta talla? El stock se carga después con Agregar stock.';
+    }
+    const name = this.form.controls.name.value.trim() || 'este elemento';
+    if (this.itemId()) {
+      return `¿Está seguro que desea editar el nombre y los datos de “${name}”? El stock no cambia con esta acción.`;
+    }
+    return `¿Está seguro que desea agregar el elemento “${name}”? El stock se carga después, solo en su almacén.`;
+  });
 
   readonly form = this.fb.nonNullable.group({
     categoryId: ['', Validators.required],
     name: ['', [Validators.required, Validators.minLength(2)]],
     lowStockThreshold: [10, [Validators.min(0)]],
-    initialStock: [0, [Validators.min(0)]],
-    initialStockReason: [''],
   });
-
-  readonly entryReasons = ENTRY_REASONS;
 
   readonly variantForm = this.fb.nonNullable.group({
     genero: ['M', Validators.required],
     talla: [''],
     color: [''],
-    initialStock: [0, [Validators.min(0)]],
-    entryReason: [''],
   });
 
   ngOnInit(): void {
@@ -294,6 +300,46 @@ export class InventoryForm implements OnInit {
       next: (cats) => this.categories.set(cats),
       error: () => this.error.set('No se pudieron cargar categorías'),
     });
+  }
+
+  askSaveItem(): void {
+    if (this.form.invalid) return;
+    this.confirmKind.set('item');
+    this.confirmOpen.set(true);
+  }
+
+  askAddVariant(): void {
+    const { talla, color } = this.variantForm.getRawValue();
+    if (!talla.trim() && !color.trim()) {
+      this.error.set('Indica al menos talla o color para la variante');
+      return;
+    }
+    this.error.set(null);
+    this.confirmKind.set('variant');
+    this.confirmOpen.set(true);
+  }
+
+  closeConfirm(): void {
+    if (this.saving()) return;
+    this.confirmOpen.set(false);
+    this.confirmKind.set(null);
+  }
+
+  acceptConfirm(): void {
+    if (this.confirmKind() === 'variant') {
+      this.addVariant();
+      return;
+    }
+    this.saveItem();
+  }
+
+  variantStock(v: InventoryVariant): number {
+    const warehouseId =
+      this.auth.currentUser()?.warehouseId ?? this.auth.currentUser()?.warehouse?.id ?? null;
+    if (warehouseId) {
+      return Number(v.stocks?.find((s) => s.warehouseId === warehouseId)?.quantity ?? 0);
+    }
+    return Number(v.stockOwn ?? 0);
   }
 
   saveItem(): void {
@@ -311,6 +357,7 @@ export class InventoryForm implements OnInit {
         .subscribe({
           next: () => {
             this.saving.set(false);
+            this.confirmOpen.set(false);
             this.router.navigate(['/dotacion/inventario']);
           },
           error: (err) => {
@@ -330,6 +377,7 @@ export class InventoryForm implements OnInit {
       .subscribe({
         next: () => {
           this.saving.set(false);
+          this.confirmOpen.set(false);
           this.router.navigate(['/dotacion/inventario']);
         },
         error: (err) => {
@@ -344,13 +392,9 @@ export class InventoryForm implements OnInit {
     const code = this.assignedCode();
     if (!itemId || !code) return;
 
-    const { talla, color, initialStock, entryReason, genero } = this.variantForm.getRawValue();
+    const { talla, color, genero } = this.variantForm.getRawValue();
     if (!talla.trim() && !color.trim()) {
       this.error.set('Indica al menos talla o color para la variante');
-      return;
-    }
-    if (initialStock > 0 && !entryReason.trim()) {
-      this.error.set('Selecciona el motivo de entrada para el stock de la talla.');
       return;
     }
 
@@ -372,44 +416,12 @@ export class InventoryForm implements OnInit {
       color: color.trim() || undefined,
       genero,
     }).subscribe({
-      next: (variant) => {
-        if (initialStock > 0) {
-          this.api
-            .registerMovement({
-              variantId: variant.id,
-              movementType: 'IN',
-              quantity: initialStock,
-              entryReason: entryReason.trim(),
-            })
-            .subscribe({
-              next: () => {
-                this.saving.set(false);
-                this.variantForm.reset({
-                  genero: 'M',
-                  talla: '',
-                  color: '',
-                  initialStock: 0,
-                  entryReason: '',
-                });
-                this.loadVariants(itemId);
-              },
-              error: () => {
-                this.saving.set(false);
-                this.error.set('Variante creada pero falló el stock inicial');
-                this.loadVariants(itemId);
-              },
-            });
-        } else {
-          this.saving.set(false);
-          this.variantForm.reset({
-            genero: 'M',
-            talla: '',
-            color: '',
-            initialStock: 0,
-            entryReason: '',
-          });
-          this.loadVariants(itemId);
-        }
+      next: () => {
+        this.saving.set(false);
+        this.confirmOpen.set(false);
+        this.confirmKind.set(null);
+        this.variantForm.reset({ genero: 'M', talla: '', color: '' });
+        this.loadVariants(itemId);
       },
       error: (err) => {
         this.saving.set(false);
@@ -441,7 +453,6 @@ export class InventoryForm implements OnInit {
           categoryId: item.categoryId,
           name: item.name,
           lowStockThreshold: item.lowStockThreshold,
-          initialStock: 0,
         });
       },
     });

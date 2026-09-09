@@ -77,6 +77,12 @@ export class InventoryService {
     return warehouse;
   }
 
+  /** Stock de una variante en un almacén. Nunca suma el otro almacén. */
+  async quantityAt(variantId: string, warehouseId: string): Promise<number> {
+    const row = await this.stockRepo.findOne({ where: { variantId, warehouseId } });
+    return row?.quantity ?? 0;
+  }
+
   async changeStock(variantId: string, warehouseId: string, delta: number): Promise<number> {
     const next = await this.stockRepo.manager.transaction(async (em) => {
       const stockRepo = em.getRepository(InventoryStock);
@@ -821,15 +827,17 @@ export class InventoryService {
       .slice(0, take);
   }
 
-  async countLowStockVariants(): Promise<number> {
-    const rows = await this.stockRepo
+  async countLowStockVariants(warehouseId?: string | null): Promise<number> {
+    const qb = this.stockRepo
       .createQueryBuilder('s')
       .innerJoin('s.variant', 'v')
       .innerJoin('v.item', 'item')
       .where('item.low_stock_threshold > 0')
-      .andWhere('s.quantity < item.low_stock_threshold')
-      .getCount();
-    return rows;
+      .andWhere('s.quantity < item.low_stock_threshold');
+    if (warehouseId) {
+      qb.andWhere('s.warehouse_id = :warehouseId', { warehouseId });
+    }
+    return qb.getCount();
   }
 
   /** Variantes con cantidad 0 en al menos un almacén (agotado en esa sede). */
@@ -840,8 +848,8 @@ export class InventoryService {
       .getCount();
   }
 
-  async listLowStockVariants(take = 10) {
-    const rows = await this.stockRepo
+  async listLowStockVariants(take = 10, warehouseId?: string | null) {
+    const qb = this.stockRepo
       .createQueryBuilder('s')
       .innerJoinAndSelect('s.variant', 'v')
       .innerJoinAndSelect('v.item', 'item')
@@ -849,8 +857,11 @@ export class InventoryService {
       .where('item.low_stock_threshold > 0')
       .andWhere('s.quantity < item.low_stock_threshold')
       .orderBy('s.quantity', 'ASC')
-      .take(take)
-      .getMany();
+      .take(take);
+    if (warehouseId) {
+      qb.andWhere('s.warehouse_id = :warehouseId', { warehouseId });
+    }
+    const rows = await qb.getMany();
 
     return rows.map((s) => ({
       ...s.variant,

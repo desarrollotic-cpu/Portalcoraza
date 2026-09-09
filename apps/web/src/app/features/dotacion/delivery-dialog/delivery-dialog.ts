@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, effect, inject, input, output, signal } from '@angular/core';
 import { FormArray, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin } from 'rxjs';
+import { AuthService } from '../../../core/services/auth.service';
 import { InventoryApiService, InventoryItem, InventoryVariant } from '../inventory-api.service';
 import { ModalShell } from '../modal-shell/modal-shell';
 import { SignaturePad } from '../signature-pad/signature-pad';
@@ -16,12 +17,16 @@ interface VariantOption {
   stock: number;
 }
 
-function stockOf(v: InventoryVariant): number {
+function stockOf(v: InventoryVariant, warehouseId?: string | null): number {
+  if (warehouseId) {
+    const row = v.stocks?.find((s) => s.warehouseId === warehouseId);
+    return Number(row?.quantity ?? 0);
+  }
   if (v.stockOwn != null) return Number(v.stockOwn);
-  return Number(v.stockCurrent ?? 0);
+  return 0;
 }
 
-function variantLabel(v: InventoryVariant): string {
+function variantLabel(v: InventoryVariant, warehouseId?: string | null): string {
   const talla = String(v.talla ?? v.attributes?.['talla'] ?? '').trim();
   const generoRaw = v.genero ?? (v.attributes?.['genero'] != null ? String(v.attributes['genero']) : '');
   const genero =
@@ -35,7 +40,7 @@ function variantLabel(v: InventoryVariant): string {
     genero || null,
   ].filter(Boolean);
   const base = parts.length ? parts.join(' — ') : 'Única';
-  return `${base} (Stock: ${stockOf(v)})`;
+  return `${base} (Stock: ${stockOf(v, warehouseId)})`;
 }
 
 @Component({
@@ -195,6 +200,11 @@ export class DeliveryDialog implements OnInit {
 
   private readonly api = inject(InventoryApiService);
   private readonly fb = inject(FormBuilder);
+  private readonly auth = inject(AuthService);
+
+  private warehouseId(): string | null {
+    return this.auth.currentUser()?.warehouseId ?? this.auth.currentUser()?.warehouse?.id ?? null;
+  }
 
   readonly loading = signal(false);
   readonly saving = signal(false);
@@ -392,8 +402,9 @@ export class DeliveryDialog implements OnInit {
   }
 
   private buildItemOptions(items: InventoryItem[], variants: InventoryVariant[]): ItemOption[] {
+    const warehouseId = this.warehouseId();
     const withStock = new Set(
-      variants.filter((v) => stockOf(v) > 0).map((v) => v.itemId),
+      variants.filter((v) => stockOf(v, warehouseId) > 0).map((v) => v.itemId),
     );
     return items
       .filter((item) => withStock.has(item.id))
@@ -403,12 +414,13 @@ export class DeliveryDialog implements OnInit {
 
   private buildVariantOptions(itemId: string): VariantOption[] {
     if (!itemId) return [];
+    const warehouseId = this.warehouseId();
     const options = this.variants()
-      .filter((v) => v.itemId === itemId && stockOf(v) > 0)
+      .filter((v) => v.itemId === itemId && stockOf(v, warehouseId) > 0)
       .map((v) => ({
         variantId: v.id,
-        label: variantLabel(v),
-        stock: stockOf(v),
+        label: variantLabel(v, warehouseId),
+        stock: stockOf(v, warehouseId),
       }));
 
     return options.sort((a, b) => a.label.localeCompare(b.label, 'es', { numeric: true }));
