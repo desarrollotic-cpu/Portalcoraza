@@ -9,6 +9,16 @@ export function parseLooseDate(raw: string | null | undefined): Date | null {
   return null;
 }
 
+/** Valor para `<input type="date">` (YYYY-MM-DD). Vacío si no se puede leer. */
+export function toIsoDate(raw: string | null | undefined): string {
+  const d = parseLooseDate(raw);
+  if (!d) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 /** Tiempo de contrato/otrosí a partir de inicio y fin. Vacío si no se puede calcular. */
 export function formatContractTerm(
   startRaw: string | null | undefined,

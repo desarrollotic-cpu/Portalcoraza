@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ToastService } from '../../../shared/services/toast.service';
-import { formatContractTerm } from '../contract-term';
+import { formatContractTerm, toIsoDate } from '../contract-term';
 import {
   CreateOperacionesPostPayload,
   OperacionesApiService,
@@ -222,10 +222,9 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <label>
                     Fecha inicial ctto
                     <input
+                      type="date"
                       [name]="'cStart' + i"
                       [(ngModel)]="c.contractStart"
-                      maxlength="80"
-                      placeholder="DD/MM/AAAA"
                       (ngModelChange)="fillContractTerm(c)"
                     />
                   </label>
@@ -242,10 +241,10 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <label>
                     Fecha final ccto
                     <input
+                      type="date"
                       [name]="'cEnd' + i"
                       [(ngModel)]="c.contractEnd"
-                      maxlength="80"
-                      placeholder="DD/MM/AAAA"
+                      [min]="c.contractStart || null"
                       (ngModelChange)="fillContractTerm(c)"
                     />
                   </label>
@@ -305,10 +304,9 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <label>
                     Fecha inicial
                     <input
+                      type="date"
                       [name]="'oStart' + i"
                       [(ngModel)]="o.dateText"
-                      maxlength="80"
-                      placeholder="DD/MM/AAAA"
                       (ngModelChange)="fillOtrosiTerm(o)"
                     />
                   </label>
@@ -325,10 +323,10 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <label>
                     Fecha final
                     <input
+                      type="date"
                       [name]="'oEnd' + i"
                       [(ngModel)]="o.dateEnd"
-                      maxlength="80"
-                      placeholder="DD/MM/AAAA"
+                      [min]="o.dateText || null"
                       (ngModelChange)="fillOtrosiTerm(o)"
                     />
                   </label>
@@ -603,6 +601,10 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     }
     .check { flex-direction: row !important; align-items: center; gap: 0.5rem; margin-top: 1.4rem; }
     .check input { width: auto; }
+    .form input[type='date'] {
+      width: 100%;
+      min-height: 2.5rem;
+    }
     .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
     .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
@@ -807,9 +809,9 @@ export class PuestosList implements OnInit {
         ...emptyContract(),
         ...c,
         contractNumber: stripExcelId(c.contractNumber),
-        contractStart: c.contractStart ?? '',
+        contractStart: toIsoDate(c.contractStart),
         contractTerm: c.contractTerm ?? '',
-        contractEnd: c.contractEnd ?? '',
+        contractEnd: toIsoDate(c.contractEnd),
         basc: c.basc ?? '',
         serviceType: c.serviceType ?? '',
         invoiceValue: c.invoiceValue ?? '',
@@ -820,9 +822,9 @@ export class PuestosList implements OnInit {
         ...o,
         number: stripExcelId(o.number),
         typeText: o.typeText ?? '',
-        dateText: o.dateText ?? '',
+        dateText: toIsoDate(o.dateText),
         term: o.term ?? '',
-        dateEnd: o.dateEnd ?? '',
+        dateEnd: toIsoDate(o.dateEnd),
         invoiceValue: o.invoiceValue ?? '',
         serviceType: o.serviceType ?? '',
       })),
@@ -881,9 +883,9 @@ export class PuestosList implements OnInit {
     return {
       ...emptyContract(),
       contractNumber: stripExcelId(p.contractNumber),
-      contractStart: p.contractStart ?? '',
+      contractStart: toIsoDate(p.contractStart),
       contractTerm: p.contractTerm ?? '',
-      contractEnd: p.contractEnd ?? '',
+      contractEnd: toIsoDate(p.contractEnd),
       basc: p.basc === true ? 'SI' : p.basc === false ? 'NO_APLICA' : '',
       serviceType: p.serviceType ?? '',
       armed: !!p.armed,

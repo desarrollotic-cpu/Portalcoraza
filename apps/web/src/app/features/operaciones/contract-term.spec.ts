@@ -1,4 +1,4 @@
-import { formatContractTerm, parseLooseDate } from './contract-term';
+import { formatContractTerm, parseLooseDate, toIsoDate } from './contract-term';
 
 describe('formatContractTerm', () => {
   it('año calendario 1 ene–31 dic = 12 MESES', () => {
@@ -21,5 +21,11 @@ describe('formatContractTerm', () => {
     expect(parseLooseDate('15/03/2024')?.getDate()).toBe(15);
     expect(parseLooseDate('2024-03-15')?.getMonth()).toBe(2);
     expect(parseLooseDate('32/01/2024')).toBeNull();
+  });
+
+  it('normaliza a YYYY-MM-DD para el selector de fecha', () => {
+    expect(toIsoDate('15/03/2024')).toBe('2024-03-15');
+    expect(toIsoDate('2024-03-15')).toBe('2024-03-15');
+    expect(toIsoDate('INDEFINIDO')).toBe('');
   });
 });
