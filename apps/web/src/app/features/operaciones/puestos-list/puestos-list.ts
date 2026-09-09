@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ToastService } from '../../../shared/services/toast.service';
+import { formatContractTerm } from '../contract-term';
 import {
   CreateOperacionesPostPayload,
   OperacionesApiService,
@@ -220,15 +221,33 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   </label>
                   <label>
                     Fecha inicial ctto
-                    <input [name]="'cStart' + i" [(ngModel)]="c.contractStart" maxlength="80" />
+                    <input
+                      [name]="'cStart' + i"
+                      [(ngModel)]="c.contractStart"
+                      maxlength="80"
+                      placeholder="DD/MM/AAAA"
+                      (ngModelChange)="fillContractTerm(c)"
+                    />
                   </label>
                   <label>
                     Tiempo del ctto
-                    <input [name]="'cTerm' + i" [(ngModel)]="c.contractTerm" maxlength="80" list="term-hints" />
+                    <input
+                      [name]="'cTerm' + i"
+                      [(ngModel)]="c.contractTerm"
+                      maxlength="80"
+                      list="term-hints"
+                      placeholder="Se calcula con las fechas"
+                    />
                   </label>
                   <label>
                     Fecha final ccto
-                    <input [name]="'cEnd' + i" [(ngModel)]="c.contractEnd" maxlength="80" />
+                    <input
+                      [name]="'cEnd' + i"
+                      [(ngModel)]="c.contractEnd"
+                      maxlength="80"
+                      placeholder="DD/MM/AAAA"
+                      (ngModelChange)="fillContractTerm(c)"
+                    />
                   </label>
                   <label>
                     BASC
@@ -285,15 +304,33 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   </label>
                   <label>
                     Fecha inicial
-                    <input [name]="'oStart' + i" [(ngModel)]="o.dateText" maxlength="80" />
+                    <input
+                      [name]="'oStart' + i"
+                      [(ngModel)]="o.dateText"
+                      maxlength="80"
+                      placeholder="DD/MM/AAAA"
+                      (ngModelChange)="fillOtrosiTerm(o)"
+                    />
                   </label>
                   <label>
                     Tiempo de otro sí
-                    <input [name]="'oTerm' + i" [(ngModel)]="o.term" maxlength="80" list="term-hints" />
+                    <input
+                      [name]="'oTerm' + i"
+                      [(ngModel)]="o.term"
+                      maxlength="80"
+                      list="term-hints"
+                      placeholder="Se calcula con las fechas"
+                    />
                   </label>
                   <label>
                     Fecha final
-                    <input [name]="'oEnd' + i" [(ngModel)]="o.dateEnd" maxlength="80" />
+                    <input
+                      [name]="'oEnd' + i"
+                      [(ngModel)]="o.dateEnd"
+                      maxlength="80"
+                      placeholder="DD/MM/AAAA"
+                      (ngModelChange)="fillOtrosiTerm(o)"
+                    />
                   </label>
                   <label>
                     Valor
@@ -690,6 +727,16 @@ export class PuestosList implements OnInit {
       ...draft,
       otrosi: draft.otrosi.filter((_, idx) => idx !== pending.index),
     });
+  }
+
+  fillContractTerm(c: PostContractRow): void {
+    const term = formatContractTerm(c.contractStart, c.contractEnd);
+    if (term) c.contractTerm = term;
+  }
+
+  fillOtrosiTerm(o: PostOtrosiRow): void {
+    const term = formatContractTerm(o.dateText, o.dateEnd);
+    if (term) o.term = term;
   }
 
   addOtrosi(ev: Event): void {
