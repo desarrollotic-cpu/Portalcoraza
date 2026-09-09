@@ -94,8 +94,9 @@ interface DraftRow {
 
         @if (canAttachPhotos()) {
           <p class="photo-hint">
-            Las fotos no se almacenan en la plataforma. Si reabres este documento, adjúntalas de nuevo
-            en cada ítem y luego pulsa <strong>PDF Oficial Membrete</strong>.
+            Las fotos no se almacenan en la plataforma. Aunque la inspección esté completada o
+            cerrada, puedes adjuntarlas de nuevo en cada ítem y luego pulsar
+            <strong>PDF Oficial Membrete</strong>.
           </p>
         }
 
@@ -432,10 +433,10 @@ export class SstInspectionDetail implements OnInit {
     return !!i && i.estado === 'BORRADOR' && this.auth.hasPermission('sst.inspect');
   });
 
-  /** Fotos solo en el navegador: se pueden re-adjuntar en borrador o completada para el PDF. */
+  /** Fotos solo en el navegador, también si ya completó o cerró: sirven para el PDF. */
   readonly canAttachPhotos = computed(() => {
     const i = this.insp();
-    return !!i && i.estado !== 'CERRADA' && this.auth.hasPermission('sst.inspect');
+    return !!i && this.auth.hasPermission('sst.inspect');
   });
 
   readonly canClose = computed(() => {
@@ -668,8 +669,8 @@ export class SstInspectionDetail implements OnInit {
     this.api.closeInspection(i.id).subscribe({
       next: (insp) => {
         this.busy.set(false);
-        this.apply(insp);
-        this.toast.success('Inspección archivada / cerrada');
+        this.apply(insp, true);
+        this.toast.success('Inspección archivada / cerrada. Si necesitas el PDF con fotos, adjúntalas ahora.');
       },
       error: (e: { error?: { message?: string } }) => {
         this.busy.set(false);
