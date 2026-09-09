@@ -79,7 +79,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
             </p>
           }
         </div>
-        @if (auth.hasPermission('inventory.create')) {
+        @if (auth.hasPermission('inventory.create') && canEditCatalogSelected()) {
           <a routerLink="/dotacion/inventario/nuevo" class="btn-primary">Agregar elemento</a>
         }
       </header>
@@ -172,7 +172,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
                       Trasladar
                     </button>
                   }
-                  @if (auth.hasPermission('inventory.edit')) {
+                  @if (auth.hasPermission('inventory.edit') && canEditCatalogSelected()) {
                     <a [routerLink]="['/dotacion/inventario', row.item.id, 'editar']" class="link-edit">
                       Editar
                     </a>
@@ -515,6 +515,11 @@ export class InventoryList implements OnInit {
   readonly canWriteSelected = computed(() => {
     const own = this.ownCode();
     return !!own && own === this.selectedCode() && this.auth.hasPermission('inventory.move');
+  });
+  /** Catálogo compartido: crear/editar/borrar solo desde tu almacén. El otro tab es consulta. */
+  readonly canEditCatalogSelected = computed(() => {
+    const own = this.ownCode();
+    return !own || own === this.selectedCode();
   });
   readonly destWarehouseName = computed(() => {
     const own = this.ownCode();
