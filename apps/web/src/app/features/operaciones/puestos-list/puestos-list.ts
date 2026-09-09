@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ToastService } from '../../../shared/services/toast.service';
 import {
   CreateOperacionesPostPayload,
@@ -119,7 +120,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
 
 @Component({
   selector: 'app-puestos-list',
-  imports: [FormsModule],
+  imports: [FormsModule, ConfirmDialog],
   template: `
     <section class="page">
       <header class="head">
@@ -201,7 +202,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 <div class="subhead">
                   <strong>Contrato {{ i + 1 }}</strong>
                   @if (i > 0) {
-                    <button type="button" class="link danger" (click)="removeContract(i)">Quitar</button>
+                    <button type="button" class="link danger" (click)="askRemove('contract', i)">Quitar</button>
                   }
                 </div>
                 <div class="grid">
@@ -258,7 +259,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
               <div class="subblock">
                 <div class="subhead">
                   <strong>Otro sí {{ i + 1 }}</strong>
-                  <button type="button" class="link danger" (click)="removeOtrosi(i)">Quitar</button>
+                  <button type="button" class="link danger" (click)="askRemove('otrosi', i)">Quitar</button>
                 </div>
                 <div class="grid">
                   <label>
@@ -472,6 +473,20 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
           </table>
         </div>
       }
+      <app-confirm-dialog
+        [open]="!!pendingRemove()"
+        [title]="pendingRemove()?.kind === 'otrosi' ? 'Quitar otro sí' : 'Quitar contrato'"
+        [message]="
+          pendingRemove()?.kind === 'otrosi'
+            ? '¿Está seguro que desea quitar este otro sí? El bloque se elimina del formulario.'
+            : '¿Está seguro que desea quitar este contrato? El bloque se elimina del formulario.'
+        "
+        detail="Los cambios se guardan al pulsar Guardar."
+        confirmLabel="Aceptar"
+        [danger]="true"
+        (confirmed)="acceptRemove()"
+        (cancelled)="pendingRemove.set(null)"
+      />
     </section>
   `,
   styles: `
@@ -573,6 +588,7 @@ export class PuestosList implements OnInit {
   readonly query = signal('');
   readonly statusFilter = signal<'' | PostStatus>('');
   readonly zoneFilter = signal('');
+  readonly pendingRemove = signal<{ kind: 'contract' | 'otrosi'; index: number } | null>(null);
 
   readonly zoneOptions = computed(() => {
     const nums = new Set<number>();
@@ -631,10 +647,28 @@ export class PuestosList implements OnInit {
     this.editing.set({ ...draft, contracts: [...draft.contracts, emptyContract()] });
   }
 
-  removeContract(i: number): void {
+  askRemove(kind: 'contract' | 'otrosi', index: number): void {
+    if (kind === 'contract' && index <= 0) return;
+    this.pendingRemove.set({ kind, index });
+  }
+
+  acceptRemove(): void {
+    const pending = this.pendingRemove();
     const draft = this.editing();
-    if (!draft || i <= 0) return;
-    this.editing.set({ ...draft, contracts: draft.contracts.filter((_, idx) => idx !== i) });
+    this.pendingRemove.set(null);
+    if (!pending || !draft) return;
+    if (pending.kind === 'contract') {
+      if (pending.index <= 0) return;
+      this.editing.set({
+        ...draft,
+        contracts: draft.contracts.filter((_, idx) => idx !== pending.index),
+      });
+      return;
+    }
+    this.editing.set({
+      ...draft,
+      otrosi: draft.otrosi.filter((_, idx) => idx !== pending.index),
+    });
   }
 
   addOtrosi(ev: Event): void {
@@ -643,12 +677,6 @@ export class PuestosList implements OnInit {
     const draft = this.editing();
     if (!draft) return;
     this.editing.set({ ...draft, otrosi: [...draft.otrosi, emptyOtrosi()] });
-  }
-
-  removeOtrosi(i: number): void {
-    const draft = this.editing();
-    if (!draft) return;
-    this.editing.set({ ...draft, otrosi: draft.otrosi.filter((_, idx) => idx !== i) });
   }
 
   getStr(key: keyof CreateOperacionesPostPayload): string {
