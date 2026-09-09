@@ -94,7 +94,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
           type="search"
           placeholder="Buscar nombre, NIT o cliente…"
           [ngModel]="query()"
-          (ngModelChange)="query.set($event)"
+          (ngModelChange)="setQuery($event)"
         />
       </header>
 
@@ -115,7 +115,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
               </tr>
             </thead>
             <tbody>
-              @for (p of filtered(); track p.id) {
+              @for (p of pageRows(); track p.id) {
                 <tr [class.active]="selected()?.id === p.id">
                   <td><strong>{{ p.name }}</strong></td>
                   <td>{{ p.nit || '—' }}</td>
@@ -130,6 +130,17 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
               }
             </tbody>
           </table>
+        </div>
+        <div class="pager">
+          <span>
+            {{ rangeLabel() }} · página {{ page() }} de {{ totalPages() }}
+          </span>
+          <div class="pager-btns">
+            <button type="button" (click)="goPage(1)" [disabled]="page() <= 1">Primera</button>
+            <button type="button" (click)="goPage(page() - 1)" [disabled]="page() <= 1">Anterior</button>
+            <button type="button" (click)="goPage(page() + 1)" [disabled]="page() >= totalPages()">Siguiente</button>
+            <button type="button" (click)="goPage(totalPages())" [disabled]="page() >= totalPages()">Última</button>
+          </div>
         </div>
 
         @if (selected(); as p) {
@@ -275,6 +286,16 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
     .pre { white-space: pre-wrap; }
     .muted { color: var(--text-muted, #6b7280); }
     .error { color: #b91c1c; }
+    .pager {
+      display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      font-size: 0.85rem; color: var(--text-muted, #6b7280);
+    }
+    .pager-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+    .pager-btns button {
+      border: 1px solid var(--border, #d1d5db); background: #fff; border-radius: 8px;
+      padding: 0.35rem 0.65rem; font: inherit; cursor: pointer;
+    }
+    .pager-btns button:disabled { opacity: 0.45; cursor: not-allowed; }
   `,
 })
 export class ReceptionPostFichas implements OnInit {
@@ -284,6 +305,8 @@ export class ReceptionPostFichas implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly query = signal('');
+  readonly page = signal(1);
+  readonly pageSize = 50;
   readonly selected = signal<OperacionesPost | null>(null);
   readonly bascLabel = bascLabel;
   readonly dash = dash;
@@ -305,6 +328,33 @@ export class ReceptionPostFichas implements OnInit {
         return z || a.name.localeCompare(b.name, 'es');
       });
   });
+
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filtered().length / this.pageSize)),
+  );
+
+  readonly pageRows = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+
+  readonly rangeLabel = computed(() => {
+    const total = this.filtered().length;
+    if (!total) return '0 puestos';
+    const start = (this.page() - 1) * this.pageSize + 1;
+    const end = Math.min(this.page() * this.pageSize, total);
+    return `${start}–${end} de ${total}`;
+  });
+
+  setQuery(value: string): void {
+    this.query.set(value);
+    this.page.set(1);
+  }
+
+  goPage(n: number): void {
+    const max = this.totalPages();
+    this.page.set(Math.min(max, Math.max(1, n)));
+  }
 
   ngOnInit(): void {
     this.api.listPosts().subscribe({
