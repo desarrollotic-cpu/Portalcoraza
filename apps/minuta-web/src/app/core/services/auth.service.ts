@@ -43,12 +43,16 @@ export class AuthService {
         .post(`${environment.apiUrl}/auth/logout`, { refreshToken })
         .subscribe({ error: () => undefined });
     }
+    this.discardSession();
+    void this.router.navigateByUrl('/login');
+  }
+
+  discardSession(): void {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TENANT_KEY);
     this.currentUser.set(null);
-    void this.router.navigateByUrl('/login');
   }
 
   getAccessToken(): string | null {

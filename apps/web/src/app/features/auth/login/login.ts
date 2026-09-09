@@ -5,7 +5,8 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { environment } from '../../../../environments/environment';
 import {
   LucideEye,
   LucideEyeOff,
@@ -40,6 +41,10 @@ import { Icon } from '../../../shared/components/icon/icon';
 
       <h1>Bienvenido de vuelta</h1>
       <p class="subtitle">Ingresa a tu portal operativo Coraza Seguridad C.T.A.</p>
+      <p class="minuta-hint">
+        ¿Eres vigilante de puesto?
+        <a [href]="minutaUrl" rel="noopener">Entra a Minuta Virtual</a>
+      </p>
 
       @if (error()) {
         <div class="alert" role="alert">
@@ -224,10 +229,21 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .subtitle {
-      margin: 0 0 1rem;
+      margin: 0 0 0.45rem;
       color: var(--text-secondary);
       font-size: 0.88rem;
       line-height: 1.45;
+    }
+
+    .minuta-hint {
+      margin: 0 0 1rem;
+      color: var(--text-muted);
+      font-size: 0.82rem;
+    }
+
+    .minuta-hint a {
+      color: var(--primary-800, #0c4a6e);
+      font-weight: 700;
     }
 
     .alert {
@@ -453,9 +469,15 @@ export class Login {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
+  readonly minutaUrl = environment.minutaWebUrl;
   readonly loading = signal(false);
-  readonly error = signal<string | null>(null);
+  readonly error = signal<string | null>(
+    this.route.snapshot.queryParamMap.get('from') === 'puesto'
+      ? 'Las cuentas de puesto entran solo en Minuta Virtual. No uses el Portal.'
+      : null,
+  );
   readonly showPassword = signal(false);
   readonly showRecover = signal(false);
   readonly recoverLoading = signal(false);
@@ -492,14 +514,15 @@ export class Login {
     const { email, password } = this.form.getRawValue();
 
     this.auth.login(email, password).subscribe({
-      next: () => {
+      next: (res) => {
         this.loading.set(false);
-        const route = this.auth.getDefaultRoute();
-        if (route.startsWith('http://') || route.startsWith('https://')) {
-          window.location.href = route;
+        if (res.user.role?.code === 'PUESTO') {
+          this.error.set(
+            'Las cuentas de puesto no entran por el Portal. Abre Minuta Virtual con el enlace del puesto.',
+          );
           return;
         }
-        this.router.navigateByUrl(route);
+        this.router.navigateByUrl(this.auth.getDefaultRoute());
       },
       error: (err: unknown) => {
         this.loading.set(false);

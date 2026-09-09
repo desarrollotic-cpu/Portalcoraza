@@ -52,6 +52,9 @@ export class AuthService {
       })
       .pipe(
         tap((res) => {
+          if (res.user.role?.code === 'PUESTO') {
+            return;
+          }
           localStorage.setItem(ACCESS_KEY, res.accessToken);
           localStorage.setItem(REFRESH_KEY, res.refreshToken);
           localStorage.setItem(USER_KEY, JSON.stringify(res.user));
@@ -121,6 +124,15 @@ export class AuthService {
     return localStorage.getItem(ACCESS_KEY);
   }
 
+  /** Cuenta PUESTO no debe quedar sesión en el Portal. */
+  discardPortalSession(): void {
+    localStorage.removeItem(ACCESS_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TENANT_KEY);
+    this.currentUser.set(null);
+  }
+
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
   }
@@ -137,9 +149,6 @@ export class AuthService {
   getDefaultRoute(): string {
     const user = this.currentUser();
     if (!user) return '/auth/login';
-    if (user.role?.code === 'PUESTO') {
-      return environment.minutaWebUrl;
-    }
     if (user.role?.code === 'DOCUMENTAL') {
       return '/documental';
     }

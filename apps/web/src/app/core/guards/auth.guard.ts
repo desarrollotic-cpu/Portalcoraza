@@ -1,6 +1,5 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { environment } from '../../../environments/environment';
 import { AuthService } from '../services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
@@ -13,8 +12,8 @@ export const authGuard: CanActivateFn = () => {
   }
 
   if (user?.role?.code === 'PUESTO') {
-    window.location.href = environment.minutaWebUrl;
-    return false;
+    auth.discardPortalSession();
+    return router.createUrlTree(['/auth/login'], { queryParams: { from: 'puesto' } });
   }
 
   return true;

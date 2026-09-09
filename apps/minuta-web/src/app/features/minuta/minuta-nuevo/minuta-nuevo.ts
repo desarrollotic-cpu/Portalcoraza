@@ -35,7 +35,10 @@ import {
       @if (form()) {
         <div class="modal">
           <div class="modal-card">
-            <h3>{{ form() }}</h3>
+            <div class="modal-head">
+              <h3>{{ form() }}</h3>
+              <button type="button" class="mini" (click)="form.set(null)">Atrás</button>
+            </div>
             <label>
               Vigilante que registra *
               <input [(ngModel)]="f.registradoPor" name="reg" required maxlength="120" />
@@ -161,7 +164,7 @@ import {
               }
             }
             <button type="button" class="btn" [disabled]="busy()" (click)="save()">Guardar</button>
-            <button type="button" class="mini" (click)="form.set(null)">Cancelar</button>
+            <button type="button" class="mini" (click)="form.set(null)">Atrás</button>
           </div>
         </div>
       }

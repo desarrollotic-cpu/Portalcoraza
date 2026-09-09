@@ -3,6 +3,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, switchMap } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../core/services/auth.service';
 import {
   AdminApiService,
@@ -67,6 +68,10 @@ import {
                   }
                 </select>
               </label>
+              <p class="hint">
+                Esta cuenta entra solo en Minuta Virtual:
+                <a [href]="minutaUrl" target="_blank" rel="noopener">{{ minutaUrl }}</a>
+              </p>
             }
             <button type="submit" class="btn btn-primary" [disabled]="submitting()">Crear usuario</button>
           </form>
@@ -128,6 +133,10 @@ import {
                   }
                 </select>
               </label>
+              <p class="hint">
+                Entra solo en
+                <a [href]="minutaUrl" target="_blank" rel="noopener">{{ minutaUrl }}</a>
+              </p>
             }
             <label class="checkbox-field">
               <span>Estado</span>
@@ -402,6 +411,7 @@ import {
 export class UsersList implements OnInit {
   readonly auth = inject(AuthService);
   private readonly api = inject(AdminApiService);
+  readonly minutaUrl = environment.minutaWebUrl;
 
   readonly users = signal<AdminUser[]>([]);
   readonly roles = signal<AdminRole[]>([]);

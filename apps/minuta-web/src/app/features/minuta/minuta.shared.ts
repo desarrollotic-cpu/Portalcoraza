@@ -145,20 +145,21 @@ export function bodyForMinuta(
 }
 
 export const MINUTA_PAGE_STYLES = `
-  .page { display: grid; gap: 1rem; }
-  .page h2 { margin: 0; font-size: 1.15rem; }
-  .hint { margin: 0; color: var(--text-muted, #64748b); font-size: 0.9rem; }
-  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.55rem; }
+  .page { display: grid; gap: 1.15rem; }
+  .page h2 { margin: 0; font-size: 1.45rem; }
+  .hint { margin: 0; color: var(--text-muted, #64748b); font-size: 1rem; line-height: 1.45; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
   .stats article {
     background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
-    border-radius: 12px; padding: 0.75rem;
+    border-radius: 12px; padding: 1rem;
   }
   .stats small { color: var(--text-muted, #64748b); }
-  .stats b { display: block; font-size: 1.25rem; color: #0c4a6e; }
-  .quick, .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+  .stats b { display: block; font-size: 1.5rem; color: #0c4a6e; }
+  .quick, .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
   .quick button, .tile {
-    border: 0; border-radius: 12px; padding: 0.9rem; background: #f0f9ff;
-    color: #0c4a6e; font-weight: 700; text-align: left; cursor: pointer;
+    border: 0; border-radius: 14px; padding: 1.1rem 1.15rem; background: #f0f9ff;
+    color: #0c4a6e; font-weight: 700; font-size: 1.05rem; text-align: left; cursor: pointer;
+    min-height: 3.25rem;
   }
   .card {
     background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
@@ -188,12 +189,21 @@ export const MINUTA_PAGE_STYLES = `
     display: grid; place-items: center; padding: 1rem; z-index: 20;
   }
   .modal-card {
-    width: min(100%, 420px); max-height: 90dvh; overflow: auto;
-    background: var(--surface, #fff); border-radius: 12px; padding: 1rem;
-    display: flex; flex-direction: column; gap: 0.55rem;
+    width: min(100%, 560px); max-height: 90dvh; overflow: auto;
+    background: var(--surface, #fff); border-radius: 12px; padding: 1.15rem;
+    display: flex; flex-direction: column; gap: 0.65rem;
   }
-  label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--text-muted, #64748b); font-weight: 600; }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  }
+  label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--text-muted, #64748b); font-weight: 600; }
   h3 { margin: 0.25rem 0; color: #0c4a6e; }
+  @media (min-width: 900px) {
+    .page h2 { font-size: 1.75rem; }
+    .quick, .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+    .quick button, .tile { min-height: 4.25rem; font-size: 1.15rem; padding: 1.25rem; }
+    .modal-card { width: min(100%, 640px); padding: 1.5rem; }
+  }
   @media (max-width: 800px) {
     .stats { grid-template-columns: 1fr 1fr; }
     .quick, .grid { grid-template-columns: 1fr; }

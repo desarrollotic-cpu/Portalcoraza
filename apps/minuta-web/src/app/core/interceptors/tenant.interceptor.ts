@@ -3,7 +3,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 export const TENANT_KEY = 'coraza_tenant_id';
 
 export const tenantInterceptor: HttpInterceptorFn = (req, next) => {
-  if (req.url.includes('/auth/login')) {
+  if (req.url.includes('/auth/login') || req.url.includes('/auth/refresh')) {
     return next(req);
   }
   const tenantId = localStorage.getItem(TENANT_KEY);

@@ -7,6 +7,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-login',
@@ -14,11 +15,12 @@ import { AuthService } from '../../../core/services/auth.service';
   template: `
     <div class="wrap">
       <form class="card" [formGroup]="form" (ngSubmit)="submit()">
+        <button type="button" class="back" (click)="goPortal()">Atrás</button>
         <img
           class="logo"
           src="/brand/logo-coraza-cta.png"
-          width="72"
-          height="72"
+          width="88"
+          height="88"
           alt="Coraza"
         />
         <h1>Minuta Virtual</h1>
@@ -45,18 +47,30 @@ import { AuthService } from '../../../core/services/auth.service';
       min-height: 100dvh;
       display: grid;
       place-items: center;
-      padding: 1rem;
+      padding: 1.25rem;
     }
     .card {
-      width: min(100%, 380px);
+      width: min(100%, 28rem);
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.85rem;
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 1.25rem;
+      padding: 1.5rem;
       box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+    }
+    .back {
+      align-self: flex-start;
+      min-height: 2.75rem;
+      border: 1px solid var(--border);
+      background: #fff;
+      color: var(--primary-800);
+      border-radius: 10px;
+      padding: 0.45rem 0.9rem;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
     }
     .logo {
       margin: 0 auto;
@@ -66,13 +80,13 @@ import { AuthService } from '../../../core/services/auth.service';
       margin: 0;
       text-align: center;
       color: var(--primary-800);
-      font-size: 1.35rem;
+      font-size: 1.6rem;
     }
     .sub {
       margin: 0;
       text-align: center;
       color: var(--text-muted);
-      font-size: 0.9rem;
+      font-size: 1rem;
     }
     label {
       display: flex;
@@ -84,23 +98,32 @@ import { AuthService } from '../../../core/services/auth.service';
     }
     input {
       font: inherit;
-      padding: 0.6rem 0.75rem;
+      min-height: 2.75rem;
+      padding: 0.7rem 0.85rem;
       border: 1px solid var(--border);
       border-radius: 8px;
     }
-    button {
+    button[type='submit'] {
       margin-top: 0.25rem;
+      min-height: 2.85rem;
       border: 0;
       border-radius: 10px;
       padding: 0.75rem;
       background: var(--primary-800);
       color: #fff;
+      font-size: 1.05rem;
       font-weight: 700;
       cursor: pointer;
     }
-    button:disabled {
+    button[type='submit']:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+    @media (min-width: 900px) {
+      .card {
+        width: min(100%, 32rem);
+        padding: 2rem;
+      }
     }
     .err {
       margin: 0;
@@ -125,6 +148,10 @@ export class Login {
     password: ['', Validators.required],
   });
 
+  goPortal(): void {
+    window.location.href = environment.portalWebUrl;
+  }
+
   submit(): void {
     if (this.form.invalid) return;
     this.loading.set(true);
@@ -135,6 +162,7 @@ export class Login {
         if (!res.user.permissions.includes('minuta.view')) {
           this.loading.set(false);
           this.error.set('Esta cuenta no tiene acceso a Minuta Virtual');
+          this.auth.discardSession();
           return;
         }
         void this.router.navigateByUrl('/');
