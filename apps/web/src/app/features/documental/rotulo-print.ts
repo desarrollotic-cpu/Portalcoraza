@@ -132,35 +132,21 @@ function stripHtml(item: RotuloItem): string {
 }
 
 const PRINT_CSS = `
+  @page { size: 50mm 30mm; margin: 0; }
   * {
     box-sizing: border-box;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
-  @page {
-    size: 50mm 30mm;
+  html, body {
+    width: 50mm;
+    height: 30mm;
     margin: 0;
-  }
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    margin: 0;
-    padding: 6px;
+    padding: 0;
+    overflow: hidden;
     background: #fff;
     color: #0f172a;
-  }
-  .print-banner {
-    font-size: 10px;
-    font-weight: 700;
-    color: #475569;
-    border-bottom: 1px solid #cbd5e1;
-    padding-bottom: 4px;
-    margin-bottom: 6px;
-  }
-  .print-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: flex-start;
+    font-family: Arial, Helvetica, sans-serif;
   }
   .rotulo-niim {
     width: 50mm;
@@ -171,11 +157,10 @@ const PRINT_CSS = `
     display: flex;
     flex-direction: column;
     gap: 0.6mm;
-    border: 0.3mm solid #0c4a6e;
     background: #fff;
     page-break-inside: avoid;
-    page-break-after: always;
   }
+  .rotulo-niim + .rotulo-niim { page-break-before: always; }
   .niim-head {
     display: flex;
     align-items: center;
@@ -245,12 +230,6 @@ const PRINT_CSS = `
     text-overflow: ellipsis;
     margin-top: auto;
   }
-  @media print {
-    body { padding: 0; background: #fff; }
-    .print-banner { display: none; }
-    .print-grid { gap: 0; }
-    .rotulo-niim { border: none; }
-  }
 `;
 
 export function printRotulo(item: RotuloItem): void {
@@ -261,11 +240,7 @@ export function printRotulo(item: RotuloItem): void {
   addToPrintQueue(itemWithId);
   saveBatchToHistory([itemWithId]);
 
-  const html = `
-    <div class="print-banner">Niimbot 50 × 30 mm — ${escapeHtml(item.modulo)}</div>
-    <div class="print-grid">${stripHtml(item)}</div>
-  `;
-  printHtml(html, `Rótulo #${item.codigo} - ${item.titulo}`);
+  printLabels(stripHtml(item), `Rótulo #${item.codigo}`);
 }
 
 export function printQueue(clearAfter = false): void {
@@ -274,11 +249,7 @@ export function printQueue(clearAfter = false): void {
 
   saveBatchToHistory(items);
 
-  const html = `
-    <div class="print-banner">Niimbot 50 × 30 mm — ${items.length} marquilla(s)</div>
-    <div class="print-grid">${items.map(stripHtml).join('')}</div>
-  `;
-  printHtml(html, `Lote de ${items.length} rótulos - Coraza`);
+  printLabels(items.map(stripHtml).join(''), `Lote ${items.length} marquillas`);
 
   if (clearAfter) {
     clearPrintQueue();
@@ -287,43 +258,52 @@ export function printQueue(clearAfter = false): void {
 
 export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): void {
   if (!items || !items.length) return;
-  const html = `
-    <div class="print-banner">Niimbot 50 × 30 mm — reimpresión (${items.length})</div>
-    <div class="print-grid">${items.map(stripHtml).join('')}</div>
-  `;
-  printHtml(html, `Reimpresión de Lote (${items.length} rótulos) - Coraza`);
+  printLabels(items.map(stripHtml).join(''), `Reimpresión ${items.length} marquillas`);
 }
 
-function printHtml(content: string, title: string): void {
-  const existing = document.getElementById('iframePrintCoraza');
-  if (existing) existing.remove();
+function printLabels(labelsHtml: string, title: string): void {
+  const win = window.open('', '_blank', 'width=420,height=320');
+  if (!win) {
+    alert('Permite ventanas emergentes para imprimir la marquilla 50 × 30 mm.');
+    return;
+  }
 
-  const iframe = document.createElement('iframe');
-  iframe.id = 'iframePrintCoraza';
-  iframe.setAttribute('aria-hidden', 'true');
-  Object.assign(iframe.style, {
-    position: 'fixed',
-    right: '0',
-    bottom: '0',
-    width: '0',
-    height: '0',
-    border: 'none',
-  });
-  document.body.appendChild(iframe);
+  win.document.open();
+  win.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(title)}</title>
+  <style>${PRINT_CSS}</style>
+</head>
+<body>${labelsHtml}</body>
+</html>`);
+  win.document.close();
 
-  const doc = iframe.contentWindow!.document;
-  doc.open();
-  doc.write(
-    `<!doctype html><html><head><title>${escapeHtml(title)}</title><style>${PRINT_CSS}</style></head><body>${content}</body></html>`,
-  );
-  doc.close();
-
-  setTimeout(() => {
+  const startPrint = () => {
     try {
-      iframe.contentWindow!.focus();
-      iframe.contentWindow!.print();
+      win.focus();
+      win.print();
     } catch {
-      window.print();
+      /* el usuario cierra el diálogo */
     }
-  }, 600);
+  };
+
+  const imgs = Array.from(win.document.images);
+  if (!imgs.length) {
+    setTimeout(startPrint, 200);
+    return;
+  }
+  let left = imgs.length;
+  const done = () => {
+    left -= 1;
+    if (left <= 0) setTimeout(startPrint, 150);
+  };
+  for (const img of imgs) {
+    if (img.complete) done();
+    else {
+      img.addEventListener('load', done);
+      img.addEventListener('error', done);
+    }
+  }
 }
