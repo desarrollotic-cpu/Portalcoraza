@@ -70,7 +70,7 @@ import {
               </div>
               <div>
                 <h3>Centro de Impresión y Reimpresión de Rótulos</h3>
-                <p>Imprime lotes en 1 sola hoja de papel o reimprime lotes anteriores guardados.</p>
+                <p>Imprime marquillas Niimbot 50 × 30 mm o reimprime lotes anteriores.</p>
               </div>
             </div>
             <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar">
