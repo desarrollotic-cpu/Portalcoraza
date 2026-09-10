@@ -727,18 +727,16 @@ export class DashboardCommandCenterService {
     }
 
     if (row.module === 'reception') {
-      const name =
-        typeof v['fullName'] === 'string'
-          ? v['fullName']
-          : typeof v['name'] === 'string'
-            ? v['name']
-            : '';
-      const doc =
-        typeof v['documentNumber'] === 'string'
-          ? v['documentNumber']
-          : typeof v['idDocument'] === 'string'
-            ? v['idDocument']
-            : '';
+      const name = [
+        v['firstName'],
+        v['secondName'],
+        v['firstSurname'],
+        v['secondSurname'],
+      ]
+        .filter((x) => typeof x === 'string' && String(x).trim())
+        .join(' ')
+        .trim();
+      const doc = typeof v['documentNumber'] === 'string' ? v['documentNumber'] : '';
       if (name && doc) return `${name} · ${doc}`;
       return name || doc || null;
     }
