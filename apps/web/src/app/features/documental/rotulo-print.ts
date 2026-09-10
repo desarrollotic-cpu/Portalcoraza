@@ -139,6 +139,13 @@ function labelCopy(item: RotuloItem): LabelCopy {
   if (mod.includes('CORRESPONDENCIA')) {
     return { kind: 'CORRESPONDENCIA', code: codClean, title, slot, extra: [fechas, slot].filter(Boolean).join(' · ') };
   }
+  if (mod.includes('PERSONAL') || mod.includes('ASOCIAD') || mod.includes('RETIRAD')) {
+    const extras: string[] = [];
+    if (item.nit) extras.push(`CC ${item.nit}`);
+    if (fechas) extras.push(fechas);
+    extras.push(slot);
+    return { kind: 'PERSONAL', code: codClean, title, slot, extra: extras.join(' · ') };
+  }
   const extras: string[] = [];
   if (item.nit) extras.push(`NIT/CC ${item.nit}`);
   if (item.numContrato) extras.push(`CTO ${item.numContrato}`);
@@ -212,7 +219,111 @@ function drawThermalLogo(
   ctx.drawImage(off, x, y);
 }
 
+function fitFont(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, maxPx: number, minPx: number): number {
+  for (let s = maxPx; s >= minPx; s--) {
+    ctx.font = `900 ${s}px Arial, Helvetica, sans-serif`;
+    if (ctx.measureText(text).width <= maxWidth) return s;
+  }
+  return minPx;
+}
+
+/** Lomo 30×50 mm: pega el 50 mm a lo largo del lomo, número arriba. */
+function paintMinutaSpine(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
+  const pw = CANVAS_H;
+  const ph = CANVAS_W;
+  const spine = document.createElement('canvas');
+  spine.width = pw;
+  spine.height = ph;
+  const sc = spine.getContext('2d');
+  if (!sc) return spine;
+
+  sc.fillStyle = '#ffffff';
+  sc.fillRect(0, 0, pw, ph);
+
+  const pad = 8;
+  const logoSize = 44;
+  if (logo) drawThermalLogo(sc, logo, (pw - logoSize) / 2, pad, logoSize);
+
+  sc.fillStyle = '#0c4a6e';
+  sc.font = '800 11px Arial, Helvetica, sans-serif';
+  sc.textAlign = 'center';
+  sc.fillText('MINUTAS', pw / 2, pad + logoSize + 16);
+
+  const codeSize = fitFont(sc, copy.code, pw - pad * 2, 72, 28);
+  sc.fillStyle = '#0f172a';
+  sc.font = `900 ${codeSize}px Arial, Helvetica, sans-serif`;
+  sc.fillText(copy.code, pw / 2, pad + logoSize + 16 + codeSize + 6);
+
+  sc.strokeStyle = '#0c4a6e';
+  sc.lineWidth = 2;
+  const divY = pad + logoSize + codeSize + 30;
+  sc.beginPath();
+  sc.moveTo(pad, divY);
+  sc.lineTo(pw - pad, divY);
+  sc.stroke();
+
+  sc.fillStyle = '#0f172a';
+  sc.font = '800 15px Arial, Helvetica, sans-serif';
+  const spineLines = wrapText(sc, copy.title, pw - pad * 2, 5);
+  spineLines.forEach((ln, i) => sc.fillText(ln, pw / 2, divY + 22 + i * 18));
+
+  sc.fillStyle = '#0c4a6e';
+  sc.font = '700 10px Arial, Helvetica, sans-serif';
+  sc.fillText(copy.slot.slice(0, 18), pw / 2, ph - pad);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  ctx.translate(CANVAS_W, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(spine, 0, 0);
+  return canvas;
+}
+
+function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return canvas;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+  const pad = 8;
+  const logoSize = 40;
+  if (logo) drawThermalLogo(ctx, logo, pad, pad, logoSize);
+
+  ctx.fillStyle = '#0c4a6e';
+  ctx.font = '800 11px Arial, Helvetica, sans-serif';
+  ctx.fillText('PERSONAL RETIRADO', pad + (logo ? logoSize + 8 : 0), pad + 26);
+
+  const codeY = pad + logoSize + 8;
+  const codeSize = fitFont(ctx, copy.code, CANVAS_W - pad * 2, 64, 32);
+  ctx.fillStyle = '#0f172a';
+  ctx.font = `900 ${codeSize}px Arial, Helvetica, sans-serif`;
+  ctx.fillText(copy.code, pad, codeY + codeSize - 6, CANVAS_W - pad * 2);
+
+  ctx.font = '900 22px Arial, Helvetica, sans-serif';
+  const nameLines = wrapText(ctx, copy.title, CANVAS_W - pad * 2, 3);
+  nameLines.forEach((ln, i) => ctx.fillText(ln, pad, codeY + codeSize + 22 + i * 24, CANVAS_W - pad * 2));
+
+  if (copy.extra) {
+    ctx.fillStyle = '#334155';
+    ctx.font = '700 11px Arial, Helvetica, sans-serif';
+    ctx.fillText(copy.extra, pad, CANVAS_H - 8, CANVAS_W - pad * 2);
+  }
+  return canvas;
+}
+
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
+  if (copy.kind === 'MINUTAS') return paintMinutaSpine(copy, logo);
+  if (copy.kind === 'PERSONAL') return paintPersonal(copy, logo);
+
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
