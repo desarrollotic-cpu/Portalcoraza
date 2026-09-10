@@ -137,18 +137,19 @@ export class DeliveriesReportsService {
     }
 
     const fullName = this.formatAssociate(associate);
+    const now = new Date();
+    const semester = now.getMonth() < 6 ? 1 : 2;
+    const periodLabel = `Semestre ${semester} ${now.getFullYear()}`;
 
-    return this.renderPdf('Comprobante de entregas de dotación', async (doc) => {
-      this.drawSectionBox(doc, () => {
-        doc.fontSize(11).fillColor('#0f172a').text('Datos del asociado', { underline: true });
-        doc.moveDown(0.35);
-        doc.fontSize(10).fillColor('#0f172a').text(`Nombre: ${fullName}`);
-        doc.text(`Documento: ${associate.documentNumber}`);
-        doc
-          .fontSize(9)
-          .fillColor('#64748b')
-          .text('Cada ficha incluye los elementos entregados y la firma de recibido del asociado.');
-      });
+    return this.renderPdf('REPORTE DE ENTREGAS DE DOTACIÓN', async (doc) => {
+      doc.fontSize(11).fillColor('#0f172a').text(`Asociado: ${fullName}`);
+      doc.text(`Cédula: ${associate.documentNumber}`);
+      doc.text(`Periodo: ${periodLabel}`);
+      doc
+        .fontSize(9)
+        .fillColor('#64748b')
+        .text(`Fecha de generación: ${this.formatDateOnly(now)}`);
+      doc.moveDown(0.75);
 
       const deliveries = await this.deliveriesRepo.find({
         where: { associateId, status: DeliveryStatus.DELIVERED },
@@ -157,142 +158,159 @@ export class DeliveriesReportsService {
       });
 
       if (!deliveries.length) {
-        doc.moveDown();
         doc.fontSize(10).fillColor('#64748b').text('El asociado no tiene entregas confirmadas.');
         return;
       }
 
-      doc.moveDown(0.75);
-      doc
-        .fontSize(10)
-        .fillColor('#475569')
-        .text(`Total de entregas firmadas: ${deliveries.length}`);
-      doc.moveDown(0.5);
+      const left = doc.page.margins.left;
+      const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const cols = this.associateTableCols(left, width);
+      this.drawAssociateTableHeader(doc, cols);
 
-      let index = 0;
+      const totals = new Map<string, number>();
+
       for (const delivery of deliveries) {
-        index += 1;
-        await this.drawDeliveryCard(doc, delivery, index, deliveries.length);
+        for (const detail of delivery.details ?? []) {
+          const label = this.detailLabel(detail);
+          totals.set(label, (totals.get(label) ?? 0) + detail.quantity);
+        }
+        await this.drawAssociateTableRow(doc, delivery, cols);
       }
+
+      doc.moveDown(0.6);
+      doc.fontSize(11).fillColor('#0f172a').text('RESUMEN:', { underline: true });
+      doc.moveDown(0.3);
+      for (const [label, qty] of [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es'))) {
+        doc.fontSize(10).fillColor('#0f172a').text(`• ${label}: ${qty} unidad(es)`);
+      }
+      doc.moveDown(0.8);
+      doc
+        .fontSize(8)
+        .fillColor('#64748b')
+        .text('Sistema de Control de Dotaciones - Coraza', { align: 'center' });
     });
   }
 
-  private async drawDeliveryCard(
+  private associateTableCols(left: number, width: number) {
+    const fechaW = 70;
+    const cantW = 36;
+    const firmaW = 110;
+    const obsW = 90;
+    const elemW = width - fechaW - cantW - firmaW - obsW;
+    return {
+      left,
+      width,
+      fecha: { x: left, w: fechaW },
+      elemento: { x: left + fechaW, w: elemW },
+      cant: { x: left + fechaW + elemW, w: cantW },
+      obs: { x: left + fechaW + elemW + cantW, w: obsW },
+      firma: { x: left + fechaW + elemW + cantW + obsW, w: firmaW },
+    };
+  }
+
+  private drawAssociateTableHeader(
+    doc: PdfDoc,
+    cols: ReturnType<DeliveriesReportsService['associateTableCols']>,
+  ): void {
+    const y = doc.y;
+    const h = 18;
+    doc.rect(cols.left, y, cols.width, h).fillAndStroke('#e2e8f0', '#94a3b8');
+    doc.fillColor('#0f172a').fontSize(9).font('Helvetica-Bold');
+    doc.text('Fecha', cols.fecha.x + 3, y + 5, { width: cols.fecha.w - 6 });
+    doc.text('Elemento', cols.elemento.x + 3, y + 5, { width: cols.elemento.w - 6 });
+    doc.text('Cant.', cols.cant.x + 3, y + 5, { width: cols.cant.w - 6 });
+    doc.text('Observaciones', cols.obs.x + 3, y + 5, { width: cols.obs.w - 6 });
+    doc.text('Firma', cols.firma.x + 3, y + 5, { width: cols.firma.w - 6 });
+    doc.font('Helvetica');
+    doc.y = y + h + 2;
+  }
+
+  private detailLabel(detail: DeliveryDetail): string {
+    const itemName = detail.variant?.item?.name ?? 'Elemento';
+    const sku = detail.variant?.sku?.trim();
+    if (sku && !itemName.toLowerCase().includes(sku.toLowerCase())) {
+      return `${itemName} - ${sku}`;
+    }
+    return itemName;
+  }
+
+  private async drawAssociateTableRow(
     doc: PdfDoc,
     delivery: Delivery,
-    index: number,
-    total: number,
+    cols: ReturnType<DeliveriesReportsService['associateTableCols']>,
   ): Promise<void> {
     const date = delivery.deliveredAt ?? delivery.createdAt;
-    const shortId = delivery.id.slice(0, 8).toUpperCase();
-    const estimatedHeight = 170 + delivery.details.length * 14;
+    const details = delivery.details ?? [];
+    const lines = details.length
+      ? details.map((d) => this.detailLabel(d))
+      : ['Sin detalle'];
+    const qtyLines = details.length ? details.map((d) => String(d.quantity)) : ['—'];
+    const obs = (delivery.observations ?? '').trim() || '—';
 
-    if (doc.y + estimatedHeight > doc.page.height - doc.page.margins.bottom) {
+    const lineH = 12;
+    const textBlockH = Math.max(lines.length, 1) * lineH;
+    const firmaH = 56;
+    const pad = 6;
+    const rowH = Math.max(textBlockH, firmaH) + pad * 2;
+
+    if (doc.y + rowH > doc.page.height - doc.page.margins.bottom) {
       doc.addPage();
+      this.drawAssociateTableHeader(doc, cols);
     }
 
-    const startY = doc.y;
-    const left = doc.page.margins.left;
-    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const y = doc.y;
+    doc.rect(cols.left, y, cols.width, rowH).strokeColor('#cbd5e1').lineWidth(0.6).stroke();
 
     doc
-      .fontSize(12)
-      .fillColor('#312e81')
-      .text(`Entrega ${index} de ${total}`, left, startY, { width });
-    doc
-      .fontSize(9)
-      .fillColor('#64748b')
-      .text(`Fecha: ${this.formatDate(date)}   ·   Ref: ${shortId}`, { width });
-
-    doc.moveDown(0.45);
-    doc.fontSize(10).fillColor('#0f172a').text('Elementos entregados', { underline: true });
-    doc.moveDown(0.25);
-
-    if (!delivery.details?.length) {
-      doc.fontSize(9).fillColor('#64748b').text('Sin detalle de ítems.');
-    } else {
-      for (const detail of delivery.details) {
-        const itemName = detail.variant?.item?.name ?? 'Elemento';
-        const sku = detail.variant?.sku ?? '—';
-        doc
-          .fontSize(10)
-          .fillColor('#0f172a')
-          .text(`• ${itemName}  |  SKU: ${sku}  |  Cantidad: ${detail.quantity} u.`, {
-            width,
-          });
-      }
-    }
-
-    if (delivery.observations?.trim()) {
-      doc.moveDown(0.35);
-      doc.fontSize(9).fillColor('#475569').text(`Observaciones: ${delivery.observations.trim()}`, {
-        width,
+      .fontSize(8)
+      .fillColor('#0f172a')
+      .text(this.formatDateOnly(date), cols.fecha.x + 3, y + pad, {
+        width: cols.fecha.w - 6,
       });
+
+    let elemY = y + pad;
+    for (const line of lines) {
+      doc.text(line, cols.elemento.x + 3, elemY, { width: cols.elemento.w - 6 });
+      elemY += lineH;
     }
 
-    doc.moveDown(0.5);
-    doc.fontSize(10).fillColor('#0f172a').text('Firma del asociado (recibido)', { underline: true });
-    doc.moveDown(0.3);
+    let cantY = y + pad;
+    for (const q of qtyLines) {
+      doc.text(q, cols.cant.x + 3, cantY, { width: cols.cant.w - 6, align: 'center' });
+      cantY += lineH;
+    }
+
+    doc.text(obs, cols.obs.x + 3, y + pad, { width: cols.obs.w - 6 });
 
     const signatureBuffer = delivery.signatureUrl
       ? await this.fetchSignatureImage(delivery.signatureUrl)
       : null;
-
-    const sigBoxX = left;
-    const sigBoxY = doc.y;
-    const sigBoxW = Math.min(260, width);
-    const sigBoxH = 88;
-
-    doc.rect(sigBoxX, sigBoxY, sigBoxW, sigBoxH).strokeColor('#cbd5e1').lineWidth(0.8).stroke();
-
+    const sigX = cols.firma.x + 4;
+    const sigY = y + pad;
+    const sigW = cols.firma.w - 8;
+    const sigH = rowH - pad * 2;
+    doc.rect(sigX, sigY, sigW, sigH).strokeColor('#e2e8f0').lineWidth(0.5).stroke();
     if (signatureBuffer) {
       try {
-        doc.image(signatureBuffer, sigBoxX + 8, sigBoxY + 6, {
-          fit: [sigBoxW - 16, sigBoxH - 12],
+        doc.image(signatureBuffer, sigX + 2, sigY + 2, {
+          fit: [sigW - 4, sigH - 4],
           align: 'center',
           valign: 'center',
         });
       } catch {
         doc
-          .fontSize(9)
+          .fontSize(7)
           .fillColor('#64748b')
-          .text('Firma no disponible', sigBoxX + 12, sigBoxY + sigBoxH / 2 - 6);
+          .text('Sin firma', sigX + 4, sigY + sigH / 2 - 4, { width: sigW - 8 });
       }
     } else {
       doc
-        .fontSize(9)
+        .fontSize(7)
         .fillColor('#64748b')
-        .text('Firma no disponible', sigBoxX + 12, sigBoxY + sigBoxH / 2 - 6);
+        .text('Sin firma', sigX + 4, sigY + sigH / 2 - 4, { width: sigW - 8 });
     }
 
-    doc.y = sigBoxY + sigBoxH + 6;
-    doc
-      .fontSize(8)
-      .fillColor('#64748b')
-      .text('Firma de recibido — Portal Coraza / Dotación', left, doc.y, { width });
-
-    doc.moveDown(0.85);
-    doc
-      .moveTo(left, doc.y)
-      .lineTo(left + width, doc.y)
-      .strokeColor('#e2e8f0')
-      .lineWidth(0.6)
-      .stroke();
-    doc.moveDown(0.75);
-  }
-
-  private drawSectionBox(doc: PdfDoc, write: () => void): void {
-    const left = doc.page.margins.left;
-    const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const top = doc.y;
-    write();
-    const bottom = doc.y + 4;
-    doc
-      .rect(left - 6, top - 6, width + 12, bottom - top + 8)
-      .strokeColor('#e2e8f0')
-      .lineWidth(0.8)
-      .stroke();
-    doc.y = bottom + 4;
+    doc.y = y + rowH;
   }
 
   private async fetchSignatureImage(storedUrl: string): Promise<Buffer | null> {
@@ -356,5 +374,9 @@ export class DeliveriesReportsService {
       dateStyle: 'short',
       timeStyle: 'short',
     }).format(value);
+  }
+
+  private formatDateOnly(value: Date): string {
+    return new Intl.DateTimeFormat('es-CO', { dateStyle: 'short' }).format(value);
   }
 }

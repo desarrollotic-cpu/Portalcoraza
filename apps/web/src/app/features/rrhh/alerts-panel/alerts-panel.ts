@@ -93,9 +93,10 @@ const ALERT_TYPE_LABEL: Record<HrAlertType, string> = {
                   }
                 </div>
                 <div class="hr-alert-item__dates">
-                  Vence: <strong>{{ a.expirationDate }}</strong> · {{ daysToExpire(a) }}
-                  @if (a.notes) {
-                    <div>{{ a.notes }}</div>
+                  @if (isMissing(a)) {
+                    <strong>Falta</strong>
+                  } @else {
+                    Vence: <strong>{{ a.expirationDate }}</strong> · {{ daysToExpire(a) }}
                   }
                 </div>
               </div>
@@ -172,6 +173,11 @@ export class AlertsPanel implements OnInit {
 
   typeLabel(t: HrAlertType): string {
     return ALERT_TYPE_LABEL[t];
+  }
+
+  isMissing(a: HrAlert): boolean {
+    const n = (a.notes ?? '').toLowerCase();
+    return n === 'falta' || n.includes('faltante') || a.alertType === 'DOCUMENTO_FALTANTE';
   }
 
   daysToExpire(a: HrAlert): string {

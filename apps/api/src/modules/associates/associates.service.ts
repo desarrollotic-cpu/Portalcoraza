@@ -150,7 +150,12 @@ export class AssociatesService {
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);
     const limit = Math.min(2000, Math.max(1, parseInt(query.limit ?? '50', 10) || 50));
     const skip = (page - 1) * limit;
-    const tenureFilter = !!(query.tenureMinYears || query.tenureMaxYears);
+    const tenureFilter = !!(
+      query.tenureMinMonths ||
+      query.tenureMaxMonths ||
+      query.tenureMinYears ||
+      query.tenureMaxYears
+    );
 
     let rows: Associate[];
     let total: number;
@@ -160,16 +165,24 @@ export class AssociatesService {
         .filter((a) => a.status === AssociateStatus.RETIRADO)
         .map((a) => a.id);
       const retirementByAssociate = await this.latestRetirementDates(retiredIds);
-      const min = query.tenureMinYears ? parseFloat(query.tenureMinYears) : 0;
-      const max = query.tenureMaxYears ? parseFloat(query.tenureMaxYears) : Number.MAX_SAFE_INTEGER;
+      const minMonths = query.tenureMinMonths
+        ? parseInt(query.tenureMinMonths, 10)
+        : query.tenureMinYears
+          ? Math.round(parseFloat(query.tenureMinYears) * 12)
+          : 0;
+      const maxMonths = query.tenureMaxMonths
+        ? parseInt(query.tenureMaxMonths, 10)
+        : query.tenureMaxYears
+          ? Math.round(parseFloat(query.tenureMaxYears) * 12)
+          : Number.MAX_SAFE_INTEGER;
       rows = rows.filter((a) => {
-        const { tenureYears } = this.derived.compute({
+        const { tenureMonths } = this.derived.compute({
           birthDate: a.birthDate,
           hireDate: a.hireDate,
           status: a.status,
           retirementDate: retirementByAssociate.get(a.id) ?? null,
         });
-        return tenureYears >= min && tenureYears <= max;
+        return tenureMonths >= minMonths && tenureMonths <= maxMonths;
       });
       total = rows.length;
       rows = rows.slice(skip, skip + limit);
@@ -462,6 +475,7 @@ export class AssociatesService {
       ageAtHire: derived.ageAtHire,
       currentAge: derived.currentAge,
       tenureYears: derived.tenureYears,
+      tenureMonths: derived.tenureMonths,
       profileComplete: this.isProfileComplete(associate),
       fullName: [
         associate.firstName,

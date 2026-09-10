@@ -103,11 +103,13 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
         </select>
         <select [ngModel]="tenureBucket" (ngModelChange)="setTenure($event)">
           <option value="">Cualquier antigüedad</option>
-          <option value="0-1">Menos de 1 año</option>
-          <option value="1-3">1 a 3 años</option>
-          <option value="3-5">3 a 5 años</option>
-          <option value="5-10">5 a 10 años</option>
-          <option value="10+">Más de 10 años</option>
+          <option value="0-2">Menos de 3 meses</option>
+          <option value="3-6">3 a 6 meses</option>
+          <option value="7-12">7 a 12 meses</option>
+          <option value="13-24">13 a 24 meses</option>
+          <option value="25-36">25 a 36 meses</option>
+          <option value="37-60">37 a 60 meses</option>
+          <option value="61+">Más de 60 meses</option>
         </select>
       </section>
 
@@ -160,7 +162,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
                       {{ isProfileComplete(a) ? 'Completa' : 'Incompleta' }}
                     </span>
                   </td>
-                  <td>{{ a.tenureYears }} a</td>
+                  <td>{{ a.tenureMonths }} m</td>
                   <td>
                     <div class="hr-sst-lights" [title]="complianceTooltip(a)">
                       <span class="hr-sst-light" [class.on]="a.psychophysicalValid">
@@ -303,15 +305,19 @@ export class AssociatesList implements OnInit, OnDestroy {
   setTenure(bucket: string): void {
     this.tenureBucket = bucket;
     const ranges: Record<string, { min?: string; max?: string }> = {
-      '0-1': { min: '0', max: '0.9' },
-      '1-3': { min: '1', max: '2.9' },
-      '3-5': { min: '3', max: '4.9' },
-      '5-10': { min: '5', max: '9.9' },
-      '10+': { min: '10' },
+      '0-2': { min: '0', max: '2' },
+      '3-6': { min: '3', max: '6' },
+      '7-12': { min: '7', max: '12' },
+      '13-24': { min: '13', max: '24' },
+      '25-36': { min: '25', max: '36' },
+      '37-60': { min: '37', max: '60' },
+      '61+': { min: '61' },
     };
     const range = ranges[bucket] ?? {};
-    this.query.tenureMinYears = range.min;
-    this.query.tenureMaxYears = range.max;
+    this.query.tenureMinMonths = range.min;
+    this.query.tenureMaxMonths = range.max;
+    this.query.tenureMinYears = undefined;
+    this.query.tenureMaxYears = undefined;
     this.page.set(1);
     this.applyFilters();
   }

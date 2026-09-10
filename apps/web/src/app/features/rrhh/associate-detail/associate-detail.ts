@@ -89,7 +89,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
         <section class="hr-summary">
           <div><span>Edad</span><strong>{{ a.currentAge }} años</strong></div>
           <div><span>Edad al ingreso</span><strong>{{ a.ageAtHire }} años</strong></div>
-          <div><span>Antigüedad</span><strong>{{ a.tenureYears }} años</strong></div>
+          <div><span>Antigüedad</span><strong>{{ a.tenureMonths ?? Math.round((a.tenureYears ?? 0) * 12) }} meses</strong></div>
           <div>
             <span>Cumplimiento SST</span>
             <strong class="hr-stat-inline">
@@ -446,9 +446,10 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                       <div>
                         <strong>{{ formatAlertType(al.alertType) }}</strong>
                         <div class="hr-alert-item__meta">
-                          Vence: {{ al.expirationDate }} · {{ al.status }}
-                          @if (al.notes) {
-                            · {{ al.notes }}
+                          @if (isMissingAlert(al)) {
+                            Falta · {{ al.status }}
+                          } @else {
+                            Vence: {{ al.expirationDate }} · {{ al.status }}
                           }
                         </div>
                       </div>
@@ -674,13 +675,18 @@ export class AssociateDetail implements OnInit {
     return labels[t] ?? t;
   }
 
+  isMissingAlert(a: HrAlert): boolean {
+    const n = (a.notes ?? '').toLowerCase();
+    return n === 'falta' || n.includes('faltante') || a.alertType === 'DOCUMENTO_FALTANTE';
+  }
+
   sstStatus(kind: AssociateDocumentKind, valid: boolean): string {
     const doc = this.documents().find((d) => d.documentKind === kind);
     if (doc?.expirationDate) {
       const exp = doc.expirationDate.slice(0, 10);
       return this.isExpired(doc) ? `Vencido (${exp})` : `Vigente hasta ${exp}`;
     }
-    return valid ? 'Vigente' : 'Vencido / faltante';
+    return valid ? 'Vigente' : 'Falta';
   }
 
   courseSstStatus(a: Associate): string {

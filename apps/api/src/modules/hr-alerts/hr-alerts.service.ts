@@ -159,7 +159,7 @@ export class HrAlertsService {
           associateId,
           HrAlertType.VENCIMIENTO_PSICOFISICO,
           today,
-          'Examen psicofísico vencido o faltante',
+          'Falta',
         )
       ) {
         created += 1;
@@ -171,7 +171,7 @@ export class HrAlertsService {
           associateId,
           HrAlertType.VENCIMIENTO_PSICOSENSOMETRICO,
           today,
-          'Examen médico ocupacional vencido o faltante',
+          'Falta',
         )
       ) {
         created += 1;
@@ -184,7 +184,7 @@ export class HrAlertsService {
           associateId,
           HrAlertType.VENCIMIENTO_CURSO,
           today,
-          'Curso de reentrenamiento vencido o faltante',
+          'Falta',
         )
       ) {
         created += 1;
@@ -237,9 +237,16 @@ export class HrAlertsService {
       },
     });
     if (existing) {
-      if (existing.expirationDate !== exp || (notes && existing.notes !== notes)) {
+      const wasMissing =
+        existing.notes === 'Falta' || (existing.notes ?? '').includes('faltante');
+      if (
+        existing.expirationDate !== exp ||
+        (notes && existing.notes !== notes) ||
+        (wasMissing && notes !== 'Falta')
+      ) {
         existing.expirationDate = exp;
         if (notes) existing.notes = notes;
+        else if (wasMissing) existing.notes = null;
         await this.alertsRepo.save(existing);
       }
       return false;
@@ -253,7 +260,7 @@ export class HrAlertsService {
       notes: notes ?? null,
     });
     await this.alertsRepo.save(alert);
-    await this.hrAudit.recordSstAlert(associateId, alertType, exp);
+    await this.hrAudit.recordSstAlert(associateId, alertType, notes === 'Falta' ? null : exp);
     return true;
   }
 

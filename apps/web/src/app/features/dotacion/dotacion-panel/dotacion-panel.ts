@@ -167,6 +167,11 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
                   <option [value]="a.id">{{ a.fullName }} ({{ a.documentNumber }})</option>
                 }
               </select>
+              @if (associateOptionsTotal() > associateOptions().length) {
+                <p class="dot-muted">Mostrando {{ associateOptions().length }} de {{ associateOptionsTotal() }}. Escribe nombre o cédula para filtrar.</p>
+              } @else if (associateSearch() && associateOptions().length === 0) {
+                <p class="dot-muted">Sin coincidencias para «{{ associateSearch() }}».</p>
+              }
               <button type="button" class="hr-btn hr-btn-primary" [disabled]="reportLoading() || !selectedAssociateId()" (click)="downloadAssociate()">
                 Descargar PDF
               </button>
@@ -321,6 +326,7 @@ export class DotacionPanel implements OnInit {
   });
   readonly items = signal<InventoryItem[]>([]);
   readonly associateOptions = signal<{ id: string; fullName: string; documentNumber: string }[]>([]);
+  readonly associateOptionsTotal = signal(0);
   readonly selectedItemId = signal('');
   readonly selectedAssociateId = signal('');
   readonly associateSearch = signal('');
@@ -383,19 +389,33 @@ export class DotacionPanel implements OnInit {
   downloadAssociate(): void {
     const id = this.selectedAssociateId();
     if (!id) return;
-    this.runReport(() => this.api.downloadAssociateReport(id), 'reporte-asociado-dotacion.pdf');
+    const a = this.associateOptions().find((x) => x.id === id);
+    const safe = (a?.fullName ?? 'asociado').replace(/[^\wÁÉÍÓÚáéíóúñÑ]+/g, '_').slice(0, 60);
+    const doc = (a?.documentNumber ?? '').replace(/\D/g, '') || 'sin-doc';
+    this.runReport(
+      () => this.api.downloadAssociateReport(id),
+      `Historial_Entregas_${safe}_${doc}.pdf`,
+    );
   }
 
   private loadAssociateOptions(search: string): void {
-    this.api.listDotacionAssociates({ page: 1, limit: 30, search: search || undefined }).subscribe({
+    const cleaned = search.trim().replace(/\s+/g, ' ');
+    this.api.listDotacionAssociates({ page: 1, limit: 200, search: cleaned || undefined }).subscribe({
       next: (res) => {
-        this.associateOptions.set(
-          res.items.map((a) => ({
-            id: a.id,
-            fullName: a.fullName,
-            documentNumber: a.documentNumber,
-          })),
-        );
+        const items = res.items.map((a) => ({
+          id: a.id,
+          fullName: a.fullName,
+          documentNumber: a.documentNumber,
+        }));
+        this.associateOptions.set(items);
+        this.associateOptionsTotal.set(res.total);
+        const selected = this.selectedAssociateId();
+        if (selected && !items.some((a) => a.id === selected)) {
+          this.selectedAssociateId.set('');
+        }
+        if (cleaned && items.length === 1) {
+          this.selectedAssociateId.set(items[0].id);
+        }
       },
     });
   }

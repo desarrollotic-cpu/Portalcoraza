@@ -172,6 +172,7 @@ export interface Associate {
   ageAtHire: number;
   currentAge: number;
   tenureYears: number;
+  tenureMonths: number;
   /** Celular + fecha ingreso + cargo */
   profileComplete?: boolean;
 }
@@ -185,6 +186,8 @@ export interface AssociatesQuery {
   isCritical?: 'true' | 'false';
   tenureMinYears?: string;
   tenureMaxYears?: string;
+  tenureMinMonths?: string;
+  tenureMaxMonths?: string;
   page?: number;
   limit?: number;
 }

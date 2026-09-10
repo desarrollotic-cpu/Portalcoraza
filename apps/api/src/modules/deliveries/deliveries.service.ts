@@ -153,7 +153,7 @@ export class DeliveriesService {
     workCenterId?: string;
   }): Promise<PaginatedDotacionAssociatesDto> {
     const page = Math.max(1, filters?.page ?? 1);
-    const limit = Math.min(100, Math.max(10, filters?.limit ?? 25));
+    const limit = Math.min(500, Math.max(10, filters?.limit ?? 25));
     const skip = (page - 1) * limit;
 
     const qb = this.associatesRepo
@@ -167,7 +167,9 @@ export class DeliveriesService {
     }
 
     if (filters?.search?.trim()) {
-      const term = `%${filters.search.trim().toUpperCase()}%`;
+      const raw = filters.search.trim().toUpperCase();
+      const term = `%${raw}%`;
+      const digits = raw.replace(/\D/g, '');
       qb.andWhere(
         new Brackets((sub) => {
           sub
@@ -179,6 +181,12 @@ export class DeliveriesService {
             .orWhere('UPPER(wc.code) LIKE :term', { term })
             .orWhere('UPPER(wc.client_name) LIKE :term', { term })
             .orWhere('UPPER(wc.zone) LIKE :term', { term });
+          if (digits.length >= 4) {
+            sub.orWhere(
+              "regexp_replace(COALESCE(a.document_number, ''), '[^0-9]', '', 'g') LIKE :digits",
+              { digits: `%${digits}%` },
+            );
+          }
         }),
       );
     }

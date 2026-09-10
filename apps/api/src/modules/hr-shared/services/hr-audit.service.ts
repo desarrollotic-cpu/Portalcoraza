@@ -76,7 +76,7 @@ export class HrAuditService {
   async recordSstAlert(
     associateId: string,
     alertType: string,
-    expirationDate: string,
+    expirationDate: string | null,
   ): Promise<void> {
     await this.historyRepo.save(
       this.historyRepo.create({
@@ -85,7 +85,7 @@ export class HrAuditService {
         action: 'ALERTA',
         fieldName: alertType,
         oldValue: 'vigente',
-        newValue: `vencido ${expirationDate}`,
+        newValue: expirationDate ? `vencido ${expirationDate}` : 'falta',
       }),
     );
   }

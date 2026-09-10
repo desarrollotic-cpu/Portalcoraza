@@ -17,6 +17,14 @@ interface VariantOption {
   stock: number;
 }
 
+interface SummaryLine {
+  itemName: string;
+  variantLabel: string;
+  quantity: number;
+}
+
+type DeliveryStep = 'edit' | 'sign' | 'review';
+
 function stockOf(v: InventoryVariant, warehouseId?: string | null): number {
   if (warehouseId) {
     const row = v.stocks?.find((s) => s.warehouseId === warehouseId);
@@ -35,10 +43,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       : generoRaw === 'F' || generoRaw === 'Mujer'
         ? 'Mujer'
         : '';
-  const parts = [
-    talla ? `Talla ${talla}` : null,
-    genero || null,
-  ].filter(Boolean);
+  const parts = [talla ? `Talla ${talla}` : null, genero || null].filter(Boolean);
   const base = parts.length ? parts.join(' — ') : 'Única';
   return `${base} (Stock: ${stockOf(v, warehouseId)})`;
 }
@@ -50,6 +55,76 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
     <app-modal-shell [open]="open()" [title]="dialogTitle()" (closed)="dismiss()">
       @if (loading()) {
         <p>Cargando inventario...</p>
+      } @else if (step() === 'sign') {
+        <p class="subject">{{ subjectLabel() }}</p>
+        <p class="step-hint">Solo firma. Las cantidades ya no se pueden cambiar aquí.</p>
+
+        <ul class="summary">
+          @for (line of summaryLines(); track $index) {
+            <li>
+              <strong>{{ line.itemName }}</strong>
+              <span>{{ line.variantLabel }}</span>
+              <em>× {{ line.quantity }}</em>
+            </li>
+          }
+        </ul>
+
+        <app-signature-pad #signaturePad (inkChange)="onInkChange($event)" />
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <div class="actions">
+          <button type="button" (click)="backToEdit()">Volver</button>
+          <button type="button" (click)="clearSignature()">Limpiar</button>
+          <button
+            type="button"
+            class="btn-confirm"
+            (click)="confirmSignature()"
+            [disabled]="!signed()"
+          >
+            Confirmar firma
+          </button>
+        </div>
+      } @else if (step() === 'review') {
+        <p class="subject">{{ subjectLabel() }}</p>
+        <p class="step-hint">Revisa cantidades y firma. Si algo está mal, edita la entrega (se borra la firma).</p>
+
+        <ul class="summary">
+          @for (line of summaryLines(); track $index) {
+            <li>
+              <strong>{{ line.itemName }}</strong>
+              <span>{{ line.variantLabel }}</span>
+              <em>× {{ line.quantity }}</em>
+            </li>
+          }
+        </ul>
+
+        @if (form.controls.observations.value.trim()) {
+          <p class="obs-ro"><strong>Obs:</strong> {{ form.controls.observations.value }}</p>
+        }
+
+        @if (capturedSignature(); as sig) {
+          <div class="sig-preview">
+            <p class="sig-label">Firma capturada</p>
+            <img [src]="sig" alt="Firma del asociado" />
+          </div>
+        }
+
+        @if (submitBlockReason(); as why) {
+          <p class="hint-block">{{ why }}</p>
+        }
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <div class="actions">
+          <button type="button" (click)="backToEdit()">Editar entrega</button>
+          <button type="button" class="btn-confirm" (click)="submit()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : 'Confirmar entrega' }}
+          </button>
+        </div>
       } @else {
         <p class="subject">{{ subjectLabel() }}</p>
 
@@ -94,12 +169,9 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
             Observaciones
             <textarea formControlName="observations" rows="2" placeholder="Opcional"></textarea>
           </label>
-
-          <h4>Firma de recepción</h4>
-          <app-signature-pad #signaturePad (inkChange)="onInkChange($event)" />
         </form>
 
-        @if (submitBlockReason(); as why) {
+        @if (linesBlockReason(); as why) {
           <p class="hint-block">{{ why }}</p>
         }
         @if (error()) {
@@ -108,15 +180,24 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
 
         <div class="actions">
           <button type="button" (click)="dismiss()">Cancelar</button>
-          <button type="button" class="btn-confirm" (click)="submit()" [disabled]="saving()">
-            {{ saving() ? 'Guardando...' : 'Confirmar entrega' }}
+          <button type="button" class="btn-confirm" (click)="goToSign()" [disabled]="!!linesBlockReason()">
+            Firmar
           </button>
         </div>
       }
     </app-modal-shell>
   `,
   styles: `
-    .subject { margin: 0 0 1rem; color: var(--coraza-text-muted); }
+    .subject { margin: 0 0 0.75rem; color: var(--coraza-text-muted); }
+    .step-hint {
+      margin: 0 0 0.75rem;
+      padding: 0.55rem 0.75rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      color: #1e3a8a;
+      font-size: 0.85rem;
+    }
     h4 { margin: 1rem 0 0.5rem; font-size: 0.95rem; color: var(--primary-dark); }
     .lines { display: flex; flex-direction: column; gap: 0.5rem; }
     .line {
@@ -165,7 +246,46 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       cursor: pointer;
     }
     .obs { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 1rem; }
-    .actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+    .obs-ro { font-size: 0.9rem; color: #334155; }
+    .summary {
+      list-style: none;
+      margin: 0 0 1rem;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .summary li {
+      display: grid;
+      grid-template-columns: 1.2fr 1.4fr auto;
+      gap: 0.5rem;
+      padding: 0.55rem 0.65rem;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.88rem;
+    }
+    .summary em { font-style: normal; font-weight: 700; }
+    .sig-preview {
+      margin: 0.75rem 0;
+      padding: 0.65rem;
+      border: 1px solid var(--coraza-border);
+      border-radius: 10px;
+      background: #fff;
+    }
+    .sig-label {
+      margin: 0 0 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .sig-preview img {
+      display: block;
+      width: 100%;
+      max-height: 160px;
+      object-fit: contain;
+      background: #fff;
+    }
+    .actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 1rem; }
     .btn-confirm {
       padding: 0.55rem 1rem;
       border: none;
@@ -189,7 +309,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
   `,
 })
 export class DeliveryDialog implements OnInit {
-  @ViewChild('signaturePad') signaturePad!: SignaturePad;
+  @ViewChild('signaturePad') signaturePad?: SignaturePad;
 
   readonly open = input(false);
   readonly associateId = input<string | null>(null);
@@ -210,6 +330,9 @@ export class DeliveryDialog implements OnInit {
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
   readonly signed = signal(false);
+  readonly step = signal<DeliveryStep>('edit');
+  readonly capturedSignature = signal<string | null>(null);
+  readonly summaryLines = signal<SummaryLine[]>([]);
   readonly itemOptions = signal<ItemOption[]>([]);
   private items = signal<InventoryItem[]>([]);
   private variants = signal<InventoryVariant[]>([]);
@@ -291,8 +414,8 @@ export class DeliveryDialog implements OnInit {
     this.patchStock(index, opt ? opt.stock : null);
   }
 
-  /** Motivo visible de por qué aún no se puede confirmar. */
-  submitBlockReason(): string | null {
+  /** Validación solo de líneas/stock (antes de firmar). */
+  linesBlockReason(): string | null {
     if (!this.associateId() && !this.postId()) {
       return 'Selecciona un asociado o puesto antes de entregar.';
     }
@@ -309,14 +432,62 @@ export class DeliveryDialog implements OnInit {
       if (!Number.isFinite(qty) || qty < 1) return 'Indica una cantidad válida.';
       if (qty > stock) return `La cantidad supera el stock (${stock}).`;
     }
-    if (!this.signed() && (this.signaturePad?.isEmpty() ?? true)) {
-      return 'Falta la firma del asociado que recibe.';
+    return null;
+  }
+
+  submitBlockReason(): string | null {
+    const linesWhy = this.linesBlockReason();
+    if (linesWhy) return linesWhy;
+    if (!this.capturedSignature()) {
+      return 'Falta confirmar la firma del asociado que recibe.';
     }
     return null;
   }
 
-  canSubmit(): boolean {
-    return this.submitBlockReason() === null;
+  goToSign(): void {
+    const why = this.linesBlockReason();
+    if (why) {
+      this.error.set(why);
+      return;
+    }
+    this.error.set(null);
+    this.signed.set(false);
+    this.capturedSignature.set(null);
+    this.summaryLines.set(this.buildSummary());
+    this.step.set('sign');
+    this.dialogTitle.set('Firma de recepción');
+  }
+
+  clearSignature(): void {
+    this.signaturePad?.clear();
+    this.signed.set(false);
+    this.error.set(null);
+  }
+
+  confirmSignature(): void {
+    const dataUrl = this.signaturePad?.exportDataUrl() ?? null;
+    if (!dataUrl) {
+      this.error.set('Falta la firma del asociado que recibe.');
+      this.signed.set(false);
+      return;
+    }
+    this.capturedSignature.set(dataUrl);
+    this.signed.set(true);
+    this.error.set(null);
+    this.step.set('review');
+    this.dialogTitle.set(
+      this.postId() ? 'Confirmar entrega — Puesto' : 'Confirmar entrega — Asociado',
+    );
+  }
+
+  backToEdit(): void {
+    this.capturedSignature.set(null);
+    this.signed.set(false);
+    this.error.set(null);
+    this.step.set('edit');
+    this.dialogTitle.set(
+      this.postId() ? 'Entrega de dotación — Puesto' : 'Entrega de dotación — Asociado',
+    );
   }
 
   submit(): void {
@@ -325,6 +496,12 @@ export class DeliveryDialog implements OnInit {
       this.error.set(why);
       return;
     }
+    const signature = this.capturedSignature();
+    if (!signature) {
+      this.error.set('La firma es obligatoria');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set(null);
 
@@ -342,12 +519,6 @@ export class DeliveryDialog implements OnInit {
 
     this.api.createDelivery(payload).subscribe({
       next: (delivery) => {
-        const signature = this.signaturePad.exportDataUrl();
-        if (!signature) {
-          this.saving.set(false);
-          this.error.set('La firma es obligatoria');
-          return;
-        }
         this.api.signDelivery(delivery.id, signature).subscribe({
           next: () => {
             this.saving.set(false);
@@ -372,12 +543,31 @@ export class DeliveryDialog implements OnInit {
     this.dismissed.emit();
   }
 
+  private buildSummary(): SummaryLine[] {
+    const catalog = this.items();
+    return this.lines.controls.map((ctrl, i) => {
+      const itemId = String(ctrl.get('itemId')?.value ?? '');
+      const itemName = catalog.find((it) => it.id === itemId)?.name ?? 'Elemento';
+      const opts = this.variantOptions(i);
+      const variantId = String(ctrl.get('variantId')?.value ?? '');
+      const variant = opts.find((o) => o.variantId === variantId);
+      return {
+        itemName,
+        variantLabel: variant?.label ?? '—',
+        quantity: Number(ctrl.get('quantity')?.value ?? 0),
+      };
+    });
+  }
+
   private resetForm(): void {
     this.form.reset({ observations: '' });
     this.lines.clear();
     this.lines.push(this.createLineGroup());
     this.error.set(null);
     this.signed.set(false);
+    this.capturedSignature.set(null);
+    this.summaryLines.set([]);
+    this.step.set('edit');
     this.variantsByLine.set({});
     this.stockByLine.set({});
   }

@@ -22,6 +22,18 @@ export class AssociateDerivedService {
     return Math.round(Math.max(0, diff / MS_PER_YEAR) * 10) / 10;
   }
 
+  monthsBetween(from: Date | string | null, to: Date | string | null): number {
+    if (!from || !to) return 0;
+    const fromDate = new Date(from);
+    const toDate = new Date(to);
+    if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) return 0;
+    let months =
+      (toDate.getFullYear() - fromDate.getFullYear()) * 12 +
+      (toDate.getMonth() - fromDate.getMonth());
+    if (toDate.getDate() < fromDate.getDate()) months -= 1;
+    return Math.max(0, months);
+  }
+
   compute(input: {
     birthDate: string | null;
     hireDate: string | null;
@@ -31,6 +43,7 @@ export class AssociateDerivedService {
     ageAtHire: number;
     currentAge: number;
     tenureYears: number;
+    tenureMonths: number;
   } {
     const now = new Date();
     const isRetired = input.status === 'RETIRADO';
@@ -40,6 +53,7 @@ export class AssociateDerivedService {
       ageAtHire: this.yearsBetween(input.birthDate, input.hireDate),
       currentAge: this.yearsBetween(input.birthDate, now),
       tenureYears: this.yearsBetween(input.hireDate, endTenure),
+      tenureMonths: this.monthsBetween(input.hireDate, endTenure),
     };
   }
 }
