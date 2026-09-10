@@ -158,21 +158,47 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
             <div class="dot-report-card">
               <h3>Reporte individual de asociado</h3>
               <label>
-                Buscar asociado
-                <input type="search" placeholder="Nombre o cédula..." [value]="associateSearch()" (input)="onAssociateSearch($event)" />
+                Buscar por nombre o cédula
+                <input
+                  type="search"
+                  placeholder="Ej. Muñoz o 1020…"
+                  [value]="associateSearch()"
+                  (input)="onAssociateSearch($event)"
+                  autocomplete="off"
+                />
               </label>
-              <select [value]="selectedAssociateId()" (change)="onAssociateSelect($event)">
-                <option value="">Seleccione...</option>
-                @for (a of associateOptions(); track a.id) {
-                  <option [value]="a.id">{{ a.fullName }} ({{ a.documentNumber }})</option>
+              @if (selectedAssociate(); as sel) {
+                <div class="dot-picked">
+                  <div>
+                    <strong>{{ sel.fullName }}</strong>
+                    <span class="dot-muted">CC {{ sel.documentNumber }}</span>
+                  </div>
+                  <button type="button" class="hr-btn hr-btn-ghost" (click)="clearAssociate()">Cambiar</button>
+                </div>
+              } @else if (associateSearch().trim()) {
+                @if (associateSearching()) {
+                  <p class="dot-muted">Buscando…</p>
+                } @else if (associateOptions().length === 0) {
+                  <p class="dot-muted">Sin coincidencias.</p>
+                } @else {
+                  <ul class="dot-suggest" role="listbox">
+                    @for (a of associateOptions(); track a.id) {
+                      <li>
+                        <button type="button" class="dot-suggest__btn" (click)="pickAssociate(a)">
+                          <strong>{{ a.fullName }}</strong>
+                          <span>CC {{ a.documentNumber }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                  @if (associateOptionsTotal() > associateOptions().length) {
+                    <p class="dot-muted">Mostrando {{ associateOptions().length }} de {{ associateOptionsTotal() }}. Afina la búsqueda.</p>
+                  }
                 }
-              </select>
-              @if (associateOptionsTotal() > associateOptions().length) {
-                <p class="dot-muted">Mostrando {{ associateOptions().length }} de {{ associateOptionsTotal() }}. Escribe nombre o cédula para filtrar.</p>
-              } @else if (associateSearch() && associateOptions().length === 0) {
-                <p class="dot-muted">Sin coincidencias para «{{ associateSearch() }}».</p>
+              } @else {
+                <p class="dot-muted">Escribe y elige al asociado en la lista.</p>
               }
-              <button type="button" class="hr-btn hr-btn-primary" [disabled]="reportLoading() || !selectedAssociateId()" (click)="downloadAssociate()">
+              <button type="button" class="hr-btn hr-btn-primary" [disabled]="reportLoading() || !selectedAssociate()" (click)="downloadAssociate()">
                 Descargar PDF
               </button>
             </div>
@@ -260,6 +286,44 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
       font-size: 0.82rem;
       color: var(--text-secondary);
     }
+    .dot-suggest {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      max-height: 220px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface, #fff);
+    }
+    .dot-suggest__btn {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.15rem;
+      padding: 0.55rem 0.7rem;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      font: inherit;
+    }
+    .dot-suggest li:last-child .dot-suggest__btn { border-bottom: none; }
+    .dot-suggest__btn:hover { background: #eff6ff; }
+    .dot-suggest__btn span { font-size: 0.8rem; color: var(--text-secondary); }
+    .dot-picked {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.55rem 0.7rem;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      background: #eff6ff;
+    }
+    .dot-picked strong { display: block; font-size: 0.9rem; }
   `,
 })
 export class DotacionPanel implements OnInit {
@@ -327,15 +391,15 @@ export class DotacionPanel implements OnInit {
   readonly items = signal<InventoryItem[]>([]);
   readonly associateOptions = signal<{ id: string; fullName: string; documentNumber: string }[]>([]);
   readonly associateOptionsTotal = signal(0);
+  readonly associateSearching = signal(false);
   readonly selectedItemId = signal('');
-  readonly selectedAssociateId = signal('');
+  readonly selectedAssociate = signal<{ id: string; fullName: string; documentNumber: string } | null>(null);
   readonly associateSearch = signal('');
   readonly reportLoading = signal(false);
   readonly reportError = signal<string | null>(null);
 
   ngOnInit(): void {
     this.api.listItems().subscribe({ next: (items) => this.items.set(items) });
-    this.loadAssociateOptions('');
     this.api.getDotacionOverview().subscribe({
       next: (overview) => {
         this.data.set(overview);
@@ -365,15 +429,34 @@ export class DotacionPanel implements OnInit {
     this.selectedItemId.set((event.target as HTMLSelectElement).value);
   }
 
-  onAssociateSelect(event: Event): void {
-    this.selectedAssociateId.set((event.target as HTMLSelectElement).value);
-  }
-
   onAssociateSearch(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.associateSearch.set(value);
+    this.selectedAssociate.set(null);
     if (this.associateSearchTimer) clearTimeout(this.associateSearchTimer);
-    this.associateSearchTimer = setTimeout(() => this.loadAssociateOptions(value), 350);
+    const cleaned = value.trim();
+    if (!cleaned) {
+      this.associateOptions.set([]);
+      this.associateOptionsTotal.set(0);
+      this.associateSearching.set(false);
+      return;
+    }
+    this.associateSearching.set(true);
+    this.associateSearchTimer = setTimeout(() => this.loadAssociateOptions(cleaned), 280);
+  }
+
+  pickAssociate(a: { id: string; fullName: string; documentNumber: string }): void {
+    this.selectedAssociate.set(a);
+    this.associateSearch.set(`${a.fullName} · ${a.documentNumber}`);
+    this.associateOptions.set([]);
+    this.associateOptionsTotal.set(0);
+  }
+
+  clearAssociate(): void {
+    this.selectedAssociate.set(null);
+    this.associateSearch.set('');
+    this.associateOptions.set([]);
+    this.associateOptionsTotal.set(0);
   }
 
   downloadGeneral(): void {
@@ -387,35 +470,36 @@ export class DotacionPanel implements OnInit {
   }
 
   downloadAssociate(): void {
-    const id = this.selectedAssociateId();
-    if (!id) return;
-    const a = this.associateOptions().find((x) => x.id === id);
-    const safe = (a?.fullName ?? 'asociado').replace(/[^\wÁÉÍÓÚáéíóúñÑ]+/g, '_').slice(0, 60);
-    const doc = (a?.documentNumber ?? '').replace(/\D/g, '') || 'sin-doc';
+    const a = this.selectedAssociate();
+    if (!a) return;
+    const safe = a.fullName.replace(/[^\wÁÉÍÓÚáéíóúñÑ]+/g, '_').slice(0, 60);
+    const doc = a.documentNumber.replace(/\D/g, '') || 'sin-doc';
     this.runReport(
-      () => this.api.downloadAssociateReport(id),
+      () => this.api.downloadAssociateReport(a.id),
       `Historial_Entregas_${safe}_${doc}.pdf`,
     );
   }
 
   private loadAssociateOptions(search: string): void {
     const cleaned = search.trim().replace(/\s+/g, ' ');
-    this.api.listDotacionAssociates({ page: 1, limit: 200, search: cleaned || undefined }).subscribe({
+    this.api.listDotacionAssociates({ page: 1, limit: 30, search: cleaned || undefined }).subscribe({
       next: (res) => {
-        const items = res.items.map((a) => ({
-          id: a.id,
-          fullName: a.fullName,
-          documentNumber: a.documentNumber,
+        const items = res.items.map((row) => ({
+          id: row.id,
+          fullName: row.fullName,
+          documentNumber: row.documentNumber,
         }));
         this.associateOptions.set(items);
         this.associateOptionsTotal.set(res.total);
-        const selected = this.selectedAssociateId();
-        if (selected && !items.some((a) => a.id === selected)) {
-          this.selectedAssociateId.set('');
+        this.associateSearching.set(false);
+        if (items.length === 1) {
+          this.pickAssociate(items[0]);
         }
-        if (cleaned && items.length === 1) {
-          this.selectedAssociateId.set(items[0].id);
-        }
+      },
+      error: () => {
+        this.associateSearching.set(false);
+        this.associateOptions.set([]);
+        this.associateOptionsTotal.set(0);
       },
     });
   }

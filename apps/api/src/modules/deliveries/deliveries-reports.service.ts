@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { DeliveriesService } from './deliveries.service';
+import { getDotacionEncabezadoBuffer } from './dotacion-pdf-assets';
 import { DeliveryDetail } from './entities/delivery-detail.entity';
 import { Delivery, DeliveryStatus } from './entities/delivery.entity';
 
@@ -141,54 +142,58 @@ export class DeliveriesReportsService {
     const semester = now.getMonth() < 6 ? 1 : 2;
     const periodLabel = `Semestre ${semester} ${now.getFullYear()}`;
 
-    return this.renderPdf('REPORTE DE ENTREGAS DE DOTACIÓN', async (doc) => {
-      doc.fontSize(11).fillColor('#0f172a').text(`Asociado: ${fullName}`);
-      doc.text(`Cédula: ${associate.documentNumber}`);
-      doc.text(`Periodo: ${periodLabel}`);
-      doc
-        .fontSize(9)
-        .fillColor('#64748b')
-        .text(`Fecha de generación: ${this.formatDateOnly(now)}`);
-      doc.moveDown(0.75);
+    return this.renderPdf(
+      'REPORTE DE ENTREGAS DE DOTACIÓN',
+      async (doc) => {
+        doc.fontSize(11).fillColor('#0f172a').text(`Asociado: ${fullName}`);
+        doc.text(`Cédula: ${associate.documentNumber}`);
+        doc.text(`Periodo: ${periodLabel}`);
+        doc
+          .fontSize(9)
+          .fillColor('#64748b')
+          .text(`Fecha de generación: ${this.formatDateOnly(now)}`);
+        doc.moveDown(0.75);
 
-      const deliveries = await this.deliveriesRepo.find({
-        where: { associateId, status: DeliveryStatus.DELIVERED },
-        relations: { details: { variant: { item: true } } },
-        order: { deliveredAt: 'DESC' },
-      });
+        const deliveries = await this.deliveriesRepo.find({
+          where: { associateId, status: DeliveryStatus.DELIVERED },
+          relations: { details: { variant: { item: true } } },
+          order: { deliveredAt: 'DESC' },
+        });
 
-      if (!deliveries.length) {
-        doc.fontSize(10).fillColor('#64748b').text('El asociado no tiene entregas confirmadas.');
-        return;
-      }
-
-      const left = doc.page.margins.left;
-      const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-      const cols = this.associateTableCols(left, width);
-      this.drawAssociateTableHeader(doc, cols);
-
-      const totals = new Map<string, number>();
-
-      for (const delivery of deliveries) {
-        for (const detail of delivery.details ?? []) {
-          const label = this.detailLabel(detail);
-          totals.set(label, (totals.get(label) ?? 0) + detail.quantity);
+        if (!deliveries.length) {
+          doc.fontSize(10).fillColor('#64748b').text('El asociado no tiene entregas confirmadas.');
+          return;
         }
-        await this.drawAssociateTableRow(doc, delivery, cols);
-      }
 
-      doc.moveDown(0.6);
-      doc.fontSize(11).fillColor('#0f172a').text('RESUMEN:', { underline: true });
-      doc.moveDown(0.3);
-      for (const [label, qty] of [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es'))) {
-        doc.fontSize(10).fillColor('#0f172a').text(`• ${label}: ${qty} unidad(es)`);
-      }
-      doc.moveDown(0.8);
-      doc
-        .fontSize(8)
-        .fillColor('#64748b')
-        .text('Sistema de Control de Dotaciones - Coraza', { align: 'center' });
-    });
+        const left = doc.page.margins.left;
+        const width = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+        const cols = this.associateTableCols(left, width);
+        this.drawAssociateTableHeader(doc, cols);
+
+        const totals = new Map<string, number>();
+
+        for (const delivery of deliveries) {
+          for (const detail of delivery.details ?? []) {
+            const label = this.detailLabel(detail);
+            totals.set(label, (totals.get(label) ?? 0) + detail.quantity);
+          }
+          await this.drawAssociateTableRow(doc, delivery, cols);
+        }
+
+        doc.moveDown(0.6);
+        doc.fontSize(11).fillColor('#0f172a').text('RESUMEN:', { underline: true });
+        doc.moveDown(0.3);
+        for (const [label, qty] of [...totals.entries()].sort((a, b) => a[0].localeCompare(b[0], 'es'))) {
+          doc.fontSize(10).fillColor('#0f172a').text(`• ${label}: ${qty} unidad(es)`);
+        }
+        doc.moveDown(0.8);
+        doc
+          .fontSize(8)
+          .fillColor('#64748b')
+          .text('Sistema de Control de Dotaciones - Coraza', { align: 'center' });
+      },
+      { foTh51Header: true },
+    );
   }
 
   private associateTableCols(left: number, width: number) {
@@ -322,9 +327,13 @@ export class DeliveriesReportsService {
     }
   }
 
-  private async renderPdf(title: string, write: (doc: PdfDoc) => Promise<void>): Promise<Buffer> {
+  private async renderPdf(
+    title: string,
+    write: (doc: PdfDoc) => Promise<void>,
+    opts?: { foTh51Header?: boolean },
+  ): Promise<Buffer> {
     const doc = new PDFDocument({
-      margin: 48,
+      margin: opts?.foTh51Header ? 36 : 48,
       size: 'A4',
       info: {
         Title: title,
@@ -341,21 +350,30 @@ export class DeliveriesReportsService {
       doc.on('error', reject);
     });
 
-    doc.fontSize(16).fillColor('#312e81').text('Portal Coraza — Dotación', { align: 'center' });
-    doc.moveDown(0.35);
-    doc.fontSize(13).fillColor('#0f172a').text(title, { align: 'center' });
-    doc
-      .fontSize(9)
-      .fillColor('#64748b')
-      .text(`Generado: ${this.formatDate(new Date())}`, { align: 'center' });
-    doc.moveDown(0.85);
-    doc
-      .moveTo(doc.page.margins.left, doc.y)
-      .lineTo(doc.page.width - doc.page.margins.right, doc.y)
-      .strokeColor('#c7d2fe')
-      .lineWidth(1)
-      .stroke();
-    doc.moveDown(0.85);
+    if (opts?.foTh51Header) {
+      const maxW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+      const top = doc.y;
+      doc.image(getDotacionEncabezadoBuffer(), doc.page.margins.left, top, { width: maxW });
+      // pdfkit no avanza Y con x/y explícitos: alto aprox. del banner FO-TH-51
+      doc.y = top + Math.round(maxW * (128 / 742)) + 8;
+      doc.moveDown(0.35);
+    } else {
+      doc.fontSize(16).fillColor('#312e81').text('Portal Coraza — Dotación', { align: 'center' });
+      doc.moveDown(0.35);
+      doc.fontSize(13).fillColor('#0f172a').text(title, { align: 'center' });
+      doc
+        .fontSize(9)
+        .fillColor('#64748b')
+        .text(`Generado: ${this.formatDate(new Date())}`, { align: 'center' });
+      doc.moveDown(0.85);
+      doc
+        .moveTo(doc.page.margins.left, doc.y)
+        .lineTo(doc.page.width - doc.page.margins.right, doc.y)
+        .strokeColor('#c7d2fe')
+        .lineWidth(1)
+        .stroke();
+      doc.moveDown(0.85);
+    }
 
     await write(doc);
     doc.end();
