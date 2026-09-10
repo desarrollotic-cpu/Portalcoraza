@@ -18,7 +18,15 @@ export interface AuditEntry {
 
 /** Dotación ya tiene historial propio; no saturar el feed del auditor. */
 const DASHBOARD_EXCLUDE_MODULES = ['deliveries', 'inventory', 'post_equipment'];
-const DASHBOARD_EXCLUDE_ACTIONS = ['view_record'];
+/** Ruido que no aporta al auditor (consultas y acceso). */
+const DASHBOARD_EXCLUDE_ACTIONS = [
+  'view_record',
+  'login',
+  'logout',
+  'gh_legacy_leer_ficha',
+];
+/** Recepción es frecuente: limitar cupo para no tapar HR/puestos/etc. */
+const RECEPTION_CAP = 4;
 
 export type DashboardAuditRow = AuditLog & { userName: string | null };
 
@@ -63,18 +71,34 @@ export class AuditService {
   }
 
   /**
-   * Feed del dashboard admin/auditor: excluye dotación e incluye nombre de usuario.
+   * Feed del dashboard admin/auditor:
+   * - sin dotación (historial propio)
+   * - sin login/logout ni view_record
+   * - prioriza HR/puestos/admin/etc.; recepción con cupo limitado
    */
   async listRecentForDashboard(take = 40): Promise<DashboardAuditRow[]> {
-    const capped = Math.min(Math.max(take, 1), 80);
-    const rows = await this.auditRepo
+    const capped = Math.min(Math.max(take, 1), 60);
+    const pool = await this.auditRepo
       .createQueryBuilder('a')
       .where('a.module NOT IN (:...mods)', { mods: DASHBOARD_EXCLUDE_MODULES })
       .andWhere('a.action NOT IN (:...acts)', { acts: DASHBOARD_EXCLUDE_ACTIONS })
       .orderBy('a.created_at', 'DESC')
-      .take(capped)
+      .take(220)
       .getMany();
 
+    const business: AuditLog[] = [];
+    const reception: AuditLog[] = [];
+    for (const row of pool) {
+      if (row.module === 'reception') reception.push(row);
+      else business.push(row);
+    }
+
+    const mixed = [
+      ...business.slice(0, Math.max(0, capped - Math.min(RECEPTION_CAP, reception.length))),
+      ...reception.slice(0, RECEPTION_CAP),
+    ].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    const rows = mixed.slice(0, capped);
     const userIds = [
       ...new Set(rows.map((r) => r.userId).filter((x): x is string => !!x)),
     ];

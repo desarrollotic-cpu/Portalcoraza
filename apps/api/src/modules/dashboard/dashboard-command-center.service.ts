@@ -625,15 +625,28 @@ export class DashboardCommandCenterService {
       readmit: 'Reingreso',
       delete: 'Eliminación',
       import: 'Importación',
+      register: 'Visitante registrado',
+      exit: 'Salida de visitante',
+      deactivate: 'Usuario desactivado',
       'monthly_schedule.create': 'Cuadro mensual creado',
       'monthly_schedule.update': 'Cuadro mensual actualizado',
+      'monthly_schedule.save': 'Cuadro mensual guardado',
       'monthly_schedule.motor': 'Motor de turnos ejecutado',
+      'monthly_schedule.apply_rest_of_year': 'Cuadro aplicado al resto del año',
       'schedule_template.create': 'Plantilla de programación creada',
       'schedule_template.apply': 'Plantilla aplicada',
       'visitor.register': 'Visitante registrado',
       'visitor.exit': 'Salida de visitante',
       'user.create': 'Usuario creado',
       'user.update': 'Usuario actualizado',
+      'correspondence.create': 'Correspondencia creada',
+      'loan.create': 'Préstamo creado',
+      'loan.approve': 'Préstamo aprobado',
+      'loan.return': 'Préstamo devuelto',
+      'loan.send_email_reminder': 'Recordatorio de préstamo',
+      'absence.create': 'Ausencia registrada',
+      'absence.update': 'Ausencia actualizada',
+      'absence.delete': 'Ausencia eliminada',
     };
 
     const m = mod[row.module] ?? row.module;
@@ -663,6 +676,19 @@ export class DashboardCommandCenterService {
       }
     }
 
+    // Recepción
+    if (row.module === 'reception') {
+      if (row.action === 'register') a = 'Visitante registrado';
+      else if (row.action === 'exit') a = 'Salida de visitante';
+    }
+
+    // Usuarios admin
+    if (row.module === 'users') {
+      if (row.action === 'create') a = 'Usuario creado';
+      else if (row.action === 'update') a = 'Usuario actualizado';
+      else if (row.action === 'deactivate') a = 'Usuario desactivado';
+    }
+
     return `${m}: ${a}`;
   }
 
@@ -675,7 +701,7 @@ export class DashboardCommandCenterService {
     const v = row.newValue ?? row.oldValue;
     if (!v) return null;
 
-    if (row.module === 'hr' && row.entityType === 'associate') {
+    if (row.module === 'hr' && (row.entityType === 'associate' || row.entityType === 'Asociado')) {
       const name = [v['firstName'], v['secondName'], v['firstLastName'], v['secondLastName']]
         .filter((x) => typeof x === 'string' && x.trim())
         .join(' ')
@@ -701,8 +727,32 @@ export class DashboardCommandCenterService {
     }
 
     if (row.module === 'reception') {
-      const name = typeof v['fullName'] === 'string' ? v['fullName'] : typeof v['name'] === 'string' ? v['name'] : '';
-      return name || null;
+      const name =
+        typeof v['fullName'] === 'string'
+          ? v['fullName']
+          : typeof v['name'] === 'string'
+            ? v['name']
+            : '';
+      const doc =
+        typeof v['documentNumber'] === 'string'
+          ? v['documentNumber']
+          : typeof v['idDocument'] === 'string'
+            ? v['idDocument']
+            : '';
+      if (name && doc) return `${name} · ${doc}`;
+      return name || doc || null;
+    }
+
+    if (row.module === 'documental') {
+      const subject =
+        typeof v['subject'] === 'string'
+          ? v['subject']
+          : typeof v['title'] === 'string'
+            ? v['title']
+            : typeof v['consecutive'] === 'string'
+              ? v['consecutive']
+              : '';
+      return subject || null;
     }
 
     return null;
