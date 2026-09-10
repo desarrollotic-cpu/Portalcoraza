@@ -10,10 +10,11 @@ import { AssociatesService } from './associates.service';
 import { AssociateHistory } from './entities/associate-history.entity';
 import { Associate } from './entities/associate.entity';
 import { PositionHistory } from './entities/position-history.entity';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Associate, AssociateHistory, PositionHistory, Retirement]),
+    TypeOrmModule.forFeature([Associate, AssociateHistory, PositionHistory, Retirement, User]),
     HrSharedModule,
     HrDocumentsModule,
     NotificationsModule,

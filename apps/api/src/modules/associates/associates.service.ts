@@ -7,7 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import PDFDocument = require('pdfkit');
-import { Brackets, Repository } from 'typeorm';
+import { Brackets, In, Repository } from 'typeorm';
 import {
   getMembreteBascBuffer,
   getMembreteHuellaBuffer,
@@ -24,6 +24,7 @@ import { HrAuditService } from '../hr-shared/services/hr-audit.service';
 import { SensitiveDataService } from '../hr-shared/services/sensitive-data.service';
 import { HrDocumentsService } from '../hr-documents/hr-documents.service';
 import { Retirement } from '../hr-retirements/entities/retirement.entity';
+import { User } from '../users/entities/user.entity';
 import { AssociatesQueryDto } from './dto/associates-query.dto';
 import { CreateAssociateDto } from './dto/create-associate.dto';
 import { ReadmitAssociateDto } from './dto/readmit-associate.dto';
@@ -70,6 +71,8 @@ export class AssociatesService {
     private readonly positionHistoryRepo: Repository<PositionHistory>,
     @InjectRepository(Retirement)
     private readonly retirementRepo: Repository<Retirement>,
+    @InjectRepository(User)
+    private readonly usersRepo: Repository<User>,
     private readonly hrAudit: HrAuditService,
     private readonly derived: AssociateDerivedService,
     private readonly sensitive: SensitiveDataService,
@@ -238,10 +241,26 @@ export class AssociatesService {
 
   async history(id: string) {
     await this.assertExists(id);
-    return this.historyRepo.find({
+    const rows = await this.historyRepo.find({
       where: { associateId: id },
       order: { createdAt: 'DESC' },
     });
+    const userIds = [
+      ...new Set(rows.map((r) => r.changedBy).filter((x): x is string => !!x)),
+    ];
+    const users = userIds.length
+      ? await this.usersRepo.find({
+          where: { id: In(userIds) },
+          select: ['id', 'fullName', 'email'],
+        })
+      : [];
+    const names = new Map(
+      users.map((u) => [u.id, (u.fullName?.trim() || u.email || u.id) as string]),
+    );
+    return rows.map((r) => ({
+      ...r,
+      changedByName: r.changedBy ? (names.get(r.changedBy) ?? null) : null,
+    }));
   }
 
   async positionHistory(id: string) {
@@ -298,6 +317,19 @@ export class AssociatesService {
       newValues: saved as unknown as Record<string, unknown>,
       ipAddress,
     });
+
+    // Fila explícita de alta para que en bitácora se vea claro quién creó
+    await this.historyRepo.save(
+      this.historyRepo.create({
+        associateId: saved.id,
+        changedBy: user.sub,
+        action: 'CREATE',
+        fieldName: 'registro',
+        oldValue: null,
+        newValue: 'Alta de asociado',
+        ipAddress: ipAddress ?? null,
+      }),
+    );
 
     if (dto.credentials?.length) {
       await this.documents.registerCredentials(saved.id, dto.credentials, user.sub);

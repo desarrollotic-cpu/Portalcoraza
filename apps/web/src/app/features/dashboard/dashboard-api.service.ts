@@ -48,6 +48,8 @@ export interface CommandActivity {
   entityType: string | null;
   createdAt: string;
   label: string;
+  userName?: string | null;
+  detail?: string | null;
 }
 
 export interface CommandCenterPayload {

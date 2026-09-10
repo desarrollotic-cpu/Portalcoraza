@@ -412,12 +412,20 @@ type PeriodKey = CommandPeriod;
             <p class="empty-inline">Sin eventos recientes de auditoría</p>
           } @else {
             <ul class="timeline">
-              @for (ev of d.activity.slice(0, 6); track ev.id) {
+              @for (ev of d.activity.slice(0, 15); track ev.id) {
                 <li>
                   <span class="time">{{ ev.createdAt | date: 'dd/MM HH:mm' }}</span>
                   <div class="timeline-body">
                     <strong>{{ ev.label }}</strong>
-                    <span class="muted">{{ moduleName(ev.module) }}</span>
+                    @if (ev.detail) {
+                      <span class="muted">{{ ev.detail }}</span>
+                    }
+                    <span class="muted">
+                      {{ moduleName(ev.module) }}
+                      @if (ev.userName) {
+                        · Por {{ ev.userName }}
+                      }
+                    </span>
                   </div>
                 </li>
               }
@@ -779,6 +787,10 @@ export class Dashboard implements OnInit {
       reception: 'Recepción',
       documental: 'Documental',
       users: 'Administración',
+      posts: 'Puestos',
+      minuta: 'Minuta',
+      sig: 'SIG',
+      sst: 'SST',
     };
     return map[module] ?? module;
   }

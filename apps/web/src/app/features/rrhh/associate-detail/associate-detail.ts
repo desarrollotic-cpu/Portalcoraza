@@ -475,6 +475,9 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                       <div class="hr-timeline-date">{{ h.createdAt | date:'medium' }}</div>
                       <div class="hr-timeline-body">
                         <strong>{{ h.action }}</strong> · <span class="hr-field-name">{{ h.fieldName }}</span>
+                        @if (h.changedByName) {
+                          <div class="hr-timeline-user">Por: {{ h.changedByName }}</div>
+                        }
                         <div class="hr-change">
                           <span class="hr-change-old">{{ h.oldValue ?? '—' }}</span>
                           <span>→</span>

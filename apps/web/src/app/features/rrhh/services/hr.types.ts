@@ -208,6 +208,8 @@ export interface AssociateHistoryEntry {
     'id' | 'documentNumber' | 'firstName' | 'firstLastName' | 'fullName' | 'jobPosition'
   >;
   changedBy: string | null;
+  /** Nombre o email del usuario que hizo el cambio (enriquecido en API). */
+  changedByName?: string | null;
   action: string;
   fieldName: string;
   oldValue: string | null;

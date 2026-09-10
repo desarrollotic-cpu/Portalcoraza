@@ -752,6 +752,11 @@
   .hr-grid-2 {
     grid-template-columns: 1fr;
   }
+
+  .hr-timeline-item {
+    grid-template-columns: 1fr;
+    gap: 0.25rem;
+  }
 }
 
 .hr-detail-card {
@@ -831,6 +836,13 @@
   color: var(--text-muted);
   font-size: 0.78rem;
   margin-top: 0.2rem;
+}
+
+.hr-timeline-user {
+  color: var(--text-secondary, var(--text-muted));
+  font-size: 0.78rem;
+  margin-top: 0.15rem;
+  font-weight: 500;
 }
 
 .hr-timeline-body {

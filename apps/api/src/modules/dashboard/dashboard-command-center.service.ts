@@ -481,13 +481,16 @@ export class DashboardCommandCenterService {
       });
     }
 
-    const activity = (await this.audit.listRecent(20)).map((row) => ({
+    const activityRows = await this.audit.listRecentForDashboard(40);
+    const activity = activityRows.map((row) => ({
       id: row.id,
       module: row.module,
       action: row.action,
       entityType: row.entityType,
       createdAt: row.createdAt,
-      label: this.activityLabel(row.module, row.action),
+      label: this.activityLabel(row),
+      userName: row.userName,
+      detail: this.activityDetail(row),
     }));
 
     const rankedAlerts = this.rankAlerts(alerts);
@@ -590,7 +593,13 @@ export class DashboardCommandCenterService {
     return out.slice(0, 5);
   }
 
-  private activityLabel(module: string, action: string): string {
+  private activityLabel(row: {
+    module: string;
+    action: string;
+    entityType: string | null;
+    oldValue: Record<string, unknown> | null;
+    newValue: Record<string, unknown> | null;
+  }): string {
     const mod: Record<string, string> = {
       scheduling: 'Programación',
       auth: 'Acceso',
@@ -603,27 +612,99 @@ export class DashboardCommandCenterService {
       users: 'Administración',
       posts: 'Puestos',
       minuta: 'Minuta',
+      sig: 'SIG',
+      sst: 'SST',
     };
     const act: Record<string, string> = {
       login: 'Inicio de sesión',
       logout: 'Cierre de sesión',
+      create: 'Registro creado',
+      update: 'Registro actualizado',
+      edit: 'Registro editado',
+      retire: 'Retiro registrado',
+      readmit: 'Reingreso',
+      delete: 'Eliminación',
+      import: 'Importación',
       'monthly_schedule.create': 'Cuadro mensual creado',
       'monthly_schedule.update': 'Cuadro mensual actualizado',
       'monthly_schedule.motor': 'Motor de turnos ejecutado',
       'schedule_template.create': 'Plantilla de programación creada',
       'schedule_template.apply': 'Plantilla aplicada',
-      view_record: 'Consulta de registro',
-      'variant.create': 'Variante de inventario creada',
-      'item.create': 'Elemento de inventario creado',
-      'delivery.create': 'Entrega de dotación creada',
-      'delivery.sign': 'Entrega firmada',
       'visitor.register': 'Visitante registrado',
       'visitor.exit': 'Salida de visitante',
       'user.create': 'Usuario creado',
       'user.update': 'Usuario actualizado',
     };
-    const m = mod[module] ?? module;
-    const a = act[action] ?? action.replace(/[._]/g, ' ');
+
+    const m = mod[row.module] ?? row.module;
+    let a = act[row.action] ?? row.action.replace(/[._]/g, ' ');
+
+    // HR asociados
+    if (row.module === 'hr' && row.entityType === 'associate') {
+      if (row.action === 'create') a = 'Asociado nuevo registrado';
+      else if (row.action === 'retire') a = 'Asociado retirado';
+      else if (row.action === 'readmit') a = 'Asociado reingresado';
+      else if (row.action === 'edit') a = 'Asociado actualizado';
+    }
+
+    // Puestos: alta / baja
+    if (row.module === 'posts' && row.entityType === 'post') {
+      if (row.action === 'create') a = 'Puesto nuevo creado';
+      else if (row.action === 'update') {
+        const oldStatus = String(row.oldValue?.['status'] ?? '');
+        const newStatus = String(row.newValue?.['status'] ?? '');
+        if (oldStatus !== 'INACTIVO' && newStatus === 'INACTIVO') {
+          a = 'Puesto dado de baja';
+        } else if (oldStatus === 'INACTIVO' && newStatus === 'ACTIVO') {
+          a = 'Puesto reactivado';
+        } else {
+          a = 'Puesto actualizado';
+        }
+      }
+    }
+
     return `${m}: ${a}`;
+  }
+
+  private activityDetail(row: {
+    module: string;
+    entityType: string | null;
+    newValue: Record<string, unknown> | null;
+    oldValue: Record<string, unknown> | null;
+  }): string | null {
+    const v = row.newValue ?? row.oldValue;
+    if (!v) return null;
+
+    if (row.module === 'hr' && row.entityType === 'associate') {
+      const name = [v['firstName'], v['secondName'], v['firstLastName'], v['secondLastName']]
+        .filter((x) => typeof x === 'string' && x.trim())
+        .join(' ')
+        .trim();
+      const doc = typeof v['documentNumber'] === 'string' ? v['documentNumber'] : '';
+      if (name && doc) return `${name} · CC ${doc}`;
+      if (name) return name;
+      if (doc) return `CC ${doc}`;
+      return null;
+    }
+
+    if (row.module === 'posts' && row.entityType === 'post') {
+      const name = typeof v['name'] === 'string' ? v['name'] : '';
+      const code = typeof v['code'] === 'string' ? v['code'] : '';
+      if (name && code) return `${code} — ${name}`;
+      return name || code || null;
+    }
+
+    if (row.module === 'users') {
+      const name = typeof v['fullName'] === 'string' ? v['fullName'] : '';
+      const email = typeof v['email'] === 'string' ? v['email'] : '';
+      return name || email || null;
+    }
+
+    if (row.module === 'reception') {
+      const name = typeof v['fullName'] === 'string' ? v['fullName'] : typeof v['name'] === 'string' ? v['name'] : '';
+      return name || null;
+    }
+
+    return null;
   }
 }
