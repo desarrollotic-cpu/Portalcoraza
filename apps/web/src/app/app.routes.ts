@@ -559,7 +559,10 @@ export const routes: Routes = [
           {
             path: 'puestos/gestionar',
             canActivate: [permissionGuard],
-            data: { permission: 'posts.create' },
+            data: {
+              permissions: ['posts.view', 'posts.create'],
+              permissionMode: 'any',
+            },
             loadComponent: () =>
               import('./features/operaciones/puestos-list/puestos-list').then(
                 (m) => m.PuestosList,

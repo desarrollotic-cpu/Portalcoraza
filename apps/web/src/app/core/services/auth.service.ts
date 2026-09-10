@@ -142,6 +142,10 @@ export class AuthService {
     if (!user) {
       return false;
     }
+    const role = user.role?.code;
+    if (role === 'GERENCIA' || role === 'ADMIN' || role === 'SUPERADMIN') {
+      return true;
+    }
 
     return user.permissions.includes(code);
   }

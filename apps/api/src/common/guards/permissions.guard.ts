@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtPayload } from '../../modules/auth/interfaces/jwt-payload.interface';
+import { isMasterRole } from '../auth/master-role';
 import {
   PERMISSIONS_ANY_KEY,
   PERMISSIONS_KEY,
@@ -27,6 +28,9 @@ export class PermissionsGuard implements CanActivate {
     );
 
     const { user } = context.switchToHttp().getRequest<{ user: JwtPayload }>();
+    if (isMasterRole(user?.roleCode)) {
+      return true;
+    }
     const permissions = user?.permissions ?? [];
 
     if (requiredAny?.length) {
