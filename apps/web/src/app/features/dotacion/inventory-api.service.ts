@@ -394,11 +394,18 @@ export class InventoryApiService {
     });
   }
 
-  downloadAssociateReport(associateId: string): Observable<Blob> {
-    return this.http.get(
-      `${this.deliveriesUrl}/reports/by-associate?associateId=${encodeURIComponent(associateId)}`,
-      { responseType: 'blob' },
-    );
+  downloadAssociateReport(
+    associateId: string,
+    opts: { semester: 1 | 2; year: number },
+  ): Observable<Blob> {
+    const q = new URLSearchParams({
+      associateId,
+      semester: String(opts.semester),
+      year: String(opts.year),
+    });
+    return this.http.get(`${this.deliveriesUrl}/reports/by-associate?${q}`, {
+      responseType: 'blob',
+    });
   }
 
   private saveBlob(blob: Blob, filename: string): void {

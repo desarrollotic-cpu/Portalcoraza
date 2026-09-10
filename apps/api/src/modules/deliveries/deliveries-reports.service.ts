@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import PDFDocument = require('pdfkit');
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { InventoryItem } from '../inventory/entities/inventory-item.entity';
 import { DeliveriesService } from './deliveries.service';
@@ -131,7 +131,11 @@ export class DeliveriesReportsService {
     });
   }
 
-  async buildAssociateReport(associateId: string): Promise<Buffer> {
+  async buildAssociateReport(
+    associateId: string,
+    semester: 1 | 2,
+    year: number,
+  ): Promise<Buffer> {
     const associate = await this.associatesRepo.findOne({ where: { id: associateId } });
     if (!associate) {
       throw new NotFoundException('Asociado no encontrado');
@@ -139,8 +143,13 @@ export class DeliveriesReportsService {
 
     const fullName = this.formatAssociate(associate);
     const now = new Date();
-    const semester = now.getMonth() < 6 ? 1 : 2;
-    const periodLabel = `Semestre ${semester} ${now.getFullYear()}`;
+    const periodLabel = `Semestre ${semester} ${year}`;
+    const from =
+      semester === 1 ? new Date(year, 0, 1, 0, 0, 0, 0) : new Date(year, 6, 1, 0, 0, 0, 0);
+    const to =
+      semester === 1
+        ? new Date(year, 5, 30, 23, 59, 59, 999)
+        : new Date(year, 11, 31, 23, 59, 59, 999);
 
     return this.renderPdf(
       'REPORTE DE ENTREGAS DE DOTACIÓN',
@@ -155,13 +164,20 @@ export class DeliveriesReportsService {
         doc.moveDown(0.75);
 
         const deliveries = await this.deliveriesRepo.find({
-          where: { associateId, status: DeliveryStatus.DELIVERED },
+          where: {
+            associateId,
+            status: DeliveryStatus.DELIVERED,
+            deliveredAt: Between(from, to),
+          },
           relations: { details: { variant: { item: true } } },
           order: { deliveredAt: 'DESC' },
         });
 
         if (!deliveries.length) {
-          doc.fontSize(10).fillColor('#64748b').text('El asociado no tiene entregas confirmadas.');
+          doc
+            .fontSize(10)
+            .fillColor('#64748b')
+            .text(`El asociado no tiene entregas confirmadas en ${periodLabel}.`);
           return;
         }
 

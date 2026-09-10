@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -68,8 +69,20 @@ export class DeliveriesController {
   @RequirePermissions('inventory.view')
   @Header('Content-Type', 'application/pdf')
   @Header('Content-Disposition', 'attachment; filename="reporte-asociado-dotacion.pdf"')
-  async associateReport(@Query('associateId') associateId: string) {
-    const buffer = await this.reportsService.buildAssociateReport(associateId);
+  async associateReport(
+    @Query('associateId') associateId: string,
+    @Query('semester') semesterRaw?: string,
+    @Query('year') yearRaw?: string,
+  ) {
+    const semester = Number(semesterRaw);
+    const year = Number(yearRaw);
+    if (semester !== 1 && semester !== 2) {
+      throw new BadRequestException('Indica semestre 1 o 2');
+    }
+    if (!Number.isInteger(year) || year < 2020 || year > 2100) {
+      throw new BadRequestException('Año de periodo inválido');
+    }
+    const buffer = await this.reportsService.buildAssociateReport(associateId, semester, year);
     return new StreamableFile(buffer);
   }
 

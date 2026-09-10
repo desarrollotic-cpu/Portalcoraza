@@ -198,6 +198,23 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
               } @else {
                 <p class="dot-muted">Escribe y elige al asociado en la lista.</p>
               }
+              <div class="dot-period">
+                <label>
+                  Semestre
+                  <select [value]="reportSemester()" (change)="onReportSemester($event)">
+                    <option value="1">1 (ene–jun)</option>
+                    <option value="2">2 (jul–dic)</option>
+                  </select>
+                </label>
+                <label>
+                  Año
+                  <select [value]="reportYear()" (change)="onReportYear($event)">
+                    @for (y of reportYears; track y) {
+                      <option [value]="y">{{ y }}</option>
+                    }
+                  </select>
+                </label>
+              </div>
               <button type="button" class="hr-btn hr-btn-primary" [disabled]="reportLoading() || !selectedAssociate()" (click)="downloadAssociate()">
                 Descargar PDF
               </button>
@@ -324,6 +341,11 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
       background: #eff6ff;
     }
     .dot-picked strong { display: block; font-size: 0.9rem; }
+    .dot-period {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+    }
   `,
 })
 export class DotacionPanel implements OnInit {
@@ -395,6 +417,12 @@ export class DotacionPanel implements OnInit {
   readonly selectedItemId = signal('');
   readonly selectedAssociate = signal<{ id: string; fullName: string; documentNumber: string } | null>(null);
   readonly associateSearch = signal('');
+  readonly reportSemester = signal<1 | 2>(new Date().getMonth() < 6 ? 1 : 2);
+  readonly reportYear = signal(new Date().getFullYear());
+  readonly reportYears = (() => {
+    const y = new Date().getFullYear();
+    return Array.from({ length: y - 2023 }, (_, i) => y - i);
+  })();
   readonly reportLoading = signal(false);
   readonly reportError = signal<string | null>(null);
 
@@ -459,6 +487,15 @@ export class DotacionPanel implements OnInit {
     this.associateOptionsTotal.set(0);
   }
 
+  onReportSemester(event: Event): void {
+    const v = Number((event.target as HTMLSelectElement).value);
+    this.reportSemester.set(v === 1 ? 1 : 2);
+  }
+
+  onReportYear(event: Event): void {
+    this.reportYear.set(Number((event.target as HTMLSelectElement).value));
+  }
+
   downloadGeneral(): void {
     this.runReport(() => this.api.downloadGeneralReport(), 'reporte-general-dotacion.pdf');
   }
@@ -472,11 +509,13 @@ export class DotacionPanel implements OnInit {
   downloadAssociate(): void {
     const a = this.selectedAssociate();
     if (!a) return;
+    const semester = this.reportSemester();
+    const year = this.reportYear();
     const safe = a.fullName.replace(/[^\wÁÉÍÓÚáéíóúñÑ]+/g, '_').slice(0, 60);
     const doc = a.documentNumber.replace(/\D/g, '') || 'sin-doc';
     this.runReport(
-      () => this.api.downloadAssociateReport(a.id),
-      `Historial_Entregas_${safe}_${doc}.pdf`,
+      () => this.api.downloadAssociateReport(a.id, { semester, year }),
+      `Historial_Entregas_${safe}_${doc}_S${semester}_${year}.pdf`,
     );
   }
 
