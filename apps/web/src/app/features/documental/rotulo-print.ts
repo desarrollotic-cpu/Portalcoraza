@@ -302,7 +302,10 @@ async function openNiimbotStudio(items: RotuloItem[]): Promise<void> {
   const canvases = copies.map((c) => paintLabel(c, logo));
   const pngUrls = canvases.map((c) => c.toDataURL('image/png'));
   const jpegs = canvases.map(jpegBytes);
-  const pdfUrl = URL.createObjectURL(new Blob([jpegPagesToPdf(jpegs)], { type: 'application/pdf' }));
+  const pdfBytes = jpegPagesToPdf(jpegs);
+  const pdfCopy = new Uint8Array(pdfBytes.byteLength);
+  pdfCopy.set(pdfBytes);
+  const pdfUrl = URL.createObjectURL(new Blob([pdfCopy.buffer], { type: 'application/pdf' }));
 
   const win = window.open('', '_blank', 'width=560,height=720');
   if (!win) {
