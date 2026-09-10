@@ -227,7 +227,7 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, 
   return minPx;
 }
 
-function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
+function paintBigCode(copy: LabelCopy, logo: HTMLImageElement | null, header: string): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
   canvas.height = CANVAS_H;
@@ -242,14 +242,14 @@ function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanv
   if (logo) drawThermalLogo(ctx, logo, pad, pad, logoSize);
 
   ctx.fillStyle = '#0c4a6e';
-  ctx.font = '800 11px Arial, Helvetica, sans-serif';
-  ctx.fillText('PERSONAL RETIRADO', pad + (logo ? logoSize + 8 : 0), pad + 26);
+  ctx.font = '800 12px Arial, Helvetica, sans-serif';
+  ctx.fillText(header, pad + (logo ? logoSize + 8 : 0), pad + 26);
 
-  const codeY = pad + logoSize + 8;
-  const codeSize = fitFont(ctx, copy.code, CANVAS_W - pad * 2, 64, 32);
+  const codeY = pad + logoSize + 4;
+  const codeSize = fitFont(ctx, copy.code, CANVAS_W - pad * 2, 80, 32);
   ctx.fillStyle = '#0f172a';
   ctx.font = `900 ${codeSize}px Arial, Helvetica, sans-serif`;
-  ctx.fillText(copy.code, pad, codeY + codeSize - 6, CANVAS_W - pad * 2);
+  ctx.fillText(copy.code, pad, codeY + codeSize - 4, CANVAS_W - pad * 2);
 
   ctx.font = '900 22px Arial, Helvetica, sans-serif';
   const nameLines = wrapText(ctx, copy.title, CANVAS_W - pad * 2, 3);
@@ -264,7 +264,8 @@ function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanv
 }
 
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
-  if (copy.kind === 'PERSONAL') return paintPersonal(copy, logo);
+  if (copy.kind === 'PERSONAL') return paintBigCode(copy, logo, 'PERSONAL RETIRADO');
+  if (copy.kind === 'MINUTAS') return paintBigCode(copy, logo, 'MINUTAS');
 
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
