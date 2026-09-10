@@ -1,6 +1,6 @@
 /**
- * Marquillas Documental para Niimbot B1: PDF de 50 mm × 30 mm (una página = una etiqueta).
- * Chrome no respeta @page CSS con esa impresora y manda hoja grande (~23 etiquetas).
+ * Marquillas Documental → Niimbot B1 por Web Bluetooth (50×30 mm = 384×240 @ 203 dpi).
+ * Chrome/Edge + HTTPS. No usar Imprimir del navegador: el driver de la B1 usa papel 800 mm.
  */
 
 export interface RotuloItem {
@@ -29,15 +29,46 @@ interface LabelCopy {
   extra: string;
 }
 
+interface NiimbotPrintOpts {
+  model: {
+    name_prefixes: string[];
+    task: string;
+    density: number;
+    label_type: number;
+    speed: number;
+  };
+  size: { w_px: number; h_px: number; offset_y_px?: number; dpi: number };
+  onProgress?: (s: string) => void;
+}
+
+interface NiimbotApi {
+  isSupported: () => boolean;
+  identify: (model: NiimbotPrintOpts['model']) => Promise<unknown>;
+  printImage: (url: string, opts: NiimbotPrintOpts) => Promise<void>;
+  printBatch: (urls: string[], opts: NiimbotPrintOpts) => Promise<void>;
+}
+
+declare global {
+  interface Window {
+    Niimbot?: NiimbotApi;
+  }
+}
+
 const COLA_KEY = 'colaTirasCoraza';
 const HISTORIAL_KEY = 'historialLotesCoraza';
-const MM_W = 50;
-const MM_H = 30;
-const PX_PER_MM = 12;
-const CANVAS_W = MM_W * PX_PER_MM;
-const CANVAS_H = MM_H * PX_PER_MM;
-const PT_W = (MM_W * 72) / 25.4;
-const PT_H = (MM_H * 72) / 25.4;
+const STATUS_ID = 'coraza-niimbot-status';
+
+/** B1 50×30 mm — registry T50x30_b1 */
+const B1_MODEL: NiimbotPrintOpts['model'] = {
+  name_prefixes: ['B1'],
+  task: 'b1',
+  density: 3,
+  label_type: 1,
+  speed: 1,
+};
+const B1_SIZE: NiimbotPrintOpts['size'] = { w_px: 384, h_px: 240, offset_y_px: 4, dpi: 203 };
+const CANVAS_W = B1_SIZE.w_px;
+const CANVAS_H = B1_SIZE.h_px;
 
 export function addToPrintQueue(item: RotuloItem & { id: string }): void {
   const cola: Array<RotuloItem & { id: string }> = JSON.parse(localStorage.getItem(COLA_KEY) || '[]');
@@ -157,208 +188,136 @@ function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasE
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  const pad = 16;
-  if (logo) ctx.drawImage(logo, pad, pad, 52, 52);
+  const pad = 10;
+  if (logo) ctx.drawImage(logo, pad, pad, 32, 32);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = '900 18px Arial, Helvetica, sans-serif';
-  ctx.fillText('CORAZA C.T.A.', pad + (logo ? 62 : 0), pad + 22);
-  ctx.fillStyle = '#0369a1';
-  ctx.font = '800 14px Arial, Helvetica, sans-serif';
-  ctx.fillText(copy.kind, pad + (logo ? 62 : 0), pad + 42);
-
-  ctx.fillStyle = '#e0f2fe';
-  const slot = copy.slot.slice(0, 18);
-  ctx.font = '800 13px Arial, Helvetica, sans-serif';
-  const sw = Math.min(ctx.measureText(slot).width + 12, 190);
-  ctx.fillRect(CANVAS_W - pad - sw, pad + 8, sw, 24);
+  ctx.font = '900 13px Arial, Helvetica, sans-serif';
+  ctx.fillText('CORAZA C.T.A.', pad + (logo ? 40 : 0), pad + 14);
   ctx.fillStyle = '#0c4a6e';
-  ctx.fillText(slot, CANVAS_W - pad - sw + 6, pad + 25, sw - 12);
+  ctx.font = '800 11px Arial, Helvetica, sans-serif';
+  ctx.fillText(copy.kind, pad + (logo ? 40 : 0), pad + 30);
+
+  const slot = copy.slot.slice(0, 16);
+  ctx.font = '800 10px Arial, Helvetica, sans-serif';
+  const sw = Math.min(ctx.measureText(slot).width + 10, 130);
+  ctx.fillStyle = '#0c4a6e';
+  ctx.fillRect(CANVAS_W - pad - sw, pad + 4, sw, 18);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillText(slot, CANVAS_W - pad - sw + 5, pad + 17, sw - 10);
 
   ctx.strokeStyle = '#0c4a6e';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 78);
-  ctx.lineTo(CANVAS_W - pad, 78);
+  ctx.moveTo(pad, 50);
+  ctx.lineTo(CANVAS_W - pad, 50);
   ctx.stroke();
 
   ctx.fillStyle = '#0c4a6e';
-  ctx.font = '900 36px Arial, Helvetica, sans-serif';
-  ctx.fillText(copy.code, pad, 122, CANVAS_W - pad * 2);
+  ctx.font = '900 28px Arial, Helvetica, sans-serif';
+  ctx.fillText(copy.code, pad, 86, CANVAS_W - pad * 2);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = '800 18px Arial, Helvetica, sans-serif';
+  ctx.font = '800 14px Arial, Helvetica, sans-serif';
   const lines = wrapText(ctx, copy.title, CANVAS_W - pad * 2, 2);
-  lines.forEach((ln, i) => ctx.fillText(ln, pad, 158 + i * 22, CANVAS_W - pad * 2));
+  lines.forEach((ln, i) => ctx.fillText(ln, pad, 112 + i * 18, CANVAS_W - pad * 2));
 
   if (copy.extra) {
-    ctx.fillStyle = '#334155';
-    ctx.font = '700 13px Arial, Helvetica, sans-serif';
-    ctx.fillText(copy.extra, pad, CANVAS_H - 16, CANVAS_W - pad * 2);
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '700 10px Arial, Helvetica, sans-serif';
+    ctx.fillText(copy.extra, pad, CANVAS_H - 10, CANVAS_W - pad * 2);
   }
   return canvas;
 }
 
-function jpegBytes(canvas: HTMLCanvasElement): Uint8Array {
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-  const b64 = dataUrl.split(',')[1] || '';
-  const bin = atob(b64);
-  const out = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-  return out;
-}
-
-function ascii(s: string): Uint8Array {
-  const u = new Uint8Array(s.length);
-  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i) & 0xff;
-  return u;
-}
-
-function concat(parts: Uint8Array[]): Uint8Array {
-  const n = parts.reduce((a, p) => a + p.length, 0);
-  const out = new Uint8Array(n);
-  let o = 0;
-  for (const p of parts) {
-    out.set(p, o);
-    o += p.length;
-  }
-  return out;
-}
-
-/** PDF 1.4: cada JPEG es una página MediaBox 50×30 mm. */
-function jpegPagesToPdf(jpegs: Uint8Array[]): Uint8Array {
-  const chunks: Uint8Array[] = [];
-  const offsets: number[] = [0];
-  let pos = 0;
-  const push = (part: Uint8Array | string) => {
-    const b = typeof part === 'string' ? ascii(part) : part;
-    chunks.push(b);
-    pos += b.length;
-  };
-  const mark = () => {
-    offsets.push(pos);
-  };
-
-  const n = jpegs.length;
-  const pageIds: number[] = [];
-  for (let i = 0; i < n; i++) pageIds.push(3 + i * 3);
-
-  push('%PDF-1.4\n');
-  mark();
-  push(`1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n`);
-  mark();
-  push(`2 0 obj << /Type /Pages /Count ${n} /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] >> endobj\n`);
-
-  for (let i = 0; i < n; i++) {
-    const pageId = 3 + i * 3;
-    const contentId = pageId + 1;
-    const imgId = pageId + 2;
-    const jpeg = jpegs[i];
-    const content = `q ${PT_W.toFixed(2)} 0 0 ${PT_H.toFixed(2)} 0 0 cm /Im1 Do Q`;
-    mark();
-    push(
-      `${pageId} 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PT_W.toFixed(2)} ${PT_H.toFixed(2)}] /Resources << /XObject << /Im1 ${imgId} 0 R >> >> /Contents ${contentId} 0 R >> endobj\n`,
-    );
-    mark();
-    push(`${contentId} 0 obj << /Length ${content.length} >> stream\n${content}\nendstream endobj\n`);
-    mark();
-    push(
-      `${imgId} 0 obj << /Type /XObject /Subtype /Image /Width ${CANVAS_W} /Height ${CANVAS_H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >> stream\n`,
-    );
-    push(jpeg);
-    push(`\nendstream endobj\n`);
-  }
-
-  const xrefPos = pos;
-  const objCount = 3 + n * 3;
-  let xref = `xref\n0 ${objCount}\n0000000000 65535 f \n`;
-  for (let i = 1; i < offsets.length; i++) {
-    xref += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
-  }
-  push(xref);
-  push(`trailer << /Size ${objCount} /Root 1 0 R >>\nstartxref\n${xrefPos}\n%%EOF`);
-  return concat(chunks);
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-
-function pngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
   return new Promise((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG'))), 'image/png');
+    canvas.toBlob((b) => (b ? resolve(URL.createObjectURL(b)) : reject(new Error('PNG'))), 'image/png');
   });
 }
 
-async function openNiimbotStudio(items: RotuloItem[]): Promise<void> {
-  if (!items.length) return;
-  const logo = await loadLogo();
-  const copies = items.map((it) => labelCopy(it));
-  const canvases = copies.map((c) => paintLabel(c, logo));
-  const pngUrls = canvases.map((c) => c.toDataURL('image/png'));
-  const jpegs = canvases.map(jpegBytes);
-  const pdfBytes = jpegPagesToPdf(jpegs);
-  const pdfCopy = new Uint8Array(pdfBytes.byteLength);
-  pdfCopy.set(pdfBytes);
-  const pdfUrl = URL.createObjectURL(new Blob([pdfCopy.buffer], { type: 'application/pdf' }));
+function showStatus(text: string): void {
+  let el = document.getElementById(STATUS_ID);
+  if (!el) {
+    el = document.createElement('div');
+    el.id = STATUS_ID;
+    el.setAttribute(
+      'style',
+      'position:fixed;z-index:10000;left:50%;bottom:24px;transform:translateX(-50%);max-width:min(92vw,420px);background:#0f172a;color:#fff;padding:12px 16px;border-radius:10px;font:700 13px/1.4 Arial,Helvetica,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.35);',
+    );
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+}
 
-  const win = window.open('', '_blank', 'width=560,height=720');
-  if (!win) {
-    void pngBlob(canvases[0]).then((b) => downloadBlob(b, `marquilla-${copies[0].code}.png`));
-    alert('Permite ventanas emergentes. Se descargó la primera marquilla PNG 50×30 mm.');
+function hideStatus(): void {
+  document.getElementById(STATUS_ID)?.remove();
+}
+
+/** Primera vez: el navegador pide la B1. Después reusa esa impresora, sin ventana extra. */
+function reusePairedB1(): void {
+  const nav = navigator as Navigator & {
+    bluetooth?: {
+      getDevices?: () => Promise<Array<{ name?: string }>>;
+      requestDevice: (options: unknown) => Promise<unknown>;
+      __corazaB1?: boolean;
+    };
+  };
+  const bt = nav.bluetooth;
+  if (!bt || bt.__corazaB1) return;
+  bt.__corazaB1 = true;
+  const orig = bt.requestDevice.bind(bt);
+  bt.requestDevice = async (options: unknown) => {
+    if (localStorage.getItem('corazaNiimbotB1') === '1' && typeof bt.getDevices === 'function') {
+      try {
+        const hit = (await bt.getDevices()).find((d) => (d.name || '').startsWith('B1'));
+        if (hit) return hit;
+      } catch {
+        /* getDevices no disponible */
+      }
+    }
+    const device = await orig(options);
+    localStorage.setItem('corazaNiimbotB1', '1');
+    return device;
+  };
+}
+
+async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
+  if (!items.length) return;
+  const api = window.Niimbot;
+  if (!api?.isSupported()) {
+    alert('Abre el Portal en Chrome o Edge (https) para imprimir en la Niimbot B1 por Bluetooth.');
     return;
   }
 
-  const cards = pngUrls
-    .map(
-      (src, i) => `
-      <figure class="card">
-        <img src="${src}" alt="Marquilla ${copies[i].code}" width="600" height="360" />
-        <figcaption>${copies[i].kind} · ${copies[i].code}</figcaption>
-        <button type="button" data-png="${i}">Descargar PNG 50×30</button>
-      </figure>`,
-    )
-    .join('');
-
-  win.document.open();
-  win.document.write(`<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8" />
-  <title>Marquilla Niimbot 50×30 mm</title>
-  <style>
-    body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 16px; background: #f8fafc; color: #0f172a; }
-    h1 { font-size: 18px; margin: 0 0 8px; }
-    .warn { background: #fef3c7; border: 1px solid #f59e0b; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 14px; }
-    .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
-    img { width: 50mm; height: 30mm; border: 1px solid #0c4a6e; display: block; background: #fff; }
-    figcaption { font-size: 12px; font-weight: 700; margin: 8px 0; }
-    button, a.btn { display: inline-block; background: #0f766e; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 13px; margin-right: 6px; }
-  </style>
-</head>
-<body>
-  <h1>Marquilla 50 × 30 mm — Niimbot B1</h1>
-  <p class="warn">
-    No uses Imprimir del navegador: la B1 está en papel <strong>800 mm</strong> y gasta el rollo.
-    Descarga el PNG y ábrelo en la app <strong>NIIMBOT</strong> (etiqueta 50×30 mm).
-  </p>
-  ${cards}
-  <p><a class="btn" href="${pdfUrl}" download="marquillas-niimbot-50x30.pdf">Descargar PDF 50×30</a></p>
-</body>
-</html>`);
-  win.document.close();
-
-  win.document.querySelectorAll<HTMLButtonElement>('button[data-png]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const i = Number(btn.getAttribute('data-png') || '0');
-      void pngBlob(canvases[i]).then((b) => downloadBlob(b, `marquilla-${copies[i].code}.png`));
-    });
-  });
+  reusePairedB1();
+  showStatus('Imprimiendo…');
+  // requestDevice debe arrancar en el mismo clic (sin await antes).
+  const paired = api.identify(B1_MODEL);
+  const urls: string[] = [];
+  try {
+    const logo = await loadLogo();
+    const canvases = items.map((it) => paintLabel(labelCopy(it), logo));
+    for (const c of canvases) urls.push(await canvasPngUrl(c));
+    await paired;
+    const opts: NiimbotPrintOpts = {
+      model: B1_MODEL,
+      size: B1_SIZE,
+      onProgress: (s) => showStatus(s),
+    };
+    showStatus(items.length > 1 ? `Imprimiendo ${items.length} etiquetas…` : 'Imprimiendo…');
+    if (urls.length === 1) await api.printImage(urls[0], opts);
+    else await api.printBatch(urls, opts);
+    showStatus('Impreso en la B1');
+    setTimeout(hideStatus, 1600);
+  } catch (err) {
+    const raw = err instanceof Error ? err.message : String(err);
+    const cancelled = /cancel|choos/i.test(raw);
+    showStatus(cancelled ? 'Impresión cancelada' : `No se pudo imprimir: ${raw}`);
+    setTimeout(hideStatus, cancelled ? 1600 : 6000);
+  } finally {
+    urls.forEach((u) => URL.revokeObjectURL(u));
+  }
 }
 
 export function printRotulo(item: RotuloItem): void {
@@ -368,18 +327,18 @@ export function printRotulo(item: RotuloItem): void {
   };
   addToPrintQueue(itemWithId);
   saveBatchToHistory([itemWithId]);
-  void openNiimbotStudio([item]);
+  void printOnNiimbotB1([item]);
 }
 
 export function printQueue(clearAfter = false): void {
   const items = getPrintQueue();
   if (!items.length) return;
   saveBatchToHistory(items);
-  void openNiimbotStudio(items);
+  void printOnNiimbotB1(items);
   if (clearAfter) clearPrintQueue();
 }
 
 export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): void {
   if (!items?.length) return;
-  void openNiimbotStudio(items);
+  void printOnNiimbotB1(items);
 }

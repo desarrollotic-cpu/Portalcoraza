@@ -70,7 +70,7 @@ import {
               </div>
               <div>
                 <h3>Centro de Impresión y Reimpresión de Rótulos</h3>
-                <p>La Niimbot B1 en Chrome usa papel 800 mm y gasta el rollo. Descarga el PNG 50×30 e imprímelo en la app NIIMBOT.</p>
+                <p>Imprime directo a la Niimbot B1 por Bluetooth (Chrome o Edge). No uses Imprimir del navegador: gasta el rollo en papel 800 mm.</p>
               </div>
             </div>
             <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar">
@@ -210,7 +210,7 @@ import {
                 (click)="printAll()"
               >
                 <app-icon [icon]="icons.Printer" [size]="16" [strokeWidth]="2" />
-                Imprimir Hoja Completa ({{ queueItems().length }} Tiras)
+                Imprimir en Niimbot B1 ({{ queueItems().length }})
               </button>
             }
           </div>
