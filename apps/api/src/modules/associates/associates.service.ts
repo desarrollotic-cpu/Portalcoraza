@@ -288,6 +288,8 @@ export class AssociatesService {
 
     if (dto.credentials?.length) {
       await this.documents.registerCredentials(saved.id, dto.credentials, user.sub);
+    } else {
+      await this.documents.syncSstForAssociate(saved.id);
     }
 
     return this.findOne(saved.id, user);
@@ -339,6 +341,8 @@ export class AssociatesService {
 
     if (dto.credentials?.length) {
       await this.documents.registerCredentials(saved.id, dto.credentials, user.sub);
+    } else {
+      await this.documents.syncSstForAssociate(saved.id);
     }
 
     return this.findOne(saved.id, user);

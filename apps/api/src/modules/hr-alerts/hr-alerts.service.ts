@@ -7,6 +7,7 @@ import {
   AssociateDocument,
   AssociateDocumentKind,
 } from '../hr-documents/entities/associate-document.entity';
+import { HrAuditService } from '../hr-shared/services/hr-audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { HrAlert, HrAlertStatus, HrAlertType } from './entities/hr-alert.entity';
 
@@ -44,6 +45,7 @@ export class HrAlertsService {
     @InjectRepository(AssociateDocument)
     private readonly documentsRepo: Repository<AssociateDocument>,
     private readonly audit: AuditService,
+    private readonly hrAudit: HrAuditService,
     private readonly notifications: NotificationsService,
   ) {}
 
@@ -60,6 +62,7 @@ export class HrAlertsService {
   }
 
   async findByAssociate(associateId: string) {
+    await this.syncAssociate(associateId);
     return this.alertsRepo.find({
       where: { associateId },
       order: { generatedAt: 'DESC' },
@@ -97,73 +100,12 @@ export class HrAlertsService {
    */
   async generateAll(userId?: string) {
     const summary: Record<string, number> = { total: 0 };
-    const today = new Date();
-
-    // 1) Alertas de vencimiento por documento
-    const documents = await this.documentsRepo
-      .createQueryBuilder('d')
-      .innerJoinAndSelect('d.associate', 'a')
-      .where('d.expirationDate IS NOT NULL')
-      .andWhere('a.status = :status', { status: AssociateStatus.ACTIVO })
-      .getMany();
-
-    // Solo tomar el documento más reciente por (associate, kind)
-    const latestByKey = new Map<string, AssociateDocument>();
-    for (const doc of documents) {
-      const key = `${doc.associateId}:${doc.documentKind}`;
-      const existing = latestByKey.get(key);
-      if (!existing || existing.uploadedAt < doc.uploadedAt) {
-        latestByKey.set(key, doc);
-      }
-    }
-
-    for (const doc of latestByKey.values()) {
-      const inserted = await this.syncFromDocument(doc);
-      if (inserted) {
-        const alertType = DOC_TO_ALERT[doc.documentKind];
-        if (alertType) {
-          summary.total += 1;
-          summary[alertType] = (summary[alertType] ?? 0) + 1;
-        }
-      }
-    }
-
-    // 2) Documentos faltantes críticos: psicofísico / psicosensométrico (no cédula)
-    const missingKinds = [
-      AssociateDocumentKind.EXAMEN_PSICOFISICO,
-      AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO,
-    ];
-    const dueIn7 = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .slice(0, 10);
-
-    for (const kind of missingKinds) {
-      const critical = await this.associatesRepo
-        .createQueryBuilder('a')
-        .innerJoin('a.jobPosition', 'jp')
-        .leftJoin(
-          AssociateDocument,
-          'd',
-          'd.associateId = a.id AND d.documentKind = :kind',
-          { kind },
-        )
-        .where('jp.isCritical = true')
-        .andWhere('a.status = :status', { status: AssociateStatus.ACTIVO })
-        .andWhere('d.id IS NULL')
-        .getMany();
-
-      for (const assoc of critical) {
-        const inserted = await this.upsertAlert(
-          assoc.id,
-          HrAlertType.DOCUMENTO_FALTANTE,
-          dueIn7,
-        );
-        if (inserted) {
-          summary.total += 1;
-          summary[HrAlertType.DOCUMENTO_FALTANTE] =
-            (summary[HrAlertType.DOCUMENTO_FALTANTE] ?? 0) + 1;
-        }
-      }
+    const activos = await this.associatesRepo.find({
+      where: { status: AssociateStatus.ACTIVO },
+      select: ['id'],
+    });
+    for (const assoc of activos) {
+      summary.total += await this.syncAssociate(assoc.id);
     }
 
     if (summary.total > 0) {
@@ -184,6 +126,74 @@ export class HrAlertsService {
     return summary;
   }
 
+  /**
+   * Recalcula alertas de un asociado: documentos vencidos/por vencer
+   * y exámenes SST en rojo (faltantes).
+   */
+  async syncAssociate(associateId: string): Promise<number> {
+    const associate = await this.associatesRepo.findOne({ where: { id: associateId } });
+    if (!associate || associate.status !== AssociateStatus.ACTIVO) return 0;
+
+    const docs = await this.documentsRepo.find({
+      where: { associateId },
+      order: { uploadedAt: 'DESC' },
+    });
+    const latest = new Map<AssociateDocumentKind, AssociateDocument>();
+    for (const doc of docs) {
+      if (!latest.has(doc.documentKind)) latest.set(doc.documentKind, doc);
+    }
+
+    let created = 0;
+    for (const doc of latest.values()) {
+      if (await this.syncFromDocument(doc)) created += 1;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    const psycho = latest.get(AssociateDocumentKind.EXAMEN_PSICOFISICO);
+    const psicos = latest.get(AssociateDocumentKind.EXAMEN_PSICOSENSOMETRICO);
+    const course = latest.get(AssociateDocumentKind.CERTIFICADO_CURSO);
+
+    if (!associate.psychophysicalValid && !psycho?.expirationDate) {
+      if (
+        await this.upsertAlert(
+          associateId,
+          HrAlertType.VENCIMIENTO_PSICOFISICO,
+          today,
+          'Examen psicofísico vencido o faltante',
+        )
+      ) {
+        created += 1;
+      }
+    }
+    if (!associate.psychosensometricValid && !psicos?.expirationDate) {
+      if (
+        await this.upsertAlert(
+          associateId,
+          HrAlertType.VENCIMIENTO_PSICOSENSOMETRICO,
+          today,
+          'Examen médico ocupacional vencido o faltante',
+        )
+      ) {
+        created += 1;
+      }
+    }
+    const hasCourseRef = !!(associate.courseCode || associate.courseCertificateNumber);
+    if (hasCourseRef && !course?.expirationDate) {
+      if (
+        await this.upsertAlert(
+          associateId,
+          HrAlertType.VENCIMIENTO_CURSO,
+          today,
+          'Curso de reentrenamiento vencido o faltante',
+        )
+      ) {
+        created += 1;
+      }
+    }
+
+    return created;
+  }
+
   /** Crea alerta si el documento vence en 60/30/7 días o ya venció. */
   async syncFromDocument(doc: AssociateDocument): Promise<boolean> {
     const alertType = DOC_TO_ALERT[doc.documentKind];
@@ -196,7 +206,11 @@ export class HrAlertsService {
     const isOverdue = daysToExpire < 0;
     if (!trigger && !isOverdue) return false;
 
-    const inserted = await this.upsertAlert(doc.associateId, alertType, doc.expirationDate);
+    const inserted = await this.upsertAlert(
+      doc.associateId,
+      alertType,
+      this.asDateStr(doc.expirationDate),
+    );
     if (isOverdue) {
       if (doc.documentKind === AssociateDocumentKind.EXAMEN_PSICOFISICO) {
         await this.associatesRepo.update({ id: doc.associateId }, { psychophysicalValid: false });
@@ -212,25 +226,40 @@ export class HrAlertsService {
     associateId: string,
     alertType: HrAlertType,
     expirationDate: string,
+    notes?: string,
   ): Promise<boolean> {
+    const exp = this.asDateStr(expirationDate);
     const existing = await this.alertsRepo.findOne({
       where: {
         associateId,
         alertType,
-        expirationDate,
         status: HrAlertStatus.PENDIENTE,
       },
     });
-    if (existing) return false;
+    if (existing) {
+      if (existing.expirationDate !== exp || (notes && existing.notes !== notes)) {
+        existing.expirationDate = exp;
+        if (notes) existing.notes = notes;
+        await this.alertsRepo.save(existing);
+      }
+      return false;
+    }
 
     const alert = this.alertsRepo.create({
       associateId,
       alertType,
-      expirationDate,
+      expirationDate: exp,
       status: HrAlertStatus.PENDIENTE,
+      notes: notes ?? null,
     });
     await this.alertsRepo.save(alert);
+    await this.hrAudit.recordSstAlert(associateId, alertType, exp);
     return true;
+  }
+
+  private asDateStr(value: string | Date): string {
+    if (value instanceof Date) return value.toISOString().slice(0, 10);
+    return String(value).slice(0, 10);
   }
 
   /** Cierra alertas vencidas de asociados que dejaron de estar ACTIVOS. */

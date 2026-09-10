@@ -101,6 +101,14 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
           <option value="true">Solo cargos críticos</option>
           <option value="false">No críticos</option>
         </select>
+        <select [ngModel]="tenureBucket" (ngModelChange)="setTenure($event)">
+          <option value="">Cualquier antigüedad</option>
+          <option value="0-1">Menos de 1 año</option>
+          <option value="1-3">1 a 3 años</option>
+          <option value="3-5">3 a 5 años</option>
+          <option value="5-10">5 a 10 años</option>
+          <option value="10+">Más de 10 años</option>
+        </select>
       </section>
 
       @if (loading()) {
@@ -227,6 +235,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   readonly totalPages = signal(1);
 
   query: AssociatesQuery = { status: 'ACTIVO' };
+  tenureBucket = '';
 
   readonly filtered = computed(() => this.associates());
 
@@ -286,6 +295,23 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   clearFilters(): void {
     this.query = { status: 'ACTIVO' };
+    this.tenureBucket = '';
+    this.page.set(1);
+    this.applyFilters();
+  }
+
+  setTenure(bucket: string): void {
+    this.tenureBucket = bucket;
+    const ranges: Record<string, { min?: string; max?: string }> = {
+      '0-1': { min: '0', max: '0.9' },
+      '1-3': { min: '1', max: '2.9' },
+      '3-5': { min: '3', max: '4.9' },
+      '5-10': { min: '5', max: '9.9' },
+      '10+': { min: '10' },
+    };
+    const range = ranges[bucket] ?? {};
+    this.query.tenureMinYears = range.min;
+    this.query.tenureMaxYears = range.max;
     this.page.set(1);
     this.applyFilters();
   }

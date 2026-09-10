@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditModule } from '../audit/audit.module';
 import { AssociateDocument } from '../hr-documents/entities/associate-document.entity';
+import { HrSharedModule } from '../hr-shared/hr-shared.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { Organization } from '../organizations/entities/organization.entity';
 import { HrAlert } from './entities/hr-alert.entity';
@@ -15,6 +16,7 @@ import { HrAlertsService } from './hr-alerts.service';
     TypeOrmModule.forFeature([HrAlert, Associate, AssociateDocument, Organization]),
     AuditModule,
     NotificationsModule,
+    HrSharedModule,
   ],
   controllers: [HrAlertsController],
   providers: [HrAlertsService, HrAlertsCron],

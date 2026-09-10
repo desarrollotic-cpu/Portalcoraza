@@ -698,39 +698,33 @@ export class AssociateForm implements OnInit {
     }> = [];
 
     const missing: string[] = [];
-    if (this.showCourseDates()) {
-      if (!raw.courseIssuedDate || !raw.courseExpirationDate) {
-        missing.push('curso');
-      } else {
-        credentials.push({
-          documentKind: 'CERTIFICADO_CURSO',
-          issuedDate: raw.courseIssuedDate,
-          expirationDate: raw.courseExpirationDate,
-          notes: [raw.courseCode, raw.courseCertificateNumber].filter(Boolean).join(' · ') || undefined,
-        });
-      }
+    if (raw.courseIssuedDate && raw.courseExpirationDate) {
+      credentials.push({
+        documentKind: 'CERTIFICADO_CURSO',
+        issuedDate: raw.courseIssuedDate,
+        expirationDate: raw.courseExpirationDate,
+        notes: [raw.courseCode, raw.courseCertificateNumber].filter(Boolean).join(' · ') || undefined,
+      });
+    } else if (this.showCourseDates()) {
+      missing.push('curso');
     }
-    if (raw.psychophysicalValid) {
-      if (!raw.psychophysicalIssuedDate || !raw.psychophysicalExpirationDate) {
-        missing.push('psicofísico');
-      } else {
-        credentials.push({
-          documentKind: 'EXAMEN_PSICOFISICO',
-          issuedDate: raw.psychophysicalIssuedDate,
-          expirationDate: raw.psychophysicalExpirationDate,
-        });
-      }
+    if (raw.psychophysicalIssuedDate && raw.psychophysicalExpirationDate) {
+      credentials.push({
+        documentKind: 'EXAMEN_PSICOFISICO',
+        issuedDate: raw.psychophysicalIssuedDate,
+        expirationDate: raw.psychophysicalExpirationDate,
+      });
+    } else if (raw.psychophysicalValid) {
+      missing.push('psicofísico');
     }
-    if (raw.psychosensometricValid) {
-      if (!raw.psychosensometricIssuedDate || !raw.psychosensometricExpirationDate) {
-        missing.push('examen médico ocupacional');
-      } else {
-        credentials.push({
-          documentKind: 'EXAMEN_PSICOSENSOMETRICO',
-          issuedDate: raw.psychosensometricIssuedDate,
-          expirationDate: raw.psychosensometricExpirationDate,
-        });
-      }
+    if (raw.psychosensometricIssuedDate && raw.psychosensometricExpirationDate) {
+      credentials.push({
+        documentKind: 'EXAMEN_PSICOSENSOMETRICO',
+        issuedDate: raw.psychosensometricIssuedDate,
+        expirationDate: raw.psychosensometricExpirationDate,
+      });
+    } else if (raw.psychosensometricValid) {
+      missing.push('examen médico ocupacional');
     }
     if (missing.length) {
       this.section.set(3);

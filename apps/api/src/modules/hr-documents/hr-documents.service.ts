@@ -184,7 +184,12 @@ export class HrDocumentsService {
           );
       await this.alerts.syncFromDocument(saved);
     }
+    await this.syncSstForAssociate(associateId);
+  }
+
+  async syncSstForAssociate(associateId: string): Promise<void> {
     await this.refreshValidityFlags(associateId);
+    await this.alerts.syncAssociate(associateId);
   }
 
   async remove(id: string, userId: string) {

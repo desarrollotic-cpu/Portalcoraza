@@ -72,6 +72,24 @@ export class HrAuditService {
     await this.historyRepo.save(rows);
   }
 
+  /** Una fila en bitácora cuando el motor crea una alerta SST. */
+  async recordSstAlert(
+    associateId: string,
+    alertType: string,
+    expirationDate: string,
+  ): Promise<void> {
+    await this.historyRepo.save(
+      this.historyRepo.create({
+        associateId,
+        changedBy: null,
+        action: 'ALERTA',
+        fieldName: alertType,
+        oldValue: 'vigente',
+        newValue: `vencido ${expirationDate}`,
+      }),
+    );
+  }
+
   private diff(
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,

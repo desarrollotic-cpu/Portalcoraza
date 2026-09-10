@@ -94,6 +94,9 @@ const ALERT_TYPE_LABEL: Record<HrAlertType, string> = {
                 </div>
                 <div class="hr-alert-item__dates">
                   Vence: <strong>{{ a.expirationDate }}</strong> · {{ daysToExpire(a) }}
+                  @if (a.notes) {
+                    <div>{{ a.notes }}</div>
+                  }
                 </div>
               </div>
               @if (a.status === 'PENDIENTE' && auth.hasPermission('hr_alerts.resolve')) {

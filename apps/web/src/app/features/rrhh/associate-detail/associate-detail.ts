@@ -251,9 +251,18 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
               <div class="hr-detail-card">
                 <h3>Cumplimiento SST</h3>
                 <dl class="hr-dl">
-                  <div><dt>Psicofísico</dt><dd>{{ a.psychophysicalValid ? 'Vigente' : 'Vencido / faltante' }}</dd></div>
-                  <div><dt>Examen médico ocupacional</dt><dd>{{ a.psychosensometricValid ? 'Vigente' : 'Vencido / faltante' }}</dd></div>
-                  <div><dt>Curso</dt><dd>{{ a.courseCode ?? '—' }}</dd></div>
+                  <div>
+                    <dt>Psicofísico</dt>
+                    <dd>{{ sstStatus('EXAMEN_PSICOFISICO', a.psychophysicalValid) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Examen médico ocupacional</dt>
+                    <dd>{{ sstStatus('EXAMEN_PSICOSENSOMETRICO', a.psychosensometricValid) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Curso</dt>
+                    <dd>{{ courseSstStatus(a) }}</dd>
+                  </div>
                   <div><dt>Escuela NIT</dt><dd>{{ a.schoolNit ?? '—' }}</dd></div>
                   <div><dt>Nº certificado</dt><dd>{{ a.courseCertificateNumber ?? '—' }}</dd></div>
                 </dl>
@@ -436,7 +445,12 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                     <li class="hr-alert-item hr-alert-item--compact" [class.resolved]="al.status === 'RESUELTA'">
                       <div>
                         <strong>{{ formatAlertType(al.alertType) }}</strong>
-                        <div class="hr-alert-item__meta">Vence: {{ al.expirationDate }} · {{ al.status }}</div>
+                        <div class="hr-alert-item__meta">
+                          Vence: {{ al.expirationDate }} · {{ al.status }}
+                          @if (al.notes) {
+                            · {{ al.notes }}
+                          }
+                        </div>
                       </div>
                       @if (al.status === 'PENDIENTE' && auth.hasPermission('hr_alerts.resolve')) {
                         <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="resolveAlert(al.id)">
@@ -650,6 +664,33 @@ export class AssociateDetail implements OnInit {
   }
 
   formatAlertType(t: HrAlert['alertType']): string {
-    return t.replace(/_/g, ' ').toLowerCase();
+    const labels: Record<HrAlert['alertType'], string> = {
+      VENCIMIENTO_CURSO: 'Curso de reentrenamiento',
+      VENCIMIENTO_PSICOFISICO: 'Examen psicofísico',
+      VENCIMIENTO_PSICOSENSOMETRICO: 'Examen médico ocupacional',
+      VENCIMIENTO_POLIZA: 'Póliza SURA',
+      DOCUMENTO_FALTANTE: 'Documento faltante',
+    };
+    return labels[t] ?? t;
+  }
+
+  sstStatus(kind: AssociateDocumentKind, valid: boolean): string {
+    const doc = this.documents().find((d) => d.documentKind === kind);
+    if (doc?.expirationDate) {
+      const exp = doc.expirationDate.slice(0, 10);
+      return this.isExpired(doc) ? `Vencido (${exp})` : `Vigente hasta ${exp}`;
+    }
+    return valid ? 'Vigente' : 'Vencido / faltante';
+  }
+
+  courseSstStatus(a: Associate): string {
+    const doc = this.documents().find((d) => d.documentKind === 'CERTIFICADO_CURSO');
+    const code = a.courseCode || '—';
+    if (doc?.expirationDate) {
+      const exp = doc.expirationDate.slice(0, 10);
+      const state = this.isExpired(doc) ? `vencido ${exp}` : `vigente hasta ${exp}`;
+      return `${code} · ${state}`;
+    }
+    return code;
   }
 }
