@@ -227,63 +227,6 @@ function fitFont(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, 
   return minPx;
 }
 
-/** Lomo 30×50 mm: pega el 50 mm a lo largo del lomo, número arriba. */
-function paintMinutaSpine(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
-  const pw = CANVAS_H;
-  const ph = CANVAS_W;
-  const spine = document.createElement('canvas');
-  spine.width = pw;
-  spine.height = ph;
-  const sc = spine.getContext('2d');
-  if (!sc) return spine;
-
-  sc.fillStyle = '#ffffff';
-  sc.fillRect(0, 0, pw, ph);
-
-  const pad = 8;
-  const logoSize = 44;
-  if (logo) drawThermalLogo(sc, logo, (pw - logoSize) / 2, pad, logoSize);
-
-  sc.fillStyle = '#0c4a6e';
-  sc.font = '800 11px Arial, Helvetica, sans-serif';
-  sc.textAlign = 'center';
-  sc.fillText('MINUTAS', pw / 2, pad + logoSize + 16);
-
-  const codeSize = fitFont(sc, copy.code, pw - pad * 2, 72, 28);
-  sc.fillStyle = '#0f172a';
-  sc.font = `900 ${codeSize}px Arial, Helvetica, sans-serif`;
-  sc.fillText(copy.code, pw / 2, pad + logoSize + 16 + codeSize + 6);
-
-  sc.strokeStyle = '#0c4a6e';
-  sc.lineWidth = 2;
-  const divY = pad + logoSize + codeSize + 30;
-  sc.beginPath();
-  sc.moveTo(pad, divY);
-  sc.lineTo(pw - pad, divY);
-  sc.stroke();
-
-  sc.fillStyle = '#0f172a';
-  sc.font = '800 15px Arial, Helvetica, sans-serif';
-  const spineLines = wrapText(sc, copy.title, pw - pad * 2, 5);
-  spineLines.forEach((ln, i) => sc.fillText(ln, pw / 2, divY + 22 + i * 18));
-
-  sc.fillStyle = '#0c4a6e';
-  sc.font = '700 10px Arial, Helvetica, sans-serif';
-  sc.fillText(copy.slot.slice(0, 18), pw / 2, ph - pad);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = CANVAS_W;
-  canvas.height = CANVAS_H;
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return canvas;
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
-  ctx.translate(CANVAS_W, 0);
-  ctx.rotate(Math.PI / 2);
-  ctx.drawImage(spine, 0, 0);
-  return canvas;
-}
-
 function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
@@ -321,7 +264,6 @@ function paintPersonal(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanv
 }
 
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
-  if (copy.kind === 'MINUTAS') return paintMinutaSpine(copy, logo);
   if (copy.kind === 'PERSONAL') return paintPersonal(copy, logo);
 
   const canvas = document.createElement('canvas');
