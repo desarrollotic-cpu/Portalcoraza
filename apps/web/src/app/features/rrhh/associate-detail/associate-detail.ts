@@ -89,7 +89,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
         <section class="hr-summary">
           <div><span>Edad</span><strong>{{ a.currentAge }} años</strong></div>
           <div><span>Edad al ingreso</span><strong>{{ a.ageAtHire }} años</strong></div>
-          <div><span>Antigüedad</span><strong>{{ a.tenureMonths ?? Math.round((a.tenureYears ?? 0) * 12) }} meses</strong></div>
+          <div><span>Antigüedad</span><strong>{{ a.tenureMonths }} meses</strong></div>
           <div>
             <span>Cumplimiento SST</span>
             <strong class="hr-stat-inline">
