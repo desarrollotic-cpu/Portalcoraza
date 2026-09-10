@@ -280,36 +280,82 @@ function jpegPagesToPdf(jpegs: Uint8Array[]): Uint8Array {
   return concat(chunks);
 }
 
-async function printNiimbotPdf(items: RotuloItem[]): Promise<void> {
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function pngBlob(canvas: HTMLCanvasElement): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG'))), 'image/png');
+  });
+}
+
+async function openNiimbotStudio(items: RotuloItem[]): Promise<void> {
   if (!items.length) return;
   const logo = await loadLogo();
-  const jpegs = items.map((it) => jpegBytes(paintLabel(labelCopy(it), logo)));
-  const pdf = jpegPagesToPdf(jpegs);
-  const blob = new Blob([pdf], { type: 'application/pdf' });
-  const url = URL.createObjectURL(blob);
+  const copies = items.map((it) => labelCopy(it));
+  const canvases = copies.map((c) => paintLabel(c, logo));
+  const pngUrls = canvases.map((c) => c.toDataURL('image/png'));
+  const jpegs = canvases.map(jpegBytes);
+  const pdfUrl = URL.createObjectURL(new Blob([jpegPagesToPdf(jpegs)], { type: 'application/pdf' }));
 
-  alert(
-    'Niimbot B1: en el diálogo pulsa «Más ajustes».\n' +
-      'Papel: 50 × 30 mm · Márgenes: ninguno · Escala: 100% · Encabezados: no.\n' +
-      'Si el preview es una franja ancha, NO imprimas: sigue en hoja grande y gasta el rollo.',
-  );
-
-  const win = window.open(url, '_blank');
+  const win = window.open('', '_blank', 'width=560,height=720');
   if (!win) {
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `marquilla-niimbot-50x30.pdf`;
-    a.click();
+    void pngBlob(canvases[0]).then((b) => downloadBlob(b, `marquilla-${copies[0].code}.png`));
+    alert('Permite ventanas emergentes. Se descargó la primera marquilla PNG 50×30 mm.');
     return;
   }
-  setTimeout(() => {
-    try {
-      win.focus();
-      win.print();
-    } catch {
-      /* el visor PDF pide imprimir a mano */
-    }
-  }, 700);
+
+  const cards = pngUrls
+    .map(
+      (src, i) => `
+      <figure class="card">
+        <img src="${src}" alt="Marquilla ${copies[i].code}" width="600" height="360" />
+        <figcaption>${copies[i].kind} · ${copies[i].code}</figcaption>
+        <button type="button" data-png="${i}">Descargar PNG 50×30</button>
+      </figure>`,
+    )
+    .join('');
+
+  win.document.open();
+  win.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Marquilla Niimbot 50×30 mm</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 16px; background: #f8fafc; color: #0f172a; }
+    h1 { font-size: 18px; margin: 0 0 8px; }
+    .warn { background: #fef3c7; border: 1px solid #f59e0b; padding: 10px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 14px; }
+    .card { background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+    img { width: 50mm; height: 30mm; border: 1px solid #0c4a6e; display: block; background: #fff; }
+    figcaption { font-size: 12px; font-weight: 700; margin: 8px 0; }
+    button, a.btn { display: inline-block; background: #0f766e; color: #fff; border: 0; border-radius: 6px; padding: 8px 12px; font-weight: 700; cursor: pointer; text-decoration: none; font-size: 13px; margin-right: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Marquilla 50 × 30 mm — Niimbot B1</h1>
+  <p class="warn">
+    No uses Imprimir del navegador: la B1 está en papel <strong>800 mm</strong> y gasta el rollo.
+    Descarga el PNG y ábrelo en la app <strong>NIIMBOT</strong> (etiqueta 50×30 mm).
+  </p>
+  ${cards}
+  <p><a class="btn" href="${pdfUrl}" download="marquillas-niimbot-50x30.pdf">Descargar PDF 50×30</a></p>
+</body>
+</html>`);
+  win.document.close();
+
+  win.document.querySelectorAll<HTMLButtonElement>('button[data-png]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.getAttribute('data-png') || '0');
+      void pngBlob(canvases[i]).then((b) => downloadBlob(b, `marquilla-${copies[i].code}.png`));
+    });
+  });
 }
 
 export function printRotulo(item: RotuloItem): void {
@@ -319,18 +365,18 @@ export function printRotulo(item: RotuloItem): void {
   };
   addToPrintQueue(itemWithId);
   saveBatchToHistory([itemWithId]);
-  void printNiimbotPdf([item]);
+  void openNiimbotStudio([item]);
 }
 
 export function printQueue(clearAfter = false): void {
   const items = getPrintQueue();
   if (!items.length) return;
   saveBatchToHistory(items);
-  void printNiimbotPdf(items);
+  void openNiimbotStudio(items);
   if (clearAfter) clearPrintQueue();
 }
 
 export function printSpecificBatch(items: Array<RotuloItem & { id: string }>): void {
   if (!items?.length) return;
-  void printNiimbotPdf(items);
+  void openNiimbotStudio(items);
 }

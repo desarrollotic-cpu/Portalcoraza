@@ -70,7 +70,7 @@ import {
               </div>
               <div>
                 <h3>Centro de Impresión y Reimpresión de Rótulos</h3>
-                <p>Genera un PDF de 50 × 30 mm (una página = una etiqueta). En Niimbot B1: Más ajustes → papel 50×30 mm, márgenes ninguno, escala 100%. Si el preview es una franja ancha, no imprimas.</p>
+                <p>La Niimbot B1 en Chrome usa papel 800 mm y gasta el rollo. Descarga el PNG 50×30 e imprímelo en la app NIIMBOT.</p>
               </div>
             </div>
             <button type="button" class="btn-close" (click)="closeModal()" aria-label="Cerrar">
