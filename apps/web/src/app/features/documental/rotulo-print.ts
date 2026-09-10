@@ -178,6 +178,40 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
   return lines;
 }
 
+function drawThermalLogo(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  const off = document.createElement('canvas');
+  off.width = size;
+  off.height = size;
+  const o = off.getContext('2d');
+  if (!o) return;
+  o.fillStyle = '#ffffff';
+  o.fillRect(0, 0, size, size);
+  o.imageSmoothingEnabled = true;
+  o.imageSmoothingQuality = 'high';
+  const iw = img.naturalWidth || img.width || size;
+  const ih = img.naturalHeight || img.height || size;
+  const scale = Math.min(size / iw, size / ih);
+  const dw = iw * scale;
+  const dh = ih * scale;
+  o.drawImage(img, (size - dw) / 2, (size - dh) / 2, dw, dh);
+  const px = o.getImageData(0, 0, size, size);
+  const d = px.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    const on = d[i + 3] > 40 && lum < 188;
+    d[i] = d[i + 1] = d[i + 2] = on ? 0 : 255;
+    d[i + 3] = 255;
+  }
+  o.putImageData(px, 0, 0);
+  ctx.drawImage(off, x, y);
+}
+
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
@@ -188,44 +222,47 @@ function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasE
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  const pad = 10;
-  if (logo) ctx.drawImage(logo, pad, pad, 32, 32);
+  const pad = 8;
+  const logoSize = 72;
+  if (logo) drawThermalLogo(ctx, logo, pad, pad, logoSize);
 
+  const textX = pad + (logo ? logoSize + 8 : 0);
   ctx.fillStyle = '#0f172a';
-  ctx.font = '900 13px Arial, Helvetica, sans-serif';
-  ctx.fillText('CORAZA C.T.A.', pad + (logo ? 40 : 0), pad + 14);
+  ctx.font = '900 16px Arial, Helvetica, sans-serif';
+  ctx.fillText('CORAZA C.T.A.', textX, pad + 28);
   ctx.fillStyle = '#0c4a6e';
-  ctx.font = '800 11px Arial, Helvetica, sans-serif';
-  ctx.fillText(copy.kind, pad + (logo ? 40 : 0), pad + 30);
+  ctx.font = '800 13px Arial, Helvetica, sans-serif';
+  ctx.fillText(copy.kind, textX, pad + 50);
 
   const slot = copy.slot.slice(0, 16);
   ctx.font = '800 10px Arial, Helvetica, sans-serif';
-  const sw = Math.min(ctx.measureText(slot).width + 10, 130);
+  const sw = Math.min(ctx.measureText(slot).width + 10, 120);
   ctx.fillStyle = '#0c4a6e';
-  ctx.fillRect(CANVAS_W - pad - sw, pad + 4, sw, 18);
+  ctx.fillRect(CANVAS_W - pad - sw, pad + 6, sw, 18);
   ctx.fillStyle = '#ffffff';
-  ctx.fillText(slot, CANVAS_W - pad - sw + 5, pad + 17, sw - 10);
+  ctx.fillText(slot, CANVAS_W - pad - sw + 5, pad + 19, sw - 10);
 
+  const dividerY = pad + logoSize + 6;
   ctx.strokeStyle = '#0c4a6e';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(pad, 50);
-  ctx.lineTo(CANVAS_W - pad, 50);
+  ctx.moveTo(pad, dividerY);
+  ctx.lineTo(CANVAS_W - pad, dividerY);
   ctx.stroke();
 
   ctx.fillStyle = '#0c4a6e';
-  ctx.font = '900 28px Arial, Helvetica, sans-serif';
-  ctx.fillText(copy.code, pad, 86, CANVAS_W - pad * 2);
+  ctx.font = '900 26px Arial, Helvetica, sans-serif';
+  ctx.fillText(copy.code, pad, dividerY + 32, CANVAS_W - pad * 2);
 
   ctx.fillStyle = '#0f172a';
-  ctx.font = '800 14px Arial, Helvetica, sans-serif';
+  ctx.font = '800 13px Arial, Helvetica, sans-serif';
   const lines = wrapText(ctx, copy.title, CANVAS_W - pad * 2, 2);
-  lines.forEach((ln, i) => ctx.fillText(ln, pad, 112 + i * 18, CANVAS_W - pad * 2));
+  lines.forEach((ln, i) => ctx.fillText(ln, pad, dividerY + 54 + i * 16, CANVAS_W - pad * 2));
 
   if (copy.extra) {
     ctx.fillStyle = '#0f172a';
     ctx.font = '700 10px Arial, Helvetica, sans-serif';
-    ctx.fillText(copy.extra, pad, CANVAS_H - 10, CANVAS_W - pad * 2);
+    ctx.fillText(copy.extra, pad, CANVAS_H - 8, CANVAS_W - pad * 2);
   }
   return canvas;
 }
