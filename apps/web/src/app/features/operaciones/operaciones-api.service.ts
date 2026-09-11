@@ -148,6 +148,14 @@ export interface OperacionesMinutaHistorial {
   historial: OperacionesMinutaRow[];
 }
 
+export interface OperacionesPostConMinuta {
+  id: string;
+  code: string;
+  name: string;
+  status: string;
+  loginEmail: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class OperacionesApiService {
   private readonly http = inject(HttpClient);
@@ -156,6 +164,12 @@ export class OperacionesApiService {
 
   listPosts(): Observable<OperacionesPost[]> {
     return this.http.get<OperacionesPost[]>(this.baseUrl);
+  }
+
+  listPostsConMinuta(): Observable<OperacionesPostConMinuta[]> {
+    return this.http.get<OperacionesPostConMinuta[]>(
+      `${this.minutaUrl}/operaciones/puestos-con-minuta`,
+    );
   }
 
   getPost(id: string): Observable<OperacionesPost> {

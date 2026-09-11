@@ -1,6 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideBriefcaseBusiness, LucideClipboardList, LucideMapPin } from '@lucide/angular';
+import {
+  LucideBriefcaseBusiness,
+  LucideClipboardList,
+  LucideFileText,
+  LucideMapPin,
+} from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -9,7 +14,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Operaciones"
-      subtitle="Consulta de puestos de trabajo y minutas. Alta de puestos: solo Recepción."
+      subtitle="Puestos, fichas y consulta de minutas. Alta de puestos: solo Recepción."
       [nav]="nav"
     >
       <router-outlet />
@@ -31,6 +36,12 @@ export class OperacionesLayout {
       permission: 'operations.view',
       icon: LucideMapPin,
       exact: true,
+    },
+    {
+      label: 'Fichas de puestos',
+      route: '/operaciones/puestos/fichas',
+      permissions: ['operations.view', 'posts.view'],
+      icon: LucideFileText,
     },
     {
       label: 'Minutas',

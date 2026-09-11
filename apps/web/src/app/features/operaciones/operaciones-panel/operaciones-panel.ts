@@ -32,12 +32,12 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
       </div>
 
       <p class="hint">
+        Consulta fichas en
+        <a routerLink="/operaciones/puestos/fichas">Fichas de puestos</a>.
         Crea o edita puestos en
-        <a routerLink="/operaciones/puestos">Puestos de trabajo</a>.
-        Las novedades que registre el vigilante en Minuta Virtual se ven en
+        <a routerLink="/operaciones/puestos">Puestos de trabajo</a>
+        (alta: Recepción). Las novedades de Minuta Virtual se ven en
         <a routerLink="/operaciones/minutas">Minutas</a>.
-        Luego ábrelos en
-        <a routerLink="/programacion/cuadro">Programación → Cuadro de Turnos</a>.
       </p>
     </section>
   `,

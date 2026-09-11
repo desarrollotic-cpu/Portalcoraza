@@ -1124,12 +1124,6 @@ export class MainLayout implements OnDestroy {
           permission: 'sst.view',
         },
         {
-          label: 'Minuta Virtual',
-          route: '/minutas',
-          icon: LucideClipboardList,
-          permission: 'minuta.view',
-        },
-        {
           label: 'SIG-Indicadores',
           route: '/sig',
           icon: LucideSparkles,
@@ -1165,10 +1159,6 @@ export class MainLayout implements OnDestroy {
       .map((group) => ({
         ...group,
         items: group.items.filter((item) => {
-          const user = this.auth.currentUser();
-          if (item.route === '/minutas' && user?.role?.code === 'PUESTO') {
-            return false;
-          }
           if (item.permissions?.length) {
             return item.permissions.some((p) => this.auth.hasPermission(p));
           }

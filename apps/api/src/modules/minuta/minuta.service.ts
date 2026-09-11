@@ -78,6 +78,47 @@ export class MinutaService {
     return { restricted: true, postIds };
   }
 
+  /** Puestos con cuenta Minuta Virtual activa (rol PUESTO). */
+  async operacionesPuestosConMinuta(): Promise<
+    Array<{
+      id: string;
+      code: string;
+      name: string;
+      status: string;
+      loginEmail: string | null;
+    }>
+  > {
+    const rows = await this.userPosts
+      .createQueryBuilder('up')
+      .innerJoin('up.user', 'u')
+      .innerJoin('u.role', 'r')
+      .innerJoin('up.post', 'p')
+      .where('r.code = :code', { code: 'PUESTO' })
+      .andWhere('u.isActive = true')
+      .select([
+        'p.id AS id',
+        'p.code AS code',
+        'p.name AS name',
+        'p.status AS status',
+        'u.email AS "loginEmail"',
+      ])
+      .orderBy('p.name', 'ASC')
+      .getRawMany<{
+        id: string;
+        code: string;
+        name: string;
+        status: string;
+        loginEmail: string | null;
+      }>();
+
+    // Un puesto puede tener más de una cuenta; una fila por puesto.
+    const byPost = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      if (!byPost.has(row.id)) byPost.set(row.id, row);
+    }
+    return [...byPost.values()];
+  }
+
   async resolveCreatePostId(
     user: JwtPayload,
     requested?: string | null,

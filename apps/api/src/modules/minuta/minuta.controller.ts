@@ -11,7 +11,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import {
+  RequireAnyPermissions,
+  RequirePermissions,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -63,7 +66,7 @@ export class MinutaController {
 
   /** Consulta Operaciones: todas las novedades de un puesto en un mes. */
   @Get('operaciones/historial')
-  @RequirePermissions('posts.view')
+  @RequireAnyPermissions('posts.view', 'operations.view')
   operacionesHistorial(
     @CurrentUser() user: JwtPayload,
     @Query('postId') postId?: string,
@@ -72,8 +75,15 @@ export class MinutaController {
     return this.minuta.operacionesHistorial(user, postId, month);
   }
 
+  /** Puestos con cuenta Minuta Virtual (rol PUESTO) activa. */
+  @Get('operaciones/puestos-con-minuta')
+  @RequireAnyPermissions('posts.view', 'operations.view')
+  puestosConMinuta() {
+    return this.minuta.operacionesPuestosConMinuta();
+  }
+
   @Get('operaciones/pdf')
-  @RequirePermissions('posts.view')
+  @RequireAnyPermissions('posts.view', 'operations.view')
   @Header('Content-Type', 'application/pdf')
   @Header(
     'Content-Disposition',

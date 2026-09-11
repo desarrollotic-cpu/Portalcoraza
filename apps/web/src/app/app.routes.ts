@@ -503,6 +503,18 @@ export const routes: Routes = [
               ),
           },
           {
+            path: 'puestos/fichas',
+            canActivate: [permissionGuard],
+            data: {
+              permissions: ['operations.view', 'posts.view'],
+              permissionMode: 'any',
+            },
+            loadComponent: () =>
+              import(
+                './features/reception/reception-post-fichas/reception-post-fichas'
+              ).then((m) => m.ReceptionPostFichas),
+          },
+          {
             path: 'puestos',
             canActivate: [permissionGuard],
             data: { permission: 'operations.view' },
