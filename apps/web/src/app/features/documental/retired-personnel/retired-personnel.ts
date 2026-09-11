@@ -55,10 +55,17 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           </div>
         }
 
-        @if (foundInRrhh()) {
+        @if (foundInRrhh() && isRetiredInGh()) {
           <div class="alert-ok" style="grid-column:1/-1">
-            {{ model.fullName }} — CC {{ model.idNumber }} ({{ rrhhStatus() || 'RRHH' }}).
+            {{ model.fullName }} — CC {{ model.idNumber }} (RETIRADO).
             Pon la fecha y al guardar se asigna <strong>#{{ nextCode() }}</strong>.
+          </div>
+        }
+
+        @if (foundInRrhh() && !isRetiredInGh()) {
+          <div class="alert-info" style="grid-column:1/-1">
+            Está en Gestión Humana pero <strong>no figura como retirado</strong>
+            ({{ rrhhStatus() || 'otro estado' }}). Puedes archivar la carpeta igual: revisa o escribe los datos a mano.
           </div>
         }
 
@@ -71,24 +78,24 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
         @if (lookupDone() && !foundInRrhh() && ghMatches().length === 0) {
           <div class="alert-info" style="grid-column:1/-1">
-            No está en Gestión Humana con ese dato. Completa nombre y cédula a mano solo si es excepcional.
+            No está en Gestión Humana. <strong>Registro manual:</strong> escribe cédula, nombre, fecha, motivo y casilla.
+            Al guardar se asigna <strong>#{{ nextCode() }}</strong>.
           </div>
         }
 
+        <p class="muted" style="grid-column:1/-1;margin:0">
+          Si no aparece como retirado, completa el formulario a mano. El código lo pone Documental.
+          <button type="button" class="btn-ghost btn-sm" (click)="registroManual()">Registro manual</button>
+        </p>
+
         <label>
           Cédula / Documento *
-          <input [(ngModel)]="model.idNumber" name="idNumber" required placeholder="Cédula" [readonly]="foundInRrhh()" />
+          <input [(ngModel)]="model.idNumber" name="idNumber" required placeholder="Cédula" />
         </label>
 
         <label>
           Nombre Completo *
-          <input
-            [(ngModel)]="model.fullName"
-            name="fullName"
-            required
-            placeholder="Nombres y apellidos"
-            [readonly]="foundInRrhh()"
-          />
+          <input [(ngModel)]="model.fullName" name="fullName" required placeholder="Nombres y apellidos" />
         </label>
 
         <label>
@@ -213,7 +220,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       text-align:left; padding:.55rem .75rem; border:1px solid #cbd5e1;
       border-radius:.55rem; background:#fff; cursor:pointer; font-size:.85rem;
     }
-    .pick-item:hover { border-color:#0369a1; background:#f0f9ff; }
+    .btn-sm { padding:.2rem .55rem; font-size:.8rem; }
     label .muted { display:block; font-size:.8rem; margin-top:.2rem; }
     .code-preview {
       grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
@@ -233,6 +240,7 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly lastSaved = signal<RetiredPersonnel | null>(null);
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
+  readonly isRetiredInGh = computed(() => (this.rrhhStatus() || '').toUpperCase() === 'RETIRADO');
 
   readonly lookupLoading = signal(false);
   readonly lookupDone = signal(false);
@@ -269,8 +277,7 @@ export class RetiredPersonnelScreen implements OnInit {
     this.load();
     const q = this.query.trim();
     if (q.length < 3) {
-      this.resetPerson();
-      this.error.set(q ? 'Escribe al menos 3 letras o una cédula.' : null);
+      this.load();
       return;
     }
     this.lookupLoading.set(true);
@@ -285,6 +292,10 @@ export class RetiredPersonnelScreen implements OnInit {
         else if (res.matches.length === 0) {
           this.foundInRrhh.set(false);
           this.existingCode.set(null);
+          this.rrhhStatus.set(null);
+          this.ghRetirementDate.set(null);
+          const digits = q.replace(/\D/g, '');
+          if (digits.length >= 5) this.model.idNumber = digits;
         }
       },
       error: () => {
@@ -385,6 +396,20 @@ export class RetiredPersonnelScreen implements OnInit {
 
   printCola(): void {
     printQueue();
+  }
+
+  registroManual(): void {
+    const digits = this.query.replace(/\D/g, '');
+    const keepCedula = this.model.idNumber || (digits.length >= 5 ? digits : '');
+    this.foundInRrhh.set(false);
+    this.rrhhStatus.set(null);
+    this.ghRetirementDate.set(null);
+    this.ghMatches.set([]);
+    this.lookupDone.set(true);
+    this.existingCode.set(null);
+    this.model = this.emptyModel();
+    this.model.idNumber = keepCedula;
+    this.error.set(null);
   }
 
   private resetPerson(): void {

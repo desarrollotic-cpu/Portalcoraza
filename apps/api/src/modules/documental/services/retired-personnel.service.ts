@@ -330,24 +330,6 @@ export class RetiredPersonnelService {
       );
     }
 
-    // Si el asociado existe en RRHH (tabla associates), pasarlo de inmediato a estado 'RETIRADO'
-    try {
-      await this.em.query(
-        `UPDATE associates
-         SET status = 'RETIRADO', updated_at = NOW()
-         WHERE (
-           document_number = $1
-           OR TRIM(document_number) = $1
-           OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
-         )
-         AND status != 'RETIRADO'`,
-        [rawCedula, cleanCedula],
-      );
-    } catch (err) {
-      // Registrar si ocurre error al sincronizar estado en RRHH
-      console.error('Error actualizando estado a RETIRADO en RRHH:', err);
-    }
-
     await this.audit.log({
       userId,
       module: 'documental',
