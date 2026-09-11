@@ -1,31 +1,40 @@
 # Módulo Operaciones
 
-**Fecha:** 2026-08-19
+**Fecha:** 2026-09-11 (antes 2026-08-19)
 
-## Alcance inicial
+## Alcance
 
-Operaciones gestiona el **catálogo de puestos de trabajo** (`posts`) que consumen:
+Operaciones gestiona el **catálogo de puestos** (`posts`) y la **supervisión de minutas** del campo. Lo consumen:
 
 - **Programación** (matriz / cuadro mensual)
 - **Dotación** (entrega de elementos a puestos)
-- Otros módulos que listan `GET /posts`
+- **Minuta Virtual** (cuenta `PUESTO` en app separada; ops solo consulta/PDF)
+- Otros módulos vía `GET /posts`
 
-## Rutas
+## Rutas (Portal web)
 
 | Ruta | Permiso | Descripción |
 |------|---------|-------------|
 | `/operaciones` | `posts.view` | Panel resumen |
 | `/operaciones/puestos` | `posts.view` | CRUD de puestos |
+| `/operaciones/puestos/fichas` | `posts.view` | Fichas de puestos (mismo componente que recepción) |
+| `/operaciones/minutas` | `posts.view` | Historial / PDF por puesto + mes; buscador; enlace Minuta Web; cuentas PUESTO |
 
-Crear / editar requieren `posts.create` / `posts.edit`.
+Crear / editar puestos: `posts.create` / `posts.edit`.
+
+**Nota:** Minuta Virtual **no** aparece en el menú principal del Portal. Los vigilantes usan https://portalcoraza-minuta.onrender.com (`apps/minuta-web`). Detalle: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md).
 
 ## API
 
-Reutiliza `PostsModule` existente:
+Reutiliza `PostsModule`:
 
 - `GET /posts`
 - `POST /posts` (`posts.create`)
 - `PATCH /posts/:id` (`posts.edit`)
+
+Minutas ops (módulo `minuta`):
+
+- Historial / PDF mensual por puesto (ver `minuta.controller` / `operacionesHistorial` / `operacionesPdf`)
 
 ## Relación con RRHH
 
@@ -42,3 +51,4 @@ El formulario de puesto incluye, además de código/nombre/tipo/estado/cliente/d
 
 - Layout: `apps/web/src/app/features/operaciones/`
 - Menú lateral: grupo Operación → **Operaciones**
+- Minutas list: `features/operaciones/minutas-list/minutas-list.ts` (combobox con búsqueda; URL Minuta desde `environment.minutaWebUrl`)

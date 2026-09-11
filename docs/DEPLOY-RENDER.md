@@ -8,7 +8,9 @@
 | **Web** (`portalcoraza-web`) | `https://portalcoraza-web.onrender.com` | Angular — login, dashboard, módulos |
 | **Minuta** (`portalcoraza-minuta`) | `https://portalcoraza-minuta.onrender.com` | Angular — vigilantes en puesto (rol `PUESTO`) |
 
-> Handoff deploy Minuta (estado y pasos pendientes): [`docs/MINUTA-WEB-DEPLOY-HANDOFF.md`](./MINUTA-WEB-DEPLOY-HANDOFF.md)
+> Handoff deploy Minuta: [`docs/MINUTA-WEB-DEPLOY-HANDOFF.md`](./MINUTA-WEB-DEPLOY-HANDOFF.md)  
+> Producto / UX Minuta: [`docs/MINUTA-VIRTUAL.md`](./MINUTA-VIRTUAL.md)  
+> Operaciones (puestos + minutas ops): [`docs/OPERACIONES.md`](./OPERACIONES.md)
 
 Abrir solo la URL de la **API** en `/` devuelve `404 Cannot GET /` — es normal. El portal está en el **Static Site**.
 

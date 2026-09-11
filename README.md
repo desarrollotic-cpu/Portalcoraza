@@ -6,19 +6,22 @@ Plataforma web modular para gestión administrativa y operativa de vigilancia y 
 
 > **¿Retomas el proyecto?** Lee [`docs/CONTINUAR-DESARROLLO.md`](docs/CONTINUAR-DESARROLLO.md) — mensaje para el agente.  
 > **¿Acabas de clonar?** Lee [`docs/GUIA-CIERRE-100.md`](docs/GUIA-CIERRE-100.md) — configuración `.env`, Supabase y checklist.  
-> **¿Cómo funciona el negocio?** Lee [`docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md`](docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md) — reglas y procedimientos por módulo.
+> **¿Cómo funciona el negocio?** Lee [`docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md`](docs/REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md) — reglas y procedimientos por módulo.  
+> **Minuta vigilante:** [`docs/MINUTA-VIRTUAL.md`](docs/MINUTA-VIRTUAL.md) · **Operaciones:** [`docs/OPERACIONES.md`](docs/OPERACIONES.md)
 
 ## Estructura
 
 ```
-Portal_Coraza/
+Portalcoraza/
 ├── apps/
 │   ├── api/          # NestJS — API REST
-│   └── web/          # Angular 21 — Frontend
+│   ├── web/          # Angular 21 — Portal ERP
+│   └── minuta-web/   # Angular 21 — Minuta Virtual (PUESTO)
 ├── supabase/
 │   ├── migrations/   # Esquema PostgreSQL
 │   └── seed/         # Roles, permisos
-└── docs/
+├── docs/
+└── graphify-out/     # Grafo local (gitignored); graphify update . --force
 ```
 
 ## Requisitos
@@ -65,13 +68,21 @@ Credenciales por defecto: `admin@coraza.local` / `Coraza2026!` (rol **GERENCIA**
 
 Si ya habías ejecutado el seed antiguo (GERENCIA solo lectura), ejecuta también `supabase/seed/002_gerencia_full_permissions.sql`.
 
-### 3. Frontend
+### 3. Frontend Portal
 
 ```bash
 npm run web:dev
 ```
 
 Abre http://localhost:4200 e inicia sesión.
+
+### 4. Minuta Web (vigilantes)
+
+```bash
+npm run minuta:dev
+```
+
+Abre http://localhost:4201 (hash routes `#/login`). Detalle: [`docs/MINUTA-VIRTUAL.md`](docs/MINUTA-VIRTUAL.md).
 
 ## API (Fase 1)
 

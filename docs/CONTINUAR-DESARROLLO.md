@@ -43,6 +43,10 @@ Revisa qué se ha hecho y qué falta en system-coraza-v2 (tasks.md + progress.md
 | 9 | `docs/GESTION-HUMANA-NATIVA.md` | **RRHH nativo en portal** (ya no puente a Render) |
 | 10 | `docs/RENDIMIENTO.md` | Auditoría de rendimiento (corte 2026-08-18) |
 | 11 | `docs/INVENTARIO_PERSISTENCIA.md` | Stock por almacén, `TRANSFER`, `stock_current` = suma |
+| 12 | `docs/MINUTA-VIRTUAL.md` | **Minuta vigilante + ops** (estado 2026-09) |
+| 13 | `docs/OPERACIONES.md` | Puestos, fichas, minutas ops |
+| 14 | `docs/MINUTA-WEB-DEPLOY-HANDOFF.md` | Deploy / CORS Minuta Web |
+| 15 | `graphify-out/` | Grafo código (local); `graphify update . --force` |
 
 **No reabrir decisiones** ya documentadas en `design.md` (JWT propio, permisos en payload, Realtime por `user_id`, matriz Excel para programación, documental metadata-only, etc.).
 

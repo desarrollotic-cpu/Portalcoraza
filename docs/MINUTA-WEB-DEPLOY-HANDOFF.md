@@ -1,6 +1,8 @@
 # Minuta Web — Handoff de despliegue (28 ago 2026)
 
-Documento para retomar el deploy paso a paso. Estado al cierre del día.
+Documento para retomar el deploy paso a paso.
+
+> **Estado vivo (producto + UX):** [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md) — preferir ese archivo para “cómo está hoy”.
 
 ---
 
@@ -17,10 +19,21 @@ Frontend **separado** del Portal Coraza para vigilantes en puesto (rol `PUESTO`)
 - Misma base de datos y misma API NestJS (`apps/api`).
 - Operaciones/gerencia siguen viendo reportes de minuta en Portal → `/operaciones/minutas`.
 - Vigilantes **no** entran al menú del portal; se redirigen a Minuta Web.
+- Nav del portal **sin** ítem “Minuta Virtual” (solo Operaciones).
 
 ---
 
-## Estado actual (dónde paramos — 29 ago 2026)
+## Actualización 2026-09-11
+
+| Item | Detalle |
+|------|---------|
+| UX vigilante | CTA claro, tiles con pistas, historial con Ver/Salida/Entregar legibles (`7ca0b8e`) |
+| Operaciones | Buscador puestos en minutas, fichas, enlace copiable Minuta, cuentas PUESTO activas |
+| Grafo | `graphify update . --force` → `graphify-out/` (8634 nodos, commit `7ca0b8e`) |
+
+---
+
+## Estado deploy (corte original — 29 ago 2026)
 
 ### ✅ Hecho
 

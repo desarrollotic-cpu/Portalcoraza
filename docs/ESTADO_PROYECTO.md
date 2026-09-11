@@ -1,7 +1,15 @@
 # Estado del Proyecto — Portal Coraza
 
-> **Última actualización**: 2026-07-14
+> **Última actualización**: 2026-09-11  
 > **Documento maestro**: fuente única de verdad del avance actual. Cualquier información en otros documentos (`HANDOFF-IA.md`, `CONTINUAR-DESARROLLO.md`, `ARCHITECTURE.md`, etc.) que contradiga a este archivo, este archivo prevalece.
+>
+> ### Parche de continuidad (2026-09-11) — no reescribe el cuerpo histórico de julio
+>
+> - **Minuta Virtual** es app separada (`apps/minuta-web`, Render `portalcoraza-minuta`). Ver [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md).
+> - Portal **sin** nav “Minuta Virtual”; supervisión en **Operaciones → Minutas** (+ fichas, enlace copiable, cuentas PUESTO). Ver [`OPERACIONES.md`](OPERACIONES.md).
+> - UX vigilante: Inicio / Registrar / Historial más claros y táctiles (commit `7ca0b8e`).
+> - Residencial / Vigía legado: **retirados** (el cuerpo de este doc aún puede mencionarlos; no reabrir).
+> - Grafo código: `graphify update . --force` → `graphify-out/` (8634 nodos, 14934 edges, HEAD `7ca0b8e`).
 
 Este documento consolida **todo lo que se ha hecho, todo lo que está en curso y todo lo que falta** en Portal Coraza. Está organizado para poder retomar el proyecto en cualquier momento sin perder contexto.
 

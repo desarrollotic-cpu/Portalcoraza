@@ -4,6 +4,8 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 > **Inicio rápido para compañeros:** [`docs/CONTINUAR-DESARROLLO.md`](CONTINUAR-DESARROLLO.md) — mensaje listo para copiar al agente de Cursor.
 
+**Corte 2026-09-11:** Minuta = app `apps/minuta-web` (https://portalcoraza-minuta.onrender.com). Docs vivos: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md), [`MINUTA-WEB-DEPLOY-HANDOFF.md`](MINUTA-WEB-DEPLOY-HANDOFF.md). Grafo local: `graphify-out/` (rebuild `graphify update . --force`). Coordinar pushes a `main` con Freider (SST/documental) — ver `.cursor/rules/deploy-con-companero.mdc`.
+
 **Corte 2026-08-19:** Residencial **retirado**. Dotación con almacenes Medellín/Rionegro. Filtro de nivel educativo en Directorio. Auditoría de rendimiento en [`docs/RENDIMIENTO.md`](RENDIMIENTO.md). **Puestos:** 226 cargados. **No** se migran turnos/asignaciones de la app de programación. No reabrir el bloque 12.x residencial de la sección OpenSpec de abajo; esa lista quedó vieja.
 
 ---
@@ -22,7 +24,8 @@ Estado real del change activo `system-coraza-v2`:
 |----------|-----|
 | API | `https://portalcoraza.onrender.com` |
 | Web | `https://portalcoraza-web.onrender.com` |
-| Login | `https://portalcoraza-web.onrender.com/auth/login` |
+| Minuta | `https://portalcoraza-minuta.onrender.com` |
+| Login portal | `https://portalcoraza-web.onrender.com/auth/login` |
 
 Credenciales seed: `admin@coraza.local` / `Coraza2026!` (GERENCIA)
 
@@ -61,12 +64,14 @@ Protocolo obligatorio para continuar desde otro ID de desarrollo:
 - **Arquitectura:** monorepo npm workspaces
 
 ```
-Portal_Coraza/
+Portalcoraza/
 ├── apps/api/          # NestJS 11 — REST API, JWT, TypeORM, PostgreSQL
-├── apps/web/          # Angular 21 — SPA (no Next.js)
+├── apps/web/          # Angular 21 — Portal ERP
+├── apps/minuta-web/   # Angular 21 — Minuta Virtual (PUESTO)
 ├── supabase/          # migrations + seeds SQL
 ├── docs/              # guías
-└── .agents/skills/    # Supabase agent skills (opcional)
+├── graphify-out/      # grafo local (gitignored)
+└── .agents/skills/    # skills agente (Supabase, UX, etc.)
 ```
 
 ---

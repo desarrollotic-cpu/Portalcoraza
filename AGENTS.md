@@ -4,7 +4,7 @@ Guía para agentes de código (Cursor, etc.). El producto es el monorepo NestJS 
 
 ## Preferencias del usuario
 
-- Responder empezando por **Freider**.
+- Responder empezando por **JHON**.
 - Cambios: commit/push a `main` solo cuando lo pida.
 - Priorizar velocidad: `monta` / `resuelve` / `pull` → ejecutar sin brainstorming largo ni graphify obligatorio.
 - Mejorar el *agente* con skills/reglas; no volcar metodologías como código de negocio.
@@ -15,7 +15,7 @@ Guía para agentes de código (Cursor, etc.). El producto es el monorepo NestJS 
 |------|-----------|-----|
 | Ponytail | `.cursor/rules/ponytail.mdc` | Código mínimo, YAGNI, reutilizar |
 | Coordinación | `.cursor/rules/agent-toolkit.mdc` | Cuándo usar cada skill |
-| Nombre | `.cursor/rules/respuesta-con-nombre.mdc` | Saludo Freider |
+| Nombre | `.cursor/rules/respuesta-con-nombre.mdc` | Saludo JHON |
 | Velocidad | `.cursor/rules/velocidad.mdc` | Evitar waits/builds/subagentes innecesarios |
 | Superpowers | `.cursor/skills/*` | Solo features grandes sin urgencia |
 | Graphify | `.cursor/skills/graphify/` | Opcional (`/graphify`) |
@@ -38,6 +38,8 @@ Excluir ruido con `.graphifyignore` (p. ej. `.tmp/`). Tras cambios grandes: `gra
 ## Stack rápido
 
 - API: `apps/api` (NestJS)
-- Web: `apps/web` (Angular)
+- Web: `apps/web` (Angular) — Portal
+- Minuta: `apps/minuta-web` (Angular) — vigilantes `PUESTO` → https://portalcoraza-minuta.onrender.com
 - SQL: `supabase/migrations`
-- Scripts: `npm run api:dev` / `npm run web:dev`
+- Scripts: `npm run api:dev` / `npm run web:dev` / `npm run minuta:dev`
+- Docs vivos Minuta/Ops: `docs/MINUTA-VIRTUAL.md`, `docs/OPERACIONES.md`
