@@ -119,14 +119,14 @@ type PeriodKey = CommandPeriod;
               <div class="core-icon bg-indigo">
                 <app-icon [icon]="icons.CalendarCheck" [size]="20" [strokeWidth]="2" />
               </div>
-              <span class="core-badge blue">Programación</span>
+              <span class="core-badge blue">Operaciones</span>
             </div>
             <div class="core-card-body">
               <span class="core-title">Puestos de Vigilancia</span>
               <b class="core-number">{{ postsActive() }}</b>
               <small class="core-subtext">Activos hoy · {{ programacion()?.kpis?.postsInMonth ?? 0 }} con cuadro del mes</small>
             </div>
-            <a routerLink="/programacion" class="core-link">Ver Cuadro de Turnos →</a>
+            <a routerLink="/operaciones/puestos" class="core-link">Ver puestos →</a>
           </article>
 
           <!-- DOTACIÓN & LOGÍSTICA -->
