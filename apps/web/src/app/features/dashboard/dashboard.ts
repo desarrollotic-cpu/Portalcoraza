@@ -126,7 +126,7 @@ type PeriodKey = CommandPeriod;
               <b class="core-number">{{ postsActive() }}</b>
               <small class="core-subtext">Activos hoy · {{ programacion()?.kpis?.postsInMonth ?? 0 }} con cuadro del mes</small>
             </div>
-            <a routerLink="/operaciones/puestos" class="core-link">Ver puestos →</a>
+            <a routerLink="/recepcion/puestos/fichas" class="core-link">Ver fichas →</a>
           </article>
 
           <!-- DOTACIÓN & LOGÍSTICA -->

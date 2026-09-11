@@ -48,7 +48,7 @@ export class ReceptionLayout {
     {
       label: 'Fichas de puestos',
       route: '/recepcion/puestos/fichas',
-      permission: 'reception.view',
+      permissions: ['reception.view', 'posts.view'],
       icon: LucideFileText,
     },
     {
