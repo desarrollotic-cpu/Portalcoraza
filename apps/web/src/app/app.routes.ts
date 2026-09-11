@@ -37,6 +37,15 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'control-actividades',
+        canActivate: [permissionGuard],
+        data: { permission: 'activity_control.view' },
+        loadComponent: () =>
+          import('./features/activity-control/activity-control-page').then(
+            (m) => m.ActivityControlPage,
+          ),
+      },
+      {
         path: 'sin-acceso',
         loadComponent: () =>
           import('./features/auth/sin-acceso/sin-acceso').then((m) => m.SinAcceso),

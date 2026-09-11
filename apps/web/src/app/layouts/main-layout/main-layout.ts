@@ -19,6 +19,7 @@ import {
   RouterOutlet,
 } from '@angular/router';
 import {
+  LucideActivity,
   LucideBell,
   LucideBoxes,
   LucideBriefcaseBusiness,
@@ -1015,6 +1016,7 @@ export class MainLayout implements OnDestroy {
   }
 
   readonly icons = {
+    Activity: LucideActivity,
     Bell: LucideBell,
     Boxes: LucideBoxes,
     BriefcaseBusiness: LucideBriefcaseBusiness,
@@ -1054,6 +1056,13 @@ export class MainLayout implements OnDestroy {
           icon: LucideHome,
           match: 'exact',
           permission: 'users.view',
+        },
+        {
+          label: 'Control de Actividades',
+          route: '/control-actividades',
+          icon: LucideActivity,
+          match: 'exact',
+          permission: 'activity_control.view',
         },
       ],
     },
