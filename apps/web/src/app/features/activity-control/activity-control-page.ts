@@ -14,6 +14,15 @@ import { Icon } from '../../shared/components/icon/icon';
 
 export type ActivityDays = 1 | 7 | 30;
 
+export interface ActivityDayCell {
+  date: string;
+  label: string;
+  weekday: string;
+  count: number;
+  used: boolean;
+  isToday: boolean;
+}
+
 export interface ActivityArea {
   key: string;
   label: string;
@@ -24,6 +33,10 @@ export interface ActivityArea {
   eventCountToday: number;
   eventCountPeriod: number;
   uniqueUsersToday: number;
+  uniqueUsersPeriod: number;
+  daysUsedInWeek: number;
+  idleStreakDays: number;
+  dayStrip: ActivityDayCell[];
   lastAt: string | null;
   actors: { name: string; count: number; lastAt: string }[];
   recent: {
@@ -61,7 +74,7 @@ export interface ActivityControlPayload {
             <p class="ac-eyebrow">Monitoreo operativo</p>
             <h1>Control de Actividades</h1>
             <p class="ac-lead">
-              Valida que cada área esté usando el portal. Vista por zona, sin submódulos.
+              Valida el uso diario por área. La franja de 7 días te muestra si el responsable entró o se ausentó varios días seguidos.
             </p>
           </div>
           <div class="ac-hero__actions">
@@ -152,25 +165,50 @@ export interface ActivityControlPayload {
               </header>
 
               <div class="ac-kpis">
-                <div>
-                  <span>Hoy</span>
+                <div title="Cantidad de movimientos registrados hoy en esta área">
+                  <span>Movim. hoy</span>
                   <b>{{ area.eventCountToday }}</b>
                 </div>
-                <div>
-                  <span>Personas</span>
+                <div title="Usuarios distintos que hicieron algo hoy en esta área">
+                  <span>Quién hoy</span>
                   <b>{{ area.uniqueUsersToday }}</b>
                 </div>
-                <div>
-                  <span>Periodo</span>
+                <div [title]="'Movimientos en el rango seleccionado (' + days() + ' día(s))'">
+                  <span>En rango</span>
                   <b>{{ area.eventCountPeriod }}</b>
                 </div>
+              </div>
+
+              <div class="ac-strip-wrap">
+                <div class="ac-section-label">Últimos 7 días</div>
+                <div class="ac-strip" role="list" aria-label="Actividad de los últimos 7 días">
+                  @for (d of area.dayStrip; track d.date) {
+                    <div
+                      class="ac-strip__cell"
+                      role="listitem"
+                      [class.is-used]="d.used"
+                      [class.is-today]="d.isToday"
+                      [title]="d.weekday + ' ' + d.date + ': ' + (d.used ? d.count + ' movimiento(s)' : 'sin actividad')"
+                    >
+                      <span class="ac-strip__wd">{{ d.weekday }}</span>
+                      <span class="ac-strip__bar" [style.height.%]="stripHeight(d.count, area.dayStrip)"></span>
+                      <span class="ac-strip__n">{{ d.label }}</span>
+                    </div>
+                  }
+                </div>
+                <p class="ac-strip-note">
+                  {{ area.daysUsedInWeek }}/7 días con uso
+                  @if (!area.usedToday && area.idleStreakDays > 1) {
+                    · <strong>alerta: {{ area.idleStreakDays }} días seguidos sin actividad</strong>
+                  }
+                </p>
               </div>
 
               @if (area.actors.length) {
                 <div class="ac-actors">
                   <div class="ac-section-label">
                     <app-icon [icon]="icons.Users" [size]="14" />
-                    Quién usó el área
+                    {{ area.usedToday ? 'Quién usó el área hoy' : 'Quién usó el área en el rango' }}
                   </div>
                   <ul>
                     @for (a of area.actors; track a.name + a.lastAt) {
@@ -474,6 +512,59 @@ export interface ActivityControlPayload {
     .ac-kpis span { font-size: 0.68rem; color: var(--ac-muted); text-transform: uppercase; letter-spacing: 0.05em; }
     .ac-kpis b { font-size: 1.15rem; color: var(--ac-ink); font-variant-numeric: tabular-nums; }
 
+    .ac-strip-wrap { display: flex; flex-direction: column; gap: 0.35rem; }
+    .ac-strip {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.35rem;
+      align-items: end;
+      min-height: 72px;
+    }
+    .ac-strip__cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+      min-height: 64px;
+      justify-content: flex-end;
+    }
+    .ac-strip__wd {
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      color: var(--ac-muted);
+      letter-spacing: 0.04em;
+    }
+    .ac-strip__bar {
+      width: 100%;
+      max-width: 28px;
+      min-height: 6px;
+      border-radius: 6px 6px 3px 3px;
+      background: #e2e8f0;
+      transition: height 0.25s ease, background 0.2s ease;
+    }
+    .ac-strip__cell.is-used .ac-strip__bar {
+      background: var(--ac-accent);
+    }
+    .ac-strip__cell.is-today .ac-strip__n {
+      font-weight: 700;
+      color: var(--ac-ink);
+    }
+    .ac-strip__cell:not(.is-used) .ac-strip__bar {
+      background: #fecaca;
+      opacity: 0.55;
+    }
+    .ac-strip__n {
+      font-size: 0.7rem;
+      color: var(--ac-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .ac-strip-note {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--ac-muted);
+    }
+    .ac-strip-note strong { color: #9a3412; font-weight: 600; }
+
     .ac-section-label {
       display: flex;
       align-items: center;
@@ -623,6 +714,12 @@ export class ActivityControlPage implements OnInit {
     if (this.days() === days) return;
     this.days.set(days);
     this.reload();
+  }
+
+  stripHeight(count: number, strip: ActivityDayCell[]): number {
+    const max = Math.max(1, ...strip.map((d) => d.count));
+    if (count <= 0) return 12;
+    return Math.max(18, Math.round((count / max) * 100));
   }
 
   reload(): void {

@@ -44,21 +44,22 @@ export class ActivityControlService {
   ) {}
 
   async build(days: ActivityControlDays = 1) {
-    const since = new Date();
-    since.setHours(0, 0, 0, 0);
-    if (days > 1) {
-      since.setDate(since.getDate() - (days - 1));
-    }
+    const todayStart = this.startOfDay(new Date());
+    // Siempre traemos al menos 7 días para la franja de uso diario
+    const stripDays = 7;
+    const lookback = Math.max(days, stripDays);
+    const since = this.startOfDay(new Date());
+    since.setDate(since.getDate() - (lookback - 1));
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    const periodSince = this.startOfDay(new Date());
+    periodSince.setDate(periodSince.getDate() - (days - 1));
 
     const rows = await this.auditRepo
       .createQueryBuilder('a')
       .where('a.created_at >= :since', { since })
       .andWhere('a.action NOT IN (:...skip)', { skip: [...SKIP_ACTIONS] })
       .orderBy('a.created_at', 'DESC')
-      .take(2500)
+      .take(4000)
       .getMany();
 
     const userIds = [
@@ -74,11 +75,36 @@ export class ActivityControlService {
       users.map((u) => [u.id, (u.fullName?.trim() || u.email || 'Usuario') as string]),
     );
 
+    const dayKeys = this.lastDayKeys(stripDays);
+
     const areas = AREAS.map((area) => {
-      const events = rows.filter((r) => area.modules.includes(r.module));
-      const todayEvents = events.filter((e) => e.createdAt >= todayStart);
+      const allEvents = rows.filter((r) => area.modules.includes(r.module));
+      const periodEvents = allEvents.filter((e) => e.createdAt >= periodSince);
+      const todayEvents = allEvents.filter((e) => e.createdAt >= todayStart);
+
+      const dayStrip = dayKeys.map((dk) => {
+        const count = allEvents.filter((e) => this.dayKey(e.createdAt) === dk.key).length;
+        return {
+          date: dk.key,
+          label: dk.label,
+          weekday: dk.weekday,
+          count,
+          used: count > 0,
+          isToday: dk.key === dayKeys[dayKeys.length - 1].key,
+        };
+      });
+
+      const daysUsed = dayStrip.filter((d) => d.used).length;
+      let idleStreakDays = 0;
+      for (let i = dayStrip.length - 1; i >= 0; i--) {
+        if (dayStrip[i].used) break;
+        idleStreakDays += 1;
+      }
+
+      // Actores: en "Hoy" prioriza hoy; si no hay, del periodo seleccionado
+      const actorSource = todayEvents.length ? todayEvents : periodEvents;
       const byUser = new Map<string, { name: string; count: number; lastAt: Date }>();
-      for (const e of todayEvents.length ? todayEvents : events.slice(0, 40)) {
+      for (const e of actorSource) {
         if (!e.userId) continue;
         const name = nameById.get(e.userId) ?? 'Usuario';
         const cur = byUser.get(e.userId);
@@ -94,7 +120,7 @@ export class ActivityControlService {
         .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime())
         .slice(0, 8);
 
-      const recent = (todayEvents.length ? todayEvents : events)
+      const recent = (todayEvents.length ? todayEvents : periodEvents)
         .slice(0, 12)
         .map((e) => ({
           id: e.id,
@@ -106,7 +132,12 @@ export class ActivityControlService {
         }));
 
       const usedToday = todayEvents.length > 0;
-      const lastAt = events[0]?.createdAt ?? null;
+      const lastAt = allEvents[0]?.createdAt ?? null;
+
+      let statusLabel = usedToday ? 'Activa hoy' : 'Sin actividad hoy';
+      if (!usedToday && idleStreakDays >= 2) {
+        statusLabel = `Sin uso ${idleStreakDays} días`;
+      }
 
       return {
         key: area.key,
@@ -114,10 +145,14 @@ export class ActivityControlService {
         accent: area.accent,
         usedToday,
         status: usedToday ? ('active' as const) : ('idle' as const),
-        statusLabel: usedToday ? 'Activa hoy' : 'Sin actividad hoy',
+        statusLabel,
         eventCountToday: todayEvents.length,
-        eventCountPeriod: events.length,
+        eventCountPeriod: periodEvents.length,
         uniqueUsersToday: new Set(todayEvents.map((e) => e.userId).filter(Boolean)).size,
+        uniqueUsersPeriod: new Set(periodEvents.map((e) => e.userId).filter(Boolean)).size,
+        daysUsedInWeek: daysUsed,
+        idleStreakDays,
+        dayStrip,
         lastAt,
         actors,
         recent,
@@ -129,7 +164,8 @@ export class ActivityControlService {
     return {
       generatedAt: new Date().toISOString(),
       days,
-      since: since.toISOString(),
+      since: periodSince.toISOString(),
+      stripDays,
       summary: {
         areasTotal: areas.length,
         areasActiveToday: activeToday,
@@ -138,6 +174,34 @@ export class ActivityControlService {
       },
       areas,
     };
+  }
+
+  private startOfDay(d: Date): Date {
+    const x = new Date(d);
+    x.setHours(0, 0, 0, 0);
+    return x;
+  }
+
+  private dayKey(d: Date): string {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  private lastDayKeys(n: number): { key: string; label: string; weekday: string }[] {
+    const weekdays = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const out: { key: string; label: string; weekday: string }[] = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = this.startOfDay(new Date());
+      d.setDate(d.getDate() - i);
+      out.push({
+        key: this.dayKey(d),
+        label: String(d.getDate()),
+        weekday: weekdays[d.getDay()],
+      });
+    }
+    return out;
   }
 
   private label(areaKey: string, action: string): string {
