@@ -20,6 +20,8 @@ export const DOC_STYLES = `
   .badge.info { background:var(--primary-50,#f0f9ff); color:var(--primary-700,#075985); }
   .error { color:var(--error-600,#dc2626); }
   .muted { color:var(--text-muted,#64748b); }
+  .search-bar { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-bottom:1rem; }
+  .search-bar input[type="search"] { flex:1; min-width:240px; max-width:420px; padding:.55rem .85rem; }
   .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1rem; margin-bottom:1.5rem; }
   .kpi { padding:1rem 1.25rem; background:var(--surface-2,#f8fafc); border:1px solid var(--border); border-radius:12px; }
   .kpi .n { font-size:1.8rem; font-weight:800; color:var(--primary-600,var(--primary)); }

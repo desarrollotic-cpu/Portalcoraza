@@ -23,6 +23,18 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       </div>
     </div>
 
+    <div class="search-bar">
+      <input
+        type="search"
+        [(ngModel)]="query"
+        name="minuteSearch"
+        placeholder="Buscar por código, puesto o tipo..."
+        (ngModelChange)="onSearch($event)"
+        autocomplete="off"
+      />
+      <span class="muted">{{ items().length }} resultado(s)</span>
+    </div>
+
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
         <label>
@@ -87,7 +99,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               </td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="muted">Sin minutas registradas.</td></tr>
+            <tr><td colspan="6" class="muted">{{ query.trim() ? 'Sin coincidencias. Prueba código o nombre del puesto.' : 'Sin minutas registradas.' }}</td></tr>
           }
         </tbody>
       </table>
@@ -127,6 +139,8 @@ export class MinutesScreen implements OnInit {
     voxelsera: '',
     observations: '',
   };
+  query = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.refreshQueue();
@@ -141,9 +155,14 @@ export class MinutesScreen implements OnInit {
     this.queueCount.set(getPrintQueue().length);
   }
 
+  onSearch(_value: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 280);
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.api.listMinutes().subscribe({
+    this.api.listMinutes(this.query).subscribe({
       next: (data) => {
         this.items.set(data);
         this.loading.set(false);

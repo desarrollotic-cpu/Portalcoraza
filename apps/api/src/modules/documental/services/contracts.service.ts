@@ -22,8 +22,18 @@ export class ContractsService {
     private readonly audit: AuditService,
   ) {}
 
-  list() {
-    return this.repo.find({ order: { numericCode: 'DESC' } });
+  list(q?: string) {
+    const clean = (q || '').replace(/^#/, '').trim().replace(/[%_]/g, '');
+    const qb = this.repo.createQueryBuilder('c');
+    if (clean) {
+      qb.where(
+        `(c.contract_number ILIKE :q OR c.party_a ILIKE :q OR c.party_b ILIKE :q
+          OR c.nit ILIKE :q OR c.contract_object ILIKE :q OR c.contract_type ILIKE :q
+          OR CAST(c.numeric_code AS text) ILIKE :q OR c.voxelsera ILIKE :q OR c.status ILIKE :q)`,
+        { q: `%${clean}%` },
+      );
+    }
+    return qb.orderBy('c.numeric_code', 'DESC').take(80).getMany();
   }
 
   /** Contratos VIGENTES cuyo end_date cae en los próximos `days` días. */

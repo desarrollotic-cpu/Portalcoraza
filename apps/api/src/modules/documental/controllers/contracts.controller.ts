@@ -14,8 +14,8 @@ export class ContractsController {
 
   @Get()
   @RequirePermissions('documental.view')
-  list() {
-    return this.service.list();
+  list(@Query('q') q?: string) {
+    return this.service.list(q);
   }
 
   @Get('next-code')

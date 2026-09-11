@@ -141,6 +141,18 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
         </div>
       </div>
 
+      <div class="search-bar">
+        <input
+          type="search"
+          [(ngModel)]="query"
+          name="corrSearch"
+          placeholder="Buscar por radicado, asunto, origen o destino..."
+          (ngModelChange)="onSearch($event)"
+          autocomplete="off"
+        />
+        <span class="muted">{{ items().length }} resultado(s)</span>
+      </div>
+
       <!-- FORMULARIO DE RADICACIÓN CON BARRAS DESPLEGABLES PRECONFIGURADAS -->
       @if (showForm()) {
         <form class="card form-corr" (ngSubmit)="save()">
@@ -410,7 +422,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">Sin correspondencia registrada.</td></tr>
+                <tr><td colspan="7" class="muted" style="text-align:center;padding:2rem">{{ query.trim() ? 'Sin coincidencias. Prueba radicado o asunto.' : 'Sin correspondencia registrada.' }}</td></tr>
               }
             </tbody>
           </table>
@@ -572,6 +584,8 @@ export class CorrespondenceScreen implements OnInit {
   readonly previewCode = signal('Calculando radicado...');
 
   selectedSerieVal = '100-10.01';
+  query = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   model = {
     originDept: 'GE',
@@ -648,9 +662,14 @@ export class CorrespondenceScreen implements OnInit {
       });
   }
 
+  onSearch(_value: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 280);
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.api.listCorrespondence().subscribe({
+    this.api.listCorrespondence(this.query).subscribe({
       next: (data) => {
         this.items.set(data);
         this.loading.set(false);

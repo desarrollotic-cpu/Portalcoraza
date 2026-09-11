@@ -250,8 +250,11 @@ export class DocumentalApiService {
   }
 
   // Correspondencia
-  listCorrespondence(): Observable<Correspondence[]> {
-    return this.http.get<Correspondence[]>(`${this.baseUrl}/correspondence`);
+  listCorrespondence(q?: string): Observable<Correspondence[]> {
+    const query = (q || '').trim();
+    return this.http.get<Correspondence[]>(`${this.baseUrl}/correspondence`, {
+      params: query ? { q: query } : {},
+    });
   }
   previewCorrespondenceCode(payload: { depSigla?: string; depCode: string; serieCode: string; subserieCode?: string }): Observable<{ code: string; numeric: number }> {
     return this.http.post<{ code: string; numeric: number }>(`${this.baseUrl}/correspondence/code`, payload);
@@ -261,8 +264,11 @@ export class DocumentalApiService {
   }
 
   // Minutas
-  listMinutes(): Observable<Minute[]> {
-    return this.http.get<Minute[]>(`${this.baseUrl}/minutes`);
+  listMinutes(q?: string): Observable<Minute[]> {
+    const query = (q || '').trim();
+    return this.http.get<Minute[]>(`${this.baseUrl}/minutes`, {
+      params: query ? { q: query } : {},
+    });
   }
   createMinute(payload: Record<string, unknown>): Observable<Minute> {
     return this.http.post<Minute>(`${this.baseUrl}/minutes`, payload);
@@ -299,8 +305,11 @@ export class DocumentalApiService {
   }
 
   // Contratos
-  listContracts(): Observable<Contract[]> {
-    return this.http.get<Contract[]>(`${this.baseUrl}/contracts`);
+  listContracts(q?: string): Observable<Contract[]> {
+    const query = (q || '').trim();
+    return this.http.get<Contract[]>(`${this.baseUrl}/contracts`, {
+      params: query ? { q: query } : {},
+    });
   }
   nextContractCode(): Observable<{ numeric: number; suggested: string }> {
     return this.http.get<{ numeric: number; suggested: string }>(`${this.baseUrl}/contracts/next-code`);

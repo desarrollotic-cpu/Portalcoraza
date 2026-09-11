@@ -21,6 +21,18 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       </div>
     </div>
 
+    <div class="search-bar">
+      <input
+        type="search"
+        [(ngModel)]="query"
+        name="contractSearch"
+        placeholder="Buscar por cliente, NIT o número de contrato..."
+        (ngModelChange)="onSearch($event)"
+        autocomplete="off"
+      />
+      <span class="muted">{{ items().length }} resultado(s)</span>
+    </div>
+
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
         <label>
@@ -106,7 +118,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               <td><button type="button" class="btn-ghost" (click)="printOne(c)">Imprimir rótulo</button></td>
             </tr>
           } @empty {
-            <tr><td colspan="7" class="muted">Sin contratos registrados.</td></tr>
+            <tr><td colspan="7" class="muted">{{ query.trim() ? 'Sin coincidencias. Prueba cliente, NIT o número.' : 'Sin contratos registrados.' }}</td></tr>
           }
         </tbody>
       </table>
@@ -161,6 +173,8 @@ export class ContractsScreen implements OnInit {
     contractObject: '',
     voxelsera: '',
   };
+  query = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.queueCount.set(getPrintQueue().length);
@@ -175,9 +189,14 @@ export class ContractsScreen implements OnInit {
     }
   }
 
+  onSearch(_value: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 280);
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.api.listContracts().subscribe({
+    this.api.listContracts(this.query).subscribe({
       next: (data) => {
         this.items.set(data);
         this.loading.set(false);

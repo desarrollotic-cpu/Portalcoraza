@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -14,8 +14,8 @@ export class MinutesController {
 
   @Get()
   @RequirePermissions('documental.view')
-  list() {
-    return this.service.list();
+  list(@Query('q') q?: string) {
+    return this.service.list(q);
   }
 
   @Post()

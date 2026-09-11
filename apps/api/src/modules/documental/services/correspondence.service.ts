@@ -15,8 +15,19 @@ export class CorrespondenceService {
     private readonly audit: AuditService,
   ) {}
 
-  list() {
-    return this.repo.find({ order: { createdAt: 'DESC' }, take: 500 });
+  list(q?: string) {
+    const clean = (q || '').replace(/^#/, '').trim().replace(/[%_]/g, '');
+    const qb = this.repo.createQueryBuilder('c');
+    if (clean) {
+      qb.where(
+        `(c.document_code ILIKE :q OR c.subject ILIKE :q OR c.detail ILIKE :q
+          OR c.origin_dept ILIKE :q OR c.destination_dept ILIKE :q
+          OR c.document_type ILIKE :q OR CAST(c.numeric_code AS text) ILIKE :q
+          OR c.voxelsera ILIKE :q)`,
+        { q: `%${clean}%` },
+      );
+    }
+    return qb.orderBy('c.created_at', 'DESC').take(80).getMany();
   }
 
   /** Radicado TRD: {depCode}-{serieCode}[.{subserieCode}]-{año}-{0000}. Peek = no quema consecutivo. */

@@ -21,11 +21,17 @@ export class MinutesService {
     private readonly audit: AuditService,
   ) {}
 
-  list() {
-    return this.repo.find({
-      order: { startDate: 'DESC', numericCode: 'DESC' },
-      take: 200,
-    });
+  list(q?: string) {
+    const clean = (q || '').replace(/^#/, '').trim().replace(/[%_]/g, '');
+    const qb = this.repo.createQueryBuilder('m');
+    if (clean) {
+      qb.where(
+        `(m.unique_code ILIKE :q OR m.post_name ILIKE :q OR m.minute_type ILIKE :q
+          OR CAST(m.numeric_code AS text) ILIKE :q OR m.voxelsera ILIKE :q)`,
+        { q: `%${clean}%` },
+      );
+    }
+    return qb.orderBy('m.numeric_code', 'DESC').take(80).getMany();
   }
 
   /** Código: MIN-{SER|VIS|COR}-####, consecutivo por tipo de minuta. */
