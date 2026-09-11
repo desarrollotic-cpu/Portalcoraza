@@ -256,25 +256,100 @@ export class ReceptionService {
     };
   }
 
-  async list(params: { insideOnly?: boolean; limit?: number } = {}) {
-    const take = Math.min(params.limit ?? 100, 500);
+  async list(
+    params: {
+      insideOnly?: boolean;
+      page?: number;
+      limit?: number;
+      q?: string;
+      status?: 'all' | 'inside' | 'closed';
+      period?: 'today' | 'month' | 'year';
+      from?: string;
+      to?: string;
+    } = {},
+  ) {
+    const page = Math.max(1, Number(params.page) || 1);
+    const limit = Math.min(Math.max(1, Number(params.limit) || 50), 100);
 
-    if (params.insideOnly) {
-      const rows = await this.visitorsRepo.find({
-        select: LIST_COLUMNS,
-        where: { exitAt: IsNull() },
-        order: { entryAt: 'DESC' },
-        take,
-      });
-      return rows.map((v) => this.toDto(v));
+    const qb = this.visitorsRepo
+      .createQueryBuilder('v')
+      .orderBy('v.entry_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit);
+
+    const status = params.insideOnly ? 'inside' : (params.status ?? 'all');
+    if (status === 'inside') {
+      qb.andWhere('v.exit_at IS NULL');
+    } else if (status === 'closed') {
+      qb.andWhere('v.exit_at IS NOT NULL');
     }
 
-    const rows = await this.visitorsRepo.find({
-      select: LIST_COLUMNS,
-      order: { entryAt: 'DESC' },
-      take,
-    });
-    return rows.map((v) => this.toDto(v));
+    const bounds = this.bogotaBounds();
+    if (params.period === 'today') {
+      qb.andWhere('v.entry_at >= :from AND v.entry_at < :to', {
+        from: bounds.dayStart,
+        to: bounds.dayEnd,
+      });
+    } else if (params.period === 'month') {
+      qb.andWhere('v.entry_at >= :from AND v.entry_at < :to', {
+        from: bounds.monthStart,
+        to: bounds.monthEnd,
+      });
+    } else if (params.period === 'year') {
+      qb.andWhere('v.entry_at >= :from AND v.entry_at < :to', {
+        from: bounds.yearStart,
+        to: bounds.yearEnd,
+      });
+    } else {
+      const from = this.parseBogotaDay(params.from);
+      const toExclusive = this.parseBogotaDayExclusive(params.to);
+      if (from && toExclusive) {
+        qb.andWhere('v.entry_at >= :from AND v.entry_at < :to', { from, to: toExclusive });
+      } else if (from) {
+        qb.andWhere('v.entry_at >= :from', { from });
+      } else if (toExclusive) {
+        qb.andWhere('v.entry_at < :to', { to: toExclusive });
+      }
+    }
+
+    const q = (params.q ?? '').trim();
+    if (q) {
+      qb.andWhere(
+        `(
+          COALESCE(v.document_number, '') ILIKE :q
+          OR COALESCE(v.first_name, '') ILIKE :q
+          OR COALESCE(v.second_name, '') ILIKE :q
+          OR COALESCE(v.first_surname, '') ILIKE :q
+          OR COALESCE(v.second_surname, '') ILIKE :q
+          OR COALESCE(v.origin_place, '') ILIKE :q
+          OR COALESCE(v.visit_reason, '') ILIKE :q
+          OR COALESCE(v.authorized_by, '') ILIKE :q
+        )`,
+        { q: `%${q}%` },
+      );
+    }
+
+    const [rows, total] = await qb.getManyAndCount();
+    return {
+      items: rows.map((v) => this.toDto(v)),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  /** Día calendario Bogotá YYYY-MM-DD → medianoche -05:00 */
+  private parseBogotaDay(value?: string): Date | null {
+    const raw = (value ?? '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+    return new Date(`${raw}T00:00:00-05:00`);
+  }
+
+  /** Fin exclusivo: día siguiente a YYYY-MM-DD */
+  private parseBogotaDayExclusive(value?: string): Date | null {
+    const start = this.parseBogotaDay(value);
+    if (!start) return null;
+    return new Date(start.getTime() + 24 * 60 * 60 * 1000);
   }
 
   async lookupAssociate(document?: string) {

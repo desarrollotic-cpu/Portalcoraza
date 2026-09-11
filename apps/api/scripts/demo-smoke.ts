@@ -154,8 +154,9 @@ async function main() {
     const { json } = await api('GET', '/reception/visitors?insideOnly=true&limit=20', {
       token,
     });
-    if (!Array.isArray(json)) throw new Error('Respuesta no es lista');
-    return `inside=${json.length}`;
+    const items = Array.isArray(json) ? json : json?.items;
+    if (!Array.isArray(items)) throw new Error('Respuesta no es lista paginada');
+    return `inside=${items.length} total=${json?.total ?? items.length}`;
   });
 
   // Lookup: use sample associate doc from list; if empty, skip gracefully via DB read-only

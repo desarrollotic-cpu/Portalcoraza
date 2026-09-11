@@ -1,6 +1,8 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
+import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -15,7 +17,12 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       <header class="head">
         <div>
           <h2>Historial de visitas</h2>
-          <p>Consulta permanente de ingresos y salidas registrados en recepción.</p>
+          <p>
+            Consulta permanente de ingresos y salidas.
+            @if (periodLabel()) {
+              · {{ periodLabel() }}
+            }
+          </p>
         </div>
         <div class="head-actions">
           <button type="button" class="primary" (click)="openPdfModal()">Generar PDF</button>
@@ -30,18 +37,18 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
             type="search"
             placeholder="Nombre, cédula, motivo, origen..."
             [ngModel]="search()"
-            (ngModelChange)="search.set($event)"
+            (ngModelChange)="onSearch($event)"
           />
         </label>
         <label>
           Estado
-          <select [ngModel]="status()" (ngModelChange)="status.set($event)">
+          <select [ngModel]="status()" (ngModelChange)="onStatus($event)">
             <option value="all">Todos</option>
             <option value="inside">Dentro</option>
             <option value="closed">Con salida</option>
           </select>
         </label>
-        <strong>{{ filtered().length }} registro(s)</strong>
+        <strong>{{ rangeLabel() }}</strong>
       </div>
 
       @if (loading()) {
@@ -61,7 +68,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
             </tr>
           </thead>
           <tbody>
-            @for (v of filtered(); track v.id) {
+            @for (v of visitors(); track v.id) {
               <tr>
                 <td>
                   <strong>{{ v.displayName }}</strong>
@@ -146,6 +153,23 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
             }
           </tbody>
         </table>
+
+        @if (totalPages() > 1) {
+          <div class="pager">
+            <button type="button" class="ghost" [disabled]="page() <= 1" (click)="goPage(page() - 1)">
+              Anterior
+            </button>
+            <span>Página {{ page() }} de {{ totalPages() }}</span>
+            <button
+              type="button"
+              class="ghost"
+              [disabled]="page() >= totalPages()"
+              (click)="goPage(page() + 1)"
+            >
+              Siguiente
+            </button>
+          </div>
+        }
       }
 
       <app-modal-shell
@@ -197,12 +221,18 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
   `,
   styles: `
     .page { display: flex; flex-direction: column; gap: 1rem; }
-    .head, .filter, .head-actions, .pdf-actions {
+    .head, .filter, .head-actions, .pdf-actions, .pager {
       display: flex;
       justify-content: space-between;
       gap: 0.75rem;
       flex-wrap: wrap;
       align-items: end;
+    }
+    .pager {
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
     }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
     .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
@@ -299,16 +329,21 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
     .error { color: var(--coraza-error); }
   `,
 })
-export class ReceptionHistory implements OnInit {
+export class ReceptionHistory implements OnInit, OnDestroy {
   readonly auth = inject(AuthService);
   private readonly api = inject(ReceptionApiService);
   private readonly toast = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
 
   readonly visitors = signal<ReceptionVisitor[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly search = signal('');
   readonly status = signal<'all' | 'inside' | 'closed'>('all');
+  readonly page = signal(1);
+  readonly total = signal(0);
+  readonly limit = 50;
+  readonly period = signal<'today' | 'month' | 'year' | null>(null);
   readonly pendingExit = signal<ReceptionVisitor | null>(null);
   readonly exiting = signal(false);
 
@@ -318,32 +353,62 @@ export class ReceptionHistory implements OnInit {
   pdfFrom = '';
   pdfTo = '';
 
-  readonly filtered = computed(() => {
-    const q = this.search().trim().toLowerCase();
-    const status = this.status();
-    return this.visitors().filter((v) => {
-      const statusMatch =
-        status === 'all' ||
-        (status === 'inside' && v.isInside) ||
-        (status === 'closed' && !v.isInside);
-      if (!statusMatch) return false;
-      if (!q) return true;
-      return [
-        v.displayName,
-        v.documentNumber,
-        v.originPlace,
-        v.visitReason,
-        v.authorizedBy,
-        v.arl,
-        v.eps,
-        v.transportMeans,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(q));
-    });
+  private readonly search$ = new Subject<void>();
+  private searchSub?: Subscription;
+
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
+
+  readonly rangeLabel = computed(() => {
+    const total = this.total();
+    if (!total) return '0 registros';
+    const from = (this.page() - 1) * this.limit + 1;
+    const to = Math.min(this.page() * this.limit, total);
+    return `${from}–${to} de ${total}`;
+  });
+
+  readonly periodLabel = computed(() => {
+    switch (this.period()) {
+      case 'today':
+        return 'Filtro: hoy';
+      case 'month':
+        return 'Filtro: este mes';
+      case 'year':
+        return 'Filtro: este año';
+      default:
+        return null;
+    }
   });
 
   ngOnInit(): void {
+    const p = this.route.snapshot.queryParamMap.get('period');
+    if (p === 'today' || p === 'month' || p === 'year') {
+      this.period.set(p);
+    }
+    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(() => {
+      this.page.set(1);
+      this.reload();
+    });
+    this.reload();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
+  }
+
+  onSearch(value: string): void {
+    this.search.set(value);
+    this.search$.next();
+  }
+
+  onStatus(value: 'all' | 'inside' | 'closed'): void {
+    this.status.set(value);
+    this.page.set(1);
+    this.reload();
+  }
+
+  goPage(p: number): void {
+    if (p < 1 || p > this.totalPages()) return;
+    this.page.set(p);
     this.reload();
   }
 
@@ -410,16 +475,28 @@ export class ReceptionHistory implements OnInit {
 
   reload(): void {
     this.loading.set(true);
-    this.api.listVisitors(false).subscribe({
-      next: (visitors) => {
-        this.visitors.set(visitors);
-        this.loading.set(false);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.error.set('No se pudo cargar el historial de visitas');
-      },
-    });
+    this.error.set(null);
+    const period = this.period();
+    this.api
+      .listVisitors({
+        page: this.page(),
+        limit: this.limit,
+        q: this.search(),
+        status: this.status(),
+        period: period ?? undefined,
+      })
+      .subscribe({
+        next: (res) => {
+          this.visitors.set(res.items);
+          this.total.set(res.total);
+          this.page.set(res.page);
+          this.loading.set(false);
+        },
+        error: () => {
+          this.loading.set(false);
+          this.error.set('No se pudo cargar el historial de visitas');
+        },
+      });
   }
 
   askExit(v: ReceptionVisitor): void {

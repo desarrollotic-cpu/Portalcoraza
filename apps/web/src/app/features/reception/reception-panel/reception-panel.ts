@@ -317,18 +317,21 @@ export class ReceptionPanel implements OnInit {
         value: s?.todayEntries ?? '—',
         hint: 'Entradas del día',
         link: '/recepcion/historial',
+        queryParams: { period: 'today' },
       },
       {
         label: 'Este mes',
         value: s?.monthEntries ?? '—',
         hint: 'Entradas del mes',
         link: '/recepcion/historial',
+        queryParams: { period: 'month' },
       },
       {
         label: 'Este año',
         value: s?.yearEntries ?? '—',
         hint: 'Entradas del año',
         link: '/recepcion/historial',
+        queryParams: { period: 'year' },
       },
     ];
   });

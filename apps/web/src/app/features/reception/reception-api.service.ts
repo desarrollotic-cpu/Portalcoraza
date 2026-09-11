@@ -72,6 +72,24 @@ export interface RegisterReceptionVisitorPayload {
   notes?: string;
 }
 
+export interface ReceptionVisitorsPage {
+  items: ReceptionVisitor[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListReceptionVisitorsParams {
+  insideOnly?: boolean;
+  page?: number;
+  limit?: number;
+  q?: string;
+  status?: 'all' | 'inside' | 'closed';
+  period?: 'today' | 'month' | 'year';
+  from?: string;
+  to?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ReceptionApiService {
   private readonly http = inject(HttpClient);
@@ -81,9 +99,17 @@ export class ReceptionApiService {
     return this.http.get<ReceptionDashboard>(`${this.baseUrl}/dashboard`);
   }
 
-  listVisitors(insideOnly = false): Observable<ReceptionVisitor[]> {
-    const q = insideOnly ? '?insideOnly=true' : '';
-    return this.http.get<ReceptionVisitor[]>(`${this.baseUrl}/visitors${q}`);
+  listVisitors(params: ListReceptionVisitorsParams = {}): Observable<ReceptionVisitorsPage> {
+    const q: Record<string, string> = {};
+    if (params.insideOnly) q['insideOnly'] = 'true';
+    if (params.page) q['page'] = String(params.page);
+    if (params.limit) q['limit'] = String(params.limit);
+    if (params.q?.trim()) q['q'] = params.q.trim();
+    if (params.status && params.status !== 'all') q['status'] = params.status;
+    if (params.period) q['period'] = params.period;
+    if (params.from) q['from'] = params.from;
+    if (params.to) q['to'] = params.to;
+    return this.http.get<ReceptionVisitorsPage>(`${this.baseUrl}/visitors`, { params: q });
   }
 
   register(payload: RegisterReceptionVisitorPayload): Observable<ReceptionVisitor> {

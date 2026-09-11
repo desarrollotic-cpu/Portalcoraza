@@ -41,10 +41,29 @@ export class ReceptionController {
 
   @Get('visitors')
   @RequirePermissions('reception.view')
-  list(@Query('insideOnly') insideOnly?: string, @Query('limit') limit?: string) {
+  list(
+    @Query('insideOnly') insideOnly?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('q') q?: string,
+    @Query('status') status?: string,
+    @Query('period') period?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const statusNorm =
+      status === 'inside' || status === 'closed' || status === 'all' ? status : 'all';
+    const periodNorm =
+      period === 'today' || period === 'month' || period === 'year' ? period : undefined;
     return this.service.list({
       insideOnly: insideOnly === 'true',
+      page: page ? Number(page) : undefined,
       limit: limit ? Number(limit) : undefined,
+      q,
+      status: statusNorm,
+      period: periodNorm,
+      from,
+      to,
     });
   }
 

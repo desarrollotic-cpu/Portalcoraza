@@ -288,9 +288,9 @@ export class ReceptionInside implements OnInit {
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.listVisitors(true).subscribe({
-      next: (visitors) => {
-        this.visitors.set(visitors);
+    this.api.listVisitors({ insideOnly: true, page: 1, limit: 100 }).subscribe({
+      next: (res) => {
+        this.visitors.set(res.items);
         this.loading.set(false);
       },
       error: () => {

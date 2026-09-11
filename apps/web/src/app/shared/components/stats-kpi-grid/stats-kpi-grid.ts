@@ -6,6 +6,7 @@ export interface StatsKpiItem {
   value: string | number;
   hint?: string;
   link?: string | null;
+  queryParams?: Record<string, string>;
   warn?: boolean;
 }
 
@@ -23,7 +24,7 @@ export interface StatsKpiItem {
       <div class="dot-dash-kpi-grid">
         @for (item of items(); track item.label) {
           @if (item.link) {
-            <a [routerLink]="item.link" class="dot-dash-kpi">
+            <a [routerLink]="item.link" [queryParams]="item.queryParams || null" class="dot-dash-kpi">
               <div class="dot-dash-kpi__body">
                 <span class="dot-dash-kpi__label">{{ item.label }}</span>
                 <strong class="dot-dash-kpi__value" [class.stats-kpi-warn]="item.warn">{{ item.value }}</strong>
