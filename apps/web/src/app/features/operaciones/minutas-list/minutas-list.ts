@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideEye } from '@lucide/angular';
 import { Icon } from '../../../shared/components/icon/icon';
@@ -60,16 +60,14 @@ import {
               name="postSearch"
               [ngModel]="postSearch()"
               (ngModelChange)="onPostSearch($event)"
-              (focus)="dropdownOpen.set(true)"
+              (focus)="openDropdown()"
               placeholder="Escribe nombre o código del puesto…"
               autocomplete="off"
-              required
             />
             @if (dropdownOpen()) {
-              <div class="combo-backdrop" (click)="dropdownOpen.set(false)"></div>
               <div class="combo-panel" role="listbox">
                 @for (p of filteredPosts().slice(0, 40); track p.id) {
-                  <button type="button" class="combo-item" (click)="selectPost(p)">
+                  <button type="button" class="combo-item" (mousedown)="selectPost($event, p)">
                     <strong>{{ p.name }}</strong>
                     <span>{{ p.code }}</span>
                   </button>
@@ -230,9 +228,8 @@ import {
       width: 100%; min-width: 14rem; padding: 0.45rem 0.6rem; border-radius: 8px;
       border: 1px solid var(--border, #cbd5e1); background: transparent; font: inherit;
     }
-    .combo-backdrop { position: fixed; inset: 0; z-index: 5; }
     .combo-panel {
-      position: absolute; z-index: 6; left: 0; right: 0; top: calc(100% + 4px);
+      position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px);
       max-height: 260px; overflow: auto; border: 1px solid var(--border, #e2e8f0);
       border-radius: 10px; background: #fff; box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
     }
@@ -303,6 +300,8 @@ export class MinutasList implements OnInit {
 
   postId = '';
   month = '';
+  /** Evita que al elegir un puesto el ngModelChange reabra el desplegable. */
+  private syncingSelection = false;
 
   readonly filteredPosts = computed(() => {
     const q = this.postSearch().trim().toLowerCase();
@@ -315,6 +314,14 @@ export class MinutasList implements OnInit {
         (p.clientName ?? '').toLowerCase().includes(q),
     );
   });
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(ev: MouseEvent): void {
+    const t = ev.target as HTMLElement | null;
+    if (!t?.closest?.('.post-search')) {
+      this.dropdownOpen.set(false);
+    }
+  }
 
   ngOnInit(): void {
     const now = new Date();
@@ -336,7 +343,12 @@ export class MinutasList implements OnInit {
     });
   }
 
+  openDropdown(): void {
+    if (!this.syncingSelection) this.dropdownOpen.set(true);
+  }
+
   onPostSearch(value: string): void {
+    if (this.syncingSelection) return;
     this.postSearch.set(value);
     this.dropdownOpen.set(true);
     const exact = this.posts().find(
@@ -345,14 +357,26 @@ export class MinutasList implements OnInit {
     if (!exact) this.postId = '';
   }
 
-  selectPost(p: OperacionesPost | OperacionesPostConMinuta): void {
+  selectPost(ev: Event, p: OperacionesPost | OperacionesPostConMinuta): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    this.syncingSelection = true;
     this.postId = p.id;
     this.postSearch.set(`${p.code} — ${p.name}`);
     this.dropdownOpen.set(false);
+    setTimeout(() => {
+      this.syncingSelection = false;
+    }, 0);
   }
 
   pickPostFromCard(p: OperacionesPostConMinuta): void {
-    this.selectPost(p);
+    this.syncingSelection = true;
+    this.postId = p.id;
+    this.postSearch.set(`${p.code} — ${p.name}`);
+    this.dropdownOpen.set(false);
+    setTimeout(() => {
+      this.syncingSelection = false;
+    }, 0);
     if (this.month) this.consultar();
   }
 
