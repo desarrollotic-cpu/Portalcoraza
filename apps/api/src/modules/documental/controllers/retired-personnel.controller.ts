@@ -18,7 +18,13 @@ export class RetiredPersonnelController {
     return this.service.list(q);
   }
 
-  /** Autocompletar desde RRHH: escribe la cédula → el sistema trae el nombre y fecha de retiro. */
+  @Get('from-hr')
+  @RequirePermissions('documental.view')
+  fromHr(@Query('q') q = '') {
+    return this.service.searchFromHr(q);
+  }
+
+  /** Autocompletar desde RRHH: cédula → nombre (compatibilidad). */
   @Get('lookup/:cedula')
   @RequirePermissions('documental.view')
   lookup(@Param('cedula') cedula: string) {

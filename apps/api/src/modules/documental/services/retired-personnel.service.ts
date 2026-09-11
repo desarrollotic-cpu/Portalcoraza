@@ -41,6 +41,84 @@ export class RetiredPersonnelService {
     return this.sequence.peek('retired_personnel');
   }
 
+  async searchFromHr(q: string): Promise<{
+    nextCode: number;
+    matches: Array<{
+      idNumber: string;
+      fullName: string;
+      rrhhStatus: string | null;
+      retirementDate: string | null;
+      alreadyRegistered: boolean;
+      existingCode: number | null;
+    }>;
+  }> {
+    const nextCode = await this.peekNextCode();
+    const raw = (q || '').trim();
+    if (raw.length < 3) return { nextCode, matches: [] };
+
+    const digits = this.digits(raw);
+    const words = raw
+      .split(/\s+/)
+      .map((w) => w.replace(/[%_]/g, ''))
+      .filter((w) => w.length >= 2)
+      .slice(0, 4);
+
+    const parts: string[] = [];
+    const params: string[] = [];
+    if (digits.length >= 4) {
+      params.push(digits);
+      parts.push(
+        `REPLACE(REPLACE(REPLACE(document_number, '.', ''), '-', ''), ' ', '') ILIKE '%' || $${params.length} || '%'`,
+      );
+    }
+    if (words.length) {
+      const nameExpr = `concat_ws(' ', first_name, second_name, first_last_name, second_last_name)`;
+      const ands = words.map((w) => {
+        params.push(`%${w}%`);
+        return `${nameExpr} ILIKE $${params.length}`;
+      });
+      parts.push(`(${ands.join(' AND ')})`);
+    }
+    if (!parts.length) return { nextCode, matches: [] };
+
+    const rows = await this.em.query<
+      {
+        document_number: string;
+        first_name: string;
+        second_name: string | null;
+        first_last_name: string;
+        second_last_name: string | null;
+        updated_at: string;
+        status: string;
+      }[]
+    >(
+      `SELECT document_number, first_name, second_name, first_last_name, second_last_name, updated_at, status
+       FROM associates
+       WHERE (${parts.join(' OR ')})
+       ORDER BY first_last_name NULLS LAST, first_name
+       LIMIT 15`,
+      params,
+    );
+
+    const matches = [];
+    for (const a of rows) {
+      const fullName = [a.first_name, a.second_name, a.first_last_name, a.second_last_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+      const existing = await this.findExistingByCedula(a.document_number);
+      matches.push({
+        idNumber: a.document_number,
+        fullName,
+        rrhhStatus: a.status ?? null,
+        retirementDate: a.updated_at ? String(a.updated_at).slice(0, 10) : null,
+        alreadyRegistered: !!existing,
+        existingCode: existing?.numericCode ?? null,
+      });
+    }
+    return { nextCode, matches };
+  }
+
   private digits(value: string): string {
     return (value || '').replace(/[^0-9a-zA-Z]/gi, '');
   }
@@ -61,15 +139,33 @@ export class RetiredPersonnelService {
   private async findExistingByCedula(cedula: string): Promise<RetiredPersonnel | null> {
     const clean = this.digits(cedula);
     if (!clean) return null;
-    const rows = await this.em.query<RetiredPersonnel[]>(
-      `SELECT * FROM doc_retired_personnel
+    const rows = await this.em.query<
+      Array<{
+        id: string;
+        full_name: string;
+        id_number: string;
+        numeric_code: number | null;
+        retirement_date: string | null;
+        person_type: string;
+      }>
+    >(
+      `SELECT id, full_name, id_number, numeric_code, retirement_date, person_type
+       FROM doc_retired_personnel
        WHERE REPLACE(REPLACE(REPLACE(id_number, '.', ''), '-', ''), ' ', '') = $1
        ORDER BY numeric_code DESC NULLS LAST, created_at DESC
        LIMIT 1`,
       [clean],
     );
     if (!rows?.length) return null;
-    return this.repo.create(rows[0]);
+    const r = rows[0];
+    return this.repo.create({
+      id: r.id,
+      fullName: r.full_name,
+      idNumber: r.id_number,
+      numericCode: r.numeric_code,
+      retirementDate: r.retirement_date,
+      personType: r.person_type,
+    });
   }
 
   /** Busca en RRHH (associates) por número de cédula para autocompletar el formulario (activos o retirados). */
@@ -111,14 +207,7 @@ export class RetiredPersonnelService {
       );
 
       // 2. Verificar si ya tiene carpeta en Gestión Documental
-      let existing = null;
-      try {
-        existing = await this.repo.findOne({
-          where: [{ idNumber: rawCedula }, { idNumber: cleanCedula }],
-        });
-      } catch (repoErr) {
-        console.warn('Error comprobando existencia en doc_retired_personnel:', repoErr);
-      }
+      const existing = await this.findExistingByCedula(cleanCedula || rawCedula);
 
       if (!rows || !rows.length) {
         if (existing) {
@@ -184,9 +273,16 @@ export class RetiredPersonnelService {
   }
 
   async create(dto: CreateRetiredPersonnelDto, userId: string) {
-    const numeric = await this.sequence.next('retired_personnel');
     const rawCedula = dto.idNumber.trim();
     const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
+    const duplicated = await this.findExistingByCedula(cleanCedula || rawCedula);
+    if (duplicated) {
+      throw new ConflictException(
+        `Esta cédula ya tiene carpeta #${duplicated.numericCode ?? duplicated.id} en archivo inactivo.`,
+      );
+    }
+
+    const numeric = await this.sequence.next('retired_personnel');
 
     const saved = await this.repo.save(
       this.repo.create({

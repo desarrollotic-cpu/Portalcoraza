@@ -16,7 +16,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           <button type="button" class="btn-ghost" (click)="printCola()">Cola ({{ queueCount() }})</button>
         }
         @if (canCreate()) {
-          <button class="btn-primary" (click)="toggle()">{{ showForm() ? 'Cerrar' : 'Nuevo registro' }}</button>
+          <button class="btn-primary" (click)="toggle()">{{ showForm() ? 'Cerrar' : 'Pasar carpeta a inactivo' }}</button>
         }
       </div>
     </div>
@@ -35,57 +35,72 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
+        <p class="alert-ok" style="grid-column:1/-1">
+          La persona ya está en Gestión Humana. Búscala por <strong>cédula o nombre</strong>, confirma los datos
+          y al guardar se le asigna el código de archivo inactivo
+          @if (nextCode()) {
+            <strong>#{{ nextCode() }}</strong>
+          }.
+        </p>
 
-        <!-- PASO 1: Cédula con autocomplete -->
-        <div class="lookup-row">
+        <div class="lookup-row" style="grid-column:1/-1">
           <label style="flex:1">
-            Cédula / Documento *
+            Buscar en Gestión Humana (cédula o nombre) *
             <div class="lookup-input-wrap">
               <input
-                [(ngModel)]="model.idNumber"
-                name="idNumber"
-                required
-                placeholder="Escribe la cédula..."
-                (keydown.enter)="$event.preventDefault(); buscarCedula(true)"
-                (blur)="buscarCedula()"
+                [(ngModel)]="ghQuery"
+                name="ghQuery"
+                placeholder="Ej: 98498483 o CANO GARCIA"
+                (keydown.enter)="$event.preventDefault(); buscarGh()"
               />
-              <button type="button" class="btn-primary btn-sm" (click)="buscarCedula(true)" [disabled]="lookupLoading()">
-                {{ lookupLoading() ? 'Buscando...' : '🔍 Buscar' }}
+              <button type="button" class="btn-primary btn-sm" (click)="buscarGh()" [disabled]="lookupLoading()">
+                {{ lookupLoading() ? 'Buscando...' : 'Buscar' }}
               </button>
             </div>
           </label>
         </div>
 
-        <!-- Alerta: ya registrado en Documental -->
+        @if (ghMatches().length > 1) {
+          <div class="pick-list" style="grid-column:1/-1">
+            <p class="muted">Varias coincidencias en Gestión Humana. Elige a la persona:</p>
+            @for (m of ghMatches(); track m.idNumber) {
+              <button type="button" class="pick-item" (click)="pickGh(m)">
+                <strong>{{ m.fullName }}</strong>
+                <span>CC {{ m.idNumber }} · {{ m.rrhhStatus || 'RRHH' }}</span>
+                @if (m.alreadyRegistered) {
+                  <span class="badge warn">Ya carpeta #{{ m.existingCode }}</span>
+                }
+              </button>
+            }
+          </div>
+        }
+
         @if (alreadyRegistered()) {
-          <div class="alert-warn">
-            ⚠️ Esta cédula ya tiene carpeta en Gestión Documental: <strong>Carpeta #{{ existingCode() }}</strong> — {{ model.fullName }}.
-            No es necesario crear un nuevo registro.
+          <div class="alert-warn" style="grid-column:1/-1">
+            Esta cédula ya tiene carpeta en Documental: <strong>#{{ existingCode() }}</strong> — {{ model.fullName }}.
+            Búscala arriba en la lista e imprime el rótulo. No se crea otra carpeta.
           </div>
         }
 
-        <!-- Alerta: no encontrado en RRHH (llenar manual) -->
-        @if (lookupDone() && !foundInRrhh() && !alreadyRegistered()) {
-          <div class="alert-info">
-            ℹ️ Cédula no encontrada en RRHH. Completa los datos manualmente para crear la carpeta.
+        @if (lookupDone() && !foundInRrhh() && !alreadyRegistered() && ghMatches().length === 0) {
+          <div class="alert-info" style="grid-column:1/-1">
+            No está en Gestión Humana con ese dato. Completa nombre y cédula a mano solo si es un caso excepcional.
           </div>
         }
 
-        <!-- Alerta: encontrado en RRHH, datos autocompletos -->
         @if (lookupDone() && foundInRrhh() && !alreadyRegistered()) {
-          @if (rrhhStatus() === 'ACTIVO') {
-            <div class="alert-ok">
-              ✅ <strong>Asociado ACTIVO en RRHH.</strong> Datos cargados. Al asignar la carpeta y guardar, el sistema pasará automáticamente su estado a <strong>RETIRADO</strong> en RRHH.
-            </div>
-          } @else {
-            <div class="alert-ok">
-              ✅ <strong>Asociado en RRHH (Estado: {{ rrhhStatus() || 'RETIRADO' }}).</strong> Datos cargados. Selecciona el motivo y la ubicación de archivo.
-            </div>
-          }
+          <div class="alert-ok" style="grid-column:1/-1">
+            Datos de Gestión Humana cargados ({{ rrhhStatus() || 'RRHH' }}).
+            Revisa motivo y estante. Al guardar, la carpeta será <strong>#{{ nextCode() }}</strong>.
+          </div>
         }
 
-        <!-- Solo mostrar el resto del formulario si no está ya registrado -->
         @if (!alreadyRegistered()) {
+
+          <label>
+            Cédula / Documento *
+            <input [(ngModel)]="model.idNumber" name="idNumber" required placeholder="Cédula" [readonly]="foundInRrhh()" />
+          </label>
 
           <label>
             Nombre Completo *
@@ -146,7 +161,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           </label>
 
           <div class="actions">
-            <button type="submit" class="btn-primary" [disabled]="saving() || !lookupDone()">Guardar Asociado Retirado</button>
+            <button type="submit" class="btn-primary" [disabled]="saving() || !lookupDone()">
+              Asignar carpeta {{ nextCode() ? '#' + nextCode() : '' }}
+            </button>
             @if (error()) { <span class="error">{{ error() }}</span> }
           </div>
         }
@@ -219,6 +236,13 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       padding:.55rem .85rem; border:1px solid #cbd5e1; border-radius:.55rem;
       font-size:.92rem;
     }
+    .pick-list { display:flex; flex-direction:column; gap:.4rem; }
+    .pick-item {
+      display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
+      text-align:left; padding:.55rem .75rem; border:1px solid #cbd5e1;
+      border-radius:.55rem; background:#fff; cursor:pointer; font-size:.85rem;
+    }
+    .pick-item:hover { border-color:#0369a1; background:#f0f9ff; }
   `,
   ],
 })
@@ -242,10 +266,21 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly alreadyRegistered = signal(false);
   readonly existingCode = signal<number | null>(null);
   readonly rrhhStatus = signal<string | null>(null);
+  readonly nextCode = signal<number | null>(null);
+  readonly ghMatches = signal<
+    Array<{
+      idNumber: string;
+      fullName: string;
+      rrhhStatus: string | null;
+      retirementDate: string | null;
+      alreadyRegistered: boolean;
+      existingCode: number | null;
+    }>
+  >([]);
 
   model = this.emptyModel();
   query = '';
-  lastSearchedCedula = '';
+  ghQuery = '';
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
@@ -255,49 +290,72 @@ export class RetiredPersonnelScreen implements OnInit {
 
   toggle(): void {
     this.showForm.update((v) => !v);
-    if (!this.showForm()) this.resetLookup();
+    if (!this.showForm()) {
+      this.resetLookup();
+      return;
+    }
+    this.api.searchFromHr('.').subscribe({
+      next: (r) => this.nextCode.set(r.nextCode),
+      error: () => {},
+    });
   }
 
-  buscarCedula(force = false): void {
-    const cedula = this.model.idNumber?.trim();
-    if (!cedula || cedula.length < 4) return;
-    if (!force && cedula === this.lastSearchedCedula && this.lookupDone()) return;
-
-    this.lastSearchedCedula = cedula;
+  buscarGh(): void {
+    const q = this.ghQuery.trim();
+    if (q.length < 3) {
+      this.error.set('Escribe al menos 3 letras o una cédula.');
+      return;
+    }
     this.lookupLoading.set(true);
     this.error.set(null);
-
-    this.api.lookupAssociate(cedula).subscribe({
+    this.api.searchFromHr(q).subscribe({
       next: (res) => {
         this.lookupLoading.set(false);
+        this.nextCode.set(res.nextCode);
+        this.ghMatches.set(res.matches);
         this.lookupDone.set(true);
-        this.foundInRrhh.set(res.found);
-        this.alreadyRegistered.set(res.alreadyRegistered);
-        this.existingCode.set(res.existingCode);
-        this.rrhhStatus.set(res.rrhhStatus);
-
-        if (res.found) {
-          if (res.fullName) this.model.fullName = res.fullName;
-          if (res.retirementDate) this.model.retirementDate = res.retirementDate;
-          if (res.personType) this.model.personType = res.personType;
+        if (res.matches.length === 1) this.pickGh(res.matches[0]);
+        else if (res.matches.length === 0) {
+          this.foundInRrhh.set(false);
+          this.alreadyRegistered.set(false);
         }
       },
       error: () => {
         this.lookupLoading.set(false);
         this.lookupDone.set(false);
         this.foundInRrhh.set(false);
-        this.rrhhStatus.set(null);
       },
     });
   }
 
+  pickGh(m: {
+    idNumber: string;
+    fullName: string;
+    rrhhStatus: string | null;
+    retirementDate: string | null;
+    alreadyRegistered: boolean;
+    existingCode: number | null;
+  }): void {
+    this.model.idNumber = m.idNumber;
+    this.model.fullName = m.fullName;
+    if (m.retirementDate) this.model.retirementDate = m.retirementDate;
+    this.model.personType = 'ASOCIADO';
+    this.foundInRrhh.set(true);
+    this.alreadyRegistered.set(m.alreadyRegistered);
+    this.existingCode.set(m.existingCode);
+    this.rrhhStatus.set(m.rrhhStatus);
+    this.lookupDone.set(true);
+    this.ghMatches.set(m.alreadyRegistered ? this.ghMatches() : []);
+  }
+
   resetLookup(): void {
-    this.lastSearchedCedula = '';
+    this.ghQuery = '';
     this.lookupDone.set(false);
     this.foundInRrhh.set(false);
     this.alreadyRegistered.set(false);
     this.existingCode.set(null);
     this.rrhhStatus.set(null);
+    this.ghMatches.set([]);
     this.model = this.emptyModel();
     this.error.set(null);
   }

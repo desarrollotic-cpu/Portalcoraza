@@ -303,6 +303,29 @@ export class DocumentalApiService {
       rrhhStatus: string | null;
     }>(`${this.baseUrl}/retired-personnel/lookup/${encodeURIComponent(cedula)}`);
   }
+  searchFromHr(q: string): Observable<{
+    nextCode: number;
+    matches: Array<{
+      idNumber: string;
+      fullName: string;
+      rrhhStatus: string | null;
+      retirementDate: string | null;
+      alreadyRegistered: boolean;
+      existingCode: number | null;
+    }>;
+  }> {
+    return this.http.get<{
+      nextCode: number;
+      matches: Array<{
+        idNumber: string;
+        fullName: string;
+        rrhhStatus: string | null;
+        retirementDate: string | null;
+        alreadyRegistered: boolean;
+        existingCode: number | null;
+      }>;
+    }>(`${this.baseUrl}/retired-personnel/from-hr`, { params: { q } });
+  }
 
   // Contratos
   listContracts(q?: string): Observable<Contract[]> {
