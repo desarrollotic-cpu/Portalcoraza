@@ -26,30 +26,47 @@ import {
         </div>
       </header>
 
-      @if (postsConMinuta().length) {
-        <section class="minuta-cards">
-          <header class="minuta-cards__head">
-            <h3>Puestos con Minuta Virtual ({{ postsConMinuta().length }})</h3>
-            <p>Cuentas activas de puesto. Clic para consultar el mes seleccionado.</p>
-          </header>
+      <section class="minuta-cards">
+        <header class="minuta-cards__head">
+          <h3>Cuentas activas de Minuta Virtual ({{ postsConMinuta().length }})</h3>
+          <p>
+            Usuarios con rol Puesto. Si tiene puesto asignado, haz clic para consultarlo.
+          </p>
+        </header>
+        @if (accountsLoading()) {
+          <p class="empty">Cargando cuentas…</p>
+        } @else if (accountsError()) {
+          <p class="error">{{ accountsError() }}</p>
+        } @else if (!postsConMinuta().length) {
+          <p class="empty">
+            No hay cuentas Puesto activas. Créalas en Administración → Usuarios (rol Puesto + puesto).
+          </p>
+        } @else {
           <div class="minuta-cards__grid">
-            @for (p of postsConMinuta(); track p.id) {
+            @for (p of postsConMinuta(); track p.userId) {
               <button
                 type="button"
                 class="minuta-card"
                 [class.active]="p.id === postId"
+                [class.unassigned]="!p.assigned"
+                [disabled]="!p.assigned"
                 (click)="pickPostFromCard(p)"
+                [title]="p.assigned ? 'Consultar este puesto' : 'Sin puesto asignado en el portal'"
               >
-                <strong>{{ p.name }}</strong>
-                <span>{{ p.code }} · {{ p.status }}</span>
-                @if (p.loginEmail) {
-                  <span class="email">{{ p.loginEmail }}</span>
-                }
+                <strong>{{ p.name || p.fullName || 'Sin puesto' }}</strong>
+                <span>
+                  @if (p.assigned) {
+                    {{ p.code }} · {{ p.status }}
+                  } @else {
+                    Sin puesto asignado
+                  }
+                </span>
+                <span class="email">{{ p.loginEmail }}</span>
               </button>
             }
           </div>
-        </section>
-      }
+        }
+      </section>
 
       <form class="filters" (ngSubmit)="consultar()">
         <label class="post-search">
@@ -214,8 +231,14 @@ import {
     .minuta-card strong { font-size: 0.88rem; color: #0f172a; }
     .minuta-card span { font-size: 0.75rem; color: #64748b; }
     .minuta-card .email { font-size: 0.72rem; word-break: break-all; }
-    .minuta-card:hover { border-color: #99f6e4; background: #f0fdfa; }
+    .minuta-card:hover:not(:disabled) { border-color: #99f6e4; background: #f0fdfa; }
     .minuta-card.active { border-color: #0f766e; background: #ccfbf1; }
+    .minuta-card.unassigned {
+      opacity: 0.85;
+      cursor: not-allowed;
+      border-style: dashed;
+    }
+    .minuta-card:disabled { transform: none; }
     .filters {
       display: flex; flex-wrap: wrap; gap: 0.85rem; align-items: end;
       padding: 0.85rem 1rem; border: 1px solid var(--border, #e2e8f0);
@@ -288,6 +311,8 @@ export class MinutasList implements OnInit {
 
   readonly posts = signal<OperacionesPost[]>([]);
   readonly postsConMinuta = signal<OperacionesPostConMinuta[]>([]);
+  readonly accountsLoading = signal(true);
+  readonly accountsError = signal<string | null>(null);
   readonly postSearch = signal('');
   readonly dropdownOpen = signal(false);
   readonly rows = signal<OperacionesMinutaRow[]>([]);
@@ -336,9 +361,13 @@ export class MinutasList implements OnInit {
       error: () => this.error.set('No se pudieron cargar los puestos'),
     });
     this.api.listPostsConMinuta().subscribe({
-      next: (list) => this.postsConMinuta.set(list),
+      next: (list) => {
+        this.postsConMinuta.set(list);
+        this.accountsLoading.set(false);
+      },
       error: () => {
-        /* no bloquea consulta manual */
+        this.accountsLoading.set(false);
+        this.accountsError.set('No se pudieron cargar las cuentas de Minuta Virtual');
       },
     });
   }
@@ -360,9 +389,14 @@ export class MinutasList implements OnInit {
   selectPost(ev: Event, p: OperacionesPost | OperacionesPostConMinuta): void {
     ev.preventDefault();
     ev.stopPropagation();
+    if (!('id' in p) || !p.id) return;
     this.syncingSelection = true;
     this.postId = p.id;
-    this.postSearch.set(`${p.code} — ${p.name}`);
+    const label =
+      'code' in p && p.code && p.name
+        ? `${p.code} — ${p.name}`
+        : (p as OperacionesPost).name;
+    this.postSearch.set(label);
     this.dropdownOpen.set(false);
     setTimeout(() => {
       this.syncingSelection = false;
@@ -370,6 +404,7 @@ export class MinutasList implements OnInit {
   }
 
   pickPostFromCard(p: OperacionesPostConMinuta): void {
+    if (!p.assigned || !p.id) return;
     this.syncingSelection = true;
     this.postId = p.id;
     this.postSearch.set(`${p.code} — ${p.name}`);

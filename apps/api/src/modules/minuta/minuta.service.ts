@@ -78,45 +78,63 @@ export class MinutaService {
     return { restricted: true, postIds };
   }
 
-  /** Puestos con cuenta Minuta Virtual activa (rol PUESTO). */
+  /**
+   * Cuentas activas rol PUESTO (Minuta Virtual), con puesto si está asignado.
+   */
   async operacionesPuestosConMinuta(): Promise<
     Array<{
-      id: string;
-      code: string;
-      name: string;
-      status: string;
-      loginEmail: string | null;
+      id: string | null;
+      code: string | null;
+      name: string | null;
+      status: string | null;
+      loginEmail: string;
+      fullName: string | null;
+      userId: string;
+      assigned: boolean;
     }>
   > {
-    const rows = await this.userPosts
-      .createQueryBuilder('up')
-      .innerJoin('up.user', 'u')
-      .innerJoin('u.role', 'r')
-      .innerJoin('up.post', 'p')
-      .where('r.code = :code', { code: 'PUESTO' })
-      .andWhere('u.isActive = true')
-      .select([
-        'p.id AS id',
-        'p.code AS code',
-        'p.name AS name',
-        'p.status AS status',
-        'u.email AS "loginEmail"',
-      ])
-      .orderBy('p.name', 'ASC')
-      .getRawMany<{
-        id: string;
-        code: string;
-        name: string;
-        status: string;
-        loginEmail: string | null;
-      }>();
+    const rows = (await this.posts.manager.query(
+      `
+      SELECT u.id AS "userId",
+             u.email AS "loginEmail",
+             u.full_name AS "fullName",
+             p.id AS id,
+             p.code AS code,
+             p.name AS name,
+             p.status AS status
+      FROM users u
+      INNER JOIN roles r ON r.id = u.role_id AND r.code = 'PUESTO'
+      LEFT JOIN user_posts up ON up.user_id = u.id
+      LEFT JOIN posts p ON p.id = up.post_id
+      WHERE u.is_active = TRUE
+      ORDER BY COALESCE(p.name, u.full_name, u.email) ASC
+      `,
+    )) as Array<{
+      userId: string;
+      loginEmail: string;
+      fullName: string | null;
+      id: string | null;
+      code: string | null;
+      name: string | null;
+      status: string | null;
+    }>;
 
-    // Un puesto puede tener más de una cuenta; una fila por puesto.
-    const byPost = new Map<string, (typeof rows)[number]>();
+    // Una fila por usuario (si tiene varios puestos, la primera).
+    const byUser = new Map<string, (typeof rows)[number]>();
     for (const row of rows) {
-      if (!byPost.has(row.id)) byPost.set(row.id, row);
+      if (!byUser.has(row.userId)) byUser.set(row.userId, row);
     }
-    return [...byPost.values()];
+
+    return [...byUser.values()].map((row) => ({
+      id: row.id,
+      code: row.code,
+      name: row.name,
+      status: row.status,
+      loginEmail: row.loginEmail,
+      fullName: row.fullName,
+      userId: row.userId,
+      assigned: Boolean(row.id),
+    }));
   }
 
   async resolveCreatePostId(

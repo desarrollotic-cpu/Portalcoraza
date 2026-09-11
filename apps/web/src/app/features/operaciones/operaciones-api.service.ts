@@ -149,11 +149,14 @@ export interface OperacionesMinutaHistorial {
 }
 
 export interface OperacionesPostConMinuta {
-  id: string;
-  code: string;
-  name: string;
-  status: string;
-  loginEmail: string | null;
+  id: string | null;
+  code: string | null;
+  name: string | null;
+  status: string | null;
+  loginEmail: string;
+  fullName: string | null;
+  userId: string;
+  assigned: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
