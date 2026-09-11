@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import * as bcrypt from 'bcrypt';
 import { IsNull, Repository } from 'typeorm';
+import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import { AuditService } from '../audit/audit.service';
 import { RefreshToken } from '../auth/entities/refresh-token.entity';
 import { Post } from '../posts/entities/post.entity';
@@ -352,9 +353,8 @@ export class UsersService {
   }
 
   /**
-   * Borra el usuario de la BD. Requiere estar inactivo.
-   * Limpia tokens/asignaciones y anula FKs nullable; si hay historial
-   * no anulable, responde 409 y hay que dejarlo inactivo.
+   * Borra el usuario de la BD.
+   * Usa el EntityManager de la request (RLS/tenant); verifica que DELETE afecte 1 fila.
    */
   async purge(id: string, actorUserId: string) {
     if (id === actorUserId) {
@@ -365,66 +365,82 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException('Usuario no encontrado');
     }
-    if (user.isActive) {
-      // Permitir borrado directo desde activo: primero inactiva en la misma operación.
-      user.isActive = false;
-      await this.usersRepo.save(user);
-    }
 
     const email = user.email;
+    const qr = TenantQueryRunnerContext.getOptional();
+    const em = qr?.manager ?? this.usersRepo.manager;
 
     try {
-      await this.usersRepo.manager.transaction(async (em) => {
-        await em.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [id]);
-        await em.query(`DELETE FROM notifications WHERE user_id = $1`, [id]);
-        await em.query(`DELETE FROM user_posts WHERE user_id = $1`, [id]);
+      await em.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [id]);
+      await em.query(`DELETE FROM notifications WHERE user_id = $1`, [id]);
+      await em.query(`DELETE FROM user_posts WHERE user_id = $1`, [id]);
+      await em.query(`DELETE FROM user_permissions WHERE user_id = $1`, [id]);
 
-        const fks = (await em.query(`
-          SELECT c.conrelid::regclass::text AS tbl,
-                 a.attname AS col,
-                 c.confdeltype::text AS deltype
-          FROM pg_constraint c
-          JOIN pg_attribute a
-            ON a.attrelid = c.conrelid
-           AND a.attnum = ANY (c.conkey)
-           AND NOT a.attisdropped
-          WHERE c.contype = 'f'
-            AND c.confrelid = 'public.users'::regclass
-        `)) as Array<{ tbl: string; col: string; deltype: string }>;
+      const fks = (await em.query(`
+        SELECT c.conrelid::regclass::text AS tbl,
+               a.attname AS col,
+               c.confdeltype::text AS deltype
+        FROM pg_constraint c
+        JOIN pg_attribute a
+          ON a.attrelid = c.conrelid
+         AND a.attnum = ANY (c.conkey)
+         AND NOT a.attisdropped
+        WHERE c.contype = 'f'
+          AND c.confrelid = 'public.users'::regclass
+      `)) as Array<{ tbl: string; col: string; deltype: string }>;
 
-        for (const fk of fks) {
-          // c = CASCADE, n = SET NULL → Postgres lo resuelve al DELETE
-          if (fk.deltype === 'c' || fk.deltype === 'n') continue;
-          if (!/^[a-zA-Z0-9_."]+$/.test(fk.tbl) || !/^[a-zA-Z0-9_]+$/.test(fk.col)) {
-            continue;
-          }
-          try {
-            await em.query(
-              `UPDATE ${fk.tbl} SET "${fk.col}" = NULL WHERE "${fk.col}" = $1`,
-              [id],
-            );
-          } catch {
-            // Columna NOT NULL u otra restricción: el DELETE fallará abajo.
-          }
+      for (const fk of fks) {
+        if (fk.deltype === 'c' || fk.deltype === 'n') continue;
+        if (!/^[a-zA-Z0-9_."]+$/.test(fk.tbl) || !/^[a-zA-Z0-9_]+$/.test(fk.col)) {
+          continue;
         }
+        try {
+          await em.query(
+            `UPDATE ${fk.tbl} SET "${fk.col}" = NULL WHERE "${fk.col}" = $1`,
+            [id],
+          );
+        } catch {
+          // Columna NOT NULL: el DELETE reportará el conflicto abajo.
+        }
+      }
 
-        await em.query(`DELETE FROM users WHERE id = $1`, [id]);
-      });
-    } catch {
+      const deleted = (await em.query(
+        `DELETE FROM users WHERE id = $1 RETURNING id`,
+        [id],
+      )) as Array<{ id: string }>;
+
+      if (!deleted.length) {
+        throw new ConflictException(
+          'No se eliminó ninguna fila. Recarga la página e inténtalo de nuevo.',
+        );
+      }
+    } catch (e) {
+      if (
+        e instanceof ConflictException ||
+        e instanceof BadRequestException ||
+        e instanceof NotFoundException
+      ) {
+        throw e;
+      }
+      const detail = e instanceof Error ? e.message : String(e);
       throw new ConflictException(
-        'No se pudo eliminar por completo: tiene historial ligado. Déjalo inactivo.',
+        `No se pudo eliminar por completo (${detail}). Puedes dejarlo inactivo.`,
       );
     }
 
-    await this.auditService.log({
-      userId: actorUserId,
-      module: 'users',
-      action: 'purge',
-      entityType: 'user',
-      entityId: id,
-      oldValue: { email, isActive: false },
-      newValue: null,
-    });
+    try {
+      await this.auditService.log({
+        userId: actorUserId,
+        module: 'users',
+        action: 'purge',
+        entityType: 'user',
+        entityId: id,
+        oldValue: { email, isActive: user.isActive },
+        newValue: null,
+      });
+    } catch {
+      // El usuario ya se borró; no revertimos por un fallo de auditoría.
+    }
 
     return { ok: true as const, id, email };
   }

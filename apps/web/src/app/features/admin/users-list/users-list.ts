@@ -679,7 +679,7 @@ export class UsersList implements OnInit {
 
   purge(user: AdminUser): void {
     const ok = window.confirm(
-      `¿ELIMINAR POR COMPLETO a ${user.email}?\n\nSe borra de la base de datos y no se puede deshacer.\nSi falla por historial ligado, inactívalo y déjalo así.`,
+      `¿ELIMINAR POR COMPLETO a ${user.email}?\n\nSe borra de la base de datos y no se puede deshacer.`,
     );
     if (!ok) return;
     const ok2 = window.confirm(`Confirma otra vez: eliminar definitivamente ${user.email}`);
@@ -691,8 +691,13 @@ export class UsersList implements OnInit {
         if (this.editing()?.id === user.id) {
           this.cancelEdit();
         }
+        this.formSuccess.set(`Usuario ${user.email} eliminado.`);
       },
       error: (err) => {
+        // Recargar lista: el borrado pudo fallar y la UI no debe mentir.
+        this.api.listUsers().subscribe({
+          next: (users) => this.users.set(users),
+        });
         window.alert(err?.error?.message ?? 'No se pudo eliminar el usuario');
       },
     });
