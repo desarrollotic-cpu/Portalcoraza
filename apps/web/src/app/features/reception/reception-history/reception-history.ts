@@ -156,6 +156,9 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
 
         @if (totalPages() > 1) {
           <div class="pager">
+            <button type="button" class="ghost" [disabled]="page() <= 1" (click)="goPage(1)">
+              Inicio
+            </button>
             <button type="button" class="ghost" [disabled]="page() <= 1" (click)="goPage(page() - 1)">
               Anterior
             </button>
@@ -167,6 +170,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
               (click)="goPage(page() + 1)"
             >
               Siguiente
+            </button>
+            <button
+              type="button"
+              class="ghost"
+              [disabled]="page() >= totalPages()"
+              (click)="goPage(totalPages())"
+            >
+              Ir al final
             </button>
           </div>
         }
