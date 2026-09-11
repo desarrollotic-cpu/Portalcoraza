@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
@@ -17,11 +17,59 @@ export class RetiredPersonnelService {
     private readonly em: EntityManager,
   ) {}
 
-  list() {
-    return this.repo.find({
-      order: { retirementDate: 'DESC', fullName: 'ASC' },
-      take: 500,
-    });
+  list(q?: string) {
+    const clean = (q || '').replace(/^#/, '').trim();
+    const qb = this.repo.createQueryBuilder('p');
+    if (clean) {
+      const digits = this.digits(clean);
+      qb.where(
+        `(p.full_name ILIKE :q
+          OR p.id_number ILIKE :q
+          OR CAST(p.numeric_code AS text) ILIKE :q
+          OR REPLACE(REPLACE(REPLACE(p.id_number, '.', ''), '-', ''), ' ', '') ILIKE :digits)`,
+        { q: `%${clean.replace(/[%_]/g, '')}%`, digits: `%${digits || clean}%` },
+      );
+    }
+    return qb
+      .orderBy('p.numeric_code', 'ASC')
+      .take(80)
+      .getMany()
+      .then((rows) => this.dedupeByCedula(rows));
+  }
+
+  peekNextCode() {
+    return this.sequence.peek('retired_personnel');
+  }
+
+  private digits(value: string): string {
+    return (value || '').replace(/[^0-9a-zA-Z]/gi, '');
+  }
+
+  private dedupeByCedula<T extends { idNumber: string; numericCode: number | null; createdAt?: Date }>(rows: T[]): T[] {
+    const seen = new Set<string>();
+    const out: T[] = [];
+    const sorted = [...rows].sort((a, b) => (b.numericCode ?? 0) - (a.numericCode ?? 0));
+    for (const row of sorted) {
+      const key = this.digits(row.idNumber) || row.idNumber;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(row);
+    }
+    return out;
+  }
+
+  private async findExistingByCedula(cedula: string): Promise<RetiredPersonnel | null> {
+    const clean = this.digits(cedula);
+    if (!clean) return null;
+    const rows = await this.em.query<RetiredPersonnel[]>(
+      `SELECT * FROM doc_retired_personnel
+       WHERE REPLACE(REPLACE(REPLACE(id_number, '.', ''), '-', ''), ' ', '') = $1
+       ORDER BY numeric_code DESC NULLS LAST, created_at DESC
+       LIMIT 1`,
+      [clean],
+    );
+    if (!rows?.length) return null;
+    return this.repo.create(rows[0]);
   }
 
   /** Busca en RRHH (associates) por número de cédula para autocompletar el formulario (activos o retirados). */

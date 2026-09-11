@@ -21,6 +21,18 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       </div>
     </div>
 
+    <div class="search-bar">
+      <input
+        type="search"
+        [(ngModel)]="query"
+        name="retiredSearch"
+        placeholder="Buscar por nombre, cédula o # de carpeta..."
+        (ngModelChange)="onSearch($event)"
+        autocomplete="off"
+      />
+      <span class="muted">{{ items().length }} resultado(s)</span>
+    </div>
+
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
 
@@ -165,7 +177,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               <td><button type="button" class="btn-ghost" (click)="printOne(p)">Imprimir rótulo</button></td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="muted">Sin asociados retirados.</td></tr>
+            <tr><td colspan="6" class="muted">{{ query.trim() ? 'Sin coincidencias. Prueba nombre, cédula o número de carpeta.' : 'Sin asociados retirados.' }}</td></tr>
           }
         </tbody>
       </table>
@@ -198,6 +210,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       padding:.75rem 1rem; background:#f0fdf4; border:1px solid #86efac;
       border-radius:8px; color:#166534; font-size:.9rem; margin-bottom:.5rem;
     }
+    .search-bar {
+      display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;
+      margin-bottom:1rem;
+    }
+    .search-bar input[type="search"] {
+      flex:1; min-width:240px; max-width:420px;
+      padding:.55rem .85rem; border:1px solid #cbd5e1; border-radius:.55rem;
+      font-size:.92rem;
+    }
   `,
   ],
 })
@@ -223,8 +244,9 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly rrhhStatus = signal<string | null>(null);
 
   model = this.emptyModel();
-
+  query = '';
   lastSearchedCedula = '';
+  private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   ngOnInit(): void {
     this.queueCount.set(getPrintQueue().length);
@@ -280,9 +302,14 @@ export class RetiredPersonnelScreen implements OnInit {
     this.error.set(null);
   }
 
+  onSearch(_value: string): void {
+    if (this.searchTimer) clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 280);
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.api.listRetired().subscribe({
+    this.api.listRetired(this.query).subscribe({
       next: (data) => {
         this.items.set(data);
         this.loading.set(false);

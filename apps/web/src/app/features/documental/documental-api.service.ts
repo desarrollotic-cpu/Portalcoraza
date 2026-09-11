@@ -269,8 +269,11 @@ export class DocumentalApiService {
   }
 
   // Asociados retirados
-  listRetired(): Observable<RetiredPersonnel[]> {
-    return this.http.get<RetiredPersonnel[]>(`${this.baseUrl}/retired-personnel`);
+  listRetired(q?: string): Observable<RetiredPersonnel[]> {
+    const query = (q || '').trim();
+    return this.http.get<RetiredPersonnel[]>(`${this.baseUrl}/retired-personnel`, {
+      params: query ? { q: query } : {},
+    });
   }
   createRetired(payload: Record<string, unknown>): Observable<RetiredPersonnel> {
     return this.http.post<RetiredPersonnel>(`${this.baseUrl}/retired-personnel`, payload);

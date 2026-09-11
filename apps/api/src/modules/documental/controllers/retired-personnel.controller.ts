@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -14,8 +14,8 @@ export class RetiredPersonnelController {
 
   @Get()
   @RequirePermissions('documental.view')
-  list() {
-    return this.service.list();
+  list(@Query('q') q?: string) {
+    return this.service.list(q);
   }
 
   /** Autocompletar desde RRHH: escribe la cédula → el sistema trae el nombre y fecha de retiro. */
