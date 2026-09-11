@@ -1,74 +1,65 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { LucideEye } from '@lucide/angular';
-import { Icon } from '../../../shared/components/icon/icon';
 import { MinutaApiService } from '../minuta-api.service';
 import { MinutaDetalleDialog } from '../minuta-detalle-dialog/minuta-detalle-dialog';
-import { MINUTA_PAGE_STYLES } from '../minuta.shared';
+import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
 
 @Component({
   selector: 'app-minuta-historial',
-  imports: [FormsModule, MinutaDetalleDialog, Icon],
+  imports: [FormsModule, MinutaDetalleDialog],
   template: `
     <section class="page">
       <div>
-        <h2>Historial del puesto</h2>
-        <p class="hint">
-          Consulta de novedades de tu puesto. Usa el ojo para ver el detalle completo.
-        </p>
+        <h2>Historial</h2>
+        <p class="hint">Lo que ya registraste en el puesto. Usa Ver para el detalle.</p>
       </div>
       @if (msg()) {
         <p class="toast">{{ msg() }}</p>
       }
       <label class="filt">
-        Tipo
+        Filtrar por tipo
         <select [(ngModel)]="filtroTipo" name="ft" (change)="load()">
           <option value="TODOS">Todos</option>
-          <option value="VISITANTE">Visitantes</option>
+          <option value="VISITANTE">Visitante</option>
           <option value="CORRESPONDENCIA">Correspondencia</option>
-          <option value="CONTRATISTA">Contratistas</option>
-          <option value="DOMICILIARIO">Domiciliarios</option>
-          <option value="INCIDENTE">Incidentes</option>
+          <option value="CONTRATISTA">Contratista</option>
+          <option value="DOMICILIARIO">Domicilio</option>
+          <option value="INCIDENTE">Incidente</option>
           <option value="SERVICIO">Servicio</option>
-          <option value="ENTREGA">Entrega</option>
+          <option value="ENTREGA">Entrega de puesto</option>
         </select>
       </label>
       @for (h of historial(); track h['id']) {
         <div class="card row">
           <div class="card-main">
-            <strong>{{ h['tipo'] }}</strong>
+            <strong>{{ tipoLabel(h['tipo']) }}</strong>
             <div class="muted">
-              {{ h['id'] }} · {{ h['estado'] || '—' }}
+              {{ estadoLabel(h['estado']) }}
               @if (detalles(h)['registradoPor']) {
-                · Registra: {{ detalles(h)['registradoPor'] }}
+                · {{ detalles(h)['registradoPor'] }}
+              }
+              @if (resumen(h)) {
+                · {{ resumen(h) }}
               }
             </div>
           </div>
           <div class="actions">
-            <button
-              type="button"
-              class="mini eye"
-              (click)="openDetalle(h)"
-              title="Ver detalle"
-              aria-label="Ver detalle"
-            >
-              <app-icon [icon]="icons.Eye" [size]="16" [strokeWidth]="2" />
-            </button>
+            <button type="button" class="mini" (click)="openDetalle(h)">Ver</button>
             @if (
               (h['tipo'] === 'VISITANTE' ||
                 h['tipo'] === 'CONTRATISTA' ||
                 h['tipo'] === 'DOMICILIARIO') &&
               (h['estado'] === 'ACTIVO' || h['estado'] === 'ENTREGANDO')
             ) {
-              <button type="button" class="mini" (click)="doSalida(h)">Salida</button>
+              <button type="button" class="mini accent" (click)="doSalida(h)">Marcar salida</button>
             }
             @if (h['tipo'] === 'CORRESPONDENCIA' && h['estado'] === 'PENDIENTE') {
-              <button type="button" class="mini" (click)="doEntregar(h)">Entregar</button>
+              <button type="button" class="mini accent" (click)="doEntregar(h)">Entregar</button>
             }
           </div>
         </div>
       } @empty {
-        <p class="muted">Sin historial.</p>
+        <p class="muted">Sin registros aún. Ve a Registrar para crear el primero.</p>
       }
     </section>
 
@@ -84,16 +75,16 @@ import { MINUTA_PAGE_STYLES } from '../minuta.shared';
     MINUTA_PAGE_STYLES,
     `
     .card-main { min-width: 0; flex: 1; }
-    .mini.eye {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 2.1rem; height: 2.1rem; padding: 0;
+    .mini.accent {
+      background: #0c4a6e;
+      color: #fff;
+      border-color: #0c4a6e;
     }
   `,
   ],
 })
 export class MinutaHistorial implements OnInit {
   private readonly api = inject(MinutaApiService);
-  readonly icons = { Eye: LucideEye };
   readonly historial = signal<Record<string, unknown>[]>([]);
   readonly msg = signal('');
   readonly detalle = signal<Record<string, unknown> | null>(null);
@@ -110,6 +101,28 @@ export class MinutaHistorial implements OnInit {
     });
   }
 
+  tipoLabel(tipo: unknown): string {
+    return labelForMinutaTipo(tipo);
+  }
+
+  estadoLabel(estado: unknown): string {
+    const e = String(estado || '').toUpperCase();
+    if (e === 'ACTIVO') return 'En el puesto';
+    if (e === 'PENDIENTE') return 'Pendiente de entrega';
+    if (e === 'ENTREGADO') return 'Entregado';
+    if (e === 'SALIDA' || e === 'CERRADO') return 'Ya salió';
+    if (e === 'ENTREGANDO') return 'En entrega';
+    return e || '—';
+  }
+
+  resumen(h: Record<string, unknown>): string {
+    const d = this.detalles(h);
+    const bits = [d['nombre'], d['destinatario'], d['nombreDomiciliario'], d['apto'], d['empresa']]
+      .map((x) => String(x || '').trim())
+      .filter(Boolean);
+    return bits.slice(0, 2).join(' · ');
+  }
+
   detalles(h: Record<string, unknown>): Record<string, unknown> {
     return (h['detalles'] as Record<string, unknown>) || h;
   }
@@ -120,7 +133,7 @@ export class MinutaHistorial implements OnInit {
 
   detalleTitle(): string {
     const h = this.detalle();
-    return h ? `Detalle · ${String(h['tipo'] || 'Novedad')}` : 'Detalle';
+    return h ? labelForMinutaTipo(h['tipo']) : 'Detalle';
   }
 
   detalleSubtitle(): string | null {
@@ -135,7 +148,7 @@ export class MinutaHistorial implements OnInit {
       when && !Number.isNaN(when.getTime())
         ? when.toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })
         : null;
-    return [h['id'], h['estado'], fechaTxt].filter(Boolean).join(' · ');
+    return [this.estadoLabel(h['estado']), fechaTxt].filter(Boolean).join(' · ');
   }
 
   detalleFields(): Record<string, unknown> {
@@ -153,7 +166,7 @@ export class MinutaHistorial implements OnInit {
         this.msg.set('Salida registrada');
         this.load();
       },
-      error: (e) => this.msg.set(e?.error?.message || 'Error en salida'),
+      error: (e) => this.msg.set(e?.error?.message || 'No se pudo marcar la salida'),
     });
   }
 
@@ -165,7 +178,7 @@ export class MinutaHistorial implements OnInit {
         this.msg.set('Correspondencia entregada');
         this.load();
       },
-      error: (e) => this.msg.set(e?.error?.message || 'Error al entregar'),
+      error: (e) => this.msg.set(e?.error?.message || 'No se pudo entregar'),
     });
   }
 }

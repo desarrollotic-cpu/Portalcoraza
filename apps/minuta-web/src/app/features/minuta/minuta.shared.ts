@@ -36,15 +36,20 @@ export interface MinutaFormModel {
   nombreDelPuesto: string;
 }
 
-export const MINUTA_MODULOS: Array<{ k: MinutaFormKind; label: string }> = [
-  { k: 'VISITANTE', label: 'Visitantes' },
-  { k: 'CORRESPONDENCIA', label: 'Correspondencia' },
-  { k: 'CONTRATISTA', label: 'Contratistas' },
-  { k: 'DOMICILIARIO', label: 'Domiciliarios' },
-  { k: 'INCIDENTE', label: 'Incidentes' },
-  { k: 'SERVICIO', label: 'Servicio' },
-  { k: 'ENTREGA', label: 'Entrega de puesto' },
+export const MINUTA_MODULOS: Array<{ k: MinutaFormKind; label: string; hint: string }> = [
+  { k: 'VISITANTE', label: 'Visitante', hint: 'Quién entra al conjunto' },
+  { k: 'CORRESPONDENCIA', label: 'Correspondencia', hint: 'Paquetes y cartas' },
+  { k: 'CONTRATISTA', label: 'Contratista', hint: 'Personal de obra o mantenimiento' },
+  { k: 'DOMICILIARIO', label: 'Domicilio', hint: 'Rappi, Uber Eats, etc.' },
+  { k: 'INCIDENTE', label: 'Incidente', hint: 'Novedad de seguridad o daño' },
+  { k: 'SERVICIO', label: 'Servicio', hint: 'Anotaciones del turno' },
+  { k: 'ENTREGA', label: 'Entrega de puesto', hint: 'Cambio de turno' },
 ];
+
+export function labelForMinutaTipo(tipo: unknown): string {
+  const k = String(tipo || '').toUpperCase();
+  return MINUTA_MODULOS.find((m) => m.k === k)?.label || String(tipo || 'Registro');
+}
 
 export function emptyMinutaForm(): MinutaFormModel {
   return {
@@ -145,43 +150,62 @@ export function bodyForMinuta(
 }
 
 export const MINUTA_PAGE_STYLES = `
-  .page { display: grid; gap: 1.15rem; }
-  .page h2 { margin: 0; font-size: 1.45rem; }
-  .hint { margin: 0; color: var(--text-muted, #64748b); font-size: 1rem; line-height: 1.45; }
-  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; }
+  .page { display: grid; gap: 1.25rem; }
+  .page h2 { margin: 0; font-size: 1.5rem; letter-spacing: -0.01em; }
+  .hint { margin: 0.35rem 0 0; color: var(--text-muted, #64748b); font-size: 1rem; line-height: 1.5; }
+  .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
   .stats article {
     background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
-    border-radius: 12px; padding: 1rem;
+    border-radius: 14px; padding: 1rem 1.05rem;
   }
-  .stats small { color: var(--text-muted, #64748b); }
-  .stats b { display: block; font-size: 1.5rem; color: #0c4a6e; }
-  .quick, .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-  .quick button, .tile {
-    border: 0; border-radius: 14px; padding: 1.1rem 1.15rem; background: #f0f9ff;
-    color: #0c4a6e; font-weight: 700; font-size: 1.05rem; text-align: left; cursor: pointer;
+  .stats small { color: var(--text-muted, #64748b); font-size: 0.88rem; font-weight: 600; }
+  .stats b { display: block; margin-top: 0.2rem; font-size: 1.65rem; color: #0c4a6e; }
+  .quick, .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  .quick a.tile-primary {
+    background: #0c4a6e;
+    color: #fff;
+    text-align: center;
+    font-size: 1.15rem;
+    min-height: 3.5rem;
+    justify-content: center;
+  }
+  .quick a.tile-secondary {
+    background: #fff;
+    border: 1px solid var(--border, #cbd5e1);
+    color: #0c4a6e;
+    text-align: center;
     min-height: 3.25rem;
+    justify-content: center;
   }
+  .quick button, .tile, .quick a.tile, .quick a.tile-primary, .quick a.tile-secondary {
+    border: 0; border-radius: 14px; padding: 1.05rem 1.15rem; background: #f0f9ff;
+    color: #0c4a6e; font-weight: 700; font-size: 1.05rem; text-align: left; cursor: pointer;
+    min-height: 3.5rem; display: flex; flex-direction: column; gap: 0.2rem;
+    text-decoration: none;
+  }
+  .tile .tile-hint { font-size: 0.85rem; font-weight: 500; opacity: 0.8; color: inherit; }
   .card {
     background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
-    border-radius: 12px; padding: 0.75rem; display: flex; flex-direction: column; gap: 0.2rem;
+    border-radius: 14px; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.25rem;
   }
   .card.row { flex-direction: row; justify-content: space-between; align-items: center; gap: 0.75rem; }
-  .muted { color: var(--text-muted, #64748b); font-size: 0.82rem; }
-  .toast { background: #d1fae5; color: #065f46; border-radius: 10px; padding: 0.55rem 0.75rem; margin: 0; }
-  .error { background: #fee2e2; color: #991b1b; border-radius: 10px; padding: 0.55rem 0.75rem; margin: 0; }
-  .filt { display: flex; flex-direction: column; gap: 0.25rem; max-width: 16rem; font-weight: 600; font-size: 0.85rem; }
+  .muted { color: var(--text-muted, #64748b); font-size: 0.9rem; line-height: 1.4; }
+  .toast { background: #d1fae5; color: #065f46; border-radius: 12px; padding: 0.7rem 0.9rem; margin: 0; font-weight: 600; }
+  .error { background: #fee2e2; color: #991b1b; border-radius: 12px; padding: 0.7rem 0.9rem; margin: 0; font-weight: 600; }
+  .filt { display: flex; flex-direction: column; gap: 0.35rem; width: 100%; font-weight: 700; font-size: 0.95rem; color: #0c4a6e; }
   select, input, textarea {
-    font: inherit; border: 1px solid var(--border, #cbd5e1); border-radius: 8px;
-    padding: 0.55rem; color: inherit; background: transparent;
+    font: inherit; font-size: 16px; border: 1px solid var(--border, #cbd5e1); border-radius: 12px;
+    padding: 0.75rem 0.85rem; color: inherit; background: #fff; min-height: 3rem;
   }
-  .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
+  .actions { display: flex; gap: 0.55rem; flex-wrap: wrap; }
   .mini {
-    border: 1px solid var(--border, #cbd5e1); background: transparent; border-radius: 8px;
-    padding: 0.35rem 0.55rem; cursor: pointer; color: #0c4a6e; font-weight: 700;
+    border: 1px solid var(--border, #cbd5e1); background: #fff; border-radius: 12px;
+    padding: 0.55rem 0.85rem; cursor: pointer; color: #0c4a6e; font-weight: 700;
+    min-height: 2.75rem; font-size: 0.95rem;
   }
   .btn {
-    border: 0; border-radius: 8px; padding: 0.7rem 1rem; background: #0c4a6e; color: #fff;
-    font-weight: 800; cursor: pointer;
+    border: 0; border-radius: 12px; padding: 0.95rem 1.15rem; background: #0c4a6e; color: #fff;
+    font-weight: 800; cursor: pointer; min-height: 3.25rem; font-size: 1.05rem;
   }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; }
   .modal {
@@ -190,25 +214,27 @@ export const MINUTA_PAGE_STYLES = `
   }
   .modal-card {
     width: min(100%, 560px); max-height: 90dvh; overflow: auto;
-    background: var(--surface, #fff); border-radius: 12px; padding: 1.15rem;
-    display: flex; flex-direction: column; gap: 0.65rem;
+    background: var(--surface, #fff); border-radius: 16px; padding: 1.25rem;
+    display: flex; flex-direction: column; gap: 0.75rem;
   }
   .modal-head {
     display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
   }
-  label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; color: var(--text-muted, #64748b); font-weight: 600; }
-  h3 { margin: 0.25rem 0; color: #0c4a6e; }
+  label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.95rem; color: #334155; font-weight: 700; }
+  h3 { margin: 0.25rem 0; color: #0c4a6e; font-size: 1.2rem; }
   @media (min-width: 900px) {
-    .page h2 { font-size: 1.75rem; }
-    .quick, .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
-    .quick button, .tile { min-height: 4.25rem; font-size: 1.15rem; padding: 1.25rem; }
+    .page h2 { font-size: 1.85rem; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .quick, .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .quick button, .tile, .quick a.tile, .quick a.tile-primary, .quick a.tile-secondary {
+      min-height: 4.5rem; font-size: 1.15rem; padding: 1.25rem;
+    }
     .modal-card { width: min(100%, 640px); padding: 1.5rem; }
   }
   @media (max-width: 800px) {
-    .stats { grid-template-columns: 1fr 1fr; }
-    .quick, .grid { grid-template-columns: 1fr; }
     .card.row { flex-direction: column; align-items: stretch; }
-    .filt { max-width: none; width: 100%; }
+    .actions { width: 100%; }
+    .actions .mini, .actions .btn { flex: 1; }
     .modal {
       place-items: end center;
       padding: 0;
@@ -216,14 +242,9 @@ export const MINUTA_PAGE_STYLES = `
     .modal-card {
       width: 100%;
       max-height: 92dvh;
-      border-radius: 16px 16px 0 0;
-      padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+      border-radius: 18px 18px 0 0;
+      padding: 1.1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom, 0px));
     }
     .btn { width: 100%; }
-    .tile, .quick button { min-height: 3rem; font-size: 0.95rem; }
-    input, select, textarea { font-size: 16px; } /* evita zoom iOS */
-  }
-  @media (max-width: 420px) {
-    .stats { grid-template-columns: 1fr; }
   }
 `;
