@@ -341,12 +341,13 @@ export class DashboardCommandCenterService {
       modules['programacion'] = { ...prog, today: todaySnap };
       const { postsInMonth, postsCovered, postsUncovered, conflicts } = prog.kpis;
       const catalog = modules['operaciones'] as { kpis: { total: number; active: number } } | undefined;
-      const catalogTotal = catalog?.kpis?.total ?? prog.catalog?.total ?? postsInMonth;
+      const catalogActive =
+        catalog?.kpis?.active ?? prog.catalog?.active ?? postsInMonth;
 
       kpis.push({
         id: 'ops-posts-total',
-        label: 'Total puestos (catálogo)',
-        value: catalogTotal,
+        label: 'Puestos activos',
+        value: catalogActive,
         route: '/operaciones/puestos',
       });
       kpis.push({

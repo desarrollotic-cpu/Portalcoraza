@@ -75,9 +75,9 @@ type PeriodKey = CommandPeriod;
               <small class="bubble-sub">Estado ACTIVO en RRHH</small>
             </div>
             <div class="stat-bubble">
-              <span class="bubble-lbl">Total puestos</span>
-              <b class="bubble-val">{{ postsTotal() }}</b>
-              <small class="bubble-sub">{{ postsActive() }} activos</small>
+              <span class="bubble-lbl">Puestos activos</span>
+              <b class="bubble-val">{{ postsActive() }}</b>
+              <small class="bubble-sub">Estado ACTIVO en catálogo</small>
             </div>
           </div>
         </div>
@@ -123,8 +123,8 @@ type PeriodKey = CommandPeriod;
             </div>
             <div class="core-card-body">
               <span class="core-title">Puestos de Vigilancia</span>
-              <b class="core-number">{{ postsTotal() }}</b>
-              <small class="core-subtext">Catálogo operativo · {{ postsActive() }} activos · {{ programacion()?.kpis?.postsInMonth ?? 0 }} con cuadro del mes</small>
+              <b class="core-number">{{ postsActive() }}</b>
+              <small class="core-subtext">Activos hoy · {{ programacion()?.kpis?.postsInMonth ?? 0 }} con cuadro del mes</small>
             </div>
             <a routerLink="/programacion" class="core-link">Ver Cuadro de Turnos →</a>
           </article>
@@ -338,8 +338,8 @@ type PeriodKey = CommandPeriod;
               </div>
               <div class="mini-stats">
                 <div class="stat-pill highlight-stat">
-                  <span>Total catálogo</span>
-                  <strong>{{ postsTotal() }}</strong>
+                  <span>Puestos activos</span>
+                  <strong>{{ postsActive() }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Con cuadro del mes</span>
