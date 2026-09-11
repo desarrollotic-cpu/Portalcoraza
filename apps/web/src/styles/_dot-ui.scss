@@ -47,8 +47,8 @@ a.dot-dash-kpi:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   background: var(--surface-2);
   color: var(--primary-600);
@@ -78,7 +78,7 @@ a.dot-dash-kpi:hover {
 }
 
 .dot-dash-kpi__label {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -87,14 +87,14 @@ a.dot-dash-kpi:hover {
 
 .dot-dash-kpi__value {
   font-family: var(--font-display);
-  font-size: 1.65rem;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
 
 .dot-dash-kpi__hint {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
@@ -117,12 +117,12 @@ a.dot-dash-kpi:hover {
 
 .dot-dash-panel__head h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
 .dot-dash-panel__hint {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
 }
 
@@ -277,4 +277,40 @@ a.dot-dash-kpi:hover {
 
 .dot-row-low td {
   background: rgba(239, 68, 68, 0.04);
+}
+
+// Tablet / táctil: escala ligera de todo el módulo Dotación (~9%).
+// UX skill: body legible + targets táctiles; sin rediseñar cada pantalla.
+.dotacion-touch {
+  display: block;
+}
+
+@media (min-width: 600px) and (max-width: 1366px), ((pointer: coarse) and (min-width: 768px)) {
+  .dotacion-touch {
+    zoom: 1.09;
+  }
+
+  @supports not (zoom: 1) {
+    .dotacion-touch {
+      transform: scale(1.09);
+      transform-origin: top left;
+      width: calc(100% / 1.09);
+    }
+  }
+
+  .dotacion-touch .launcher-btn {
+    width: 2.65rem;
+    height: 2.65rem;
+    min-width: 2.65rem;
+    min-height: 2.65rem;
+  }
+
+  .dotacion-touch .launcher-icon {
+    width: 50px;
+    height: 50px;
+  }
+
+  .dotacion-touch .module-brand h1 {
+    font-size: 1.65rem;
+  }
 }

@@ -13,13 +13,15 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   selector: 'app-dotacion-layout',
   imports: [RouterOutlet, ModuleShell],
   template: `
-    <app-module-shell
-      title="Dotación"
-      subtitle="Inventario, entregas y elementos entregados a puestos."
-      [nav]="nav"
-    >
-      <router-outlet />
-    </app-module-shell>
+    <div class="dotacion-touch">
+      <app-module-shell
+        title="Dotación"
+        subtitle="Inventario, entregas y elementos entregados a puestos."
+        [nav]="nav"
+      >
+        <router-outlet />
+      </app-module-shell>
+    </div>
   `,
 })
 export class DotacionLayout {

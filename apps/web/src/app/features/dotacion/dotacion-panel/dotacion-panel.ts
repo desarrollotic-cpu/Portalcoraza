@@ -232,7 +232,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
           <div class="dot-dash-kpi-grid">
             <a routerLink="/dotacion/asociados" class="dot-dash-kpi">
               <div class="dot-dash-kpi__icon">
-                <app-icon [icon]="icons.Users" [size]="22" />
+                <app-icon [icon]="icons.Users" [size]="26" />
               </div>
               <div class="dot-dash-kpi__body">
                 <span class="dot-dash-kpi__label">Asociados</span>
@@ -242,7 +242,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
             </a>
             <a routerLink="/dotacion/inventario" class="dot-dash-kpi">
               <div class="dot-dash-kpi__icon">
-                <app-icon [icon]="icons.Boxes" [size]="22" />
+                <app-icon [icon]="icons.Boxes" [size]="26" />
               </div>
               <div class="dot-dash-kpi__body">
                 <span class="dot-dash-kpi__label">Inventario</span>
@@ -253,7 +253,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
             @if (auth.hasPermission('deliveries.create')) {
               <a routerLink="/dotacion/asociados" class="dot-dash-kpi">
                 <div class="dot-dash-kpi__icon dot-dash-kpi__icon--ok">
-                  <app-icon [icon]="icons.Truck" [size]="22" />
+                  <app-icon [icon]="icons.Truck" [size]="26" />
                 </div>
                 <div class="dot-dash-kpi__body">
                   <span class="dot-dash-kpi__label">Nueva entrega</span>
@@ -264,7 +264,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
             }
             <a routerLink="/dotacion/movimientos" class="dot-dash-kpi">
               <div class="dot-dash-kpi__icon">
-                <app-icon [icon]="icons.Clock" [size]="22" />
+                <app-icon [icon]="icons.Clock" [size]="26" />
               </div>
               <div class="dot-dash-kpi__body">
                 <span class="dot-dash-kpi__label">Historial</span>
