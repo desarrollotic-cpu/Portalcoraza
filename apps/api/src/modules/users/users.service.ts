@@ -326,7 +326,7 @@ export class UsersService {
 
   async remove(id: string, actorUserId: string) {
     if (id === actorUserId) {
-      throw new BadRequestException('No puedes eliminar tu propio usuario');
+      throw new BadRequestException('No puedes inactivar tu propio usuario');
     }
 
     const user = await this.usersRepo.findOne({ where: { id } });
@@ -349,6 +349,84 @@ export class UsersService {
     });
 
     return this.findOneForAdmin(id);
+  }
+
+  /**
+   * Borra el usuario de la BD. Requiere estar inactivo.
+   * Limpia tokens/asignaciones y anula FKs nullable; si hay historial
+   * no anulable, responde 409 y hay que dejarlo inactivo.
+   */
+  async purge(id: string, actorUserId: string) {
+    if (id === actorUserId) {
+      throw new BadRequestException('No puedes eliminar tu propio usuario');
+    }
+
+    const user = await this.usersRepo.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+    if (user.isActive) {
+      throw new BadRequestException(
+        'Primero inactiva el usuario; luego puedes eliminarlo por completo',
+      );
+    }
+
+    const email = user.email;
+
+    try {
+      await this.usersRepo.manager.transaction(async (em) => {
+        await em.query(`DELETE FROM refresh_tokens WHERE user_id = $1`, [id]);
+        await em.query(`DELETE FROM notifications WHERE user_id = $1`, [id]);
+        await em.query(`DELETE FROM user_posts WHERE user_id = $1`, [id]);
+
+        const fks = (await em.query(`
+          SELECT c.conrelid::regclass::text AS tbl,
+                 a.attname AS col,
+                 c.confdeltype::text AS deltype
+          FROM pg_constraint c
+          JOIN pg_attribute a
+            ON a.attrelid = c.conrelid
+           AND a.attnum = ANY (c.conkey)
+           AND NOT a.attisdropped
+          WHERE c.contype = 'f'
+            AND c.confrelid = 'public.users'::regclass
+        `)) as Array<{ tbl: string; col: string; deltype: string }>;
+
+        for (const fk of fks) {
+          // c = CASCADE, n = SET NULL → Postgres lo resuelve al DELETE
+          if (fk.deltype === 'c' || fk.deltype === 'n') continue;
+          if (!/^[a-zA-Z0-9_."]+$/.test(fk.tbl) || !/^[a-zA-Z0-9_]+$/.test(fk.col)) {
+            continue;
+          }
+          try {
+            await em.query(
+              `UPDATE ${fk.tbl} SET "${fk.col}" = NULL WHERE "${fk.col}" = $1`,
+              [id],
+            );
+          } catch {
+            // Columna NOT NULL u otra restricción: el DELETE fallará abajo.
+          }
+        }
+
+        await em.query(`DELETE FROM users WHERE id = $1`, [id]);
+      });
+    } catch {
+      throw new ConflictException(
+        'No se pudo eliminar por completo: tiene historial ligado. Déjalo inactivo.',
+      );
+    }
+
+    await this.auditService.log({
+      userId: actorUserId,
+      module: 'users',
+      action: 'purge',
+      entityType: 'user',
+      entityId: id,
+      oldValue: { email, isActive: false },
+      newValue: null,
+    });
+
+    return { ok: true as const, id, email };
   }
 
   async listAssignedPosts(userId: string) {

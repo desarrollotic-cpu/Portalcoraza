@@ -246,13 +246,16 @@ import {
                       Restablecer clave
                     </button>
                     @if (u.isActive && u.id !== currentUserId()) {
-                      <button type="button" class="btn btn-sm btn-danger" (click)="deactivate(u)">
-                        Eliminar
+                      <button type="button" class="btn btn-sm btn-outline" (click)="deactivate(u)">
+                        Inactivar
                       </button>
                     }
-                    @if (!u.isActive) {
+                    @if (!u.isActive && u.id !== currentUserId()) {
                       <button type="button" class="btn btn-sm btn-success" (click)="reactivate(u)">
                         Reactivar
+                      </button>
+                      <button type="button" class="btn btn-sm btn-danger" (click)="purge(u)">
+                        Eliminar
                       </button>
                     }
                   </td>
@@ -645,7 +648,7 @@ export class UsersList implements OnInit {
 
   deactivate(user: AdminUser): void {
     const ok = window.confirm(
-      `¿Desactivar a ${user.email}? Quedará inactivo y no podrá iniciar sesión.`,
+      `¿Inactivar a ${user.email}?\nNo podrá iniciar sesión. El usuario seguirá en la lista como Inactivo.`,
     );
     if (!ok) return;
 
@@ -657,7 +660,7 @@ export class UsersList implements OnInit {
         }
       },
       error: (err) => {
-        window.alert(err?.error?.message ?? 'No se pudo eliminar el usuario');
+        window.alert(err?.error?.message ?? 'No se pudo inactivar el usuario');
       },
     });
   }
@@ -669,6 +672,27 @@ export class UsersList implements OnInit {
       },
       error: (err) => {
         window.alert(err?.error?.message ?? 'No se pudo reactivar el usuario');
+      },
+    });
+  }
+
+  purge(user: AdminUser): void {
+    const ok = window.confirm(
+      `¿ELIMINAR POR COMPLETO a ${user.email}?\n\nEsto borra el usuario de la base de datos. No se puede deshacer.\nSi tiene mucho historial ligado, puede fallar: en ese caso déjalo inactivo.`,
+    );
+    if (!ok) return;
+    const ok2 = window.confirm(`Confirma otra vez: eliminar definitivamente ${user.email}`);
+    if (!ok2) return;
+
+    this.api.purgeUser(user.id).subscribe({
+      next: () => {
+        this.users.update((list) => list.filter((u) => u.id !== user.id));
+        if (this.editing()?.id === user.id) {
+          this.cancelEdit();
+        }
+      },
+      error: (err) => {
+        window.alert(err?.error?.message ?? 'No se pudo eliminar el usuario');
       },
     });
   }

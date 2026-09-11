@@ -54,6 +54,12 @@ export class UsersController {
     return this.usersService.resetPasswordByAdmin(id, dto.newPassword, user.sub);
   }
 
+  @Delete(':id/permanent')
+  @RequirePermissions('users.edit')
+  purge(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.usersService.purge(id, user.sub);
+  }
+
   @Delete(':id')
   @RequirePermissions('users.edit')
   remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

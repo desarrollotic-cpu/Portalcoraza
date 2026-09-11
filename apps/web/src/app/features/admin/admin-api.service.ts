@@ -93,6 +93,12 @@ export class AdminApiService {
     return this.http.delete<AdminUser>(`${this.baseUrl}/users/${id}`);
   }
 
+  purgeUser(id: string): Observable<{ ok: true; id: string; email: string }> {
+    return this.http.delete<{ ok: true; id: string; email: string }>(
+      `${this.baseUrl}/users/${id}/permanent`,
+    );
+  }
+
   resetUserPassword(id: string, newPassword: string): Observable<{ ok: boolean; email: string }> {
     return this.http.post<{ ok: boolean; email: string }>(
       `${this.baseUrl}/users/${id}/reset-password`,
