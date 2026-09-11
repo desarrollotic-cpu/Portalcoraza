@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
@@ -294,26 +294,41 @@ export class RetiredPersonnelService {
     const rawCedula = dto.idNumber.trim();
     const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
     const duplicated = await this.findExistingByCedula(cleanCedula || rawCedula);
-    if (duplicated) {
-      throw new ConflictException(
-        `Esta cédula ya tiene carpeta #${duplicated.numericCode ?? duplicated.id} en archivo inactivo.`,
-      );
-    }
-
     const numeric = await this.sequence.next('retired_personnel');
 
-    const saved = await this.repo.save(
-      this.repo.create({
-        fullName: dto.fullName,
-        idNumber: rawCedula,
-        retirementDate: dto.retirementDate ?? null,
-        retirementReason: dto.retirementReason ?? null,
-        observations: dto.observations ?? null,
-        personType: dto.personType ?? 'EMPLEADO',
-        numericCode: numeric,
-        voxelsera: dto.voxelsera ?? null,
-      }),
-    );
+    let saved: RetiredPersonnel;
+    if (duplicated?.id) {
+      const row = await this.repo.findOne({ where: { id: duplicated.id } });
+      if (!row) {
+        throw new NotFoundException('Registro no encontrado');
+      }
+      const oldCode = row.numericCode;
+      row.fullName = dto.fullName;
+      row.idNumber = rawCedula;
+      row.retirementDate = dto.retirementDate ?? row.retirementDate;
+      row.retirementReason = dto.retirementReason ?? row.retirementReason;
+      row.personType = dto.personType ?? row.personType;
+      row.voxelsera = dto.voxelsera ?? row.voxelsera;
+      row.numericCode = numeric;
+      const note = [dto.observations?.trim(), oldCode && oldCode !== numeric ? `Código anterior #${oldCode}` : '']
+        .filter(Boolean)
+        .join(' · ');
+      row.observations = note || null;
+      saved = await this.repo.save(row);
+    } else {
+      saved = await this.repo.save(
+        this.repo.create({
+          fullName: dto.fullName,
+          idNumber: rawCedula,
+          retirementDate: dto.retirementDate ?? null,
+          retirementReason: dto.retirementReason ?? null,
+          observations: dto.observations ?? null,
+          personType: dto.personType ?? 'EMPLEADO',
+          numericCode: numeric,
+          voxelsera: dto.voxelsera ?? null,
+        }),
+      );
+    }
 
     // Si el asociado existe en RRHH (tabla associates), pasarlo de inmediato a estado 'RETIRADO'
     try {
