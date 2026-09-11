@@ -161,10 +161,10 @@ export class UsersService {
     }
 
     const roles = await this.rolesRepo.count();
+    // Lista completa del tenant (pocos usuarios); el panel no debe cortar en 8.
     const recent = await this.usersRepo.find({
       relations: { role: true, warehouse: true },
       order: { createdAt: 'DESC' },
-      take: 8,
       select: this.userListSelect,
     });
 

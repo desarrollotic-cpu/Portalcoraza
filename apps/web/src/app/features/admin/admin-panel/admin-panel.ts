@@ -27,8 +27,9 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
       <app-stats-kpi-grid [items]="kpiItems()" [loading]="loading()" />
 
       <section class="admin-panel__list">
-        <header>
-          <h3>Últimos usuarios</h3>
+        <header class="admin-panel__list-head">
+          <h3>Usuarios ({{ data()?.recentUsers?.length ?? 0 }})</h3>
+          <a routerLink="/admin/usuarios">Gestionar usuarios →</a>
         </header>
         @if (loading()) {
           <p class="admin-panel__muted">Cargando…</p>
@@ -106,9 +107,26 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
       border-radius: var(--radius, 12px);
       background: var(--surface, var(--coraza-surface));
     }
-    .admin-panel__list header h3 {
-      margin: 0 0 0.85rem;
+    .admin-panel__list-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.85rem;
+    }
+    .admin-panel__list-head h3 {
+      margin: 0;
       font-size: 0.95rem;
+    }
+    .admin-panel__list-head a {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--primary, #0369a1);
+      text-decoration: none;
+    }
+    .admin-panel__list-head a:hover {
+      text-decoration: underline;
     }
     .admin-panel__muted {
       margin: 0;

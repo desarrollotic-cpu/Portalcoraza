@@ -36,5 +36,11 @@ describe('UsersService.overview', () => {
     expect(result.kpis.roles).toBe(5);
     expect(result.recentUsers).toHaveLength(1);
     expect(result.recentUsers[0].roleName).toBe('RRHH');
+    expect(usersRepo.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        order: { createdAt: 'DESC' },
+      }),
+    );
+    expect(usersRepo.find.mock.calls[0][0].take).toBeUndefined();
   });
 });
