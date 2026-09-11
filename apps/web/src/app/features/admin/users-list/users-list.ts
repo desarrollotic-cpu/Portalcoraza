@@ -245,15 +245,16 @@ import {
                     <button type="button" class="btn btn-sm btn-outline" (click)="startReset(u)">
                       Restablecer clave
                     </button>
-                    @if (u.isActive && u.id !== currentUserId()) {
-                      <button type="button" class="btn btn-sm btn-outline" (click)="deactivate(u)">
-                        Inactivar
-                      </button>
-                    }
-                    @if (!u.isActive && u.id !== currentUserId()) {
-                      <button type="button" class="btn btn-sm btn-success" (click)="reactivate(u)">
-                        Reactivar
-                      </button>
+                    @if (u.id !== currentUserId()) {
+                      @if (u.isActive) {
+                        <button type="button" class="btn btn-sm btn-outline" (click)="deactivate(u)">
+                          Inactivar
+                        </button>
+                      } @else {
+                        <button type="button" class="btn btn-sm btn-success" (click)="reactivate(u)">
+                          Reactivar
+                        </button>
+                      }
                       <button type="button" class="btn btn-sm btn-danger" (click)="purge(u)">
                         Eliminar
                       </button>
@@ -678,7 +679,7 @@ export class UsersList implements OnInit {
 
   purge(user: AdminUser): void {
     const ok = window.confirm(
-      `¿ELIMINAR POR COMPLETO a ${user.email}?\n\nEsto borra el usuario de la base de datos. No se puede deshacer.\nSi tiene mucho historial ligado, puede fallar: en ese caso déjalo inactivo.`,
+      `¿ELIMINAR POR COMPLETO a ${user.email}?\n\nSe borra de la base de datos y no se puede deshacer.\nSi falla por historial ligado, inactívalo y déjalo así.`,
     );
     if (!ok) return;
     const ok2 = window.confirm(`Confirma otra vez: eliminar definitivamente ${user.email}`);

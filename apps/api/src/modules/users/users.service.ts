@@ -366,9 +366,9 @@ export class UsersService {
       throw new NotFoundException('Usuario no encontrado');
     }
     if (user.isActive) {
-      throw new BadRequestException(
-        'Primero inactiva el usuario; luego puedes eliminarlo por completo',
-      );
+      // Permitir borrado directo desde activo: primero inactiva en la misma operación.
+      user.isActive = false;
+      await this.usersRepo.save(user);
     }
 
     const email = user.email;
