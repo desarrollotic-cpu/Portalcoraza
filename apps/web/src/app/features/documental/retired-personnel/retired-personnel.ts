@@ -16,7 +16,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           <button type="button" class="btn-ghost" (click)="printCola()">Cola ({{ queueCount() }})</button>
         }
         @if (canCreate()) {
-          <button class="btn-primary" (click)="toggle()">{{ showForm() ? 'Cerrar' : 'Pasar carpeta a inactivo' }}</button>
+          <button class="btn-primary" (click)="toggle()">{{ showForm() ? 'Cerrar' : 'Asignar código de carpeta' }}</button>
         }
       </div>
     </div>
@@ -36,12 +36,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
         <p class="alert-ok" style="grid-column:1/-1">
-          La persona ya está en Gestión Humana. Búscala por <strong>cédula o nombre</strong>, confirma los datos
-          y al guardar se le asigna el código de archivo inactivo
-          @if (nextCode()) {
-            <strong>#{{ nextCode() }}</strong>
-          }.
+          Busca en Gestión Humana (cédula o nombre). Tú pones la <strong>fecha de archivo</strong>
+          y al guardar Documental asigna el siguiente código de la secuencia.
         </p>
+        @if (nextCode()) {
+          <p class="code-preview">Próxima carpeta: #{{ nextCode() }}</p>
+        }
 
         <div class="lookup-row" style="grid-column:1/-1">
           <label style="flex:1">
@@ -90,8 +90,8 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
         @if (lookupDone() && foundInRrhh() && !alreadyRegistered()) {
           <div class="alert-ok" style="grid-column:1/-1">
-            Datos de Gestión Humana cargados ({{ rrhhStatus() || 'RRHH' }}).
-            Revisa motivo y estante. Al guardar, la carpeta será <strong>#{{ nextCode() }}</strong>.
+            {{ model.fullName }} — CC {{ model.idNumber }} ({{ rrhhStatus() || 'RRHH' }}).
+            Define la fecha de archivo. Al guardar: carpeta <strong>#{{ nextCode() }}</strong>.
           </div>
         }
 
@@ -113,8 +113,16 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             />
           </label>
 
-          <label>Fecha de Baja / Retiro *
+          <label>
+            Fecha de archivo *
             <input type="date" [(ngModel)]="model.retirementDate" name="retirementDate" required />
+            <span class="muted">
+              La defines tú. El código lo pone la secuencia de Documental
+              @if (nextCode()) { (#{{ nextCode() }}) }.
+            </span>
+            @if (ghRetirementDate()) {
+              <span class="muted">En Gestión Humana consta retiro: {{ ghRetirementDate() }}</span>
+            }
           </label>
 
           <label>
@@ -161,7 +169,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           </label>
 
           <div class="actions">
-            <button type="submit" class="btn-primary" [disabled]="saving() || !lookupDone()">
+            <button type="submit" class="btn-primary" [disabled]="saving() || !lookupDone() || alreadyRegistered()">
               Asignar carpeta {{ nextCode() ? '#' + nextCode() : '' }}
             </button>
             @if (error()) { <span class="error">{{ error() }}</span> }
@@ -243,6 +251,11 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       border-radius:.55rem; background:#fff; cursor:pointer; font-size:.85rem;
     }
     .pick-item:hover { border-color:#0369a1; background:#f0f9ff; }
+    label .muted { display:block; font-size:.8rem; margin-top:.2rem; }
+    .code-preview {
+      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
+      letter-spacing:.02em;
+    }
   `,
   ],
 })
@@ -266,6 +279,7 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly alreadyRegistered = signal(false);
   readonly existingCode = signal<number | null>(null);
   readonly rrhhStatus = signal<string | null>(null);
+  readonly ghRetirementDate = signal<string | null>(null);
   readonly nextCode = signal<number | null>(null);
   readonly ghMatches = signal<
     Array<{
@@ -338,12 +352,13 @@ export class RetiredPersonnelScreen implements OnInit {
   }): void {
     this.model.idNumber = m.idNumber;
     this.model.fullName = m.fullName;
-    if (m.retirementDate) this.model.retirementDate = m.retirementDate;
+    if (!this.model.retirementDate) this.model.retirementDate = this.todayIso();
     this.model.personType = 'ASOCIADO';
     this.foundInRrhh.set(true);
     this.alreadyRegistered.set(m.alreadyRegistered);
     this.existingCode.set(m.existingCode);
     this.rrhhStatus.set(m.rrhhStatus);
+    this.ghRetirementDate.set(m.retirementDate);
     this.lookupDone.set(true);
     this.ghMatches.set(m.alreadyRegistered ? this.ghMatches() : []);
   }
@@ -355,6 +370,7 @@ export class RetiredPersonnelScreen implements OnInit {
     this.alreadyRegistered.set(false);
     this.existingCode.set(null);
     this.rrhhStatus.set(null);
+    this.ghRetirementDate.set(null);
     this.ghMatches.set([]);
     this.model = this.emptyModel();
     this.error.set(null);
@@ -385,7 +401,7 @@ export class RetiredPersonnelScreen implements OnInit {
       !this.model.retirementReason ||
       !this.model.voxelsera
     ) {
-      this.error.set(' Debes completar todos los campos obligatorios (*): Nombre, Cédula, Fecha de Retiro, Tipo, Motivo y Ubicación en Estante.');
+      this.error.set('Debes completar todos los campos obligatorios (*): Nombre, Cédula, Fecha de archivo, Tipo, Motivo y Ubicación en Estante.');
       return;
     }
 
@@ -432,11 +448,18 @@ export class RetiredPersonnelScreen implements OnInit {
     printQueue();
   }
 
+  private todayIso(): string {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${d.getFullYear()}-${m}-${day}`;
+  }
+
   private emptyModel() {
     return {
       fullName: '',
       idNumber: '',
-      retirementDate: '',
+      retirementDate: this.todayIso(),
       personType: 'ASOCIADO',
       retirementReason: '',
       observations: '',

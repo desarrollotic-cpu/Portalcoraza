@@ -68,11 +68,11 @@ export class RetiredPersonnelService {
     if (digits.length >= 4) {
       params.push(digits);
       parts.push(
-        `REPLACE(REPLACE(REPLACE(document_number, '.', ''), '-', ''), ' ', '') ILIKE '%' || $${params.length} || '%'`,
+        `REPLACE(REPLACE(REPLACE(a.document_number, '.', ''), '-', ''), ' ', '') ILIKE '%' || $${params.length} || '%'`,
       );
     }
     if (words.length) {
-      const nameExpr = `concat_ws(' ', first_name, second_name, first_last_name, second_last_name)`;
+      const nameExpr = `concat_ws(' ', a.first_name, a.second_name, a.first_last_name, a.second_last_name)`;
       const ands = words.map((w) => {
         params.push(`%${w}%`);
         return `${nameExpr} ILIKE $${params.length}`;
@@ -88,14 +88,22 @@ export class RetiredPersonnelService {
         second_name: string | null;
         first_last_name: string;
         second_last_name: string | null;
-        updated_at: string;
         status: string;
+        gh_retirement_date: string | null;
       }[]
     >(
-      `SELECT document_number, first_name, second_name, first_last_name, second_last_name, updated_at, status
-       FROM associates
+      `SELECT a.document_number, a.first_name, a.second_name, a.first_last_name, a.second_last_name, a.status,
+              r.retirement_date::text AS gh_retirement_date
+       FROM associates a
+       LEFT JOIN LATERAL (
+         SELECT retirement_date
+         FROM associate_retirements
+         WHERE associate_id = a.id
+         ORDER BY retirement_date DESC
+         LIMIT 1
+       ) r ON true
        WHERE (${parts.join(' OR ')})
-       ORDER BY first_last_name NULLS LAST, first_name
+       ORDER BY a.first_last_name NULLS LAST, a.first_name
        LIMIT 15`,
       params,
     );
@@ -111,7 +119,7 @@ export class RetiredPersonnelService {
         idNumber: a.document_number,
         fullName,
         rrhhStatus: a.status ?? null,
-        retirementDate: a.updated_at ? String(a.updated_at).slice(0, 10) : null,
+        retirementDate: a.gh_retirement_date ? String(a.gh_retirement_date).slice(0, 10) : null,
         alreadyRegistered: !!existing,
         existingCode: existing?.numericCode ?? null,
       });
@@ -193,15 +201,23 @@ export class RetiredPersonnelService {
           second_name: string | null;
           first_last_name: string;
           second_last_name: string | null;
-          updated_at: string;
           status: string;
+          gh_retirement_date: string | null;
         }[]
       >(
-        `SELECT first_name, second_name, first_last_name, second_last_name, updated_at, status
-         FROM associates
-         WHERE document_number = $1
-            OR TRIM(document_number) = $1
-            OR REPLACE(REPLACE(document_number, '.', ''), '-', '') = $2
+        `SELECT a.first_name, a.second_name, a.first_last_name, a.second_last_name, a.status,
+                r.retirement_date::text AS gh_retirement_date
+         FROM associates a
+         LEFT JOIN LATERAL (
+           SELECT retirement_date
+           FROM associate_retirements
+           WHERE associate_id = a.id
+           ORDER BY retirement_date DESC
+           LIMIT 1
+         ) r ON true
+         WHERE a.document_number = $1
+            OR TRIM(a.document_number) = $1
+            OR REPLACE(REPLACE(a.document_number, '.', ''), '-', '') = $2
          LIMIT 1`,
         [rawCedula, cleanCedula],
       );
@@ -235,7 +251,9 @@ export class RetiredPersonnelService {
       const a = rows[0];
       const parts = [a.first_name, a.second_name, a.first_last_name, a.second_last_name].filter(Boolean);
       const fullName = parts.join(' ').trim();
-      const retirementDate = a.updated_at ? a.updated_at.split('T')[0] : new Date().toISOString().split('T')[0];
+      const retirementDate = a.gh_retirement_date
+        ? String(a.gh_retirement_date).slice(0, 10)
+        : null;
 
       if (existing) {
         return {
