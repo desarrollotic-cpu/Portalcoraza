@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LucideEye } from '@lucide/angular';
+import { environment } from '../../../../environments/environment';
 import { Icon } from '../../../shared/components/icon/icon';
 import { MinutaDetalleDialog } from '../../minuta/minuta-detalle-dialog/minuta-detalle-dialog';
 import {
@@ -21,10 +22,26 @@ import {
           <h2>Minutas virtuales</h2>
           <p>
             Busca el puesto por nombre, consulta el mes y revisa novedades o PDF.
-            Abajo: puestos que ya tienen Minuta Virtual creada.
+            Las cuentas de puesto entran por el enlace de Minuta Virtual (no por este portal).
           </p>
         </div>
       </header>
+
+      <aside class="minuta-link-box">
+        <div>
+          <strong>Enlace para nuevas cuentas de puesto</strong>
+          <p>Copia y envía este link al asignar un usuario con rol Puesto.</p>
+          <a [href]="minutaUrl" target="_blank" rel="noopener noreferrer">{{ minutaUrl }}</a>
+        </div>
+        <div class="minuta-link-actions">
+          <button type="button" class="ghost" (click)="copyMinutaLink()">
+            {{ copied() ? 'Copiado' : 'Copiar link' }}
+          </button>
+          <a class="primary link-btn" [href]="minutaUrl" target="_blank" rel="noopener noreferrer">
+            Abrir Minuta
+          </a>
+        </div>
+      </aside>
 
       <section class="minuta-cards">
         <header class="minuta-cards__head">
@@ -200,6 +217,34 @@ import {
     .page { display: grid; gap: 1rem; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
     .head p { margin: 0; color: var(--muted, #64748b); font-size: 0.95rem; }
+    .minuta-link-box {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.85rem 1.25rem;
+      align-items: center;
+      padding: 0.9rem 1rem;
+      border: 1px solid #99f6e4;
+      border-radius: 12px;
+      background: #f0fdfa;
+    }
+    .minuta-link-box strong { display: block; font-size: 0.92rem; color: #134e4a; }
+    .minuta-link-box p { margin: 0.2rem 0 0.35rem; font-size: 0.82rem; color: #0f766e; }
+    .minuta-link-box a {
+      color: #0f766e;
+      font-weight: 600;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+    .minuta-link-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .link-btn {
+      display: inline-flex;
+      align-items: center;
+      text-decoration: none;
+      border-radius: 8px;
+      padding: 0.5rem 0.9rem;
+      font-weight: 600;
+    }
     .minuta-cards {
       border: 1px solid var(--border, #e2e8f0);
       border-radius: 12px;
@@ -308,6 +353,8 @@ import {
 export class MinutasList implements OnInit {
   private readonly api = inject(OperacionesApiService);
   readonly icons = { Eye: LucideEye };
+  readonly minutaUrl = environment.minutaWebUrl;
+  readonly copied = signal(false);
 
   readonly posts = signal<OperacionesPost[]>([]);
   readonly postsConMinuta = signal<OperacionesPostConMinuta[]>([]);
@@ -374,6 +421,22 @@ export class MinutasList implements OnInit {
 
   openDropdown(): void {
     if (!this.syncingSelection) this.dropdownOpen.set(true);
+  }
+
+  copyMinutaLink(): void {
+    const url = this.minutaUrl;
+    const done = () => {
+      this.copied.set(true);
+      setTimeout(() => this.copied.set(false), 2000);
+    };
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(url).then(done).catch(() => {
+        window.prompt('Copia el enlace de Minuta Virtual:', url);
+      });
+      return;
+    }
+    window.prompt('Copia el enlace de Minuta Virtual:', url);
+    done();
   }
 
   onPostSearch(value: string): void {
