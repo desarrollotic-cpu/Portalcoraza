@@ -143,7 +143,7 @@ export const routes: Routes = [
           {
             path: 'matriz',
             canActivate: [permissionGuard],
-            data: { permission: 'hr_dashboard.view' },
+            data: { permission: 'hr_compliance.view' },
             loadComponent: () =>
               import('./features/rrhh/compliance-matrix/compliance-matrix').then(
                 (m) => m.ComplianceMatrix,

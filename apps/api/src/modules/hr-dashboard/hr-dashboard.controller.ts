@@ -40,7 +40,7 @@ export class HrDashboardController {
   }
 
   @Get('compliance-matrix')
-  @RequirePermissions('hr_dashboard.view')
+  @RequirePermissions('hr_compliance.view')
   complianceMatrix() {
     return this.service.complianceMatrix();
   }

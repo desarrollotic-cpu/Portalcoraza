@@ -46,7 +46,7 @@ export class RrhhLayout {
     {
       label: 'Matriz SST',
       route: '/rrhh/matriz',
-      permission: 'hr_dashboard.view',
+      permission: 'hr_compliance.view',
       icon: LucideShieldCheck,
     },
     {

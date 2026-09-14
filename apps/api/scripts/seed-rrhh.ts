@@ -49,6 +49,7 @@ const RRHH_PERMISSIONS = [
   'hr_alerts.view',
   'hr_alerts.resolve',
   'hr_dashboard.view',
+  'hr_compliance.view',
   'hr_export.excel',
   'hr_import.execute',
   // Ley 1581 + bitácora
@@ -116,6 +117,7 @@ async function main() {
         ('hr_alerts.view', 'Ver alertas HRM', 'hr'),
         ('hr_alerts.resolve', 'Resolver alertas HRM', 'hr'),
         ('hr_dashboard.view', 'Ver dashboard HRM', 'hr'),
+        ('hr_compliance.view', 'Ver matriz de cumplimiento SST', 'hr'),
         ('hr_export.excel', 'Exportar reportes Excel', 'hr'),
         ('hr_import.execute', 'Importar planillas Excel', 'hr'),
         ('hr_sensitive.view', 'Ver datos sensibles Ley 1581', 'hr'),
