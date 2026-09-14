@@ -47,19 +47,15 @@ export class ContractsService {
       .getMany();
   }
 
-  /** Solo previsualiza: no consume el contador (abrir el form no debe saltar números). */
+  /** Solo previsualiza el código de carpeta. No es el número de contrato. */
   async nextCode(): Promise<{ numeric: number; suggested: string }> {
     const numeric = await this.sequence.peek('contract');
-    return { numeric, suggested: `CTR-${numeric}-${new Date().getFullYear()}` };
+    return { numeric, suggested: String(numeric) };
   }
 
   async create(dto: CreateContractDto, userId: string) {
     const numeric = await this.sequence.next('contract');
-    const suggested = `CTR-${numeric}-${new Date().getFullYear()}`;
-    const number =
-      dto.contractNumber && dto.contractNumber.trim()
-        ? dto.contractNumber.trim()
-        : suggested;
+    const number = dto.contractNumber?.trim() ? dto.contractNumber.trim() : null;
     const value = dto.contractValue ? parseFloat(String(dto.contractValue)) : 0;
     const due = new Date();
     due.setDate(due.getDate() + 3);

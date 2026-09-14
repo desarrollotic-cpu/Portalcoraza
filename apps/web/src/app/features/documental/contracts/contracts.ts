@@ -35,6 +35,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
+        @if (nextCode()) {
+          <p class="code-preview">Código de carpeta (Documental): #{{ nextCode() }}</p>
+        }
+        <p class="muted" style="grid-column:1/-1;margin:0">
+          El <strong>número de contrato</strong> es el del cliente (1047, 0919…). El <strong>código</strong> lo asigna Documental para el archivo y la marquilla.
+        </p>
         <label>
           Tipo de Contrato *
           <select [(ngModel)]="model.contractType" name="contractType" required>
@@ -50,7 +56,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             <option value="OTRO"> Otro Contrato</option>
           </select>
         </label>
-        <label>Número de Contrato (Opcional / Auto)<input [(ngModel)]="model.contractNumber" name="contractNumber" [placeholder]="suggested()" /></label>
+        <label>Número de contrato (el del cliente)<input [(ngModel)]="model.contractNumber" name="contractNumber" placeholder="Ej: 1047" /></label>
         <label>Parte A (Contratante)<input [(ngModel)]="model.partyA" name="partyA" placeholder="CORAZA SEGURIDAD C.T.A." /></label>
         <label>Parte B (Cliente / Proveedor) *<input [(ngModel)]="model.partyB" name="partyB" required placeholder="Nombre de la empresa o cliente" /></label>
         <label>NIT / Cédula Cliente *<input [(ngModel)]="model.nit" name="nit" required placeholder="Ej: 900.123.456-7" /></label>
@@ -83,7 +89,8 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (lastSaved()) {
       <div class="toast-ok">
-        Contrato <strong>{{ lastSaved()!.contractNumber }}</strong> registrado.
+        Contrato <strong>{{ lastSaved()!.contractNumber || 's/n' }}</strong>
+        — carpeta <strong>#{{ lastSaved()!.numericCode }}</strong>.
         <button type="button" class="btn-primary" (click)="printOne(lastSaved()!)">Imprimir rótulo</button>
         <button type="button" class="btn-ghost" (click)="lastSaved.set(null)">Cerrar</button>
       </div>
@@ -105,11 +112,11 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       <p>Cargando...</p>
     } @else {
       <table>
-        <thead><tr><th>#</th><th>Número</th><th>Cliente</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th>Rótulo</th></tr></thead>
+        <thead><tr><th>Carpeta</th><th>N° contrato</th><th>Cliente</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th>Rótulo</th></tr></thead>
         <tbody>
           @for (c of items(); track c.id) {
             <tr>
-              <td>{{ c.numericCode ?? '—' }}</td>
+              <td>{{ c.numericCode ? '#' + c.numericCode : '—' }}</td>
               <td>{{ c.contractNumber ?? '—' }}</td>
               <td>{{ c.partyB ?? c.partyA ?? '—' }}</td>
               <td>{{ c.contractValue ?? '—' }}</td>
@@ -143,6 +150,10 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       margin-bottom:1rem; padding:.85rem 1rem;
       background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; font-size:.9rem;
     }
+    .code-preview {
+      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
+      letter-spacing:.02em; margin:0;
+    }
   `,
   ],
 })
@@ -155,7 +166,7 @@ export class ContractsScreen implements OnInit {
   readonly showForm = signal(false);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
-  readonly suggested = signal('');
+  readonly nextCode = signal<number | null>(null);
   readonly lastSaved = signal<Contract | null>(null);
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
@@ -185,7 +196,9 @@ export class ContractsScreen implements OnInit {
   toggle(): void {
     this.showForm.update((v) => !v);
     if (this.showForm()) {
-      this.api.nextContractCode().subscribe({ next: (r) => this.suggested.set(r.suggested) });
+      this.api.nextContractCode().subscribe({
+        next: (r) => this.nextCode.set(r.numeric),
+      });
     }
   }
 
