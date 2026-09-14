@@ -146,6 +146,16 @@ function labelCopy(item: RotuloItem): LabelCopy {
     extras.push(slot);
     return { kind: 'PERSONAL', code: codClean, title, slot, extra: extras.join(' · ') };
   }
+  if (mod.includes('CONTRATO')) {
+    const matchDigits = codClean.match(/\d+$/) || codClean.match(/\d+/);
+    const digits = (matchDigits ? matchDigits[0] : codClean).padStart(4, '0');
+    const extras: string[] = [];
+    if (item.nit) extras.push(`NIT/CC ${item.nit}`);
+    if (item.numContrato) extras.push(item.numContrato);
+    if (fechas) extras.push(fechas);
+    extras.push(slot);
+    return { kind: 'CONTRATOS', code: digits, title, slot, extra: extras.join(' · ') };
+  }
   const extras: string[] = [];
   if (item.nit) extras.push(`NIT/CC ${item.nit}`);
   if (item.numContrato) extras.push(`CTO ${item.numContrato}`);
@@ -266,6 +276,7 @@ function paintBigCode(copy: LabelCopy, logo: HTMLImageElement | null, header: st
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
   if (copy.kind === 'PERSONAL') return paintBigCode(copy, logo, 'PERSONAL RETIRADO');
   if (copy.kind === 'MINUTAS') return paintBigCode(copy, logo, 'MINUTAS');
+  if (copy.kind === 'CONTRATOS') return paintBigCode(copy, logo, 'CONTRATOS');
 
   const canvas = document.createElement('canvas');
   canvas.width = CANVAS_W;
