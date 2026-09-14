@@ -669,7 +669,6 @@ export class SstPdfService {
         <div class="supervigilancia">Vigilado Supervigilancia — Resolución 6889 del 29 de septiembre de 2011</div>
       </td>
       <td class="meta-cell">
-        <div><strong>CÓDIGO:</strong> F-SST-01</div>
         <div><strong>VERSIÓN:</strong> 02</div>
         <div><strong>FECHA:</strong> ${this.escape(d.fecha)}</div>
         <div><strong>PÁG:</strong> 1 de 1</div>
