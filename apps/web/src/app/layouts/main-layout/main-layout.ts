@@ -1055,7 +1055,7 @@ export class MainLayout implements OnDestroy {
           route: '/dashboard',
           icon: LucideHome,
           match: 'exact',
-          permission: 'users.view',
+          permissions: ['users.view', 'dashboard.view'],
         },
         {
           label: 'Control de Actividades',

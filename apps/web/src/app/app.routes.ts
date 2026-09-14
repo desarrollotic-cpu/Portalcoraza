@@ -33,7 +33,10 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         canActivate: [permissionGuard],
-        data: { permission: 'users.view' },
+        data: {
+          permissions: ['users.view', 'dashboard.view'],
+          permissionMode: 'any',
+        },
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {

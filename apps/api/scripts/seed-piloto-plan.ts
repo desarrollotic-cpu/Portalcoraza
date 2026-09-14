@@ -32,8 +32,7 @@ const PILOTO_PERMISSIONS = [
   'work_centers.view',
   'work_centers.create',
   'work_centers.edit',
-  'catalogs.view',
-  'catalogs.manage',
+  // sin catalogs.* (ocultos en demo plan)
   'retirements.view',
   'retirements.create',
   'retirements.edit',
@@ -77,6 +76,8 @@ const PILOTO_PERMISSIONS = [
   // Notificaciones básicas
   'notifications.view',
   'notifications.read',
+  // Dashboard general (sin users.view / admin)
+  'dashboard.view',
 ];
 
 async function main() {
@@ -120,7 +121,8 @@ async function main() {
         ('reception.view', 'Ver panel de recepción', 'recepcion'),
         ('reception.register', 'Registrar visitantes en recepción', 'recepcion'),
         ('reception.exit', 'Registrar salida de visitantes', 'recepcion'),
-        ('deliveries.revert', 'Revertir entrega confirmada', 'deliveries')
+        ('deliveries.revert', 'Revertir entrega confirmada', 'deliveries'),
+        ('dashboard.view', 'Ver dashboard general', 'dashboard')
       ON CONFLICT (code) DO NOTHING
     `,
     );

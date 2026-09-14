@@ -162,7 +162,11 @@ export class AuthService {
     if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
       return '/sig';
     }
-    if (this.hasPermission('users.view') || user.role?.code === 'GERENCIA') {
+    if (
+      this.hasPermission('users.view') ||
+      this.hasPermission('dashboard.view') ||
+      user.role?.code === 'GERENCIA'
+    ) {
       return '/dashboard';
     }
     if (this.hasPermission('reception.view')) return '/recepcion';
