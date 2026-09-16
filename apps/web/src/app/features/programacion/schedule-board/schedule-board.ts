@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { DeliveryHistory } from '../../dotacion/delivery-history/delivery-history';
@@ -59,7 +59,7 @@ const CODES: CodeConfig[] = [
 
 @Component({
   selector: 'app-schedule-board',
-  imports: [FormsModule, DeliveryHistory, ConfirmDialog, RouterLink],
+  imports: [FormsModule, DeliveryHistory, ConfirmDialog],
   template: `
     <section>
       <header class="toolbar">
@@ -221,14 +221,46 @@ const CODES: CodeConfig[] = [
         </p>
         @if (boardSummary().total) {
           <div class="alerts-board-banner">
-            Este puesto (hoy en adelante):
-            @if (boardSummary().huecos) { {{ boardSummary().huecos }} huecos }
-            @if (boardSummary().conflictos) { · {{ boardSummary().conflictos }} conflictos }
-            @if (boardSummary().inactivos) { · {{ boardSummary().inactivos }} no disponibles }
-            @if (boardSummary().carga) { · {{ boardSummary().carga }} con carga &gt;24 }
-            · las columnas marcadas tienen alerta
-            <a routerLink="/programacion/alertas">Ver listado</a>
+            <span>
+              Este puesto (hoy en adelante):
+              @if (boardSummary().huecos) {
+                {{ boardSummary().huecos }} hueco{{ boardSummary().huecos === 1 ? '' : 's' }} de cobertura
+              }
+              @if (boardSummary().conflictos) {
+                · {{ boardSummary().conflictos }} conflicto{{ boardSummary().conflictos === 1 ? '' : 's' }} (misma persona / turno)
+              }
+              @if (boardSummary().inactivos) {
+                · {{ boardSummary().inactivos }} no disponible{{ boardSummary().inactivos === 1 ? '' : 's' }}
+              }
+              @if (boardSummary().carga) {
+                · {{ boardSummary().carga }} con carga &gt;24 turnos
+              }
+              · columnas en rojo tienen alerta
+            </span>
+            <button type="button" class="btn-alert-details" (click)="toggleAlertDetails()">
+              {{ alertDetailsOpen() ? 'Ocultar' : 'Detalles' }}
+            </button>
           </div>
+          @if (alertDetailsOpen()) {
+            <div class="alerts-board-details">
+              <p class="alerts-board-details__title">Alertas de este puesto (solo hoy en adelante)</p>
+              @if (boardAlertItems().length === 0) {
+                <p class="alerts-board-details__empty">No hay detalle disponible. Recarga el cuadro.</p>
+              } @else {
+                <ul class="alerts-board-details__list">
+                  @for (a of boardAlertItems(); track a.id) {
+                    <li [class.warn]="a.severity === 'warning'" [class.err]="a.severity === 'error'">
+                      <span class="alerts-board-details__tag">{{ alertTypeLabel(a.type) }}</span>
+                      @if (a.day) {
+                        <span class="alerts-board-details__day">Día {{ a.day }}</span>
+                      }
+                      <span class="alerts-board-details__msg">{{ a.message }}</span>
+                    </li>
+                  }
+                </ul>
+              }
+            </div>
+          }
         }
 
         <div class="roles-panel">
@@ -644,7 +676,72 @@ const CODES: CodeConfig[] = [
       gap: 0.35rem 0.5rem;
       align-items: center;
     }
-    .alerts-board-banner a { color: #1d4ed8; font-weight: 600; }
+    .btn-alert-details {
+      margin-left: auto;
+      border: 1px solid #fca5a5;
+      background: #fff;
+      color: #991b1b;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.7rem;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-alert-details:hover { background: #fee2e2; }
+    .alerts-board-details {
+      margin: -0.35rem 0 0.85rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid #fecaca;
+      background: #fff;
+      max-height: 240px;
+      overflow: auto;
+    }
+    .alerts-board-details__title {
+      margin: 0 0 0.5rem;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #7f1d1d;
+    }
+    .alerts-board-details__empty {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+    .alerts-board-details__list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .alerts-board-details__list li {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.5rem;
+      align-items: baseline;
+      font-size: 0.82rem;
+      color: #334155;
+      padding: 0.4rem 0.5rem;
+      border-radius: 6px;
+      background: #f8fafc;
+      border-left: 3px solid #94a3b8;
+    }
+    .alerts-board-details__list li.err { border-left-color: #dc2626; background: #fef2f2; }
+    .alerts-board-details__list li.warn { border-left-color: #d97706; background: #fffbeb; }
+    .alerts-board-details__tag {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      color: #64748b;
+    }
+    .alerts-board-details__day {
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .alerts-board-details__msg { flex: 1 1 12rem; }
 
     .day-dow {
       font-size: 0.65rem;
@@ -1172,6 +1269,7 @@ export class ScheduleBoard implements OnInit {
   });
 
   readonly boardAlerts = signal<BoardAlertsResponse | null>(null);
+  readonly alertDetailsOpen = signal(false);
   readonly highlightDay = signal<number | null>(null);
   readonly boardSummary = computed(() => {
     const s = this.boardAlerts()?.summary;
@@ -1180,6 +1278,32 @@ export class ScheduleBoard implements OnInit {
     const conflictos = s?.conflictos ?? 0;
     const carga = s?.carga ?? 0;
     return { huecos, inactivos, conflictos, carga, total: huecos + inactivos + conflictos + carga };
+  });
+  /** Detalle de alertas solo de este puesto (API board-alerts). */
+  readonly boardAlertItems = computed(() => {
+    const res = this.boardAlerts();
+    if (!res) return [] as ScheduleAlertItem[];
+    if (res.alerts?.length) {
+      return [...res.alerts].sort((a, b) => {
+        const ta = a.type.localeCompare(b.type);
+        if (ta) return ta;
+        return (a.day ?? 0) - (b.day ?? 0);
+      });
+    }
+    // Fallback si la API aún no manda `alerts`
+    const fromCells: ScheduleAlertItem[] = (res.cells ?? []).flatMap((c, i) =>
+      (c.messages ?? []).map((message, j) => ({
+        id: `cell-${c.day}-${i}-${j}`,
+        type: c.types[0] ?? 'hueco_cobertura',
+        severity: c.severity,
+        month: res.month,
+        day: c.day,
+        postId: res.postId,
+        postName: '',
+        message,
+      })),
+    );
+    return [...fromCells, ...(res.associateLoad ?? [])];
   });
   readonly monthConflictAlerts = signal<ScheduleAlertItem[]>([]);
   readonly confirmOpen = signal(false);
@@ -1374,10 +1498,23 @@ export class ScheduleBoard implements OnInit {
 
   private reloadBoardAlerts(year: number, mon: number): void {
     if (!this.postId) return;
+    this.alertDetailsOpen.set(false);
     this.api.getBoardAlerts(this.postId, year, mon).subscribe({
       next: (res) => this.boardAlerts.set(res),
       error: () => this.boardAlerts.set(null),
     });
+  }
+
+  toggleAlertDetails(): void {
+    this.alertDetailsOpen.update((v) => !v);
+  }
+
+  alertTypeLabel(type: ScheduleAlertItem['type']): string {
+    if (type === 'hueco_cobertura') return 'Hueco';
+    if (type === 'asociado_inactivo') return 'No disponible';
+    if (type === 'conflicto_mismo_turno') return 'Conflicto';
+    if (type === 'carga_sobre_24') return 'Carga >24';
+    return type;
   }
 
   createSchedule(): void {

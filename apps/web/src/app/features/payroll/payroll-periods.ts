@@ -12,7 +12,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       <div class="periods-header">
         <div>
           <h3>Periodos de Nómina Oficial</h3>
-          <p class="subtitle">Seleccione un periodo para liquidar o consultar las colillas de pago desglosadas.</p>
+          <p class="subtitle">Módulo de liquidación de vigilantes: periodos, colillas y cálculo desde la programación de turnos.</p>
         </div>
         <button class="btn-create" (click)="showNewPeriodModal.set(true)">
           + Nuevo Periodo

@@ -31,7 +31,6 @@ import { SstModule } from './modules/sst/sst.module';
 import { MinutaModule } from './modules/minuta/minuta.module';
 import { SigModule } from './modules/sig/sig.module';
 import { UsersModule } from './modules/users/users.module';
-import { AccountingModule } from './modules/accounting/accounting.module';
 import { PayrollsModule } from './modules/payroll/payrolls.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
@@ -91,7 +90,6 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     SstModule,
     MinutaModule,
     SigModule,
-    AccountingModule,
     PayrollsModule,
     DashboardModule,
     AuditModule,

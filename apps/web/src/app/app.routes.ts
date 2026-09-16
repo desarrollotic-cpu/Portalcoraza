@@ -61,13 +61,6 @@ export const routes: Routes = [
           import('./features/payroll/payroll-periods').then((m) => m.PayrollPeriodsComponent),
       },
       {
-        path: 'contabilidad',
-        canActivate: [permissionGuard],
-        data: { permission: 'accounting.view' },
-        loadComponent: () =>
-          import('./features/accounting/puc-list').then((m) => m.PucListComponent),
-      },
-      {
         // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],

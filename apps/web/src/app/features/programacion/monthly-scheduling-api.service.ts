@@ -172,6 +172,8 @@ export interface BoardAlertsResponse {
     messages: string[];
   }>;
   associateLoad: ScheduleAlertItem[];
+  /** Alertas de este puesto (hoy en adelante). */
+  alerts?: ScheduleAlertItem[];
   summary?: {
     huecos: number;
     inactivos: number;

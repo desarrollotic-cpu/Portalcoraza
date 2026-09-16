@@ -2,8 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
-import { ShiftSchedule, ShiftType } from '../scheduling/entities/shift-schedule.entity';
-import { AccountingService } from '../accounting/accounting.service';
+import { ShiftSchedule } from '../scheduling/entities/shift-schedule.entity';
 import { getColombiaHolidays } from '../scheduling/utils/colombia-holidays';
 import { PayrollPeriod } from './entities/payroll-period.entity';
 import { PayrollSlipDetail } from './entities/payroll-slip-detail.entity';
@@ -22,7 +21,6 @@ export class PayrollsService {
     private readonly associateRepo: Repository<Associate>,
     @InjectRepository(ShiftSchedule)
     private readonly scheduleRepo: Repository<ShiftSchedule>,
-    private readonly accountingService: AccountingService,
   ) {}
 
   async getPeriods(): Promise<PayrollPeriod[]> {
@@ -94,8 +92,6 @@ export class PayrollsService {
       assignmentsByAssociate.set(a.associate_id, list);
     }
 
-    let totalNominaGasto = 0;
-
     for (const assoc of associates) {
       const assocAssignments = assignmentsByAssociate.get(assoc.id) ?? [];
       const basicSalary = SMMLV_2026;
@@ -166,8 +162,6 @@ export class PayrollsService {
       const pensionDeduction = Number((basicSalary * 0.04).toFixed(2));
       const totalDeducido = healthDeduction + pensionDeduction;
       const netPay = totalDevengado - totalDeducido;
-
-      totalNominaGasto += totalDevengado;
 
       // Guardar o actualizar colilla
       let slip = await this.slipRepo.findOne({
@@ -265,24 +259,6 @@ export class PayrollsService {
 
     period.status = 'LIQUIDADO';
     await this.periodRepo.save(period);
-
-    // Asiento Contable Automático en PUC
-    if (totalNominaGasto > 0) {
-      const totalSaludPencionDeduccion = Number((totalNominaGasto * 0.08).toFixed(2));
-      const totalNetoPagar = totalNominaGasto - totalSaludPencionDeduccion;
-
-      await this.accountingService.createEntry({
-        concept: `Causación de Nómina Periodo ${period.periodName}`,
-        sourceModule: 'NOMINA',
-        sourceId: period.id,
-        details: [
-          { accountCode: '510506', debitAmount: totalNominaGasto, creditAmount: 0, costCenter: 'OPERACION VIGILANCIA' },
-          { accountCode: '237005', debitAmount: 0, creditAmount: Number((totalSaludPencionDeduccion / 2).toFixed(2)), costCenter: 'EPS' },
-          { accountCode: '237010', debitAmount: 0, creditAmount: Number((totalSaludPencionDeduccion / 2).toFixed(2)), costCenter: 'AFP' },
-          { accountCode: '250505', debitAmount: 0, creditAmount: totalNetoPagar, costCenter: 'ASOCIADOS' },
-        ],
-      });
-    }
 
     return this.getPeriodById(periodId);
   }

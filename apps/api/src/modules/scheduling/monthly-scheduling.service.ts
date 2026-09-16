@@ -399,6 +399,8 @@ export class MonthlySchedulingService {
       postId: query.postId,
       cells: [...byDay.values()].sort((a, b) => a.day - b.day),
       associateLoad: relevant.filter((a) => a.type === 'carga_sobre_24'),
+      /** Alertas accionables solo de este puesto (hoy en adelante). */
+      alerts: relevant,
       summary: {
         huecos: relevant.filter((a) => a.type === 'hueco_cobertura' && a.postId === query.postId).length,
         inactivos: relevant.filter((a) => a.type === 'asociado_inactivo' && a.postId === query.postId).length,
