@@ -148,6 +148,13 @@ export class AssociatesService {
       );
     }
 
+    if (query.hireFrom) {
+      qb.andWhere('a.hireDate >= :hireFrom', { hireFrom: query.hireFrom });
+    }
+    if (query.hireTo) {
+      qb.andWhere('a.hireDate <= :hireTo', { hireTo: query.hireTo });
+    }
+
     qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
 
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);

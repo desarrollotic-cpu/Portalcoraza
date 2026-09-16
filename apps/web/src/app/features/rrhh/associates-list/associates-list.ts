@@ -33,6 +33,15 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
   RETIRADO: { label: 'Retirado', color: 'red' },
 };
 
+/** Primer y último día del mes `YYYY-MM`. */
+function monthBounds(ym: string): { from: string; to: string } {
+  const [y, m] = ym.split('-').map(Number);
+  const from = `${y}-${String(m).padStart(2, '0')}-01`;
+  const last = new Date(y, m, 0).getDate();
+  const to = `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+  return { from, to };
+}
+
 /**
  * Directorio de asociados con filtros avanzados, búsqueda en tiempo real y
  * semáforo de cumplimiento SST por fila (verde/amarillo/rojo).
@@ -103,6 +112,7 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
         </select>
         <select [ngModel]="tenureBucket" (ngModelChange)="setTenure($event)">
           <option value="">Cualquier antigüedad</option>
+          <option value="lt1">Menos de 1 mes</option>
           <option value="0-2">Menos de 3 meses</option>
           <option value="3-6">3 a 6 meses</option>
           <option value="7-12">7 a 12 meses</option>
@@ -111,6 +121,19 @@ const STATUS_LABELS: Record<AssociateStatus, { label: string; color: string }> =
           <option value="37-60">37 a 60 meses</option>
           <option value="61+">Más de 60 meses</option>
         </select>
+        <label class="hr-filter-month">
+          Ingresaron en el mes
+          <input
+            type="month"
+            [ngModel]="hireMonth"
+            (ngModelChange)="setHireMonth($event)"
+          />
+        </label>
+        @if (hireMonth || tenureBucket) {
+          <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="clearDateFilters()">
+            Limpiar mes / antigüedad
+          </button>
+        }
       </section>
 
       @if (loading()) {
@@ -238,6 +261,7 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   query: AssociatesQuery = { status: 'ACTIVO' };
   tenureBucket = '';
+  hireMonth = '';
 
   readonly filtered = computed(() => this.associates());
 
@@ -298,6 +322,34 @@ export class AssociatesList implements OnInit, OnDestroy {
   clearFilters(): void {
     this.query = { status: 'ACTIVO' };
     this.tenureBucket = '';
+    this.hireMonth = '';
+    this.page.set(1);
+    this.applyFilters();
+  }
+
+  clearDateFilters(): void {
+    this.tenureBucket = '';
+    this.hireMonth = '';
+    this.query.tenureMinMonths = undefined;
+    this.query.tenureMaxMonths = undefined;
+    this.query.tenureMinYears = undefined;
+    this.query.tenureMaxYears = undefined;
+    this.query.hireFrom = undefined;
+    this.query.hireTo = undefined;
+    this.page.set(1);
+    this.applyFilters();
+  }
+
+  setHireMonth(ym: string): void {
+    this.hireMonth = ym ?? '';
+    if (!this.hireMonth) {
+      this.query.hireFrom = undefined;
+      this.query.hireTo = undefined;
+    } else {
+      const bounds = monthBounds(this.hireMonth);
+      this.query.hireFrom = bounds.from;
+      this.query.hireTo = bounds.to;
+    }
     this.page.set(1);
     this.applyFilters();
   }
@@ -305,6 +357,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   setTenure(bucket: string): void {
     this.tenureBucket = bucket;
     const ranges: Record<string, { min?: string; max?: string }> = {
+      lt1: { min: '0', max: '0' },
       '0-2': { min: '0', max: '2' },
       '3-6': { min: '3', max: '6' },
       '7-12': { min: '7', max: '12' },

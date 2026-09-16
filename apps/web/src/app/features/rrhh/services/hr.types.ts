@@ -188,6 +188,10 @@ export interface AssociatesQuery {
   tenureMaxYears?: string;
   tenureMinMonths?: string;
   tenureMaxMonths?: string;
+  /** Ingreso desde (YYYY-MM-DD). */
+  hireFrom?: string;
+  /** Ingreso hasta (YYYY-MM-DD). */
+  hireTo?: string;
   page?: number;
   limit?: number;
 }

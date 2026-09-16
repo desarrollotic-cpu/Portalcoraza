@@ -1,16 +1,26 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HrPageHeader } from '../../../../shared/components/hr-page-header/hr-page-header';
 import { HrApiService } from '../../services/hr-api.service';
 import type { Retirement } from '../../services/hr.types';
 
+/** Primer y último día del mes `YYYY-MM`. */
+function monthBounds(ym: string): { from: string; to: string } {
+  const [y, m] = ym.split('-').map(Number);
+  const from = `${y}-${String(m).padStart(2, '0')}-01`;
+  const last = new Date(y, m, 0).getDate();
+  const to = `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+  return { from, to };
+}
+
 /**
- * Listado de retiros. Muestra los retiros registrados con paginación.
+ * Listado de retiros. Filtro por mes de retiro + paginación.
  */
 @Component({
   selector: 'app-retirements-list',
-  imports: [CommonModule, RouterLink, HrPageHeader],
+  imports: [CommonModule, FormsModule, RouterLink, HrPageHeader],
   template: `
     <div class="hr-page">
       <app-hr-page-header
@@ -18,10 +28,24 @@ import type { Retirement } from '../../services/hr.types';
         [badge]="rangeLabel()"
       />
 
+      <section class="hr-filters">
+        <label class="hr-filter-month">
+          Se retiraron en el mes
+          <input type="month" [ngModel]="retirementMonth" (ngModelChange)="setRetirementMonth($event)" />
+        </label>
+        @if (retirementMonth) {
+          <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="clearMonthFilter()">
+            Ver todos los meses
+          </button>
+        }
+      </section>
+
       @if (loading()) {
         <p class="hr-loading">Cargando...</p>
       } @else if (total() === 0) {
-        <p class="hr-empty">Aún no hay retiros registrados.</p>
+        <p class="hr-empty">
+          {{ retirementMonth ? 'No hay retiros en ese mes.' : 'Aún no hay retiros registrados.' }}
+        </p>
       } @else {
         <div class="hr-table-wrap">
           <table class="hr-table">
@@ -88,6 +112,7 @@ export class RetirementsList implements OnInit {
   readonly limit = 50;
   readonly total = signal(0);
   readonly totalPages = signal(1);
+  retirementMonth = '';
 
   readonly rangeLabel = computed(() => {
     const total = this.total();
@@ -101,9 +126,28 @@ export class RetirementsList implements OnInit {
     this.load();
   }
 
+  setRetirementMonth(ym: string): void {
+    this.retirementMonth = ym ?? '';
+    this.page.set(1);
+    this.load();
+  }
+
+  clearMonthFilter(): void {
+    this.retirementMonth = '';
+    this.page.set(1);
+    this.load();
+  }
+
   load(): void {
     this.loading.set(true);
-    this.api.listRetirements(undefined, undefined, this.page(), this.limit).subscribe({
+    let from: string | undefined;
+    let to: string | undefined;
+    if (this.retirementMonth) {
+      const bounds = monthBounds(this.retirementMonth);
+      from = bounds.from;
+      to = bounds.to;
+    }
+    this.api.listRetirements(from, to, this.page(), this.limit).subscribe({
       next: (res) => {
         this.retirements.set(res.items);
         this.total.set(res.total);

@@ -35,6 +35,14 @@ export class AssociatesQueryDto {
   @IsOptional() @IsNumberString()
   tenureMaxMonths?: string;
 
+  /** Fecha ingreso desde (YYYY-MM-DD). */
+  @IsOptional() @IsString()
+  hireFrom?: string;
+
+  /** Fecha ingreso hasta (YYYY-MM-DD). */
+  @IsOptional() @IsString()
+  hireTo?: string;
+
   @IsOptional() @IsNumberString()
   page?: string;
 
