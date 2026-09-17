@@ -7,6 +7,7 @@ import {
   PostContractRow,
   PostStatus,
 } from '../../operaciones/operaciones-api.service';
+import { PostFichaPdfService } from './post-ficha-pdf.service';
 
 function zoneNumber(zone: string | null | undefined): number {
   const n = Number(String(zone ?? '').match(/\d+/)?.[0]);
@@ -130,8 +131,17 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                   <td>{{ dash(p.nit) }}</td>
                   <td>{{ p.zone || '—' }}</td>
                   <td>{{ p.status }}</td>
-                  <td>
+                  <td class="actions">
                     <button type="button" class="link" (click)="openFicha(p)">Ver ficha</button>
+                    <button
+                      type="button"
+                      class="btn-pdf"
+                      (click)="downloadPdf(p)"
+                      [disabled]="pdfBusyId() === p.id"
+                      title="Descargar ficha técnica PDF"
+                    >
+                      {{ pdfBusyId() === p.id ? 'Generando…' : 'PDF' }}
+                    </button>
                   </td>
                 </tr>
               } @empty {
@@ -154,9 +164,19 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
 
         @if (selected(); as p) {
           <article class="ficha">
-            <header>
-              <h3>{{ p.name }}</h3>
-              <p class="muted">{{ p.status }} · actualizado {{ p.updatedAt | date: 'dd/MM/yyyy' }}</p>
+            <header class="ficha-head">
+              <div>
+                <h3>{{ p.name }}</h3>
+                <p class="muted">{{ p.status }} · actualizado {{ p.updatedAt | date: 'dd/MM/yyyy' }}</p>
+              </div>
+              <button
+                type="button"
+                class="btn-pdf btn-pdf-lg"
+                (click)="downloadPdf(p)"
+                [disabled]="pdfBusyId() === p.id"
+              >
+                {{ pdfBusyId() === p.id ? 'Generando…' : 'Descargar ficha técnica (PDF)' }}
+              </button>
             </header>
 
             <section>
@@ -280,10 +300,28 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border, #eee); }
     tr.active { background: color-mix(in srgb, var(--primary, #1d4ed8) 8%, #fff); }
-    button.link { border: none; background: none; color: var(--coraza-primary, #1d4ed8); cursor: pointer; font: inherit; }
+    button.link { border: none; background: none; color: var(--coraza-primary, #0369a1); cursor: pointer; font: inherit; }
+    td.actions { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
+    .btn-pdf {
+      border: 1px solid #7dd3fc;
+      background: #e0f2fe;
+      color: #0369a1;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.8rem;
+      padding: 0.3rem 0.55rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-pdf:hover:not(:disabled) { background: #bae6fd; }
+    .btn-pdf:disabled { opacity: 0.55; cursor: wait; }
+    .btn-pdf-lg { padding: 0.45rem 0.85rem; font-size: 0.88rem; }
     .ficha {
       border: 1px solid var(--border, #e5e7eb); border-radius: 12px; padding: 1.1rem 1.25rem;
       background: #fff; display: flex; flex-direction: column; gap: 1.1rem;
+    }
+    .ficha-head {
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;
     }
     .ficha h3 { margin: 0; }
     .ficha h4 { margin: 0 0 0.45rem; font-size: 0.95rem; }
@@ -311,6 +349,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
 })
 export class ReceptionPostFichas implements OnInit {
   private readonly api = inject(OperacionesApiService);
+  private readonly pdf = inject(PostFichaPdfService);
 
   readonly posts = signal<OperacionesPost[]>([]);
   readonly loading = signal(true);
@@ -320,6 +359,7 @@ export class ReceptionPostFichas implements OnInit {
   readonly page = signal(1);
   readonly pageSize = 50;
   readonly selected = signal<OperacionesPost | null>(null);
+  readonly pdfBusyId = signal<string | null>(null);
   readonly bascLabel = bascLabel;
   readonly dash = dash;
   readonly docFields = DOC_FIELDS;
@@ -395,6 +435,23 @@ export class ReceptionPostFichas implements OnInit {
     });
     queueMicrotask(() => {
       document.querySelector('article.ficha')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  /** Carga ficha completa y abre diálogo de impresión / guardar PDF. */
+  downloadPdf(p: OperacionesPost): void {
+    this.pdfBusyId.set(p.id);
+    this.api.getPost(p.id).subscribe({
+      next: (full) => {
+        this.pdfBusyId.set(null);
+        this.selected.set(full);
+        this.pdf.generateAndPrint(full);
+      },
+      error: () => {
+        this.pdfBusyId.set(null);
+        // Fallback con datos de la lista si falla el detalle
+        this.pdf.generateAndPrint(p);
+      },
     });
   }
 
