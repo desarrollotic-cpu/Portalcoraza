@@ -38,51 +38,6 @@ const DOC_FIELDS: { key: keyof OperacionesPost; label: string }[] = [
   { key: 'docRuesCamara', label: 'RUES / Cámara (fecha o estado)' },
 ];
 
-const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label: string }[] }[] = [
-  {
-    title: 'OFAC / Centrales de riesgo / Otras',
-    items: [
-      { key: 'verifEncuestaSatisfaccion', label: 'Encuesta de satisfacción' },
-      { key: 'verifOfacRl', label: 'OFAC representante legal' },
-      { key: 'verifOfacPersonaJuridica', label: 'OFAC persona jurídica' },
-      { key: 'verifCentralRiesgosPn', label: 'Central de riesgos PN' },
-      { key: 'verifCentralRiesgosNit', label: 'Central de riesgos NIT' },
-      { key: 'verifSupersociedades', label: 'Supersociedades / Turismo / Comercio' },
-    ],
-  },
-  {
-    title: 'Procuraduría',
-    items: [
-      { key: 'verifProcuraduriaNit', label: 'NIT' },
-      { key: 'verifProcuraduriaRl', label: 'RL' },
-      { key: 'verifProcuraduriaRls', label: 'RLS' },
-      { key: 'verifProcuraduriaRevFiscalPpal', label: 'Revisor fiscal principal' },
-      { key: 'verifProcuraduriaRevFiscalSup', label: 'Revisor fiscal suplente' },
-      { key: 'verifProcuraduriaMiembrosJunta', label: 'Miembros de junta' },
-    ],
-  },
-  {
-    title: 'Policía',
-    items: [
-      { key: 'verifPoliciaRp', label: 'RP' },
-      { key: 'verifPoliciaRpSup', label: 'RP suplente' },
-      { key: 'verifPoliciaRevFiscal', label: 'Revisor fiscal' },
-      { key: 'verifPoliciaRevFiscalSup', label: 'Revisor fiscal suplente' },
-      { key: 'verifPoliciaMiembrosJunta', label: 'Miembros de junta' },
-    ],
-  },
-  {
-    title: 'Contraloría',
-    items: [
-      { key: 'verifContraloriaRp', label: 'RP' },
-      { key: 'verifContraloriaRpSup', label: 'RP suplente' },
-      { key: 'verifContraloriaRevFiscal', label: 'Revisor fiscal' },
-      { key: 'verifContraloriaRevFiscalSup', label: 'Revisor fiscal suplente' },
-      { key: 'verifContraloriaMiembrosJunta', label: 'Miembros de junta' },
-    ],
-  },
-];
-
 @Injectable({ providedIn: 'root' })
 export class PostFichaPdfService {
   /**
@@ -216,20 +171,6 @@ export class PostFichaPdfService {
       DOC_FIELDS.map((d) => [d.label, this.field(p, d.key)] as [string, string]),
     );
 
-    const verifBody = VERIF_GROUPS.map((g) => {
-      const rows = this.dlRows(
-        g.items.map((it) => [it.label, this.field(p, it.key)] as [string, string]),
-      );
-      return `<div class="card"><h3>${esc(g.title)}</h3>${rows}</div>`;
-    }).join('');
-
-    const obsBody = this.dlRows([
-      ['Requisitos', dash(p.requirements)],
-      ['Instrucciones', dash(p.instructions)],
-      ['Observaciones', dash(p.observations)],
-      ['Notas', dash(p.notes)],
-    ]);
-
     const origin = typeof location !== 'undefined' ? location.origin : '';
     const logo = `${origin}/brand/logo-coraza-cta.png`;
 
@@ -359,8 +300,6 @@ export class PostFichaPdfService {
     ${this.section('Ubicación', ubicBody)}
     ${this.section('Representante legal y contacto', contactBody)}
     ${this.section('Documentación', docsBody)}
-    ${this.section('Verificaciones', verifBody)}
-    ${this.section('Requisitos, instrucciones y observaciones', obsBody)}
 
     <footer class="foot">
       <span>Documento interno · uso operativo</span>
