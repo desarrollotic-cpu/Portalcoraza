@@ -275,8 +275,20 @@ export class MinutaNuevo implements OnInit {
       error: (e) => {
         this.busy.set(false);
         this.msgOk.set(false);
-        this.msg.set(e?.error?.message || 'No se pudo guardar. Intenta de nuevo.');
+        this.msg.set(this.saveError(e));
       },
     });
+  }
+
+  private saveError(e: { status?: number; error?: { message?: string | string[] } }): string {
+    const raw = e?.error?.message;
+    const msg = Array.isArray(raw) ? raw.join('. ') : raw;
+    if (e?.status === 401 || msg === 'Unauthorized') {
+      return 'La sesión venció. Entra de nuevo y vuelve a guardar.';
+    }
+    if (e?.status === 403) {
+      return msg || 'Sin permiso para registrar en este puesto.';
+    }
+    return msg || 'No se pudo guardar. Intenta de nuevo.';
   }
 }

@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import PDFDocument = require('pdfkit');
 import { Between, FindOptionsWhere, In, Repository } from 'typeorm';
+import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { Post } from '../posts/entities/post.entity';
 import { UserPost } from '../users/entities/user-post.entity';
@@ -211,15 +212,32 @@ export class MinutaService {
     modulo: 'servicio' | 'visitantes' | 'correspondencia',
   ): Promise<number> {
     const pid = postId || '00000000-0000-0000-0000-000000000000';
-    const rows = (await this.servicio.manager.query(
-      `INSERT INTO minuta_folio_counter (post_id, modulo, last_folio)
+    const sql = `INSERT INTO minuta_folio_counter (post_id, modulo, last_folio)
        VALUES ($1, $2, 0)
        ON CONFLICT (post_id, modulo)
        DO UPDATE SET last_folio = (minuta_folio_counter.last_folio + 1) % 200
-       RETURNING last_folio`,
-      [pid, modulo],
-    )) as Array<{ last_folio: number }>;
-    return Number(rows[0]?.last_folio ?? 0);
+       RETURNING last_folio`;
+    const params = [pid, modulo];
+    const run = async () => {
+      const qr = TenantQueryRunnerContext.getOptional();
+      return (qr
+        ? await qr.query(sql, params)
+        : await this.servicio.manager.query(sql, params)) as Array<{ last_folio: number }>;
+    };
+    try {
+      const rows = await run();
+      return Number(rows[0]?.last_folio ?? 0);
+    } catch {
+      await this.servicio.manager.query(`
+        CREATE TABLE IF NOT EXISTS minuta_folio_counter (
+          post_id UUID NOT NULL,
+          modulo TEXT NOT NULL,
+          last_folio INT NOT NULL DEFAULT -1,
+          PRIMARY KEY (post_id, modulo)
+        )`);
+      const rows = await run();
+      return Number(rows[0]?.last_folio ?? 0);
+    }
   }
 
   private userName(user: JwtPayload): string {
@@ -1089,6 +1107,7 @@ export class MinutaService {
         folio: await this.nextFolio(postId, this.folioModulo('VISITANTE')),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         nombreCompleto: dto.nombre.trim().toUpperCase(),
@@ -1123,6 +1142,7 @@ export class MinutaService {
         folio: await this.nextFolio(postId, this.folioModulo('CORRESPONDENCIA')),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         clase: dto.clase,
@@ -1173,6 +1193,7 @@ export class MinutaService {
         folio: await this.nextFolio(postId, this.folioModulo('CONTRATISTA')),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         nombreCompleto: dto.nombre.trim().toUpperCase(),
@@ -1200,6 +1221,7 @@ export class MinutaService {
         folio: await this.nextFolio(postId, this.folioModulo('DOMICILIARIO')),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         empresa: dto.empresa,
@@ -1229,6 +1251,7 @@ export class MinutaService {
         folio: await this.nextFolio(postId, this.folioModulo('INCIDENTE')),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         tipo: dto.tipo,
@@ -1259,6 +1282,7 @@ export class MinutaService {
         hora: this.fmtTime(now),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         usuario: this.userName(user),
         registradoPor,
         anotaciones: dto.anotaciones.trim(),
@@ -1281,6 +1305,7 @@ export class MinutaService {
         hora: this.fmtHm(now),
         fechaRegistro: now,
         associateId: null,
+        tenantId: user.tenantId,
         registradoPor,
         turnoSaliente: dto.turnoSaliente,
         turnoEntrante: dto.turnoEntrante,
