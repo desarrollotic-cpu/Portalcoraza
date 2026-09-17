@@ -43,15 +43,17 @@ export class ProgramacionLayout {
       icon: LucideCalendarClock,
     },
     {
+      // Alertas y recargos: acceso solo a quienes editan la programación.
+      // Monitoreo (rol de visualización) NO ve estos ítems.
       label: 'Control de Alertas',
       route: '/programacion/alertas',
-      permission: 'scheduling.view',
+      permission: 'scheduling.edit',
       icon: LucideAlertTriangle,
     },
     {
       label: 'Liquidación y Recargos',
       route: '/programacion/recargos',
-      permission: 'scheduling.view',
+      permission: 'scheduling.edit',
       icon: LucideCalculator,
     },
   ];

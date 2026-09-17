@@ -160,7 +160,13 @@ const CODES: CodeConfig[] = [
           </button>
         </div>
       } @else {
+        @if (!canEdit()) {
+          <div class="read-only-banner">
+             Modo visualización — puedes ver el cuadro, cambiar de puesto/mes e imprimir la cartelera. La edición está reservada al rol de Programación.
+          </div>
+        }
         <div class="actions">
+          @if (canEdit()) {
           <button type="button" (click)="runMotor()" [disabled]="saving()">
             Aplicar motor ({{ tipoCiclo }})
           </button>
@@ -210,16 +216,19 @@ const CODES: CodeConfig[] = [
               Volver a borrador
             </button>
           }
-          <button type="button" class="btn-print" (click)="printPlanillaCartelera()" [disabled]="saving()">
-             Imprimir Planilla Cartelera
-          </button>
           @if (dirty()) {
             <span class="hint warn">Hay cambios sin guardar</span>
           }
+          }
+          <button type="button" class="btn-print" (click)="printPlanillaCartelera()" [disabled]="saving()">
+             Imprimir Planilla Cartelera
+          </button>
         </div>
+        @if (canEdit()) {
         <p class="tpl-hint">
           Flujo: motor → ajusta celdas a mano → Guardar. Luego «Aplicar a los siguientes meses» copia este puesto al resto del año.
         </p>
+        }
         @if (boardSummary().total) {
           <div class="alerts-board-banner">
             <span>
@@ -265,7 +274,8 @@ const CODES: CodeConfig[] = [
         }
 
         <!-- Pool de disponibles: vigilantes activos sin puesto titular fijo.
-             Ayuda al programador a saber quién está libre y dónde estuvo por última vez. -->
+             Ayuda al programador a saber quién está libre y dónde estuvo por última vez.
+             Se muestra también en modo lectura (Monitoreo) porque es información, no edición. -->
         <div class="disponibles-panel">
           <div class="disponibles-head">
             <h3>Disponibles</h3>
@@ -318,6 +328,7 @@ const CODES: CodeConfig[] = [
           }
         </div>
 
+        @if (canEdit()) {
         <div class="roles-panel">
           <h3>Personal / Roles</h3>
           <div class="roles-grid">
@@ -380,6 +391,7 @@ const CODES: CodeConfig[] = [
             ></textarea>
           </label>
         </div>
+        }
 
         <div class="matrix-wrap">
           <table class="matrix">
@@ -668,6 +680,7 @@ const CODES: CodeConfig[] = [
       font-size: 0.88rem;
     }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
+    .read-only-banner { margin-bottom: 0.75rem; padding: 0.7rem 1rem; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 10px; color: #92400e; font-weight: 700; font-size: 0.9rem; }
     .disponibles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 12px; background: #f0f9ff; }
     .disponibles-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
     .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: #0369a1; font-weight: 800; letter-spacing: 0.02em; }
@@ -1305,6 +1318,9 @@ export class ScheduleBoard implements OnInit {
   readonly motorOk = signal<string | null>(null);
   readonly exportingExcel = signal(false);
   readonly templates = signal<ScheduleTemplate[]>([]);
+  // Modo visualización: verdadero cuando el usuario NO tiene 'scheduling.edit'.
+  // Se calcula en cada CD (barato: lee del signal currentUser del AuthService).
+  readonly canEdit = computed(() => this.auth.hasPermission('scheduling.edit'));
   // Pool de disponibles (activos sin puesto titular fijo) + último puesto donde estuvieron.
   readonly disponibles = signal<PoolDisponibleItem[]>([]);
   readonly disponiblesQuery = signal('');
@@ -2344,6 +2360,8 @@ export class ScheduleBoard implements OnInit {
   }
 
   openCell(role: PersonalRole, day: number): void {
+    // Modo visualización (Monitoreo): la celda no abre editor.
+    if (!this.canEdit()) return;
     const state = this.cells().get(`${role.rol}:${day}`);
     this.editAssociateId = state?.associateId ?? role.associateId ?? null;
     this.editCodigo = state?.codigo ?? '';
