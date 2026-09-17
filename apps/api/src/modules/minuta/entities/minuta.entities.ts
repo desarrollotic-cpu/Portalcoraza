@@ -358,6 +358,9 @@ export class MinutaEntregaPuesto {
   @Column({ type: 'text', nullable: true })
   novedades!: string | null;
 
+  @Column({ type: 'text', nullable: true })
+  anotaciones!: string | null;
+
   @Column({ name: 'equipos_entregados', type: 'text' })
   equiposEntregados!: string;
 

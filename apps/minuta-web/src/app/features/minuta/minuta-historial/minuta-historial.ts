@@ -113,7 +113,16 @@ export class MinutaHistorial implements OnInit {
 
   resumen(h: Record<string, unknown>): string {
     const d = this.detalles(h);
-    const bits = [d['nombre'], d['destinatario'], d['nombreDomiciliario'], d['apto'], d['empresa']]
+    const bits = [
+      d['nombre'],
+      d['destinatario'],
+      d['nombreDomiciliario'],
+      d['apto'],
+      d['empresa'],
+      d['vigilanteSaliente'],
+      d['vigilanteEntrante'],
+      d['anotaciones'],
+    ]
       .map((x) => String(x || '').trim())
       .filter(Boolean);
     return bits.slice(0, 2).join(' · ');

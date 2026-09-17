@@ -43,7 +43,7 @@ export const MINUTA_MODULOS: Array<{ k: MinutaFormKind; label: string; hint: str
   { k: 'DOMICILIARIO', label: 'Domicilio', hint: 'Rappi, Uber Eats, etc.' },
   { k: 'INCIDENTE', label: 'Incidente', hint: 'Novedad de seguridad o daño' },
   { k: 'SERVICIO', label: 'Anotaciones del turno', hint: 'Novedades del servicio' },
-  { k: 'ENTREGA', label: 'Entrega de puesto', hint: 'Cambio de turno' },
+  { k: 'ENTREGA', label: 'Entrega y recibida de puestos', hint: 'Quién entrega y quién recibe el puesto' },
 ];
 
 export type MinutaGrupoId = 'servicio' | 'visitantes' | 'correspondencia';
@@ -58,7 +58,7 @@ export const MINUTA_GRUPOS: Array<{
   {
     id: 'servicio',
     label: 'Minuta de servicio',
-    hint: 'Anotaciones del turno, incidentes y entrega de puesto',
+    hint: 'Anotaciones del turno, incidentes y entrega y recibida de puestos',
     kinds: ['SERVICIO', 'INCIDENTE', 'ENTREGA'],
     filtroTipo: 'MODULO_SERVICIO',
   },
@@ -186,6 +186,7 @@ export function bodyForMinuta(
         vigilanteSaliente: f.vigilanteSaliente,
         vigilanteEntrante: f.vigilanteEntrante,
         nombreDelPuesto: f.nombreDelPuesto,
+        anotaciones: f.anotaciones,
       };
   }
 }

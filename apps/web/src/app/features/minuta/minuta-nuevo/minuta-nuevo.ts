@@ -140,7 +140,7 @@ import {
               }
               @case ('ENTREGA') {
                 <label
-                  >Turno saliente
+                  >Turno que entrega
                   <select [(ngModel)]="f.turnoSaliente" name="ts">
                     <option>DIURNO</option>
                     <option>NOCTURNO</option>
@@ -148,16 +148,19 @@ import {
                   </select>
                 </label>
                 <label
-                  >Turno entrante
+                  >Turno que recibe
                   <select [(ngModel)]="f.turnoEntrante" name="te">
                     <option>DIURNO</option>
                     <option>NOCTURNO</option>
                     <option>MIXTO</option>
                   </select>
                 </label>
-                <label>Vigilante saliente<input [(ngModel)]="f.vigilanteSaliente" name="vs" /></label>
-                <label>Vigilante entrante<input [(ngModel)]="f.vigilanteEntrante" name="ve" /></label>
+                <label>Vigilante que entrega<input [(ngModel)]="f.vigilanteSaliente" name="vs" /></label>
+                <label>Vigilante que recibe<input [(ngModel)]="f.vigilanteEntrante" name="ve" /></label>
                 <label>Puesto<input [(ngModel)]="f.nombreDelPuesto" name="np" /></label>
+                <label
+                  >Anotaciones<textarea [(ngModel)]="f.anotaciones" name="anEnt" rows="4"></textarea>
+                </label>
               }
             }
             <button type="button" class="btn" [disabled]="busy()" (click)="save()">Guardar</button>

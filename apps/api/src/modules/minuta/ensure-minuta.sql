@@ -126,6 +126,7 @@ CREATE TABLE IF NOT EXISTS minuta_entrega_puesto (
   vigilante_entrante TEXT NOT NULL,
   nombre_del_puesto TEXT NOT NULL,
   novedades TEXT,
+  anotaciones TEXT,
   equipos_entregados TEXT NOT NULL DEFAULT 'Radio, Linterna',
   llaves_entregadas TEXT NOT NULL DEFAULT 'Set completo',
   observaciones TEXT,

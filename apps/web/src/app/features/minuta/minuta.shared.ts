@@ -43,7 +43,7 @@ export const MINUTA_MODULOS: Array<{ k: MinutaFormKind; label: string }> = [
   { k: 'DOMICILIARIO', label: 'Domiciliarios' },
   { k: 'INCIDENTE', label: 'Incidentes' },
   { k: 'SERVICIO', label: 'Servicio' },
-  { k: 'ENTREGA', label: 'Entrega de puesto' },
+  { k: 'ENTREGA', label: 'Entrega y recibida de puestos' },
 ];
 
 export function emptyMinutaForm(): MinutaFormModel {
@@ -140,6 +140,7 @@ export function bodyForMinuta(
         vigilanteSaliente: f.vigilanteSaliente,
         vigilanteEntrante: f.vigilanteEntrante,
         nombreDelPuesto: f.nombreDelPuesto,
+        anotaciones: f.anotaciones,
       };
   }
 }

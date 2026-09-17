@@ -71,6 +71,7 @@ export class MinutaEntregaDto extends MinutaRegistradoDto {
   @IsString() @MinLength(2) vigilanteSaliente!: string;
   @IsString() @MinLength(2) vigilanteEntrante!: string;
   @IsString() @MinLength(2) nombreDelPuesto!: string;
+  @IsOptional() @IsString() anotaciones?: string;
   @IsOptional() @IsString() novedades?: string;
   @IsOptional() @IsString() equiposEntregados?: string;
   @IsOptional() @IsString() llavesEntregadas?: string;

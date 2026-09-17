@@ -36,6 +36,7 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
           ON CONFLICT DO NOTHING
         `);
         await this.ensureRegistradoPor();
+        await this.ensureEntregaAnotaciones();
         return;
       }
       const sqlPath = path.join(__dirname, 'ensure-minuta.sql');
@@ -46,6 +47,7 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
       await this.ds.query(fs.readFileSync(sqlPath, 'utf8'));
       this.log.log('Esquema Minuta Virtual aplicado (ensure-minuta.sql)');
       await this.ensureRegistradoPor();
+      await this.ensureEntregaAnotaciones();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.error(`Bootstrap Minuta falló: ${msg}`);
@@ -67,5 +69,11 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
         `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS registrado_por TEXT`,
       );
     }
+  }
+
+  private async ensureEntregaAnotaciones(): Promise<void> {
+    await this.ds.query(
+      `ALTER TABLE minuta_entrega_puesto ADD COLUMN IF NOT EXISTS anotaciones TEXT`,
+    );
   }
 }

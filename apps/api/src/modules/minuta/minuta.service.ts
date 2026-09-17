@@ -479,7 +479,8 @@ export class MinutaService {
         base = String(row['anotaciones'] || row['novedades'] || '—').slice(0, 120);
         break;
       case 'ENTREGA':
-        base = `${row['turnoSaliente'] || '—'} → ${row['turnoEntrante'] || '—'} · ${row['vigilanteSaliente'] || '—'} / ${row['vigilanteEntrante'] || '—'}`;
+        base = `${row['vigilanteSaliente'] || '—'} entrega · ${row['vigilanteEntrante'] || '—'} recibe`;
+        if (row['anotaciones']) base += ` · ${String(row['anotaciones']).slice(0, 80)}`;
         break;
       default:
         base = '—';
@@ -797,7 +798,7 @@ export class MinutaService {
         CONTRATISTA: { label: 'CONTRATISTA', bg: '#ecfeff', border: '#a5f3fc', accent: '#0891b2', badgeBg: '#0e7490' },
         DOMICILIARIO: { label: 'DOMICILIARIO', bg: '#fffbeb', border: '#fde68a', accent: '#d97706', badgeBg: '#b45309' },
         INCIDENTE: { label: 'INCIDENTE / ALERTA', bg: '#fef2f2', border: '#fecaca', accent: '#dc2626', badgeBg: '#b91c1c' },
-        ENTREGA: { label: 'RELEVO DE PUESTO', bg: '#f8fafc', border: '#cbd5e1', accent: '#475569', badgeBg: '#334155' },
+        ENTREGA: { label: 'ENTREGA Y RECIBIDA DE PUESTO', bg: '#f8fafc', border: '#cbd5e1', accent: '#475569', badgeBg: '#334155' },
       };
 
       for (let i = 0; i < rows.length; i++) {
@@ -946,10 +947,10 @@ export class MinutaService {
       descripcion: 'Descripción',
       anotaciones: 'Anotaciones',
       novedades: 'Novedades',
-      turnoSaliente: 'Turno saliente',
-      turnoEntrante: 'Turno entrante',
-      vigilanteSaliente: 'Vigilante saliente',
-      vigilanteEntrante: 'Vigilante entrante',
+      turnoSaliente: 'Turno que entrega',
+      turnoEntrante: 'Turno que recibe',
+      vigilanteSaliente: 'Vigilante que entrega',
+      vigilanteEntrante: 'Vigilante que recibe',
       nombreDelPuesto: 'Nombre del puesto',
     };
     const preferred = Object.keys(labels);
@@ -1231,6 +1232,7 @@ export class MinutaService {
         vigilanteSaliente: dto.vigilanteSaliente.trim().toUpperCase(),
         vigilanteEntrante: dto.vigilanteEntrante.trim().toUpperCase(),
         nombreDelPuesto: dto.nombreDelPuesto.trim(),
+        anotaciones: dto.anotaciones?.trim() || null,
         novedades: dto.novedades || null,
         equiposEntregados: dto.equiposEntregados || 'Radio, Linterna',
         llavesEntregadas: dto.llavesEntregadas || 'Set completo',
