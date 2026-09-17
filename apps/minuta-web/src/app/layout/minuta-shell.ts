@@ -59,49 +59,69 @@ import { AuthService } from '../core/services/auth.service';
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 0.75rem;
-      padding: 0.9rem 1.25rem;
+      flex-wrap: nowrap;
+      gap: 0.6rem;
+      padding: 0.75rem 1rem;
     }
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.6rem;
       min-width: 0;
+      flex: 1 1 auto;
+    }
+    .brand > div {
+      min-width: 0;
+      flex: 1 1 auto;
+      overflow: hidden;
     }
     .logo {
       flex: 0 0 auto;
-      width: 48px;
-      height: 48px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       background: #fff;
       object-fit: contain;
     }
     .top strong {
       display: block;
-      font-size: 1.15rem;
+      font-size: 1.05rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
     .sub {
       display: block;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       opacity: 0.9;
-      max-width: 14rem;
+      max-width: 100%;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
     .back,
     .logout {
-      min-height: 3rem;
-      min-width: 4.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      background: rgba(255, 255, 255, 0.12);
+      flex: 0 0 auto;
+      min-height: 2.75rem;
+      min-width: 3.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      background: rgba(255, 255, 255, 0.14);
       color: #fff;
       border-radius: 12px;
-      padding: 0.5rem 0.95rem;
+      padding: 0.5rem 0.85rem;
       font: inherit;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 700;
       cursor: pointer;
+      -webkit-tap-highlight-color: rgba(255, 255, 255, 0.2);
+      touch-action: manipulation;
+    }
+    .logout {
+      background: rgba(220, 38, 38, 0.85);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
+    .logout:active {
+      background: rgba(185, 28, 28, 0.95);
     }
     .main {
       flex: 1;
@@ -152,8 +172,22 @@ import { AuthService } from '../core/services/auth.service';
         padding-left: 2rem;
         padding-right: 2rem;
       }
+      .logo {
+        width: 48px;
+        height: 48px;
+      }
       .top strong {
         font-size: 1.35rem;
+      }
+      .sub {
+        font-size: 0.9rem;
+      }
+      .back,
+      .logout {
+        min-height: 3rem;
+        min-width: 4.75rem;
+        font-size: 1rem;
+        padding: 0.55rem 0.95rem;
       }
     }
   `,
