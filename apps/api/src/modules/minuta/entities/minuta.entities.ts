@@ -55,6 +55,10 @@ export class MinutaVisitante {
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
 
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -108,6 +112,10 @@ export class MinutaCorrespondencia {
 
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
+
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -166,6 +174,10 @@ export class MinutaContratista {
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
 
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -223,6 +235,10 @@ export class MinutaDomiciliario {
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
 
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -277,6 +293,10 @@ export class MinutaIncidente {
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
 
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 }
@@ -315,6 +335,10 @@ export class MinutaServicio {
 
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
+
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
@@ -378,6 +402,10 @@ export class MinutaEntregaPuesto {
 
   @Column({ name: 'registrado_por', type: 'text', nullable: true })
   registradoPor!: string | null;
+
+  /** Folio Superintendencia 0–199 (cíclico por puesto y tipo de minuta). */
+  @Column({ type: 'int', nullable: true })
+  folio!: number | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

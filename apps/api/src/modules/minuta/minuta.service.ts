@@ -36,6 +36,7 @@ export type MinutaPostScope =
 export type OperacionesMinutaRow = {
   tipo: string;
   id: string;
+  folio?: number | null;
   fecha: string;
   estado: string;
   resumen: string;
@@ -187,6 +188,40 @@ export class MinutaService {
     return `${prefix}-${String(Date.now()).slice(-8)}`;
   }
 
+  private folioModulo(
+    tipo:
+      | 'VISITANTE'
+      | 'CORRESPONDENCIA'
+      | 'CONTRATISTA'
+      | 'DOMICILIARIO'
+      | 'INCIDENTE'
+      | 'SERVICIO'
+      | 'ENTREGA',
+  ): 'servicio' | 'visitantes' | 'correspondencia' {
+    if (tipo === 'CORRESPONDENCIA') return 'correspondencia';
+    if (tipo === 'VISITANTE' || tipo === 'CONTRATISTA' || tipo === 'DOMICILIARIO') {
+      return 'visitantes';
+    }
+    return 'servicio';
+  }
+
+  /** Consecutivo Superintendencia 0–199; al 199 vuelve a 0. Por puesto y tipo de minuta. */
+  private async nextFolio(
+    postId: string | null,
+    modulo: 'servicio' | 'visitantes' | 'correspondencia',
+  ): Promise<number> {
+    const pid = postId || '00000000-0000-0000-0000-000000000000';
+    const rows = (await this.servicio.manager.query(
+      `INSERT INTO minuta_folio_counter (post_id, modulo, last_folio)
+       VALUES ($1, $2, 0)
+       ON CONFLICT (post_id, modulo)
+       DO UPDATE SET last_folio = (minuta_folio_counter.last_folio + 1) % 200
+       RETURNING last_folio`,
+      [pid, modulo],
+    )) as Array<{ last_folio: number }>;
+    return Number(rows[0]?.last_folio ?? 0);
+  }
+
   private userName(user: JwtPayload): string {
     return (user.email || user.sub || 'portal').trim().toLowerCase();
   }
@@ -297,7 +332,7 @@ export class MinutaService {
           fecha: r.fechaRegistro,
           id: r.id,
           estado: (r as { estado?: string }).estado,
-          detalles: r as unknown as Record<string, unknown>,
+          detalles: this.detallesPublicos(r as unknown as Record<string, unknown>),
         });
       }
     };
@@ -494,12 +529,18 @@ export class MinutaService {
       'usuario',
       'associateId',
       'postId',
+      'tenantId',
       'createdAt',
       'updatedAt',
+      'id',
     ]);
     const out: Record<string, unknown> = {};
+    if (row['folio'] !== undefined && row['folio'] !== null && row['folio'] !== '') {
+      out.folio = row['folio'];
+    }
     for (const [k, v] of Object.entries(row)) {
-      if (omit.has(k) || v === null || v === undefined || v === '') continue;
+      if (omit.has(k) || k === 'folio') continue;
+      if (v === null || v === undefined || v === '') continue;
       if (typeof v === 'object' && !(v instanceof Date)) continue;
       out[k] = v instanceof Date ? v.toISOString() : v;
     }
@@ -563,6 +604,7 @@ export class MinutaService {
         historial.push({
           tipo,
           id: r.id,
+          folio: (r as { folio?: number | null }).folio ?? null,
           fecha: r.fechaRegistro.toISOString(),
           estado: (r as { estado?: string }).estado || '—',
           resumen: this.resumenMinuta(
@@ -822,6 +864,8 @@ export class MinutaService {
         delete details['fechaRegistro'];
         delete details['fecha'];
         delete details['hora'];
+        delete details['folio'];
+        delete details['tenantId'];
 
         const lines = this.pdfDetailLines(details);
         const detailText = lines.length ? lines.join('  |  ') : (row.resumen || 'Sin novedades.');
@@ -873,7 +917,11 @@ export class MinutaService {
           .fontSize(8.5)
           .font('Helvetica-Bold')
           .fillColor('#0f172a')
-          .text(`ID: ${row.id}`, left + 18 + bWidth + 6, startY + 8);
+          .text(
+            `N° ${row.folio ?? row.detalles?.['folio'] ?? '—'}`,
+            left + 18 + bWidth + 6,
+            startY + 8,
+          );
 
         doc
           .fontSize(7.5)
@@ -1038,6 +1086,7 @@ export class MinutaService {
     const row = await this.visitantes.save(
       this.visitantes.create({
         id: this.newId('VIS'),
+        folio: await this.nextFolio(postId, this.folioModulo('VISITANTE')),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
@@ -1071,6 +1120,7 @@ export class MinutaService {
     const row = await this.correspondencia.save(
       this.correspondencia.create({
         id: this.newId('CORR'),
+        folio: await this.nextFolio(postId, this.folioModulo('CORRESPONDENCIA')),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
@@ -1120,6 +1170,7 @@ export class MinutaService {
     const row = await this.contratistas.save(
       this.contratistas.create({
         id: this.newId('CONT'),
+        folio: await this.nextFolio(postId, this.folioModulo('CONTRATISTA')),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
@@ -1146,6 +1197,7 @@ export class MinutaService {
     const row = await this.domiciliarios.save(
       this.domiciliarios.create({
         id: this.newId('DOM'),
+        folio: await this.nextFolio(postId, this.folioModulo('DOMICILIARIO')),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
@@ -1174,6 +1226,7 @@ export class MinutaService {
     const row = await this.incidentes.save(
       this.incidentes.create({
         id: this.newId('INC'),
+        folio: await this.nextFolio(postId, this.folioModulo('INCIDENTE')),
         fechaRegistro: now,
         associateId: null,
         usuario: this.userName(user),
@@ -1201,6 +1254,7 @@ export class MinutaService {
     const row = await this.servicio.save(
       this.servicio.create({
         id: this.newId('SERV'),
+        folio: await this.nextFolio(postId, this.folioModulo('SERVICIO')),
         fecha: this.fmtDate(now),
         hora: this.fmtTime(now),
         fechaRegistro: now,
@@ -1222,6 +1276,7 @@ export class MinutaService {
     const row = await this.entregas.save(
       this.entregas.create({
         id: this.newId('ENT'),
+        folio: await this.nextFolio(postId, this.folioModulo('ENTREGA')),
         fecha: this.fmtDate(now),
         hora: this.fmtHm(now),
         fechaRegistro: now,

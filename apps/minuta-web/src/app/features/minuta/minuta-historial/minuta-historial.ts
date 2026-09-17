@@ -28,7 +28,12 @@ import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
       @for (h of historial(); track h['id']) {
         <div class="card row">
           <div class="card-main">
-            <strong>{{ tipoLabel(h['tipo']) }}</strong>
+            <strong>
+              @if (folioLabel(h); as n) {
+                N° {{ n }} ·
+              }
+              {{ tipoLabel(h['tipo']) }}
+            </strong>
             <div class="muted">
               {{ estadoLabel(h['estado']) }}
               @if (detalles(h)['registradoPor']) {
@@ -162,7 +167,23 @@ export class MinutaHistorial implements OnInit {
     const d = { ...this.detalles(h) };
     delete d['id'];
     delete d['tipo'];
+    delete d['tenantId'];
+    delete d['associateId'];
+    delete d['postId'];
+    delete d['usuario'];
     return d;
+  }
+
+  folioOf(h: Record<string, unknown>): number | null {
+    const raw = this.detalles(h)['folio'];
+    if (raw === undefined || raw === null || raw === '') return null;
+    const n = Number(raw);
+    return Number.isInteger(n) && n >= 0 && n <= 199 ? n : null;
+  }
+
+  folioLabel(h: Record<string, unknown>): string | null {
+    const n = this.folioOf(h);
+    return n === null ? null : String(n);
   }
 
   doSalida(h: Record<string, unknown>): void {

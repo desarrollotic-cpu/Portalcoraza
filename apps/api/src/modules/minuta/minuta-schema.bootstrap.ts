@@ -37,6 +37,7 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
         `);
         await this.ensureRegistradoPor();
         await this.ensureEntregaAnotaciones();
+        await this.ensureFolio();
         return;
       }
       const sqlPath = path.join(__dirname, 'ensure-minuta.sql');
@@ -48,6 +49,7 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
       this.log.log('Esquema Minuta Virtual aplicado (ensure-minuta.sql)');
       await this.ensureRegistradoPor();
       await this.ensureEntregaAnotaciones();
+      await this.ensureFolio();
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.log.error(`Bootstrap Minuta falló: ${msg}`);
@@ -75,5 +77,30 @@ export class MinutaSchemaBootstrap implements OnModuleInit {
     await this.ds.query(
       `ALTER TABLE minuta_entrega_puesto ADD COLUMN IF NOT EXISTS anotaciones TEXT`,
     );
+  }
+
+  private async ensureFolio(): Promise<void> {
+    await this.ds.query(`
+      CREATE TABLE IF NOT EXISTS minuta_folio_counter (
+        post_id UUID NOT NULL,
+        modulo TEXT NOT NULL,
+        last_folio INT NOT NULL DEFAULT -1,
+        PRIMARY KEY (post_id, modulo)
+      )
+    `);
+    const tables = [
+      'minuta_visitantes',
+      'minuta_correspondencia',
+      'minuta_contratistas',
+      'minuta_domiciliarios',
+      'minuta_incidentes',
+      'minuta_servicio',
+      'minuta_entrega_puesto',
+    ];
+    for (const table of tables) {
+      await this.ds.query(
+        `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS folio INT`,
+      );
+    }
   }
 }

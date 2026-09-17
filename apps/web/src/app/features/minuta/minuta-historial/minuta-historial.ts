@@ -144,6 +144,7 @@ export class MinutaHistorial implements OnInit {
     const d = { ...this.detalles(h) };
     delete d['id'];
     delete d['tipo'];
+    delete d['tenantId'];
     return d;
   }
 

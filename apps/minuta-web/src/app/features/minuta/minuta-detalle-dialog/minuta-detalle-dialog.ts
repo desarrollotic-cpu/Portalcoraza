@@ -1,6 +1,7 @@
 import { Component, input, output } from '@angular/core';
 
 const FIELD_LABELS: Record<string, string> = {
+  folio: 'N°',
   id: 'ID',
   tipo: 'Tipo',
   estado: 'Estado',
@@ -145,8 +146,20 @@ export class MinutaDetalleDialog {
   readonly closed = output<void>();
 
   rows(): Array<{ key: string; label: string; value: string }> {
-    const entries = Object.entries(this.fields() || {});
+    const hidden = new Set([
+      'tenantId',
+      'tenant_id',
+      'id',
+      'associateId',
+      'postId',
+      'usuario',
+      'createdAt',
+      'updatedAt',
+      'tipo',
+    ]);
+    const entries = Object.entries(this.fields() || {}).filter(([k]) => !hidden.has(k));
     const preferred = [
+      'folio',
       'registradoPor',
       'estado',
       'fechaRegistro',
@@ -181,7 +194,6 @@ export class MinutaDetalleDialog {
       'nombreDelPuesto',
       'observaciones',
       'resumen',
-      'id',
     ];
     const ordered: Array<[string, unknown]> = [];
     const seen = new Set<string>();
