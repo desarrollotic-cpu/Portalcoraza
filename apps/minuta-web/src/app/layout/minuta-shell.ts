@@ -14,6 +14,13 @@ import { AuthService } from '../core/services/auth.service';
             @if (showBack()) {
               <button type="button" class="back" (click)="goBack()">Atrás</button>
             }
+            <img
+              class="logo"
+              src="/brand/logo-coraza-cta.png"
+              width="48"
+              height="48"
+              alt="Coraza Seguridad C.T.A."
+            />
             <div>
               <strong>Minuta Virtual</strong>
               <span class="sub">{{ userLabel() }}</span>
@@ -60,6 +67,14 @@ import { AuthService } from '../core/services/auth.service';
       align-items: center;
       gap: 0.75rem;
       min-width: 0;
+    }
+    .logo {
+      flex: 0 0 auto;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #fff;
+      object-fit: contain;
     }
     .top strong {
       display: block;
