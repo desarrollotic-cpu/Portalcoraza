@@ -136,6 +136,12 @@ export class MonthlySchedulingController {
     return this.service.listByMonth(query);
   }
 
+  @Get('pool-disponibles')
+  @RequirePermissions('scheduling.view')
+  poolDisponibles() {
+    return this.service.poolDisponibles();
+  }
+
   @Get('alerts')
   @RequirePermissions('scheduling.view')
   getAlerts(@Query() query: MonthlyAlertsQueryDto) {

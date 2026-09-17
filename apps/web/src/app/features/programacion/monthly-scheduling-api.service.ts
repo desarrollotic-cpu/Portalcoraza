@@ -344,6 +344,23 @@ export class MonthlySchedulingApiService {
       applied: Array<{ month: number; scheduleId: string }>;
     }>(`${this.baseUrl}/${scheduleId}/apply-rest-of-year`, {});
   }
+
+  poolDisponibles(): Observable<PoolDisponibleItem[]> {
+    return this.http.get<PoolDisponibleItem[]>(`${this.baseUrl}/pool-disponibles`);
+  }
+}
+
+export interface PoolDisponibleItem {
+  id: string;
+  firstName: string;
+  lastName: string;
+  documentNumber: string;
+  lastDay: number | null;
+  lastCodigo: string | null;
+  lastYear: number | null;
+  lastMonth: number | null;
+  lastPostId: string | null;
+  lastPostName: string | null;
 }
 
 export interface ScheduleTemplate {

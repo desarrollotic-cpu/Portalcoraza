@@ -13,6 +13,7 @@ import {
   MonthlySchedule,
   MonthlySchedulingApiService,
   PersonalRole,
+  PoolDisponibleItem,
   SavePayload,
   ScheduleAlertItem,
   ScheduleAssignment,
@@ -262,6 +263,60 @@ const CODES: CodeConfig[] = [
             </div>
           }
         }
+
+        <!-- Pool de disponibles: vigilantes activos sin puesto titular fijo.
+             Ayuda al programador a saber quién está libre y dónde estuvo por última vez. -->
+        <div class="disponibles-panel">
+          <div class="disponibles-head">
+            <h3>Disponibles / Suplentes</h3>
+            <div class="disponibles-actions">
+              <span class="disponibles-count">{{ disponibles().length }}</span>
+              <input
+                type="text"
+                class="inp-search-assoc"
+                [ngModel]="disponiblesQuery()"
+                (ngModelChange)="disponiblesQuery.set($event)"
+                placeholder="Buscar por nombre o cédula…"
+              />
+              <button type="button" class="sm" (click)="loadDisponibles()" [disabled]="loadingDisponibles()" title="Recargar la lista">
+                {{ loadingDisponibles() ? '…' : 'Recargar' }}
+              </button>
+            </div>
+          </div>
+          @if (loadingDisponibles() && disponibles().length === 0) {
+            <p class="disponibles-empty">Cargando disponibles…</p>
+          } @else if (filteredDisponibles().length === 0) {
+            <p class="disponibles-empty">
+              @if (disponibles().length === 0) {
+                No hay suplentes registrados. Un suplente es un vigilante activo que no aparece como titular en ninguna plantilla de puesto.
+              } @else {
+                Sin coincidencias para «{{ disponiblesQuery() }}».
+              }
+            </p>
+          } @else {
+            <ul class="disponibles-list">
+              @for (d of filteredDisponibles(); track d.id) {
+                <li class="disponible-item">
+                  <div class="disponible-info">
+                    <strong>{{ d.firstName }} {{ d.lastName }}</strong>
+                    <span class="disponible-cc">CC: {{ d.documentNumber }}</span>
+                  </div>
+                  <div class="disponible-ultimo" [class.no-ultimo]="!d.lastPostName">
+                    @if (d.lastPostName) {
+                      <span class="ultimo-tag">Último puesto</span>
+                      <span class="ultimo-post">{{ d.lastPostName }}</span>
+                      <span class="ultimo-detalle">
+                        {{ formatUltimoPeriodo(d) }} · día {{ d.lastDay }} ({{ d.lastCodigo }})
+                      </span>
+                    } @else {
+                      <span class="ultimo-tag">Sin programación previa</span>
+                    }
+                  </div>
+                </li>
+              }
+            </ul>
+          }
+        </div>
 
         <div class="roles-panel">
           <h3>Personal / Roles</h3>
@@ -613,6 +668,22 @@ const CODES: CodeConfig[] = [
       font-size: 0.88rem;
     }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
+    .disponibles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 12px; background: #f0f9ff; }
+    .disponibles-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+    .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: #0369a1; font-weight: 800; letter-spacing: 0.02em; }
+    .disponibles-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .disponibles-count { background: #0369a1; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 28px; text-align: center; }
+    .disponibles-empty { margin: 0.35rem 0 0; font-size: 0.82rem; color: #475569; }
+    .disponibles-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.5rem; }
+    .disponible-item { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.55rem 0.7rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .disponible-info { display: flex; flex-direction: column; gap: 0.1rem; }
+    .disponible-info strong { color: #0f172a; font-size: 0.88rem; }
+    .disponible-cc { font-size: 0.75rem; color: #64748b; }
+    .disponible-ultimo { display: flex; flex-direction: column; gap: 0.1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.35rem; }
+    .disponible-ultimo.no-ultimo .ultimo-tag { color: #94a3b8; font-style: italic; }
+    .ultimo-tag { font-size: 0.68rem; font-weight: 700; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ultimo-post { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
+    .ultimo-detalle { font-size: 0.72rem; color: #475569; }
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
     .obs-label { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.85rem; font-size: 0.85rem; font-weight: 600; }
     .obs-label textarea {
@@ -1234,6 +1305,19 @@ export class ScheduleBoard implements OnInit {
   readonly motorOk = signal<string | null>(null);
   readonly exportingExcel = signal(false);
   readonly templates = signal<ScheduleTemplate[]>([]);
+  // Pool de disponibles (activos sin puesto titular fijo) + último puesto donde estuvieron.
+  readonly disponibles = signal<PoolDisponibleItem[]>([]);
+  readonly disponiblesQuery = signal('');
+  readonly loadingDisponibles = signal(false);
+  readonly filteredDisponibles = computed(() => {
+    const q = this.disponiblesQuery().trim().toLowerCase();
+    const list = this.disponibles();
+    if (!q) return list;
+    return list.filter((d) => {
+      const nombre = `${d.firstName} ${d.lastName}`.toLowerCase();
+      return nombre.includes(q) || (d.documentNumber || '').toLowerCase().includes(q);
+    });
+  });
   readonly postTemplates = computed(() => {
     const pid = this.postId;
     return this.templates().filter((t) => !t.postId || t.postId === pid);
@@ -1414,6 +1498,7 @@ export class ScheduleBoard implements OnInit {
     this.api.listTemplates().subscribe({
       next: (rows) => this.templates.set(rows),
     });
+    this.loadDisponibles();
 
     this.route.queryParamMap.subscribe((qp) => {
       const post = qp.get('postId');
@@ -1443,6 +1528,28 @@ export class ScheduleBoard implements OnInit {
         error: () => afterMonthReady(),
       });
     }
+  }
+
+  loadDisponibles(): void {
+    this.loadingDisponibles.set(true);
+    this.api.poolDisponibles().subscribe({
+      next: (rows) => {
+        this.disponibles.set(rows);
+        this.loadingDisponibles.set(false);
+      },
+      error: () => {
+        this.loadingDisponibles.set(false);
+      },
+    });
+  }
+
+  formatUltimoPeriodo(d: PoolDisponibleItem): string {
+    if (!d.lastYear || !d.lastMonth) return '—';
+    const meses = [
+      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
+    ];
+    return `${meses[(d.lastMonth ?? 1) - 1]} ${d.lastYear}`;
   }
 
   holidayName(day: number): string | null {

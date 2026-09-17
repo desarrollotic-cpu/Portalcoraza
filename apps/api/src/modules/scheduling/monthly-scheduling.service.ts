@@ -2234,5 +2234,89 @@ export class MonthlySchedulingService {
     const buffer = await wb.xlsx.writeBuffer();
     return Buffer.from(buffer);
   }
+
+  /**
+   * Pool de "disponibles" (suplentes / comodines):
+   * asociados ACTIVO que no aparecen como titular en ninguna plantilla,
+   * junto con el último puesto/día donde fueron programados con turno.
+   * RLS del tenant se aplica vía el manager de la transacción.
+   */
+  async poolDisponibles(): Promise<
+    Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      documentNumber: string;
+      lastDay: number | null;
+      lastCodigo: string | null;
+      lastYear: number | null;
+      lastMonth: number | null;
+      lastPostId: string | null;
+      lastPostName: string | null;
+    }>
+  > {
+    return this.runInTenantTx(async (m) => {
+      const sql = `
+        WITH titulares AS (
+          SELECT DISTINCT (elem->>'associateId') AS aid
+          FROM schedule_templates st
+          CROSS JOIN LATERAL jsonb_array_elements(
+            CASE WHEN jsonb_typeof(st.personal) = 'array' THEN st.personal ELSE '[]'::jsonb END
+          ) AS elem
+          WHERE (elem->>'associateId') IS NOT NULL
+            AND (elem->>'associateId') <> ''
+        ),
+        suplentes AS (
+          SELECT a.id, a.first_name, a.last_name, a.document_number
+          FROM associates a
+          WHERE a.status = 'ACTIVO'
+            AND a.id::text NOT IN (SELECT aid FROM titulares)
+        ),
+        last_asg AS (
+          SELECT DISTINCT ON (sa.associate_id)
+            sa.associate_id,
+            sa.day,
+            sa.codigo,
+            ms.year,
+            ms.month,
+            ms.post_id
+          FROM schedule_assignments sa
+          JOIN monthly_schedules ms ON ms.id = sa.schedule_id
+          WHERE sa.associate_id IS NOT NULL
+            AND sa.codigo IS NOT NULL
+            AND sa.codigo IN ('D','N','D8','N8','24','24H')
+          ORDER BY sa.associate_id, ms.year DESC, ms.month DESC, sa.day DESC
+        )
+        SELECT
+          s.id::text                             AS "id",
+          s.first_name                           AS "firstName",
+          s.last_name                            AS "lastName",
+          s.document_number                      AS "documentNumber",
+          la.day                                 AS "lastDay",
+          la.codigo                              AS "lastCodigo",
+          la.year                                AS "lastYear",
+          la.month                               AS "lastMonth",
+          la.post_id::text                       AS "lastPostId",
+          p.name                                 AS "lastPostName"
+        FROM suplentes s
+        LEFT JOIN last_asg la ON la.associate_id = s.id
+        LEFT JOIN posts p    ON p.id = la.post_id
+        ORDER BY s.first_name, s.last_name
+      `;
+      const rows = await m.query(sql);
+      return rows as Array<{
+        id: string;
+        firstName: string;
+        lastName: string;
+        documentNumber: string;
+        lastDay: number | null;
+        lastCodigo: string | null;
+        lastYear: number | null;
+        lastMonth: number | null;
+        lastPostId: string | null;
+        lastPostName: string | null;
+      }>;
+    });
+  }
 }
 
