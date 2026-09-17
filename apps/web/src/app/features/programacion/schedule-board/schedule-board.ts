@@ -268,7 +268,7 @@ const CODES: CodeConfig[] = [
              Ayuda al programador a saber quién está libre y dónde estuvo por última vez. -->
         <div class="disponibles-panel">
           <div class="disponibles-head">
-            <h3>Disponibles / Suplentes</h3>
+            <h3>Disponibles</h3>
             <div class="disponibles-actions">
               <span class="disponibles-count">{{ disponibles().length }}</span>
               <input
@@ -283,12 +283,12 @@ const CODES: CodeConfig[] = [
               </button>
             </div>
           </div>
-          @if (loadingDisponibles() && disponibles().length === 0) {
+            @if (loadingDisponibles() && disponibles().length === 0) {
             <p class="disponibles-empty">Cargando disponibles…</p>
           } @else if (filteredDisponibles().length === 0) {
             <p class="disponibles-empty">
               @if (disponibles().length === 0) {
-                No hay suplentes registrados. Un suplente es un vigilante activo que no aparece como titular en ninguna plantilla de puesto.
+                No hay disponibles. Un disponible es un vigilante activo que no aparece como titular en ninguna plantilla de puesto.
               } @else {
                 Sin coincidencias para «{{ disponiblesQuery() }}».
               }
