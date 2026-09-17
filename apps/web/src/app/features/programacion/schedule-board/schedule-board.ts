@@ -1941,15 +1941,21 @@ export class ScheduleBoard implements OnInit {
     const holidays = getColombiaHolidays(year);
     const holidayDates = new Set(holidays.map(h => h.date));
 
+    // Días que se resaltan en rojo (sábado, domingo, festivo) — reglamentación de recargos
+    const redDays = new Set<number>();
     let headerThs = '';
     for (const d of days) {
       const dObj = new Date(year, mNum - 1, d);
-      const isSun = dObj.getDay() === 0;
+      const dow = dObj.getDay();
+      const isSat = dow === 6;
+      const isSun = dow === 0;
       const iso = `${year}-${String(mNum).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
       const isHol = holidayDates.has(iso);
-      const bg = isSun ? '#fee2e2' : isHol ? '#fef3c7' : '#f8fafc';
-      const color = isSun ? '#991b1b' : isHol ? '#92400e' : '#1e293b';
-      headerThs += `<th style="background:${bg}; color:${color}; border:1px solid #94a3b8; padding:3px 1px; font-size:9px; text-align:center; min-width:18px;">${d}</th>`;
+      const isRed = isSat || isSun || isHol;
+      if (isRed) redDays.add(d);
+      const bg = isRed ? '#fee2e2' : '#f8fafc';
+      const color = isRed ? '#991b1b' : '#1e293b';
+      headerThs += `<th style="background:${bg}; color:${color}; border:1px solid #94a3b8; padding:3px 1px; font-size:9px; font-weight:${isRed ? '800' : '600'}; text-align:center; min-width:18px;">${d}</th>`;
     }
 
     let rowsHtml = '';
@@ -1962,6 +1968,7 @@ export class ScheduleBoard implements OnInit {
       for (const d of days) {
         const state = this.cells().get(`${role.rol}:${d}`);
         const code = state?.codigo || '—';
+        const isRed = redDays.has(d);
         let cellBg = '#ffffff';
         let cellColor = '#334155';
         let fontW = 'normal';
@@ -1974,6 +1981,19 @@ export class ScheduleBoard implements OnInit {
           cellBg = '#f1f5f9'; cellColor = '#475569';
         } else if (code === 'IN' || code === 'VAC' || code === 'LC' || code === 'SP') {
           cellBg = '#fee2e2'; cellColor = '#991b1b'; fontW = 'bold';
+        }
+
+        // Columnas de sábado, domingo o festivo: pintar la celda en rojo cuando esté vacía o en descanso,
+        // y forzar texto rojo en las que tienen turno para conservar la lectura del código.
+        if (isRed) {
+          if (code === '—' || code === 'DR' || code === 'NR' || code === 'L') {
+            cellBg = '#fee2e2';
+            cellColor = '#991b1b';
+            fontW = 'bold';
+          } else {
+            cellColor = '#991b1b';
+            fontW = 'bold';
+          }
         }
 
         cellsTds += `<td style="background:${cellBg}; color:${cellColor}; font-weight:${fontW}; border:1px solid #cbd5e1; text-align:center; font-size:9.5px; padding:4px 1px;">${code}</td>`;
@@ -2044,7 +2064,7 @@ export class ScheduleBoard implements OnInit {
           <span class="conv-item"><span class="conv-box" style="background:#f1f5f9; color:#475569;">DR</span> Descanso Remunerado</span>
           <span class="conv-item"><span class="conv-box" style="background:#fee2e2; color:#991b1b;">IN</span> Incapacidad / Novedad Médica</span>
           <span class="conv-item"><span class="conv-box" style="background:#fef3c7; color:#92400e;">VAC</span> Vacaciones</span>
-          <span class="conv-item" style="color:#991b1b;">■ Domingos / Festivos</span>
+          <span class="conv-item" style="color:#991b1b; font-weight:bold;">■ Sábados / Domingos / Festivos</span>
         </div>
 
         <table>
