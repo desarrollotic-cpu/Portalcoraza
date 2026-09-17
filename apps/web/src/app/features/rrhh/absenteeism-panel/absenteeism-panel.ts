@@ -122,10 +122,11 @@ import type {
               @if (!editingId()) {
                 <input
                   type="search"
-                  placeholder="Cédula o nombre..."
+                  placeholder="Cédula o nombre… luego elige de la lista"
                   [(ngModel)]="assocQuery"
                   name="assocQuery"
                   (input)="searchAssociates()"
+                  (keydown.enter)="$event.preventDefault(); pickFirstAssociate()"
                 />
                 @if (associateHits().length) {
                   <ul class="hr-suggest">
@@ -133,13 +134,16 @@ import type {
                       <li>
                         <button type="button" (click)="pickAssociate(a)">
                           {{ a.documentNumber }} · {{ a.fullName }}
+                          <span class="hr-muted"> · {{ a.status }}</span>
                         </button>
                       </li>
                     }
                   </ul>
                 }
-                @if (form.associateId) {
+                @if (formAssociateId()) {
                   <small class="hr-muted">Seleccionado: {{ selectedAssocLabel() }}</small>
+                } @else if (assocQuery.trim().length >= 2) {
+                  <small class="hr-warn">Haz clic en un resultado de la lista para habilitar Guardar.</small>
                 }
               } @else {
                 <input type="text" [value]="selectedAssocLabel()" disabled />
@@ -226,7 +230,7 @@ import type {
           </div>
           <div class="hr-form-actions">
             <button type="button" class="hr-btn hr-btn-ghost" (click)="closeForm()">Cancelar</button>
-            <button type="submit" class="hr-btn hr-btn-primary" [disabled]="saving() || !form.associateId">
+            <button type="submit" class="hr-btn hr-btn-primary" [disabled]="saving() || !formAssociateId()">
               {{ saving() ? 'Guardando...' : 'Guardar' }}
             </button>
           </div>
@@ -352,6 +356,13 @@ import type {
       color: var(--color-muted, #737373);
       font-size: 0.8rem;
     }
+    .hr-warn {
+      display: block;
+      margin-top: 0.25rem;
+      color: #b45309;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
     .hr-check {
       display: flex;
       align-items: center;
@@ -389,6 +400,8 @@ export class AbsenteeismPanel implements OnInit {
   readonly editingId = signal<string | null>(null);
   readonly associateHits = signal<Associate[]>([]);
   readonly diagHits = signal<DiagnosisCie10[]>([]);
+  /** Signal: Angular sin Zone no refresca el botón Guardar si solo mutamos form.associateId. */
+  readonly formAssociateId = signal('');
 
   search = '';
   kindFilter: AbsenteeismKind | undefined;
@@ -436,10 +449,12 @@ export class AbsenteeismPanel implements OnInit {
   openCreate(): void {
     this.editingId.set(null);
     this.form = this.emptyForm();
+    this.formAssociateId.set('');
     this.selectedAssociate = null;
     this.selectedDiagnosis = null;
     this.assocQuery = '';
     this.diagQuery = '';
+    this.associateHits.set([]);
     this.showForm.set(true);
   }
 
@@ -447,6 +462,7 @@ export class AbsenteeismPanel implements OnInit {
     this.editingId.set(r.id);
     this.selectedAssociate = r.associate ?? null;
     this.selectedDiagnosis = r.diagnosis ?? null;
+    this.formAssociateId.set(r.associateId);
     this.form = {
       associateId: r.associateId,
       kind: r.kind,
@@ -471,6 +487,7 @@ export class AbsenteeismPanel implements OnInit {
   closeForm(): void {
     this.showForm.set(false);
     this.editingId.set(null);
+    this.formAssociateId.set('');
   }
 
   searchAssociates(): void {
@@ -479,7 +496,8 @@ export class AbsenteeismPanel implements OnInit {
       this.associateHits.set([]);
       return;
     }
-    this.api.listAssociates({ search: q, status: 'ACTIVO', page: 1, limit: 8 }).subscribe({
+    // Sin filtrar solo ACTIVO: ausencias también aplican a vacaciones / otros estados.
+    this.api.listAssociates({ search: q, page: 1, limit: 8 }).subscribe({
       next: (res) => this.associateHits.set(res.items),
       error: () => this.associateHits.set([]),
     });
@@ -488,8 +506,15 @@ export class AbsenteeismPanel implements OnInit {
   pickAssociate(a: Associate): void {
     this.selectedAssociate = a;
     this.form.associateId = a.id;
+    this.formAssociateId.set(a.id);
     this.assocQuery = `${a.documentNumber} · ${a.fullName}`;
     this.associateHits.set([]);
+  }
+
+  /** Enter en el buscador: toma el primer resultado. */
+  pickFirstAssociate(): void {
+    const first = this.associateHits()[0];
+    if (first) this.pickAssociate(first);
   }
 
   searchDiagnoses(): void {
@@ -518,10 +543,11 @@ export class AbsenteeismPanel implements OnInit {
   }
 
   save(): void {
-    if (!this.form.associateId || !this.form.startDate || !this.form.endDate) {
-      this.toast.error('Completa asociado y fechas');
+    if (!this.formAssociateId() || !this.form.startDate || !this.form.endDate) {
+      this.toast.error('Completa asociado (elige de la lista) y fechas');
       return;
     }
+    this.form.associateId = this.formAssociateId();
     if (!this.form.absenceDays && this.form.absenceDays !== 0) {
       const start = new Date(this.form.startDate);
       const end = new Date(this.form.endDate);
