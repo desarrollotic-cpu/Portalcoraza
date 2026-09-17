@@ -180,7 +180,7 @@ export class AuthService {
   private async signAccess(payload: JwtPayload): Promise<string> {
     return this.jwtService.signAsync(payload, {
       secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
-      expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '2h'),
+      expiresIn: this.config.get('JWT_ACCESS_EXPIRES_IN', '12h'),
     });
   }
 
