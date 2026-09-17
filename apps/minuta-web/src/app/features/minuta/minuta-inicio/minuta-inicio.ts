@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MinutaApiService } from '../minuta-api.service';
-import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
+import { MINUTA_GRUPOS, MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
 
 @Component({
   selector: 'app-minuta-inicio',
@@ -10,10 +10,17 @@ import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
     <section class="page">
       <div>
         <h2>Tu turno</h2>
-        <p class="hint">Resumen de hoy (hora Bogotá). Solo ves la minuta de tu puesto.</p>
+        <p class="hint">Resumen de hoy (hora Bogotá). Elige una minuta para registrar.</p>
       </div>
+      <section class="grid-modulos">
+        @for (g of grupos; track g.id) {
+          <a class="tile" [routerLink]="['/nuevo', g.id]">
+            <span>{{ g.label }}</span>
+            <span class="tile-hint">{{ g.hint }}</span>
+          </a>
+        }
+      </section>
       <section class="quick">
-        <a class="tile tile-primary" routerLink="/nuevo">Registrar entrada / novedad</a>
         <a class="tile tile-secondary" routerLink="/historial">Ver lo registrado</a>
       </section>
       <section class="stats">
@@ -42,6 +49,7 @@ import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
 })
 export class MinutaInicio implements OnInit {
   private readonly api = inject(MinutaApiService);
+  readonly grupos = MINUTA_GRUPOS;
   readonly stats = signal({
     registrosHoy: 0,
     visitantesHoy: 0,

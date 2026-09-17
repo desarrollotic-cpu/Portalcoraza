@@ -17,16 +17,12 @@ import { MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
         <p class="toast">{{ msg() }}</p>
       }
       <label class="filt">
-        Filtrar por tipo
+        Filtrar por minuta
         <select [(ngModel)]="filtroTipo" name="ft" (change)="load()">
-          <option value="TODOS">Todos</option>
-          <option value="VISITANTE">Visitante</option>
-          <option value="CORRESPONDENCIA">Correspondencia</option>
-          <option value="CONTRATISTA">Contratista</option>
-          <option value="DOMICILIARIO">Domicilio</option>
-          <option value="INCIDENTE">Incidente</option>
-          <option value="SERVICIO">Servicio</option>
-          <option value="ENTREGA">Entrega de puesto</option>
+          <option value="TODOS">Todas</option>
+          <option value="MODULO_SERVICIO">Minuta de servicio</option>
+          <option value="MODULO_VISITANTES">Minuta de visitantes</option>
+          <option value="MODULO_CORRESPONDENCIA">Minuta de correspondencia</option>
         </select>
       </label>
       @for (h of historial(); track h['id']) {

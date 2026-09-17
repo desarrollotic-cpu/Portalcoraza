@@ -1,39 +1,54 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MinutaApiService } from '../minuta-api.service';
 import {
+  MINUTA_GRUPOS,
   MINUTA_MODULOS,
   MINUTA_PAGE_STYLES,
   MinutaFormKind,
   MinutaFormModel,
   bodyForMinuta,
   emptyMinutaForm,
+  isMinutaGrupoId,
+  minutaGrupoById,
 } from '../minuta.shared';
 
 @Component({
   selector: 'app-minuta-nuevo',
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   template: `
     <section class="page">
-      <div>
-        <h2>¿Qué vas a registrar?</h2>
-        <p class="hint">
-          Elige el tipo. Escribe tu nombre al guardar. La hora la pone el sistema y después no se puede
-          editar.
-        </p>
-      </div>
-      @if (msg()) {
-        <p [class]="msgOk() ? 'toast' : 'error'">{{ msg() }}</p>
-      }
-      <div class="grid">
-        @for (m of modulos; track m.k) {
-          <button type="button" class="tile" (click)="openForm(m.k)">
-            <span>{{ m.label }}</span>
-            <span class="tile-hint">{{ m.hint }}</span>
-          </button>
+      @if (!grupo()) {
+        <div>
+          <h2>Registrar</h2>
+          <p class="hint">Elige el tipo de minuta. Después verás las opciones de ese módulo.</p>
+        </div>
+        <div class="grid-modulos">
+          @for (g of grupos; track g.id) {
+            <a class="tile" [routerLink]="['/nuevo', g.id]">
+              <span>{{ g.label }}</span>
+              <span class="tile-hint">{{ g.hint }}</span>
+            </a>
+          }
+        </div>
+      } @else {
+        <div>
+          <h2>{{ grupo()!.label }}</h2>
+          <p class="hint">Elige qué vas a registrar. Escribe tu nombre al guardar. La hora la pone el sistema.</p>
+        </div>
+        @if (msg()) {
+          <p [class]="msgOk() ? 'toast' : 'error'">{{ msg() }}</p>
         }
-      </div>
+        <div class="grid">
+          @for (m of submodulos(); track m.k) {
+            <button type="button" class="tile" (click)="openForm(m.k)">
+              <span>{{ m.label }}</span>
+              <span class="tile-hint">{{ m.hint }}</span>
+            </button>
+          }
+        </div>
+      }
 
       @if (form()) {
         <div class="modal">
@@ -42,6 +57,9 @@ import {
               <h3>{{ formTitle() }}</h3>
               <button type="button" class="mini" (click)="form.set(null)">Cerrar</button>
             </div>
+            @if (msg()) {
+              <p [class]="msgOk() ? 'toast' : 'error'">{{ msg() }}</p>
+            }
             <label>
               Tu nombre (vigilante) *
               <input
@@ -184,16 +202,37 @@ import {
   `,
   styles: [MINUTA_PAGE_STYLES],
 })
-export class MinutaNuevo {
+export class MinutaNuevo implements OnInit {
   private readonly api = inject(MinutaApiService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
-  readonly modulos = MINUTA_MODULOS;
+  readonly grupos = MINUTA_GRUPOS;
+  readonly grupo = signal<(typeof MINUTA_GRUPOS)[number] | undefined>(undefined);
   readonly form = signal<MinutaFormKind | null>(null);
   readonly busy = signal(false);
   readonly msg = signal('');
   readonly msgOk = signal(true);
   f: MinutaFormModel = emptyMinutaForm();
+
+  ngOnInit(): void {
+    this.route.paramMap.subscribe((params) => {
+      const raw = params.get('grupo');
+      if (raw && !isMinutaGrupoId(raw)) {
+        void this.router.navigateByUrl('/nuevo');
+        return;
+      }
+      this.grupo.set(minutaGrupoById(raw));
+      this.form.set(null);
+      this.msg.set('');
+    });
+  }
+
+  submodulos() {
+    const g = this.grupo();
+    if (!g) return [];
+    return MINUTA_MODULOS.filter((m) => g.kinds.includes(m.k));
+  }
 
   formTitle(): string {
     const k = this.form();

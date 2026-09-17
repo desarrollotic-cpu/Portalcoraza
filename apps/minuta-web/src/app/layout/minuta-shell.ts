@@ -167,6 +167,11 @@ export class MinutaShell {
   }
 
   goBack(): void {
+    const path = this.router.url.split('?')[0];
+    if (/^\/nuevo\/.+/.test(path)) {
+      void this.router.navigateByUrl('/nuevo');
+      return;
+    }
     void this.router.navigateByUrl('/');
   }
 

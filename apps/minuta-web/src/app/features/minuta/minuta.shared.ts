@@ -38,13 +38,54 @@ export interface MinutaFormModel {
 
 export const MINUTA_MODULOS: Array<{ k: MinutaFormKind; label: string; hint: string }> = [
   { k: 'VISITANTE', label: 'Visitante', hint: 'Quién entra al conjunto' },
-  { k: 'CORRESPONDENCIA', label: 'Correspondencia', hint: 'Paquetes y cartas' },
+  { k: 'CORRESPONDENCIA', label: 'Paquetes y cartas', hint: 'Encomiendas y correspondencia' },
   { k: 'CONTRATISTA', label: 'Contratista', hint: 'Personal de obra o mantenimiento' },
   { k: 'DOMICILIARIO', label: 'Domicilio', hint: 'Rappi, Uber Eats, etc.' },
   { k: 'INCIDENTE', label: 'Incidente', hint: 'Novedad de seguridad o daño' },
-  { k: 'SERVICIO', label: 'Servicio', hint: 'Anotaciones del turno' },
+  { k: 'SERVICIO', label: 'Anotaciones del turno', hint: 'Novedades del servicio' },
   { k: 'ENTREGA', label: 'Entrega de puesto', hint: 'Cambio de turno' },
 ];
+
+export type MinutaGrupoId = 'servicio' | 'visitantes' | 'correspondencia';
+
+export const MINUTA_GRUPOS: Array<{
+  id: MinutaGrupoId;
+  label: string;
+  hint: string;
+  kinds: MinutaFormKind[];
+  filtroTipo: string;
+}> = [
+  {
+    id: 'servicio',
+    label: 'Minuta de servicio',
+    hint: 'Anotaciones del turno, incidentes y entrega de puesto',
+    kinds: ['SERVICIO', 'INCIDENTE', 'ENTREGA'],
+    filtroTipo: 'MODULO_SERVICIO',
+  },
+  {
+    id: 'visitantes',
+    label: 'Minuta de visitantes',
+    hint: 'Visitas, contratistas y domicilios',
+    kinds: ['VISITANTE', 'CONTRATISTA', 'DOMICILIARIO'],
+    filtroTipo: 'MODULO_VISITANTES',
+  },
+  {
+    id: 'correspondencia',
+    label: 'Minuta de correspondencia',
+    hint: 'Paquetes, cartas y encomiendas',
+    kinds: ['CORRESPONDENCIA'],
+    filtroTipo: 'MODULO_CORRESPONDENCIA',
+  },
+];
+
+export function isMinutaGrupoId(value: string | null | undefined): value is MinutaGrupoId {
+  return value === 'servicio' || value === 'visitantes' || value === 'correspondencia';
+}
+
+export function minutaGrupoById(id: string | null | undefined) {
+  if (!isMinutaGrupoId(id)) return undefined;
+  return MINUTA_GRUPOS.find((g) => g.id === id);
+}
 
 export function labelForMinutaTipo(tipo: unknown): string {
   const k = String(tipo || '').toUpperCase();
@@ -160,7 +201,7 @@ export const MINUTA_PAGE_STYLES = `
   }
   .stats small { color: var(--text-muted, #64748b); font-size: 0.88rem; font-weight: 600; }
   .stats b { display: block; margin-top: 0.2rem; font-size: 1.65rem; color: #0c4a6e; }
-  .quick, .grid { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+  .quick, .grid, .grid-modulos { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
   .quick a.tile-primary {
     background: #0c4a6e;
     color: #fff;
@@ -226,6 +267,7 @@ export const MINUTA_PAGE_STYLES = `
     .page h2 { font-size: 1.85rem; }
     .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .quick, .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+    .grid-modulos { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
     .quick button, .tile, .quick a.tile, .quick a.tile-primary, .quick a.tile-secondary {
       min-height: 4.5rem; font-size: 1.15rem; padding: 1.25rem;
     }

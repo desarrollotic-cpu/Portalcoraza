@@ -30,6 +30,13 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'nuevo/:grupo',
+        loadComponent: () =>
+          import('./features/minuta/minuta-nuevo/minuta-nuevo').then(
+            (m) => m.MinutaNuevo,
+          ),
+      },
+      {
         path: 'historial',
         loadComponent: () =>
           import('./features/minuta/minuta-historial/minuta-historial').then(

@@ -302,7 +302,16 @@ export class MinutaService {
       }
     };
 
-    const want = (t: string) => !tipo || tipo === 'TODOS' || tipo === t;
+    const moduloTipos: Record<string, string[]> = {
+      MODULO_SERVICIO: ['SERVICIO', 'INCIDENTE', 'ENTREGA'],
+      MODULO_VISITANTES: ['VISITANTE', 'CONTRATISTA', 'DOMICILIARIO'],
+      MODULO_CORRESPONDENCIA: ['CORRESPONDENCIA'],
+    };
+    const want = (t: string) =>
+      !tipo ||
+      tipo === 'TODOS' ||
+      tipo === t ||
+      (moduloTipos[tipo]?.includes(t) ?? false);
     const byScope = <T extends { usuario: string; postId?: string | null }>(
       extra?: FindOptionsWhere<T>,
     ): FindOptionsWhere<T> | undefined => {
