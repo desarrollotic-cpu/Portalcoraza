@@ -100,6 +100,53 @@ export class HrAbsenteeismService {
       .getMany();
   }
 
+  /** Búsqueda liviana para el formulario de ausencias (no exige associates.view). */
+  async searchAssociates(q: string, limit = 8) {
+    const term = (q ?? '').trim();
+    if (term.length < 2) return [];
+
+    const like = `%${term.toUpperCase()}%`;
+    const rows = await this.associatesRepo
+      .createQueryBuilder('a')
+      .select([
+        'a.id',
+        'a.documentNumber',
+        'a.firstName',
+        'a.secondName',
+        'a.firstLastName',
+        'a.secondLastName',
+        'a.status',
+      ])
+      .where(
+        new Brackets((sub) => {
+          sub
+            .where('UPPER(a.documentNumber) LIKE :like', { like })
+            .orWhere('UPPER(a.firstName) LIKE :like', { like })
+            .orWhere('UPPER(a.secondName) LIKE :like', { like })
+            .orWhere('UPPER(a.firstLastName) LIKE :like', { like })
+            .orWhere('UPPER(a.secondLastName) LIKE :like', { like });
+        }),
+      )
+      .orderBy('a.firstLastName', 'ASC')
+      .addOrderBy('a.firstName', 'ASC')
+      .take(Math.min(Math.max(limit, 1), 20))
+      .getMany();
+
+    return rows.map((r) => ({
+      id: r.id,
+      documentNumber: r.documentNumber,
+      firstName: r.firstName,
+      secondName: r.secondName,
+      firstLastName: r.firstLastName,
+      secondLastName: r.secondLastName,
+      status: r.status,
+      fullName: [r.firstName, r.secondName, r.firstLastName, r.secondLastName]
+        .filter(Boolean)
+        .join(' ')
+        .trim(),
+    }));
+  }
+
   async create(dto: CreateAbsenceDto, userId: string) {
     await this.assertAssociate(dto.associateId);
     const payload = this.normalizePayload(dto);

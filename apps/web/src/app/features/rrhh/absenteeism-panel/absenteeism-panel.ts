@@ -496,10 +496,26 @@ export class AbsenteeismPanel implements OnInit {
       this.associateHits.set([]);
       return;
     }
-    // Sin filtrar solo ACTIVO: ausencias también aplican a vacaciones / otros estados.
-    this.api.listAssociates({ search: q, page: 1, limit: 8 }).subscribe({
-      next: (res) => this.associateHits.set(res.items),
-      error: () => this.associateHits.set([]),
+    // Endpoint de ausentismo: basta absences.create (RRHH); no depende de associates.view.
+    this.api.searchAbsenceAssociates(q, 8).subscribe({
+      next: (items) => {
+        this.associateHits.set(items);
+        // Cédula exacta → selecciona solo y habilita Guardar sin clic extra.
+        const digits = q.replace(/\D/g, '');
+        if (digits.length >= 5) {
+          const exact = items.find((a) => a.documentNumber.replace(/\D/g, '') === digits);
+          if (exact) this.pickAssociate(exact);
+        }
+      },
+      error: (err) => {
+        this.associateHits.set([]);
+        const status = err?.status as number | undefined;
+        if (status === 403) {
+          this.toast.error('Sin permiso para buscar asociados. Cierra sesión y vuelve a entrar.');
+        } else {
+          this.toast.error('No se pudo buscar el asociado');
+        }
+      },
     });
   }
 

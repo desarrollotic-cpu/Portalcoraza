@@ -14,7 +14,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import {
+  RequireAnyPermissions,
+  RequirePermissions,
+} from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -50,6 +53,14 @@ export class HrAbsenteeismController {
   diagnoses(@Query('q') q?: string, @Query('limit') limit?: string) {
     const n = limit ? parseInt(limit, 10) : 20;
     return this.service.searchDiagnoses(q ?? '', Number.isFinite(n) ? n : 20);
+  }
+
+  /** RRHH con absences.create: buscar asociado sin exigir associates.view (GERENCIA ya bypasea). */
+  @Get('associate-search')
+  @RequireAnyPermissions('absences.create', 'absences.edit', 'associates.view')
+  associateSearch(@Query('q') q?: string, @Query('limit') limit?: string) {
+    const n = limit ? parseInt(limit, 10) : 8;
+    return this.service.searchAssociates(q ?? '', Number.isFinite(n) ? n : 8);
   }
 
   @Post('import/excel')

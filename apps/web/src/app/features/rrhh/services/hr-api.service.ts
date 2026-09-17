@@ -298,6 +298,12 @@ export class HrApiService {
     return this.http.get<DiagnosisCie10[]>(`${this.api}/hr/absences/diagnoses`, { params });
   }
 
+  searchAbsenceAssociates(q: string, limit = 8): Observable<Associate[]> {
+    let params = new HttpParams().set('limit', String(limit));
+    if (q) params = params.set('q', q);
+    return this.http.get<Associate[]>(`${this.api}/hr/absences/associate-search`, { params });
+  }
+
   createAbsence(payload: CreateAbsencePayload): Observable<AssociateAbsence> {
     return this.http.post<AssociateAbsence>(`${this.api}/hr/absences`, payload);
   }
