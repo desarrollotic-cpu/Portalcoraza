@@ -2011,8 +2011,6 @@ export class ScheduleBoard implements OnInit {
           .convenciones { display: flex; gap: 10px; font-size: 8.5px; margin-bottom: 14px; background: #f1f5f9; padding: 4px 8px; border-radius: 3px; }
           .conv-item { display: flex; align-items: center; gap: 3px; }
           .conv-box { display: inline-block; width: 14px; height: 12px; text-align: center; line-height: 12px; font-weight: bold; border-radius: 2px; font-size: 8px; }
-          .signatures { display: flex; justify-content: space-around; margin-top: 20px; }
-          .sign-box { width: 200px; text-align: center; border-top: 1px solid #0f172a; padding-top: 4px; font-size: 9px; }
           .membrete-footer { margin-top: 24px; border-top: 2px solid #0369a1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
           .footer-col { display: flex; align-items: center; gap: 4px; }
         </style>
@@ -2060,21 +2058,6 @@ export class ScheduleBoard implements OnInit {
             ${rowsHtml}
           </tbody>
         </table>
-
-        <div class="signatures">
-          <div class="sign-box">
-            <strong>SUPERVISOR DE OPERACIONES</strong><br>
-            <span>Coraza Seguridad C.T.A.</span>
-          </div>
-          <div class="sign-box">
-            <strong>COORDINADOR DE PUESTO</strong><br>
-            <span>Vigilancia y Control</span>
-          </div>
-          <div class="sign-box">
-            <strong>ADMINISTRADOR / CLIENTE</strong><br>
-            <span>Visto Bueno de Recepción</span>
-          </div>
-        </div>
 
         <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #0369a1; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
           <div style="display:flex; gap:12px; align-items:center;">
