@@ -352,25 +352,24 @@ async function main() {
     console.log('ALTA ya existía', exists.rows[0]);
   }
 
-  const retired = await client.query(
-    `UPDATE associates
-     SET status = 'RETIRADO', updated_at = NOW()
-     WHERE regexp_replace(COALESCE(document_number,''), '[^0-9]', '', 'g') = ANY($1::text[])
-       AND status IS DISTINCT FROM 'RETIRADO'
-     RETURNING document_number, first_name, first_last_name, folder_number, status`,
-    [RETIROS],
-  );
-  console.log('RETIROS', retired.rowCount);
-  for (const r of retired.rows) {
-    console.log(
-      r.document_number,
-      r.first_name,
-      r.first_last_name,
-      'carpeta',
-      r.folder_number,
-      r.status,
-    );
-  }
+  // 🛑 DESACTIVADO 2026-09-18: este bloque hacía UPDATE masivo a
+  // status='RETIRADO' sin setear updated_by ni crear acta formal en
+  // associate_retirements. Causó ~9 falsos retiros el 16-sep-2026 que
+  // seguían programados y trabajando. Los retiros DEBEN pasar por el
+  // endpoint /hr-retirements que valida acta y auditor. Si necesitas
+  // limpieza masiva, hazlo desde la UI o con un script dedicado que
+  // registre acta + auditor.
+  //
+  // const retired = await client.query(
+  //   `UPDATE associates
+  //    SET status = 'RETIRADO', updated_at = NOW()
+  //    WHERE regexp_replace(COALESCE(document_number,''), '[^0-9]', '', 'g') = ANY($1::text[])
+  //      AND status IS DISTINCT FROM 'RETIRADO'
+  //    RETURNING document_number, first_name, first_last_name, folder_number, status`,
+  //   [RETIROS],
+  // );
+  // console.log('RETIROS', retired.rowCount);
+  console.log('⚠️  Bloque de RETIROS deshabilitado. Usa el endpoint /hr-retirements.');
 
   const stats = await client.query(
     `SELECT count(*) FILTER (WHERE status='ACTIVO') AS activos,
