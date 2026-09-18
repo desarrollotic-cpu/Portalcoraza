@@ -302,6 +302,21 @@ export class HrApiService {
     return this.http.get<AssociateAbsence[]>(`${this.api}/hr/absences`, { params });
   }
 
+  /** Descarga Excel con las ausencias filtradas (mismo filtro que listAbsences). */
+  exportAbsencesFiltered(filters: {
+    kind?: AbsenteeismKind;
+    associateId?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  } = {}): Observable<Blob> {
+    let params = new HttpParams();
+    for (const [k, v] of Object.entries(filters)) {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v));
+    }
+    return this.http.get(`${this.api}/hr/absences/export`, { params, responseType: 'blob' });
+  }
+
   absenceStats(): Observable<AbsenceStats> {
     return this.http.get<AbsenceStats>(`${this.api}/hr/absences/stats`);
   }

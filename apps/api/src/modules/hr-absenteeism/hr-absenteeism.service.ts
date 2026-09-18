@@ -64,6 +64,54 @@ export class HrAbsenteeismService {
     return qb.getMany();
   }
 
+  /**
+   * Exporta a Excel el ausentismo aplicando los mismos filtros del listado
+   * (kind, associateId, search, from, to). Devuelve el buffer .xlsx.
+   */
+  async exportExcel(filters?: {
+    kind?: AbsenteeismKind;
+    associateId?: string;
+    search?: string;
+    from?: string;
+    to?: string;
+  }): Promise<Buffer> {
+    const rows = await this.list(filters);
+    const data = rows.map((a) => ({
+      Documento: a.associate?.documentNumber ?? '',
+      Nombre: [
+        a.associate?.firstName, a.associate?.secondName,
+        a.associate?.firstLastName, a.associate?.secondLastName,
+      ].filter(Boolean).join(' '),
+      Tipo: a.kind,
+      Evento: a.eventType ?? '',
+      'Fecha inicio': a.startDate,
+      'Fecha fin': a.endDate,
+      Días: a.absenceDays,
+      Prórroga: a.isExtension ? 'Sí' : 'No',
+      'Examen post-incapacidad': a.postIncapacityExam ? 'Sí' : 'No',
+      Origen: a.incapacityOrigin ?? '',
+      'CIE-10': a.diagnosis?.codigo ?? '',
+      Diagnóstico: a.diagnosis?.descripcion ?? '',
+      Causa: a.cause ?? '',
+      Observaciones: a.observations ?? '',
+      'Salario base': a.baseSalary ?? '',
+      'Costo AT': a.atCosts ?? '',
+      'Registrado el': a.createdAt?.toISOString?.().slice(0, 10) ?? '',
+    }));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    // Anchos de columna razonables
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 34 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
+      { wch: 6 },  { wch: 10 }, { wch: 22 }, { wch: 18 }, { wch: 10 }, { wch: 40 },
+      { wch: 30 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+    ];
+    XLSX.utils.book_append_sheet(wb, ws, 'Ausentismo');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+  }
+
   async stats() {
     const rows = await this.absencesRepo.find({ relations: { diagnosis: true } });
     const total = rows.length;

@@ -8,11 +8,13 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import type { Response } from 'express';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   RequireAnyPermissions,
@@ -46,6 +48,27 @@ export class HrAbsenteeismController {
   @RequirePermissions('absences.view')
   stats() {
     return this.service.stats();
+  }
+
+  /** Descarga Excel con los mismos filtros del listado. */
+  @Get('export')
+  @RequirePermissions('absences.view')
+  async exportExcel(
+    @Res() res: Response,
+    @Query('kind') kind?: AbsenteeismKind,
+    @Query('associateId') associateId?: string,
+    @Query('search') search?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const buffer = await this.service.exportExcel({ kind, associateId, search, from, to });
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="ausentismo-${stamp}.xlsx"`);
+    res.send(buffer);
   }
 
   @Get('diagnoses')

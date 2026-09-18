@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   LucideCalendarOff,
+  LucideDownload,
   LucidePlus,
   LucideTrash2,
   LucideUpload,
@@ -36,6 +37,17 @@ import type {
         title="Ausentismo"
         subtitle="Incapacidades médicas y ausencias administrativas · paridad RRHH"
       >
+        <button
+          actions
+          type="button"
+          class="hr-btn hr-btn-ghost"
+          (click)="exportExcel()"
+          [disabled]="loading() || exporting()"
+          title="Descargar el ausentismo filtrado como Excel"
+        >
+          <app-icon [icon]="icons.Download" [size]="16" />
+          {{ exporting() ? 'Exportando…' : 'Exportar Excel' }}
+        </button>
         @if (auth.hasPermission('absences.import')) {
           <label actions class="hr-btn hr-btn-ghost" style="cursor: pointer">
             <app-icon [icon]="icons.Upload" [size]="16" />
@@ -387,7 +399,10 @@ export class AbsenteeismPanel implements OnInit {
     Plus: LucidePlus,
     Trash: LucideTrash2,
     Upload: LucideUpload,
+    Download: LucideDownload,
   };
+
+  readonly exporting = signal(false);
 
   readonly eventTypes: AbsenteeismEventType[] = ['D.A.', 'S.P.', 'L.R.', 'L.N.R.', 'ACT'];
 
@@ -421,15 +436,41 @@ export class AbsenteeismPanel implements OnInit {
     this.load();
   }
 
+  /** Filtros actuales de la vista, usados por load() y exportExcel(). */
+  private currentFilters() {
+    return {
+      kind: this.kindFilter,
+      search: this.search || undefined,
+      from: this.from || undefined,
+      to: this.to || undefined,
+    };
+  }
+
+  exportExcel(): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.api.exportAbsencesFiltered(this.currentFilters()).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `ausentismo-${stamp}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.exporting.set(false);
+        this.toast.error('No se pudo exportar el Excel');
+      },
+    });
+  }
+
   load(): void {
     this.loading.set(true);
     this.api
-      .listAbsences({
-        kind: this.kindFilter,
-        search: this.search || undefined,
-        from: this.from || undefined,
-        to: this.to || undefined,
-      })
+      .listAbsences(this.currentFilters())
       .subscribe({
         next: (rows) => {
           this.rows.set(rows);
