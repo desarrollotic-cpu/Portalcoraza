@@ -351,12 +351,19 @@ export class AssociatesList implements OnInit, OnDestroy {
     this.exporting.set(true);
     this.api.exportAssociatesFiltered(this.query).subscribe({
       next: (blob) => {
+        if (!blob || blob.size < 32 || (blob.type && blob.type.includes('json'))) {
+          this.exporting.set(false);
+          alert('No se pudo exportar el Excel. Intenta de nuevo.');
+          return;
+        }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         const stamp = new Date().toISOString().slice(0, 10);
         a.href = url;
         a.download = `asociados-${stamp}.xlsx`;
+        document.body.appendChild(a);
         a.click();
+        a.remove();
         URL.revokeObjectURL(url);
         this.exporting.set(false);
       },

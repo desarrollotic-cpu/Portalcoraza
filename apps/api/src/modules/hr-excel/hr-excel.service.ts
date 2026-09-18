@@ -386,51 +386,34 @@ export class HrExcelService {
       order: { firstLastName: 'ASC' },
     });
 
-    const workbook = new ExcelJS.Workbook();
-    workbook.creator = 'Portal Coraza';
-    workbook.created = new Date();
+    // ponytail: ExcelJS.writeBuffer revienta 500 en el Node de Render; xlsx ya sirve ausentismo.
+    const data = rows.map((a) => ({
+      Documento: a.documentNumber ?? '',
+      'Nombre completo': [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+        .filter(Boolean)
+        .join(' '),
+      Cargo: a.jobPosition?.name ?? '',
+      'Centro de trabajo': a.workCenter?.clientName ?? '',
+      EPS: a.eps?.value ?? '',
+      'Fecha ingreso': a.hireDate ?? '',
+      Estado: a.status ?? '',
+      Celular: a.mobile ?? '',
+      Email: a.email ?? '',
+      'Salario ordinario': a.ordinaryCompensation ?? '',
+      'Salario promedio': a.averageMonthlySalary ?? '',
+      Carpeta: a.folderNumber ?? '',
+    }));
 
-    const sheet = workbook.addWorksheet('Asociados');
-    sheet.columns = [
-      { header: 'Documento', key: 'documentNumber', width: 15 },
-      { header: 'Nombre completo', key: 'fullName', width: 40 },
-      { header: 'Cargo', key: 'jobPosition', width: 25 },
-      { header: 'Centro de trabajo', key: 'workCenter', width: 30 },
-      { header: 'EPS', key: 'eps', width: 20 },
-      { header: 'Fecha ingreso', key: 'hireDate', width: 15 },
-      { header: 'Estado', key: 'status', width: 12 },
-      { header: 'Celular', key: 'mobile', width: 15 },
-      { header: 'Email', key: 'email', width: 30 },
-      { header: 'Salario ordinario', key: 'ordinaryCompensation', width: 18 },
-      { header: 'Salario promedio', key: 'averageMonthlySalary', width: 18 },
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [
+      { wch: 14 }, { wch: 34 }, { wch: 22 }, { wch: 28 }, { wch: 18 },
+      { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 16 },
+      { wch: 16 }, { wch: 10 },
     ];
-    sheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    sheet.getRow(1).fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF1E1B4B' },
-    };
-
-    for (const a of rows) {
-      sheet.addRow({
-        documentNumber: a.documentNumber,
-        fullName: [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
-          .filter(Boolean)
-          .join(' '),
-        jobPosition: a.jobPosition?.name ?? '',
-        workCenter: a.workCenter?.clientName ?? '',
-        eps: a.eps?.value ?? '',
-        hireDate: a.hireDate,
-        status: a.status,
-        mobile: a.mobile,
-        email: a.email ?? '',
-        ordinaryCompensation: a.ordinaryCompensation,
-        averageMonthlySalary: a.averageMonthlySalary,
-      });
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
+    XLSX.utils.book_append_sheet(wb, ws, 'Asociados');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
   }
 
   async exportComplianceMatrix(): Promise<Buffer> {

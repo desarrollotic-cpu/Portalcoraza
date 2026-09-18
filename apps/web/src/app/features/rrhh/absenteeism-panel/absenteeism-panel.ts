@@ -448,23 +448,74 @@ export class AbsenteeismPanel implements OnInit {
 
   exportExcel(): void {
     if (this.exporting()) return;
+    const list = this.rows();
+    if (!list.length) {
+      this.toast.error('No hay ausencias para exportar con el filtro actual');
+      return;
+    }
     this.exporting.set(true);
-    this.api.exportAbsencesFiltered(this.currentFilters()).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const stamp = new Date().toISOString().slice(0, 10);
-        a.href = url;
-        a.download = `ausentismo-${stamp}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-        this.exporting.set(false);
-      },
-      error: () => {
-        this.exporting.set(false);
-        this.toast.error('No se pudo exportar el Excel');
-      },
-    });
+    try {
+      const esc = (v: unknown) =>
+        String(v ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      const nombre = (a: AssociateAbsence) =>
+        [
+          a.associate?.firstName,
+          a.associate?.secondName,
+          a.associate?.firstLastName,
+          a.associate?.secondLastName,
+        ]
+          .filter(Boolean)
+          .join(' ') || '—';
+      const rowsHtml = list
+        .map((r) => {
+          const diag = r.diagnosis
+            ? `${r.diagnosis.codigo ?? ''} ${r.diagnosis.descripcion ?? ''}`.trim()
+            : (r.cause ?? '');
+          return `<tr>
+            <td>${esc(r.associate?.documentNumber)}</td>
+            <td>${esc(nombre(r))}</td>
+            <td>${esc(r.kind)}</td>
+            <td>${esc(r.eventType)}</td>
+            <td>${esc(r.startDate)}</td>
+            <td>${esc(r.endDate)}</td>
+            <td>${esc(r.absenceDays)}</td>
+            <td>${esc(r.isExtension ? 'Sí' : 'No')}</td>
+            <td>${esc(r.postIncapacityExam ? 'Sí' : 'No')}</td>
+            <td>${esc(r.incapacityOrigin)}</td>
+            <td>${esc(diag)}</td>
+            <td>${esc(r.observations)}</td>
+          </tr>`;
+        })
+        .join('');
+      const html = `<html><head><meta charset="utf-8" /></head><body>
+        <table border="1">
+          <tr>
+            <th>Documento</th><th>Nombre</th><th>Tipo</th><th>Evento</th>
+            <th>Inicio</th><th>Fin</th><th>Días</th><th>Prórroga</th>
+            <th>Examen post</th><th>Origen</th><th>Diagnóstico / causa</th><th>Observaciones</th>
+          </tr>
+          ${rowsHtml}
+        </table>
+      </body></html>`;
+      const blob = new Blob(['\uFEFF' + html], {
+        type: 'application/vnd.ms-excel;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ausentismo-${new Date().toISOString().slice(0, 10)}.xls`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      this.toast.error('No se pudo exportar el Excel');
+    } finally {
+      this.exporting.set(false);
+    }
   }
 
   load(): void {

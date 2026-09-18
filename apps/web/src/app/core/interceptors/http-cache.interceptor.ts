@@ -73,6 +73,12 @@ export const httpCacheInterceptor: HttpInterceptorFn = (
     return next(req);
   }
 
+  // Nunca cachear binarios: /associates/export matchea el prefijo /associates
+  // y un 200 JSON/error se descargaría como .xlsx corrupto.
+  if (req.responseType === 'blob' || req.url.includes('/export')) {
+    return next(req);
+  }
+
   const isCacheable = CACHEABLE_ENDPOINTS.some((url) => req.url.includes(url));
   if (!isCacheable) {
     return next(req);
