@@ -66,11 +66,8 @@ export class AssociatesController {
     const result = await this.service.list(bulkQuery, user);
     const buffer = await this.excel.exportAssociates(result.items as any);
     const stamp = new Date().toISOString().slice(0, 10);
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', `attachment; filename="asociados-${stamp}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.ms-excel;charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="asociados-${stamp}.xls"`);
     res.send(buffer);
   }
 

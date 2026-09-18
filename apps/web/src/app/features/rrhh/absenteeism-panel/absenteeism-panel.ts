@@ -460,6 +460,7 @@ export class AbsenteeismPanel implements OnInit {
           .replace(/&/g, '&amp;')
           .replace(/</g, '&lt;')
           .replace(/>/g, '&gt;');
+      const date = (v: unknown) => String(v ?? '').slice(0, 10);
       const nombre = (a: AssociateAbsence) =>
         [
           a.associate?.firstName,
@@ -469,37 +470,65 @@ export class AbsenteeismPanel implements OnInit {
         ]
           .filter(Boolean)
           .join(' ') || '—';
+      const kindLabel: Record<string, string> = { MEDICO: 'Médica', OTRO: 'Administrativa' };
       const rowsHtml = list
-        .map((r) => {
+        .map((r, i) => {
           const diag = r.diagnosis
             ? `${r.diagnosis.codigo ?? ''} ${r.diagnosis.descripcion ?? ''}`.trim()
             : (r.cause ?? '');
-          return `<tr>
-            <td>${esc(r.associate?.documentNumber)}</td>
-            <td>${esc(nombre(r))}</td>
-            <td>${esc(r.kind)}</td>
-            <td>${esc(r.eventType)}</td>
-            <td>${esc(r.startDate)}</td>
-            <td>${esc(r.endDate)}</td>
-            <td>${esc(r.absenceDays)}</td>
-            <td>${esc(r.isExtension ? 'Sí' : 'No')}</td>
-            <td>${esc(r.postIncapacityExam ? 'Sí' : 'No')}</td>
-            <td>${esc(r.incapacityOrigin)}</td>
-            <td>${esc(diag)}</td>
-            <td>${esc(r.observations)}</td>
+          const zebra = i % 2 === 1 ? ' even' : '';
+          return `<tr class="${zebra}">
+            <td class="td-center" style="mso-number-format:'\\@';">${esc(r.associate?.folderNumber ?? '')}</td>
+            <td class="td-center" style="mso-number-format:'\\@';">${esc(r.associate?.documentNumber)}</td>
+            <td class="td-text">${esc(nombre(r))}</td>
+            <td class="td-center">${esc(kindLabel[r.kind] ?? r.kind)}</td>
+            <td class="td-center">${esc(r.eventType)}</td>
+            <td class="td-center">${esc(date(r.startDate))}</td>
+            <td class="td-center">${esc(date(r.endDate))}</td>
+            <td class="td-num">${esc(r.absenceDays)}</td>
+            <td class="td-center">${esc(r.isExtension ? 'Sí' : 'No')}</td>
+            <td class="td-center">${esc(r.postIncapacityExam ? 'Sí' : 'No')}</td>
+            <td class="td-text">${esc(r.incapacityOrigin)}</td>
+            <td class="td-text">${esc(diag)}</td>
+            <td class="td-text">${esc(r.observations)}</td>
           </tr>`;
         })
         .join('');
-      const html = `<html><head><meta charset="utf-8" /></head><body>
-        <table border="1">
-          <tr>
-            <th>Documento</th><th>Nombre</th><th>Tipo</th><th>Evento</th>
-            <th>Inicio</th><th>Fin</th><th>Días</th><th>Prórroga</th>
-            <th>Examen post</th><th>Origen</th><th>Diagnóstico / causa</th><th>Observaciones</th>
-          </tr>
-          ${rowsHtml}
-        </table>
-      </body></html>`;
+      const stamp = new Date().toLocaleString('es-CO');
+      const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+        <head><meta charset="utf-8" />
+        <style>
+          body { font-family: Calibri, sans-serif; }
+          .title { background:#0F172A; color:#fff; font-size:13pt; font-weight:bold; text-align:center; height:32px; }
+          .sub { background:#1E293B; color:#E2E8F0; font-size:10pt; text-align:center; height:24px; }
+          .th { background:#0F766E; color:#fff; font-weight:bold; text-align:center; border:1px solid #0D9488; height:28px; font-size:9.5pt; }
+          .td-text { text-align:left; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+          .td-center { text-align:center; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+          .td-num { text-align:right; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+          .even { background:#F8FAFC; }
+        </style></head>
+        <body>
+          <table border="0" cellspacing="0" cellpadding="4">
+            <tr><td colspan="13" class="title">CORAZA SEGURIDAD C.T.A. — AUSENTISMO</td></tr>
+            <tr><td colspan="13" class="sub">${list.length} registros · Generado ${esc(stamp)}</td></tr>
+            <tr>
+              <th class="th">Carpeta</th>
+              <th class="th">Documento</th>
+              <th class="th">Nombre completo</th>
+              <th class="th">Tipo</th>
+              <th class="th">Evento</th>
+              <th class="th">Inicio</th>
+              <th class="th">Fin</th>
+              <th class="th">Días</th>
+              <th class="th">Prórroga</th>
+              <th class="th">Examen post</th>
+              <th class="th">Origen</th>
+              <th class="th">Diagnóstico / causa</th>
+              <th class="th">Observaciones</th>
+            </tr>
+            ${rowsHtml}
+          </table>
+        </body></html>`;
       const blob = new Blob(['\uFEFF' + html], {
         type: 'application/vnd.ms-excel;charset=utf-8',
       });

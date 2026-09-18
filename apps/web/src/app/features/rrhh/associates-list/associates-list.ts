@@ -360,7 +360,7 @@ export class AssociatesList implements OnInit, OnDestroy {
         const a = document.createElement('a');
         const stamp = new Date().toISOString().slice(0, 10);
         a.href = url;
-        a.download = `asociados-${stamp}.xlsx`;
+        a.download = `asociados-${stamp}.xls`;
         document.body.appendChild(a);
         a.click();
         a.remove();

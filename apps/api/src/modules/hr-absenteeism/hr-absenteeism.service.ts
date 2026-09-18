@@ -76,40 +76,67 @@ export class HrAbsenteeismService {
     to?: string;
   }): Promise<Buffer> {
     const rows = await this.list(filters);
-    const data = rows.map((a) => ({
-      Documento: a.associate?.documentNumber ?? '',
-      Nombre: [
-        a.associate?.firstName, a.associate?.secondName,
-        a.associate?.firstLastName, a.associate?.secondLastName,
-      ].filter(Boolean).join(' '),
-      Tipo: a.kind,
-      Evento: a.eventType ?? '',
-      'Fecha inicio': a.startDate,
-      'Fecha fin': a.endDate,
-      Días: a.absenceDays,
-      Prórroga: a.isExtension ? 'Sí' : 'No',
-      'Examen post-incapacidad': a.postIncapacityExam ? 'Sí' : 'No',
-      Origen: a.incapacityOrigin ?? '',
-      'CIE-10': a.diagnosis?.codigo ?? '',
-      Diagnóstico: a.diagnosis?.descripcion ?? '',
-      Causa: a.cause ?? '',
-      Observaciones: a.observations ?? '',
-      'Salario base': a.baseSalary ?? '',
-      'Costo AT': a.atCosts ?? '',
-      'Registrado el': a.createdAt?.toISOString?.().slice(0, 10) ?? '',
-    }));
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    // Anchos de columna razonables
-    ws['!cols'] = [
-      { wch: 14 }, { wch: 34 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 12 },
-      { wch: 6 },  { wch: 10 }, { wch: 22 }, { wch: 18 }, { wch: 10 }, { wch: 40 },
-      { wch: 30 }, { wch: 30 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'Ausentismo');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    const date = (v: unknown) => String(v ?? '').slice(0, 10);
+    const kindLabel: Record<string, string> = { MEDICO: 'Médica', OTRO: 'Administrativa' };
+    const body = rows
+      .map((a, i) => {
+        const nombre = [
+          a.associate?.firstName, a.associate?.secondName,
+          a.associate?.firstLastName, a.associate?.secondLastName,
+        ].filter(Boolean).join(' ');
+        const diag = a.diagnosis
+          ? `${a.diagnosis.codigo ?? ''} ${a.diagnosis.descripcion ?? ''}`.trim()
+          : (a.cause ?? '');
+        const zebra = i % 2 === 1 ? ' even' : '';
+        return `<tr class="${zebra}">
+          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.associate?.folderNumber ?? '')}</td>
+          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.associate?.documentNumber)}</td>
+          <td class="td-text">${esc(nombre)}</td>
+          <td class="td-center">${esc(kindLabel[a.kind] ?? a.kind)}</td>
+          <td class="td-center">${esc(a.eventType)}</td>
+          <td class="td-center">${esc(date(a.startDate))}</td>
+          <td class="td-center">${esc(date(a.endDate))}</td>
+          <td class="td-num">${esc(a.absenceDays)}</td>
+          <td class="td-center">${esc(a.isExtension ? 'Sí' : 'No')}</td>
+          <td class="td-center">${esc(a.postIncapacityExam ? 'Sí' : 'No')}</td>
+          <td class="td-text">${esc(a.incapacityOrigin)}</td>
+          <td class="td-text">${esc(diag)}</td>
+          <td class="td-text">${esc(a.observations)}</td>
+        </tr>`;
+      })
+      .join('');
+    const stamp = new Date().toLocaleString('es-CO');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+      <head><meta charset="utf-8" />
+      <style>
+        body { font-family: Calibri, sans-serif; }
+        .title { background:#0F172A; color:#fff; font-size:13pt; font-weight:bold; text-align:center; height:32px; }
+        .sub { background:#1E293B; color:#E2E8F0; font-size:10pt; text-align:center; height:24px; }
+        .th { background:#0F766E; color:#fff; font-weight:bold; text-align:center; border:1px solid #0D9488; height:28px; font-size:9.5pt; }
+        .td-text { text-align:left; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .td-center { text-align:center; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .td-num { text-align:right; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .even { background:#F8FAFC; }
+      </style></head>
+      <body>
+        <table border="0" cellspacing="0" cellpadding="4">
+          <tr><td colspan="13" class="title">CORAZA SEGURIDAD C.T.A. — AUSENTISMO</td></tr>
+          <tr><td colspan="13" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
+          <tr>
+            <th class="th">Carpeta</th><th class="th">Documento</th><th class="th">Nombre completo</th>
+            <th class="th">Tipo</th><th class="th">Evento</th><th class="th">Inicio</th><th class="th">Fin</th>
+            <th class="th">Días</th><th class="th">Prórroga</th><th class="th">Examen post</th>
+            <th class="th">Origen</th><th class="th">Diagnóstico / causa</th><th class="th">Observaciones</th>
+          </tr>
+          ${body}
+        </table>
+      </body></html>`;
+    return Buffer.from('\uFEFF' + html, 'utf8');
   }
 
   async stats() {

@@ -386,34 +386,79 @@ export class HrExcelService {
       order: { firstLastName: 'ASC' },
     });
 
-    // ponytail: ExcelJS.writeBuffer revienta 500 en el Node de Render; xlsx ya sirve ausentismo.
-    const data = rows.map((a) => ({
-      Documento: a.documentNumber ?? '',
-      'Nombre completo': [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
-        .filter(Boolean)
-        .join(' '),
-      Cargo: a.jobPosition?.name ?? '',
-      'Centro de trabajo': a.workCenter?.clientName ?? '',
-      EPS: a.eps?.value ?? '',
-      'Fecha ingreso': a.hireDate ?? '',
-      Estado: a.status ?? '',
-      Celular: a.mobile ?? '',
-      Email: a.email ?? '',
-      'Salario ordinario': a.ordinaryCompensation ?? '',
-      'Salario promedio': a.averageMonthlySalary ?? '',
-      Carpeta: a.folderNumber ?? '',
-    }));
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    const date = (v: unknown) => {
+      const s = String(v ?? '').slice(0, 10);
+      return s && s !== 'null' ? s : '';
+    };
+    const money = (v: unknown) => {
+      const n = Number(v);
+      return Number.isFinite(n) && n !== 0 ? n.toLocaleString('es-CO') : '';
+    };
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws['!cols'] = [
-      { wch: 14 }, { wch: 34 }, { wch: 22 }, { wch: 28 }, { wch: 18 },
-      { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 28 }, { wch: 16 },
-      { wch: 16 }, { wch: 10 },
-    ];
-    XLSX.utils.book_append_sheet(wb, ws, 'Asociados');
-    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-    return Buffer.isBuffer(buf) ? buf : Buffer.from(buf);
+    const body = rows
+      .map((a, i) => {
+        const nombre = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+          .filter(Boolean)
+          .join(' ');
+        const zebra = i % 2 === 1 ? ' even' : '';
+        return `<tr class="${zebra}">
+          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.folderNumber ?? '')}</td>
+          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.documentNumber)}</td>
+          <td class="td-text">${esc(nombre)}</td>
+          <td class="td-text">${esc(a.jobPosition?.name)}</td>
+          <td class="td-text">${esc(a.workCenter?.clientName)}</td>
+          <td class="td-center">${esc(a.status)}</td>
+          <td class="td-center">${esc(date(a.hireDate))}</td>
+          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.mobile)}</td>
+          <td class="td-text">${esc(a.email)}</td>
+          <td class="td-text">${esc(a.eps?.value)}</td>
+          <td class="td-num">${esc(money(a.ordinaryCompensation))}</td>
+          <td class="td-num">${esc(money(a.averageMonthlySalary))}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const stamp = new Date().toLocaleString('es-CO');
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+      <head><meta charset="utf-8" />
+      <style>
+        body { font-family: Calibri, sans-serif; }
+        .title { background:#0F172A; color:#fff; font-size:13pt; font-weight:bold; text-align:center; height:32px; }
+        .sub { background:#1E293B; color:#E2E8F0; font-size:10pt; text-align:center; height:24px; }
+        .th { background:#0F766E; color:#fff; font-weight:bold; text-align:center; border:1px solid #0D9488; height:28px; font-size:9.5pt; }
+        .td-text { text-align:left; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .td-center { text-align:center; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .td-num { text-align:right; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
+        .even { background:#F8FAFC; }
+      </style></head>
+      <body>
+        <table border="0" cellspacing="0" cellpadding="4">
+          <tr><td colspan="12" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
+          <tr><td colspan="12" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
+          <tr>
+            <th class="th">Carpeta</th>
+            <th class="th">Documento</th>
+            <th class="th">Nombre completo</th>
+            <th class="th">Cargo</th>
+            <th class="th">Centro de trabajo</th>
+            <th class="th">Estado</th>
+            <th class="th">Ingreso</th>
+            <th class="th">Celular</th>
+            <th class="th">Email</th>
+            <th class="th">EPS</th>
+            <th class="th">Salario ord.</th>
+            <th class="th">Salario prom.</th>
+          </tr>
+          ${body}
+        </table>
+      </body></html>`;
+
+    return Buffer.from('\uFEFF' + html, 'utf8');
   }
 
   async exportComplianceMatrix(): Promise<Buffer> {

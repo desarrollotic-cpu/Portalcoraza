@@ -63,11 +63,8 @@ export class HrAbsenteeismController {
   ) {
     const buffer = await this.service.exportExcel({ kind, associateId, search, from, to });
     const stamp = new Date().toISOString().slice(0, 10);
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
-    res.setHeader('Content-Disposition', `attachment; filename="ausentismo-${stamp}.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.ms-excel;charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="ausentismo-${stamp}.xls"`);
     res.send(buffer);
   }
 
