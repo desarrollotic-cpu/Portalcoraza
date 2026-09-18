@@ -16,6 +16,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { HrExcelService } from '../hr-excel/hr-excel.service';
 import { AssociatesService } from './associates.service';
 import { AssociatesQueryDto } from './dto/associates-query.dto';
 import { CreateAssociateDto } from './dto/create-associate.dto';
@@ -25,7 +26,10 @@ import { UpdateAssociateDto } from './dto/update-associate.dto';
 @Controller('associates')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AssociatesController {
-  constructor(private readonly service: AssociatesService) {}
+  constructor(
+    private readonly service: AssociatesService,
+    private readonly excel: HrExcelService,
+  ) {}
 
   @Get()
   @RequirePermissions('associates.view')
@@ -44,6 +48,30 @@ export class AssociatesController {
   @RequirePermissions('associates.view')
   async nextFolderNumber() {
     return { next: await this.service.nextFolderNumber() };
+  }
+
+  /**
+   * Exporta a Excel la lista de asociados aplicando los mismos filtros del
+   * directorio (status, workCenter, jobPosition, search, fechas, etc.).
+   * Se fuerza `limit=2000` para traer todas las filas visibles.
+   */
+  @Get('export')
+  @RequirePermissions('associates.view')
+  async exportFiltered(
+    @Query() query: AssociatesQueryDto,
+    @CurrentUser() user: JwtPayload,
+    @Res() res: Response,
+  ) {
+    const bulkQuery: AssociatesQueryDto = { ...query, page: '1', limit: '2000' };
+    const result = await this.service.list(bulkQuery, user);
+    const buffer = await this.excel.exportAssociates(result.items as any);
+    const stamp = new Date().toISOString().slice(0, 10);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="asociados-${stamp}.xlsx"`);
+    res.send(buffer);
   }
 
   @Get(':id')

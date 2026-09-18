@@ -69,6 +69,15 @@ export class HrApiService {
     return this.http.get<{ next: number }>(`${this.api}/associates/next-folder-number`);
   }
 
+  /** Descarga Excel con la lista de asociados aplicando los mismos filtros del directorio. */
+  exportAssociatesFiltered(query: AssociatesQuery = {}): Observable<Blob> {
+    let params = new HttpParams();
+    for (const [k, v] of Object.entries(query)) {
+      if (v !== undefined && v !== null && v !== '') params = params.set(k, String(v));
+    }
+    return this.http.get(`${this.api}/associates/export`, { params, responseType: 'blob' });
+  }
+
   updateAssociate(id: string, payload: Partial<Associate>): Observable<Associate> {
     return this.http.patch<Associate>(`${this.api}/associates/${id}`, payload);
   }

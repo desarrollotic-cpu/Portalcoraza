@@ -22,5 +22,6 @@ import { HrExcelService } from './hr-excel.service';
   ],
   controllers: [HrExcelController],
   providers: [HrExcelService],
+  exports: [HrExcelService],
 })
 export class HrExcelModule {}

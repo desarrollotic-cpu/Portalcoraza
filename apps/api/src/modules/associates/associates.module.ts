@@ -4,6 +4,7 @@ import { AuditModule } from '../audit/audit.module';
 import { Retirement } from '../hr-retirements/entities/retirement.entity';
 import { HrSharedModule } from '../hr-shared/hr-shared.module';
 import { HrDocumentsModule } from '../hr-documents/hr-documents.module';
+import { HrExcelModule } from '../hr-excel/hr-excel.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AssociatesController } from './associates.controller';
 import { AssociatesService } from './associates.service';
@@ -17,6 +18,7 @@ import { User } from '../users/entities/user.entity';
     TypeOrmModule.forFeature([Associate, AssociateHistory, PositionHistory, Retirement, User]),
     HrSharedModule,
     HrDocumentsModule,
+    HrExcelModule,
     NotificationsModule,
     AuditModule,
   ],

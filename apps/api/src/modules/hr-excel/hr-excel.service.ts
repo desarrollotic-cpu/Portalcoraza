@@ -374,8 +374,14 @@ export class HrExcelService {
     return Buffer.from(buffer);
   }
 
-  async exportAssociates(): Promise<Buffer> {
-    const rows = await this.associatesRepo.find({
+  /**
+   * Exporta la lista de asociados a Excel.
+   * Si se pasa `preloadedRows`, se usa esa lista (ya filtrada por el caller);
+   * si no, exporta la lista completa. Reutilizado por /associates/export
+   * para respetar los filtros del directorio.
+   */
+  async exportAssociates(preloadedRows?: Associate[]): Promise<Buffer> {
+    const rows = preloadedRows ?? await this.associatesRepo.find({
       relations: ['jobPosition', 'workCenter', 'eps'],
       order: { firstLastName: 'ASC' },
     });

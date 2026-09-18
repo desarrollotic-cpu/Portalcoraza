@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import {
   LucideCircleCheck,
   LucideCircleX,
+  LucideDownload,
   LucideFilter,
   LucideRefreshCw,
   LucideSearch,
@@ -58,6 +59,16 @@ function monthBounds(ym: string): { from: string; to: string } {
         <div actions class="hr-page-header__actions">
           <button type="button" class="hr-btn hr-btn-ghost" (click)="refresh()" [disabled]="loading()">
             <app-icon [icon]="icons.Refresh" [size]="16" /> Refrescar
+          </button>
+          <button
+            type="button"
+            class="hr-btn hr-btn-ghost"
+            (click)="exportExcel()"
+            [disabled]="loading() || exporting()"
+            title="Descargar los asociados filtrados como Excel"
+          >
+            <app-icon [icon]="icons.Download" [size]="16" />
+            {{ exporting() ? 'Exportando…' : 'Exportar Excel' }}
           </button>
           @if (auth.hasPermission('associates.create')) {
             <a routerLink="/rrhh/asociados/nuevo" class="hr-btn hr-btn-primary">
@@ -251,9 +262,12 @@ export class AssociatesList implements OnInit, OnDestroy {
     Filter: LucideFilter,
     UserPlus: LucideUserPlus,
     Refresh: LucideRefreshCw,
+    Download: LucideDownload,
     Check: LucideCircleCheck,
     X: LucideCircleX,
   };
+
+  readonly exporting = signal(false);
 
   private readonly search$ = new Subject<void>();
   private searchSub?: Subscription;
@@ -329,6 +343,28 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   refresh(): void {
     this.applyFilters();
+  }
+
+  /** Descarga Excel con los mismos filtros del directorio (respeta status, sede, búsqueda, fechas, etc.). */
+  exportExcel(): void {
+    if (this.exporting()) return;
+    this.exporting.set(true);
+    this.api.exportAssociatesFiltered(this.query).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const stamp = new Date().toISOString().slice(0, 10);
+        a.href = url;
+        a.download = `asociados-${stamp}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.exporting.set(false);
+      },
+      error: () => {
+        this.exporting.set(false);
+        alert('No se pudo exportar el Excel. Intenta de nuevo.');
+      },
+    });
   }
 
   clearFilters(): void {
