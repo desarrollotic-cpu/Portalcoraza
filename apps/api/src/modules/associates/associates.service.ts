@@ -436,9 +436,13 @@ export class AssociatesService {
   ) {
     const associate = await this.associatesRepo.findOne({ where: { id } });
     if (!associate) throw new NotFoundException('Asociado no encontrado');
-    if (associate.status !== AssociateStatus.RETIRADO) {
+    // Se permite reingresar tanto RETIRADO (con acta) como INACTIVO (baja informal/histórica).
+    if (
+      associate.status !== AssociateStatus.RETIRADO &&
+      associate.status !== AssociateStatus.INACTIVO
+    ) {
       throw new BadRequestException(
-        `El asociado no está en estado RETIRADO (estado actual: ${associate.status}).`,
+        `El asociado no está retirado ni inactivo (estado actual: ${associate.status}).`,
       );
     }
 

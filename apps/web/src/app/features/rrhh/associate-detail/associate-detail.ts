@@ -82,7 +82,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
             @if (a.status !== 'RETIRADO' && auth.hasPermission('retirements.create')) {
               <a [routerLink]="['/rrhh/retiros/nuevo', a.id]" class="hr-hero-btn hr-hero-btn--ghost">Registrar retiro</a>
             }
-            @if (a.status === 'RETIRADO' && auth.hasPermission('retirements.readmit')) {
+            @if ((a.status === 'RETIRADO' || a.status === 'INACTIVO') && auth.hasPermission('retirements.readmit')) {
               <a [routerLink]="['/rrhh/asociados', a.id, 'reingreso']" class="hr-hero-btn hr-hero-btn--light">Reingresar</a>
             }
           </div>
