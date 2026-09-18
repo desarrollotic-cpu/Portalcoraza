@@ -64,6 +64,11 @@ export class HrApiService {
     return this.http.post<Associate>(`${this.api}/associates`, payload);
   }
 
+  /** Devuelve el próximo Nº de carpeta consecutivo (MAX + 1) para prellenar el form. */
+  nextFolderNumber(): Observable<{ next: number }> {
+    return this.http.get<{ next: number }>(`${this.api}/associates/next-folder-number`);
+  }
+
   updateAssociate(id: string, payload: Partial<Associate>): Observable<Associate> {
     return this.http.patch<Associate>(`${this.api}/associates/${id}`, payload);
   }

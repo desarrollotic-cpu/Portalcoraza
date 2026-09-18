@@ -128,7 +128,7 @@ const DATE_ONLY_KEYS = [
                   placeholder="Se asigna automático si lo dejas vacío"
                 />
                 <small style="color:#64748b; font-size:0.75rem; margin-top:0.15rem;">
-                  Si lo dejas en blanco, el sistema asigna el siguiente consecutivo.
+                  Sugerido automáticamente (siguiente consecutivo). Puedes cambiarlo si necesitas.
                 </small>
               </div>
 
@@ -636,6 +636,11 @@ export class AssociateForm implements OnInit {
             },
           });
         } else {
+          // Modo "nuevo": prellenar Nº carpeta con el siguiente consecutivo.
+          this.api.nextFolderNumber().subscribe({
+            next: ({ next }) => this.form.patchValue({ folderNumber: next }),
+            error: () => { /* si falla, el input queda vacío y el backend lo asigna al guardar */ },
+          });
           this.loading.set(false);
         }
       },

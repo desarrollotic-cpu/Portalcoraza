@@ -39,6 +39,13 @@ export class AssociatesController {
     return this.service.lookup(status);
   }
 
+  /** Siguiente Nº de carpeta consecutivo (MAX + 1) para prellenar el form. */
+  @Get('next-folder-number')
+  @RequirePermissions('associates.view')
+  async nextFolderNumber() {
+    return { next: await this.service.nextFolderNumber() };
+  }
+
   @Get(':id')
   @RequirePermissions('associates.view')
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {

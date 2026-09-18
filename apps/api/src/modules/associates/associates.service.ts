@@ -81,6 +81,19 @@ export class AssociatesService {
     private readonly documents: HrDocumentsService,
   ) {}
 
+  /**
+   * Devuelve el siguiente número de carpeta consecutivo (MAX + 1) que se
+   * asignaría a un nuevo asociado. Se usa en el formulario para prellenar
+   * el campo y darle al usuario visibilidad del código antes de guardar.
+   */
+  async nextFolderNumber(): Promise<number> {
+    const row = await this.associatesRepo
+      .createQueryBuilder('a')
+      .select('COALESCE(MAX(a.folder_number), 0)', 'max')
+      .getRawOne<{ max: string | number | null }>();
+    return Number(row?.max ?? 0) + 1;
+  }
+
   async lookup(status?: string) {
     const qb = this.associatesRepo
       .createQueryBuilder('a')
@@ -298,6 +311,8 @@ export class AssociatesService {
   async create(dto: CreateAssociateDto, user: JwtPayload, ipAddress?: string) {
     const documentNumber = dto.documentNumber.trim();
 
+    /* nextFolderNumber definido más abajo; usado también por el endpoint público */
+
     const duplicate = await this.associatesRepo.findOne({ where: { documentNumber } });
     if (duplicate) {
       const label = duplicate.status === AssociateStatus.RETIRADO
@@ -309,16 +324,9 @@ export class AssociatesService {
     }
 
     // Auto-asignar número de carpeta si no viene explícito.
-    // Regla: siguiente consecutivo = MAX(folder_number) + 1. Si el usuario
-    // envía uno a mano (casos especiales), se respeta.
-    // ponytail: no hay lock; race muy improbable en Gestión Humana (< 1 alta/min).
-    // Upgrade: SELECT ... FOR UPDATE en la fila max o secuencia dedicada si hay volumen.
+    // ponytail: sin lock; race muy improbable en GH (< 1 alta/min).
     if (dto.folderNumber == null) {
-      const row = await this.associatesRepo
-        .createQueryBuilder('a')
-        .select('COALESCE(MAX(a.folder_number), 0)', 'max')
-        .getRawOne<{ max: string | number | null }>();
-      dto.folderNumber = Number(row?.max ?? 0) + 1;
+      dto.folderNumber = await this.nextFolderNumber();
     }
 
     const associate = this.associatesRepo.create({
