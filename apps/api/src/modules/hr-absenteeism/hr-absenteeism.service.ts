@@ -48,7 +48,8 @@ export class HrAbsenteeismService {
     if (filters?.from) qb.andWhere('a.startDate >= :from', { from: filters.from });
     if (filters?.to) qb.andWhere('a.endDate <= :to', { to: filters.to });
     if (filters?.search?.trim()) {
-      const term = `%${filters.search.trim().toUpperCase()}%`;
+      const raw = filters.search.trim();
+      const term = `%${raw.toUpperCase()}%`;
       qb.andWhere(
         new Brackets((sub) => {
           sub
@@ -56,7 +57,11 @@ export class HrAbsenteeismService {
             .orWhere('UPPER(associate.firstName) LIKE :term', { term })
             .orWhere('UPPER(associate.firstLastName) LIKE :term', { term })
             .orWhere('UPPER(associate.secondName) LIKE :term', { term })
-            .orWhere('UPPER(associate.secondLastName) LIKE :term', { term });
+            .orWhere('UPPER(associate.secondLastName) LIKE :term', { term })
+            .orWhere('CAST(associate.folder_number AS TEXT) LIKE :term', { term });
+          if (/^\d+$/.test(raw)) {
+            sub.orWhere('associate.folder_number = :folderExact', { folderExact: parseInt(raw, 10) });
+          }
         }),
       );
     }

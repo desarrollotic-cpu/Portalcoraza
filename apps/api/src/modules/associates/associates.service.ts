@@ -148,7 +148,8 @@ export class AssociatesService {
     }
 
     if (query.search) {
-      const term = `%${query.search.trim().toUpperCase()}%`;
+      const raw = query.search.trim();
+      const term = `%${raw.toUpperCase()}%`;
       qb.andWhere(
         new Brackets((sub) => {
           sub
@@ -156,7 +157,11 @@ export class AssociatesService {
             .orWhere('UPPER(a.firstName) LIKE :term', { term })
             .orWhere('UPPER(a.secondName) LIKE :term', { term })
             .orWhere('UPPER(a.firstLastName) LIKE :term', { term })
-            .orWhere('UPPER(a.secondLastName) LIKE :term', { term });
+            .orWhere('UPPER(a.secondLastName) LIKE :term', { term })
+            .orWhere('CAST(a.folder_number AS TEXT) LIKE :term', { term });
+          if (/^\d+$/.test(raw)) {
+            sub.orWhere('a.folder_number = :folderExact', { folderExact: parseInt(raw, 10) });
+          }
         }),
       );
     }

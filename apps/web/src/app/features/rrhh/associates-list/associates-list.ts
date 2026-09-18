@@ -83,7 +83,7 @@ function monthBounds(ym: string): { from: string; to: string } {
           <app-icon [icon]="icons.Search" [size]="16" />
           <input
             type="search"
-            placeholder="Buscar por documento o nombre..."
+            placeholder="Buscar por carpeta, documento o nombre..."
             [ngModel]="query.search"
             (ngModelChange)="onSearchChange($event)"
           />
@@ -164,6 +164,7 @@ function monthBounds(ym: string): { from: string; to: string } {
           <table class="hr-table">
             <thead>
               <tr>
+                <th>Carpeta</th>
                 <th>Documento</th>
                 <th>Nombre</th>
                 <th>Cargo</th>
@@ -180,6 +181,7 @@ function monthBounds(ym: string): { from: string; to: string } {
             <tbody>
               @for (a of filtered(); track a.id) {
                 <tr>
+                  <td class="mono">{{ a.folderNumber ?? '—' }}</td>
                   <td class="mono">{{ a.documentNumber }}</td>
                   <td><a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link">{{ a.fullName }}</a></td>
                   <td>
@@ -223,7 +225,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="11">
+                  <td colspan="12">
                     <div class="hr-empty-state">
                       <app-icon [icon]="icons.SearchX" [size]="36" />
                       <p>Sin resultados con estos filtros.</p>

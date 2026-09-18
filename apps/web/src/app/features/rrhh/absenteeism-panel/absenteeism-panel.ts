@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -9,6 +9,7 @@ import {
   LucideTrash2,
   LucideUpload,
 } from '@lucide/angular';
+import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { Icon } from '../../../shared/components/icon/icon';
@@ -19,7 +20,6 @@ import type {
   AbsenteeismKind,
   Associate,
   AssociateAbsence,
-  AbsenceStats,
   CreateAbsencePayload,
   DiagnosisCie10,
 } from '../services/hr.types';
@@ -68,7 +68,32 @@ import type {
         }
       </app-hr-page-header>
 
-      @if (stats(); as s) {
+      <div class="hr-filters">
+        <input
+          type="search"
+          placeholder="Buscar por carpeta, cédula o nombre..."
+          [ngModel]="search"
+          (ngModelChange)="onSearchChange($event)"
+        />
+        <select [ngModel]="kindFilter" (ngModelChange)="kindFilter = $event; load()">
+          <option [ngValue]="undefined">Todos los tipos</option>
+          <option value="MEDICO">Médico</option>
+          <option value="OTRO">Administrativo</option>
+        </select>
+        <label class="hr-filter-month">
+          Desde
+          <input type="date" [ngModel]="from" (ngModelChange)="from = $event; load()" />
+        </label>
+        <label class="hr-filter-month">
+          Hasta
+          <input type="date" [ngModel]="to" (ngModelChange)="to = $event; load()" />
+        </label>
+        @if (search || kindFilter || from || to || eventFilter() || originFilter()) {
+          <button type="button" class="hr-btn hr-btn-ghost" (click)="clearFilters()">Limpiar filtros</button>
+        }
+      </div>
+
+      @if (filteredStats(); as s) {
         <section class="hr-summary" style="margin-bottom: 1rem">
           <div><span>Registros</span><strong>{{ s.total }}</strong></div>
           <div><span>Días totales</span><strong>{{ s.totalDays }}</strong></div>
@@ -78,52 +103,45 @@ import type {
 
         <div class="hr-grid-2" style="margin-bottom: 1.25rem">
           <div class="hr-detail-card">
-            <h3>Por tipo de evento</h3>
+            <h3>Por tipo de evento <small class="hr-muted">clic para filtrar</small></h3>
             @if (eventBars().length === 0) {
               <p class="hr-empty">Sin datos aún.</p>
             } @else {
               @for (b of eventBars(); track b.label) {
-                <div class="hr-bar-row">
+                <button
+                  type="button"
+                  class="hr-bar-row"
+                  [class.active]="eventFilter() === b.label"
+                  (click)="toggleEvent(b.label)"
+                >
                   <span>{{ b.label }}</span>
                   <div class="hr-bar-track"><div class="hr-bar-fill" [style.width.%]="b.pct"></div></div>
                   <strong>{{ b.value }}</strong>
-                </div>
+                </button>
               }
             }
           </div>
           <div class="hr-detail-card">
-            <h3>Días por origen (médico)</h3>
+            <h3>Días por origen (médico) <small class="hr-muted">clic para filtrar</small></h3>
             @if (originBars().length === 0) {
               <p class="hr-empty">Sin datos médicos.</p>
             } @else {
               @for (b of originBars(); track b.label) {
-                <div class="hr-bar-row">
+                <button
+                  type="button"
+                  class="hr-bar-row"
+                  [class.active]="originFilter() === b.label"
+                  (click)="toggleOrigin(b.label)"
+                >
                   <span>{{ b.label }}</span>
                   <div class="hr-bar-track"><div class="hr-bar-fill hr-bar-fill--amber" [style.width.%]="b.pct"></div></div>
                   <strong>{{ b.value }}</strong>
-                </div>
+                </button>
               }
             }
           </div>
         </div>
       }
-
-      <div class="hr-filters">
-        <input
-          type="search"
-          placeholder="Buscar por cédula o nombre..."
-          [(ngModel)]="search"
-          (keyup.enter)="load()"
-        />
-        <select [(ngModel)]="kindFilter" (ngModelChange)="load()">
-          <option [ngValue]="undefined">Todos los tipos</option>
-          <option value="MEDICO">Médico</option>
-          <option value="OTRO">Administrativo</option>
-        </select>
-        <input type="date" [(ngModel)]="from" />
-        <input type="date" [(ngModel)]="to" />
-        <button type="button" class="hr-btn hr-btn-ghost" (click)="load()">Filtrar</button>
-      </div>
 
       @if (showForm()) {
         <form class="hr-detail-card hr-form" style="margin-bottom: 1.25rem" (ngSubmit)="save()">
@@ -251,7 +269,7 @@ import type {
 
       @if (loading()) {
         <div class="hr-loading">Cargando ausencias...</div>
-      } @else if (rows().length === 0) {
+      } @else if (visibleRows().length === 0) {
         <div class="hr-empty-state">
           <app-icon [icon]="icons.CalendarOff" [size]="40" />
           <p>Sin registros de ausentismo.</p>
@@ -272,14 +290,14 @@ import type {
               </tr>
             </thead>
             <tbody>
-              @for (r of rows(); track r.id) {
+              @for (r of visibleRows(); track r.id) {
                 <tr>
                   <td>
                     @if (r.associate) {
                       <a [routerLink]="['/rrhh/asociados', r.associateId]" class="hr-link">
                         {{ r.associate.firstName }} {{ r.associate.firstLastName }}
                       </a>
-                      <div class="hr-muted">{{ r.associate.documentNumber }}</div>
+                      <div class="hr-muted">Carpeta {{ r.associate.folderNumber ?? '—' }} · {{ r.associate.documentNumber }}</div>
                     } @else {
                       {{ r.associateId }}
                     }
@@ -326,7 +344,17 @@ import type {
       align-items: center;
       margin: 0.4rem 0;
       font-size: 0.85rem;
+      width: 100%;
+      border: none;
+      background: transparent;
+      padding: 0.2rem 0.15rem;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
     }
+    .hr-bar-row:hover { background: color-mix(in srgb, var(--primary-500, #1d4ed8) 8%, transparent); }
+    .hr-bar-row.active { background: color-mix(in srgb, var(--primary-500, #1d4ed8) 16%, transparent); font-weight: 600; }
     .hr-bar-track {
       height: 0.55rem;
       border-radius: 999px;
@@ -389,7 +417,7 @@ import type {
     }
   `,
 })
-export class AbsenteeismPanel implements OnInit {
+export class AbsenteeismPanel implements OnInit, OnDestroy {
   private readonly api = inject(HrApiService);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
@@ -407,7 +435,8 @@ export class AbsenteeismPanel implements OnInit {
   readonly eventTypes: AbsenteeismEventType[] = ['D.A.', 'S.P.', 'L.R.', 'L.N.R.', 'ACT'];
 
   readonly rows = signal<AssociateAbsence[]>([]);
-  readonly stats = signal<AbsenceStats | null>(null);
+  readonly eventFilter = signal<string | undefined>(undefined);
+  readonly originFilter = signal<string | undefined>(undefined);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly importing = signal(false);
@@ -429,10 +458,57 @@ export class AbsenteeismPanel implements OnInit {
 
   form: CreateAbsencePayload = this.emptyForm();
 
-  readonly eventBars = computed(() => this.toBars(this.stats()?.byEvent ?? {}));
-  readonly originBars = computed(() => this.toBars(this.stats()?.byOrigin ?? {}));
+  private readonly search$ = new Subject<void>();
+  private searchSub?: Subscription;
+
+  /** Lista que ves / exportas: barra de filtros + clic en barras. */
+  readonly visibleRows = computed(() => {
+    const ev = this.eventFilter();
+    const origin = this.originFilter();
+    return this.rows().filter((r) => {
+      if (ev && (r.eventType ?? 'SIN EVENTO') !== ev) return false;
+      if (origin) {
+        const label = r.kind === 'MEDICO' ? (r.incapacityOrigin?.trim() || 'SIN ORIGEN') : '';
+        if (label !== origin) return false;
+      }
+      return true;
+    });
+  });
+
+  readonly filteredStats = computed(() => this.breakdown(this.visibleRows()));
+  /** Barras sobre el resultado de búsqueda/fechas/tipo (para poder hacer clic a otro). */
+  readonly eventBars = computed(() => this.toBars(this.breakdown(this.rows()).byEvent));
+  readonly originBars = computed(() => this.toBars(this.breakdown(this.rows()).byOrigin));
 
   ngOnInit(): void {
+    this.searchSub = this.search$.pipe(debounceTime(300)).subscribe(() => this.load());
+    this.load();
+  }
+
+  ngOnDestroy(): void {
+    this.searchSub?.unsubscribe();
+  }
+
+  onSearchChange(term: string): void {
+    this.search = term;
+    this.search$.next();
+  }
+
+  toggleEvent(label: string): void {
+    this.eventFilter.set(this.eventFilter() === label ? undefined : label);
+  }
+
+  toggleOrigin(label: string): void {
+    this.originFilter.set(this.originFilter() === label ? undefined : label);
+  }
+
+  clearFilters(): void {
+    this.search = '';
+    this.kindFilter = undefined;
+    this.from = '';
+    this.to = '';
+    this.eventFilter.set(undefined);
+    this.originFilter.set(undefined);
     this.load();
   }
 
@@ -448,7 +524,7 @@ export class AbsenteeismPanel implements OnInit {
 
   exportExcel(): void {
     if (this.exporting()) return;
-    const list = this.rows();
+    const list = this.visibleRows();
     if (!list.length) {
       this.toast.error('No hay ausencias para exportar con el filtro actual');
       return;
@@ -561,10 +637,6 @@ export class AbsenteeismPanel implements OnInit {
           this.toast.error('No se pudo cargar ausentismo');
         },
       });
-    this.api.absenceStats().subscribe({
-      next: (s) => this.stats.set(s),
-      error: () => {},
-    });
   }
 
   openCreate(): void {
@@ -762,6 +834,27 @@ export class AbsenteeismPanel implements OnInit {
       diagnosisId: undefined,
       cause: '',
       observations: '',
+    };
+  }
+
+  private breakdown(list: AssociateAbsence[]) {
+    const byEvent: Record<string, number> = {};
+    const byOrigin: Record<string, number> = {};
+    for (const r of list) {
+      const ev = r.eventType ?? 'SIN EVENTO';
+      byEvent[ev] = (byEvent[ev] ?? 0) + 1;
+      if (r.kind === 'MEDICO') {
+        const origin = r.incapacityOrigin?.trim() || 'SIN ORIGEN';
+        byOrigin[origin] = (byOrigin[origin] ?? 0) + (r.absenceDays || 0);
+      }
+    }
+    return {
+      total: list.length,
+      totalDays: list.reduce((s, r) => s + (r.absenceDays || 0), 0),
+      medical: list.filter((r) => r.kind === 'MEDICO').length,
+      admin: list.filter((r) => r.kind === 'OTRO').length,
+      byEvent,
+      byOrigin,
     };
   }
 
