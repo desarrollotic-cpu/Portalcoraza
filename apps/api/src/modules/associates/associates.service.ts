@@ -155,6 +155,27 @@ export class AssociatesService {
       qb.andWhere('a.hireDate <= :hireTo', { hireTo: query.hireTo });
     }
 
+    if (query.retiredFrom || query.retiredTo) {
+      if (!query.status) {
+        qb.andWhere('a.status IN (:...bajaStatuses)', {
+          bajaStatuses: [AssociateStatus.RETIRADO, AssociateStatus.INACTIVO],
+        });
+      }
+      const bajaExpr = `COALESCE(
+        (SELECT ar.retirement_date FROM associate_retirements ar
+         WHERE ar.associate_id = a.id
+         ORDER BY ar.retirement_date DESC LIMIT 1),
+        CASE WHEN a.status IN ('RETIRADO','INACTIVO')
+          THEN (timezone('America/Bogota', a.updated_at))::date END
+      )`;
+      if (query.retiredFrom) {
+        qb.andWhere(`${bajaExpr} >= :retiredFrom`, { retiredFrom: query.retiredFrom });
+      }
+      if (query.retiredTo) {
+        qb.andWhere(`${bajaExpr} <= :retiredTo`, { retiredTo: query.retiredTo });
+      }
+    }
+
     qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
 
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);
@@ -171,9 +192,7 @@ export class AssociatesService {
     let total: number;
     if (tenureFilter) {
       rows = await qb.getMany();
-      const retiredIds = rows
-        .filter((a) => a.status === AssociateStatus.RETIRADO)
-        .map((a) => a.id);
+      const retiredIds = rows.filter((a) => this.isInactiveStatus(a.status)).map((a) => a.id);
       const retirementByAssociate = await this.latestRetirementDates(retiredIds);
       const minMonths = query.tenureMinMonths
         ? parseInt(query.tenureMinMonths, 10)
@@ -190,15 +209,13 @@ export class AssociatesService {
           birthDate: a.birthDate,
           hireDate: a.hireDate,
           status: a.status,
-          retirementDate: retirementByAssociate.get(a.id) ?? null,
+          retirementDate: this.resolveBajaDate(a, retirementByAssociate.get(a.id)),
         });
         return tenureMonths >= minMonths && tenureMonths <= maxMonths;
       });
       total = rows.length;
       rows = rows.slice(skip, skip + limit);
-      const pageRetired = rows
-        .filter((a) => a.status === AssociateStatus.RETIRADO)
-        .map((a) => a.id);
+      const pageRetired = rows.filter((a) => this.isInactiveStatus(a.status)).map((a) => a.id);
       const pageRetirements = await this.latestRetirementDates(pageRetired);
       return {
         items: rows.map((a) => this.enrich(a, user, pageRetirements.get(a.id))),
@@ -210,9 +227,7 @@ export class AssociatesService {
     }
 
     [rows, total] = await qb.skip(skip).take(limit).getManyAndCount();
-    const retiredIds = rows
-      .filter((a) => a.status === AssociateStatus.RETIRADO)
-      .map((a) => a.id);
+    const retiredIds = rows.filter((a) => this.isInactiveStatus(a.status)).map((a) => a.id);
     const retirementByAssociate = await this.latestRetirementDates(retiredIds);
 
     return {
@@ -291,6 +306,19 @@ export class AssociatesService {
       throw new BadRequestException(
         `El asociado con documento ${documentNumber} ${label}.`,
       );
+    }
+
+    // Auto-asignar número de carpeta si no viene explícito.
+    // Regla: siguiente consecutivo = MAX(folder_number) + 1. Si el usuario
+    // envía uno a mano (casos especiales), se respeta.
+    // ponytail: no hay lock; race muy improbable en Gestión Humana (< 1 alta/min).
+    // Upgrade: SELECT ... FOR UPDATE en la fila max o secuencia dedicada si hay volumen.
+    if (dto.folderNumber == null) {
+      const row = await this.associatesRepo
+        .createQueryBuilder('a')
+        .select('COALESCE(MAX(a.folder_number), 0)', 'max')
+        .getRawOne<{ max: string | number | null }>();
+      dto.folderNumber = Number(row?.max ?? 0) + 1;
     }
 
     const associate = this.associatesRepo.create({
@@ -503,14 +531,16 @@ export class AssociatesService {
     user: JwtPayload,
     retirementDate?: string | null,
   ) {
+    const bajaDate = this.resolveBajaDate(associate, retirementDate);
     const derived = this.derived.compute({
       birthDate: associate.birthDate,
       hireDate: associate.hireDate,
       status: associate.status,
-      retirementDate: retirementDate ?? null,
+      retirementDate: bajaDate,
     });
     const enriched = {
       ...associate,
+      retirementDate: bajaDate,
       ageAtHire: derived.ageAtHire,
       currentAge: derived.currentAge,
       tenureYears: derived.tenureYears,
@@ -534,6 +564,23 @@ export class AssociatesService {
     const mobile = (a.mobile ?? '').trim();
     const hireDate = (a.hireDate ?? '').toString().trim();
     return mobile.length >= 4 && !!hireDate && !!a.jobPositionId;
+  }
+
+  private isInactiveStatus(status: AssociateStatus): boolean {
+    return status === AssociateStatus.RETIRADO || status === AssociateStatus.INACTIVO;
+  }
+
+  /** Encuesta de retiro; si no hay, el día en que quedó RETIRADO/INACTIVO (Bogotá). */
+  private resolveBajaDate(associate: Associate, survey?: string | null): string | null {
+    if (survey) {
+      const s = String(survey).slice(0, 10);
+      if (s) return s;
+    }
+    if (!this.isInactiveStatus(associate.status) || !associate.updatedAt) return null;
+    const dt =
+      associate.updatedAt instanceof Date ? associate.updatedAt : new Date(associate.updatedAt);
+    if (Number.isNaN(dt.getTime())) return null;
+    return dt.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
   }
 
   private async latestRetirementDate(associateId: string): Promise<string | null> {

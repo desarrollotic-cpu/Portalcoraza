@@ -121,7 +121,15 @@ const DATE_ONLY_KEYS = [
               </div>
               <div class="hr-field">
                 <label>Nº carpeta</label>
-                <input formControlName="folderNumber" type="number" min="0" />
+                <input
+                  formControlName="folderNumber"
+                  type="number"
+                  min="0"
+                  placeholder="Se asigna automático si lo dejas vacío"
+                />
+                <small style="color:#64748b; font-size:0.75rem; margin-top:0.15rem;">
+                  Si lo dejas en blanco, el sistema asigna el siguiente consecutivo.
+                </small>
               </div>
 
               <div class="hr-field">
