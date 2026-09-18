@@ -250,6 +250,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                   <div><dt>Salario ordinario</dt><dd>\${{ a.ordinaryCompensation | number:'1.0-0' }}</dd></div>
                   <div><dt>Salario promedio</dt><dd>\${{ a.averageMonthlySalary | number:'1.0-0' }}</dd></div>
                   <div><dt>Cuenta banco</dt><dd>{{ a.bankAccount ?? '—' }}</dd></div>
+                  <div><dt>Nivel de póliza</dt><dd>{{ a.policyLevel ? 'Nivel ' + a.policyLevel : '—' }}</dd></div>
                 </dl>
               </div>
               <div class="hr-detail-card">

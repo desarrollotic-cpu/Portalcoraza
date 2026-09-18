@@ -1,0 +1,7 @@
+# Personal (CRM Coraza)
+
+Gestión Humana es la **única fuente** del personal. Quien alimenta o modifica asociados, cargos, centros, documentos y retiros es RRHH.
+
+- Escribir asociados: solo módulo GH (API `associates.*` create/edit/retire, import Excel HR, documentos/alertas SST de la ficha).
+- Dotación, Programación, Recepción, Contabilidad, Nómina y el resto: **solo lectura**. Ven la ficha actual; no crear, no editar, no copiar maestro.
+- No duplicar tabla ni cache de personal por módulo. El cuadro de turnos puede guardar el nombre del mes; no sustituye `associates`.

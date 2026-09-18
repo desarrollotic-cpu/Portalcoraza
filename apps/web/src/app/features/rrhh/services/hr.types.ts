@@ -131,6 +131,8 @@ export interface Associate {
   schoolNit: string | null;
   courseCertificateNumber: string | null;
   hasSuraPolicy: boolean;
+  /** Nivel de póliza de vida/accidentes (1..4). */
+  policyLevel: number | null;
   funeralService: string | null;
 
   childrenCount: number;

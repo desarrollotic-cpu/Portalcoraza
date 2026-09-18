@@ -17,6 +17,6 @@ BEGIN
          AND tablename = 'notifications'
      )
   THEN
-    ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.notificationZ;
   END IF;
 END $$;

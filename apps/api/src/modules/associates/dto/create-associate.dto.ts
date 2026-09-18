@@ -122,6 +122,10 @@ export class CreateAssociateDto {
   @IsOptional() @IsBoolean()
   hasSuraPolicy?: boolean;
 
+  /** Nivel de cobertura de póliza (1..4). Escalonado por cargo/antigüedad. */
+  @IsOptional() @IsInt() @Min(1) @Max(4)
+  policyLevel?: number | null;
+
   @IsOptional() @IsString() @MaxLength(120)
   funeralService?: string | null;
 

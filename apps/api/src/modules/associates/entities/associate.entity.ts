@@ -194,6 +194,11 @@ export class Associate {
   @Column({ name: 'has_sura_policy', type: 'boolean', default: false })
   hasSuraPolicy!: boolean;
 
+  // Nivel de póliza de vida/accidentes contratada (1..4).
+  // Escalonado por cargo/antigüedad. Nulo = sin nivel asignado.
+  @Column({ name: 'policy_level', type: 'smallint', nullable: true })
+  policyLevel!: number | null;
+
   @Column({ name: 'funeral_service', type: 'varchar', length: 120, nullable: true })
   funeralService!: string | null;
 

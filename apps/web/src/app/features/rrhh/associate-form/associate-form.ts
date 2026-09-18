@@ -334,6 +334,20 @@ const DATE_ONLY_KEYS = [
                   <input formControlName="psychosensometricExpirationDate" type="date" />
                 </div>
               }
+
+              <div class="hr-field">
+                <label>Nivel de póliza</label>
+                <select formControlName="policyLevel">
+                  <option [ngValue]="null">—</option>
+                  <option [ngValue]="1">Nivel 1</option>
+                  <option [ngValue]="2">Nivel 2</option>
+                  <option [ngValue]="3">Nivel 3</option>
+                  <option [ngValue]="4">Nivel 4</option>
+                </select>
+                <small style="color:#64748b; font-size:0.75rem; margin-top:0.15rem;">
+                  Cobertura escalonada por cargo/antigüedad (1–4).
+                </small>
+              </div>
             </div>
           </section>
 
@@ -518,7 +532,7 @@ export class AssociateForm implements OnInit {
     ordinaryCompensation: 3, averageMonthlySalary: 3, bankAccount: 3,
     courseCode: 3, schoolNit: 3, courseCertificateNumber: 3, funeralService: 3,
     courseIssuedDate: 3, courseExpirationDate: 3,
-    psychophysicalValid: 3, psychosensometricValid: 3, hasSuraPolicy: 3, status: 3,
+    psychophysicalValid: 3, psychosensometricValid: 3, hasSuraPolicy: 3, policyLevel: 3, status: 3,
     psychophysicalIssuedDate: 3, psychophysicalExpirationDate: 3,
     psychosensometricIssuedDate: 3, psychosensometricExpirationDate: 3,
   };
@@ -587,6 +601,7 @@ export class AssociateForm implements OnInit {
     psychosensometricIssuedDate: [''],
     psychosensometricExpirationDate: [''],
     hasSuraPolicy: [false],
+    policyLevel: [null],
     status: ['ACTIVO'],
 
     // Sociodemográfico

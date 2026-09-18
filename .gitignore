@@ -14,3 +14,6 @@ coverage/
 Portalcoraza/
 graphify-out/
 .tmp/
+MENBRETE/
+*.zip
+*.docx

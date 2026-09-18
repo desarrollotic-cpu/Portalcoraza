@@ -26,6 +26,11 @@ const ALMACENISTA_PERMISSIONS = [
   'deliveries.create',
   'deliveries.sign',
   'deliveries.revert',
+  'post_equipment.view',
+  'post_equipment.assign',
+  'post_equipment.return',
+  'post_equipment.manage',
+  'associates.view',
   'notifications.view',
   'notifications.read',
 ];
@@ -65,6 +70,11 @@ async function main() {
         ('deliveries.create', 'Crear entrega', 'deliveries'),
         ('deliveries.sign', 'Confirmar entrega con firma', 'deliveries'),
         ('deliveries.revert', 'Revertir entrega confirmada', 'deliveries'),
+        ('post_equipment.view', 'Ver elementos de puesto', 'dotacion'),
+        ('post_equipment.assign', 'Asignar elementos a puesto', 'dotacion'),
+        ('post_equipment.return', 'Registrar devolución de elementos de puesto', 'dotacion'),
+        ('post_equipment.manage', 'Gestionar catálogo de elementos de puesto', 'dotacion'),
+        ('associates.view', 'Consultar asociados', 'associates'),
         ('notifications.view', 'Ver notificaciones', 'notifications'),
         ('notifications.read', 'Marcar notificaciones como leidas', 'notifications')
       ON CONFLICT (code) DO NOTHING
@@ -91,20 +101,25 @@ async function main() {
     }
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const upsert = await client.query(
-      `
-      INSERT INTO users (email, password_hash, full_name, role_id, is_active)
-      VALUES ($1, $2, $3, $4, TRUE)
-      ON CONFLICT (email) DO UPDATE
-        SET password_hash = EXCLUDED.password_hash,
-            full_name = EXCLUDED.full_name,
-            role_id = EXCLUDED.role_id,
-            is_active = TRUE,
-            updated_at = NOW()
-      RETURNING id, email
-    `,
-      [email, passwordHash, fullName, role.rows[0].id],
+    const existing = await client.query<{ id: string }>(
+      `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
+      [email],
     );
+
+    if (existing.rows[0]) {
+      await client.query(
+        `UPDATE users
+         SET password_hash = $1, full_name = $2, role_id = $3, is_active = TRUE, updated_at = NOW()
+         WHERE id = $4`,
+        [passwordHash, fullName, role.rows[0].id, existing.rows[0].id],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO users (email, password_hash, full_name, role_id, is_active)
+         VALUES ($1, $2, $3, $4, TRUE)`,
+        [email, passwordHash, fullName, role.rows[0].id],
+      );
+    }
 
     const perms = await client.query<{ code: string }>(
       `
@@ -118,7 +133,7 @@ async function main() {
     );
 
     console.log('Usuario ALMACENISTA listo');
-    console.log(`  Email: ${upsert.rows[0].email}`);
+    console.log(`  Email: ${email}`);
     console.log(`  Password: ${password}`);
     console.log(`  Rol: ALMACENISTA`);
     console.log(`  Permisos (${perms.rows.length}):`);
