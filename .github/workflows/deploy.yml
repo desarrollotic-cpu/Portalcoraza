@@ -21,12 +21,34 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     steps:
-      - name: Trigger Render Deploy (if hook configured)
+      - name: Trigger Render Deploy — API
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_API }}" ]; then
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_API }}"
+            echo "✔ API deploy triggered"
+          else
+            echo "⚠ RENDER_DEPLOY_HOOK_API no configurado — skip"
+          fi
+      - name: Trigger Render Deploy — Web
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}" ]; then
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_WEB }}"
+            echo "✔ Web deploy triggered"
+          else
+            echo "⚠ RENDER_DEPLOY_HOOK_WEB no configurado — skip"
+          fi
+      - name: Trigger Render Deploy — Minuta
+        run: |
+          if [ -n "${{ secrets.RENDER_DEPLOY_HOOK_MINUTA }}" ]; then
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_MINUTA }}"
+            echo "✔ Minuta deploy triggered"
+          else
+            echo "⚠ RENDER_DEPLOY_HOOK_MINUTA no configurado — skip"
+          fi
+      # Fallback: si Freider tenía configurado el hook único antiguo, se usa.
+      - name: Trigger Render Deploy (legacy hook)
         run: |
           if [ -n "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
-            curl -s "${{ secrets.RENDER_DEPLOY_HOOK }}" -X POST -d ''
-            echo "Deploy triggered"
-          else
-            echo "No deploy hook configured — skipping"
+            curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK }}"
+            echo "✔ Legacy deploy triggered"
           fi
-          echo Deploy triggered OK
