@@ -167,6 +167,9 @@ export interface Associate {
   createdAt: string;
   updatedAt: string;
 
+  /** Baja: encuesta de retiro o, si no hay, día en que pasó a RETIRADO/INACTIVO. */
+  retirementDate?: string | null;
+
   // Derivados (calculados en API)
   fullName: string;
   ageAtHire: number;
@@ -192,6 +195,10 @@ export interface AssociatesQuery {
   hireFrom?: string;
   /** Ingreso hasta (YYYY-MM-DD). */
   hireTo?: string;
+  /** Baja desde (YYYY-MM-DD). */
+  retiredFrom?: string;
+  /** Baja hasta (YYYY-MM-DD). */
+  retiredTo?: string;
   page?: number;
   limit?: number;
 }

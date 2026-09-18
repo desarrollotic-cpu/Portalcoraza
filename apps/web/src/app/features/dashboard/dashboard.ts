@@ -190,8 +190,8 @@ type PeriodKey = CommandPeriod;
                     <strong class="score-pct" [attr.data-level]="scoreLevel(s.value)">{{ s.value }}%</strong>
                   }
                 </div>
-              }
-            </div>
+                  }
+                </div>
           </section>
 
           <!-- CENTRO DE ALERTAS -->
@@ -218,8 +218,8 @@ type PeriodKey = CommandPeriod;
                         <strong>{{ a.title }}</strong>
                         <p>{{ a.message }}</p>
                       </div>
-                      <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
-                    </a>
+                    <app-icon [icon]="icons.ArrowUpRight" [size]="14" [strokeWidth]="2" />
+                  </a>
                   </li>
                 }
               </ul>
@@ -312,7 +312,7 @@ type PeriodKey = CommandPeriod;
                     </div>
                     <strong>{{ dot.statusBreakdown.withoutRecentDelivery }}</strong>
                   </div>
-                </div>
+          </div>
               }
             </section>
           }
@@ -397,7 +397,7 @@ type PeriodKey = CommandPeriod;
               }
             </section>
           }
-        </div>
+            </div>
 
         <!-- 4. TIMELINE DE AUDITORÍA -->
         <section class="panel">
@@ -437,7 +437,7 @@ type PeriodKey = CommandPeriod;
   `,
   styles: `
     .dashboard { display: flex; flex-direction: column; gap: 1.25rem; font-family: inherit; }
-    
+
     .hero {
       position: relative; overflow: hidden; border-radius: 1.25rem;
       background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);

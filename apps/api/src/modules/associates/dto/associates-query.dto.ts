@@ -43,6 +43,14 @@ export class AssociatesQueryDto {
   @IsOptional() @IsString()
   hireTo?: string;
 
+  /** Fecha de baja desde (YYYY-MM-DD). Encuesta de retiro o, si no hay, día en que pasó a RETIRADO/INACTIVO. */
+  @IsOptional() @IsString()
+  retiredFrom?: string;
+
+  /** Fecha de baja hasta (YYYY-MM-DD). */
+  @IsOptional() @IsString()
+  retiredTo?: string;
+
   @IsOptional() @IsNumberString()
   page?: string;
 

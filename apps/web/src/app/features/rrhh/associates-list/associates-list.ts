@@ -129,7 +129,15 @@ function monthBounds(ym: string): { from: string; to: string } {
             (ngModelChange)="setHireMonth($event)"
           />
         </label>
-        @if (hireMonth || tenureBucket) {
+        <label class="hr-filter-month">
+          Baja en el mes
+          <input
+            type="month"
+            [ngModel]="retiredMonth"
+            (ngModelChange)="setRetiredMonth($event)"
+          />
+        </label>
+        @if (hireMonth || retiredMonth || tenureBucket) {
           <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="clearDateFilters()">
             Limpiar mes / antigüedad
           </button>
@@ -151,6 +159,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 <th>Nivel educativo</th>
                 <th>Centro</th>
                 <th>Estado</th>
+                <th>Fecha de baja</th>
                 <th>Ficha</th>
                 <th>Antigüedad</th>
                 <th>SST</th>
@@ -175,6 +184,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                       {{ statusLabel(a.status) }}
                     </span>
                   </td>
+                  <td>{{ formatIsoDate(a.retirementDate) }}</td>
                   <td>
                     <span
                       class="hr-ficha"
@@ -202,7 +212,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="10">
+                  <td colspan="11">
                     <div class="hr-empty-state">
                       <app-icon [icon]="icons.SearchX" [size]="36" />
                       <p>Sin resultados con estos filtros.</p>
@@ -262,6 +272,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   query: AssociatesQuery = { status: 'ACTIVO' };
   tenureBucket = '';
   hireMonth = '';
+  retiredMonth = '';
 
   readonly filtered = computed(() => this.associates());
 
@@ -278,6 +289,7 @@ export class AssociatesList implements OnInit, OnDestroy {
     { value: 'ACTIVO', label: 'Activos' },
     { value: 'VACACIONES', label: 'Vacaciones' },
     { value: 'SUSPENDIDO', label: 'Suspendidos' },
+    { value: 'INACTIVO', label: 'Inactivos' },
     { value: 'RETIRADO', label: 'Retirados' },
   ];
 
@@ -323,6 +335,7 @@ export class AssociatesList implements OnInit, OnDestroy {
     this.query = { status: 'ACTIVO' };
     this.tenureBucket = '';
     this.hireMonth = '';
+    this.retiredMonth = '';
     this.page.set(1);
     this.applyFilters();
   }
@@ -330,12 +343,15 @@ export class AssociatesList implements OnInit, OnDestroy {
   clearDateFilters(): void {
     this.tenureBucket = '';
     this.hireMonth = '';
+    this.retiredMonth = '';
     this.query.tenureMinMonths = undefined;
     this.query.tenureMaxMonths = undefined;
     this.query.tenureMinYears = undefined;
     this.query.tenureMaxYears = undefined;
     this.query.hireFrom = undefined;
     this.query.hireTo = undefined;
+    this.query.retiredFrom = undefined;
+    this.query.retiredTo = undefined;
     this.page.set(1);
     this.applyFilters();
   }
@@ -349,6 +365,27 @@ export class AssociatesList implements OnInit, OnDestroy {
       const bounds = monthBounds(this.hireMonth);
       this.query.hireFrom = bounds.from;
       this.query.hireTo = bounds.to;
+    }
+    this.page.set(1);
+    this.applyFilters();
+  }
+
+  setRetiredMonth(ym: string): void {
+    this.retiredMonth = ym ?? '';
+    if (!this.retiredMonth) {
+      this.query.retiredFrom = undefined;
+      this.query.retiredTo = undefined;
+    } else {
+      const bounds = monthBounds(this.retiredMonth);
+      this.query.retiredFrom = bounds.from;
+      this.query.retiredTo = bounds.to;
+      if (
+        this.query.status === 'ACTIVO' ||
+        this.query.status === 'VACACIONES' ||
+        this.query.status === 'SUSPENDIDO'
+      ) {
+        this.query.status = 'RETIRADO';
+      }
     }
     this.page.set(1);
     this.applyFilters();
@@ -416,6 +453,12 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   statusLabel(s: AssociateStatus): string {
     return STATUS_LABELS[s]?.label ?? s;
+  }
+
+  formatIsoDate(value?: string | null): string {
+    if (!value) return '—';
+    const [y, m, d] = value.slice(0, 10).split('-');
+    return d && m && y ? `${d}/${m}/${y}` : value;
   }
 
   complianceTooltip(a: Associate): string {
