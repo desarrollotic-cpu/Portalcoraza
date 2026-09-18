@@ -82,6 +82,9 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
             @if (a.status !== 'RETIRADO' && auth.hasPermission('retirements.create')) {
               <a [routerLink]="['/rrhh/retiros/nuevo', a.id]" class="hr-hero-btn hr-hero-btn--ghost">Registrar retiro</a>
             }
+            @if (a.status === 'RETIRADO' && auth.hasPermission('retirements.readmit')) {
+              <a [routerLink]="['/rrhh/asociados', a.id, 'reingreso']" class="hr-hero-btn hr-hero-btn--light">Reingresar</a>
+            }
           </div>
         </header>
 
@@ -243,6 +246,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                   <div><dt>Cargo actual</dt><dd>{{ a.jobPosition?.name ?? '—' }}</dd></div>
                   <div><dt>Centro</dt><dd>{{ a.workCenter?.clientName ?? '—' }}</dd></div>
                   <div><dt>Ingreso</dt><dd>{{ a.hireDate }}</dd></div>
+                  <div><dt>Fecha de baja</dt><dd>{{ a.retirementDate ?? '—' }}</dd></div>
                   <div><dt>Salario ordinario</dt><dd>\${{ a.ordinaryCompensation | number:'1.0-0' }}</dd></div>
                   <div><dt>Salario promedio</dt><dd>\${{ a.averageMonthlySalary | number:'1.0-0' }}</dd></div>
                   <div><dt>Cuenta banco</dt><dd>{{ a.bankAccount ?? '—' }}</dd></div>
