@@ -46,7 +46,7 @@ const DATE_ONLY_KEYS = [
           <button
             type="button"
             class="hr-btn hr-btn-primary"
-            [disabled]="form.invalid || saving()"
+            [disabled]="!form.dirty || saving()"
             (click)="submit()"
           >
             {{ saving() ? 'Guardando...' : (associateId() ? 'Guardar cambios' : 'Crear asociado') }}
