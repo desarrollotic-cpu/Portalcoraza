@@ -132,22 +132,26 @@ function monthBounds(ym: string): { from: string; to: string } {
           <option value="37-60">37 a 60 meses</option>
           <option value="61+">Más de 60 meses</option>
         </select>
-        <label class="hr-filter-month">
-          Ingresaron en el mes
-          <input
-            type="month"
-            [ngModel]="hireMonth"
-            (ngModelChange)="setHireMonth($event)"
-          />
-        </label>
-        <label class="hr-filter-month">
-          Baja en el mes
-          <input
-            type="month"
-            [ngModel]="retiredMonth"
-            (ngModelChange)="setRetiredMonth($event)"
-          />
-        </label>
+        @if (showHireMonthFilter()) {
+          <label class="hr-filter-month">
+            Ingresaron en el mes
+            <input
+              type="month"
+              [ngModel]="hireMonth"
+              (ngModelChange)="setHireMonth($event)"
+            />
+          </label>
+        }
+        @if (showRetiredMonthFilter()) {
+          <label class="hr-filter-month">
+            Baja en el mes
+            <input
+              type="month"
+              [ngModel]="retiredMonth"
+              (ngModelChange)="setRetiredMonth($event)"
+            />
+          </label>
+        }
         @if (hireMonth || retiredMonth || tenureBucket) {
           <button type="button" class="hr-btn hr-btn-ghost hr-btn-sm" (click)="clearDateFilters()">
             Limpiar mes / antigüedad
@@ -482,8 +486,33 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   toggleStatus(value: AssociateStatus | undefined): void {
     this.query.status = this.query.status === value ? undefined : value;
+    if (this.query.status === 'RETIRADO') {
+      this.clearHireMonth();
+    } else if (this.query.status === 'ACTIVO') {
+      this.clearRetiredMonth();
+    }
     this.page.set(1);
     this.applyFilters();
+  }
+
+  showHireMonthFilter(): boolean {
+    return this.query.status !== 'RETIRADO';
+  }
+
+  showRetiredMonthFilter(): boolean {
+    return this.query.status !== 'ACTIVO';
+  }
+
+  private clearHireMonth(): void {
+    this.hireMonth = '';
+    this.query.hireFrom = undefined;
+    this.query.hireTo = undefined;
+  }
+
+  private clearRetiredMonth(): void {
+    this.retiredMonth = '';
+    this.query.retiredFrom = undefined;
+    this.query.retiredTo = undefined;
   }
 
   isProfileComplete(a: Associate): boolean {
