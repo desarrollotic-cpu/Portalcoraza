@@ -25,6 +25,11 @@ export interface PostClientFields {
   contactEmail: string | null;
   observations: string | null;
 
+  /** Baja del puesto: capturados al desactivar (no automáticos). */
+  inactiveDate: string | null;
+  inactiveReason: string | null;
+  inactiveNotes: string | null;
+
   docCamaraComercio: string | null;
   docRut: string | null;
   docCcRepLegal: string | null;

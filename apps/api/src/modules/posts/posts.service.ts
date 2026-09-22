@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -181,6 +182,22 @@ export class PostsService {
       }
     }
 
+    // Baja del puesto: la fecha y el motivo los captura quien desactiva, no
+    // quedan automáticos (updated_at). Reactivar limpia esos campos.
+    const isDeactivating = rest.status === PostStatus.INACTIVO && existing.status !== PostStatus.INACTIVO;
+    const isReactivating = rest.status === PostStatus.ACTIVO && existing.status !== PostStatus.ACTIVO;
+    if (isDeactivating) {
+      if (!rest.inactiveDate) {
+        throw new BadRequestException('Debe indicar la fecha en que terminó el contrato del puesto.');
+      }
+      if (!rest.inactiveReason) {
+        throw new BadRequestException('Debe indicar el motivo de la baja.');
+      }
+      if (rest.inactiveReason === 'Otro' && !rest.inactiveNotes?.trim()) {
+        throw new BadRequestException('Motivo "Otro" requiere una observación que lo explique.');
+      }
+    }
+
     const oldSnapshot = { ...existing };
     Object.assign(existing, {
       ...rest,
@@ -188,6 +205,10 @@ export class PostsService {
       ...(rest.name !== undefined ? { name: rest.name.trim() } : {}),
       ...(rest.nit !== undefined ? { nit: stripExcelId(rest.nit) } : {}),
       ...(rest.legalRepId !== undefined ? { legalRepId: stripExcelId(rest.legalRepId) } : {}),
+      // Reactivar siempre limpia la baja anterior, aunque el frontend no
+      // mande estos campos explícitamente (null, no undefined, para que
+      // TypeORM sí actualice la columna a NULL).
+      ...(isReactivating ? { inactiveDate: null, inactiveReason: null, inactiveNotes: null } : {}),
     });
     this.applyLastContract(existing, contracts);
     const saved = await this.postsRepo.save(existing);

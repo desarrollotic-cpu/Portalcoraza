@@ -2,7 +2,9 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -11,6 +13,16 @@ import {
 // ponytail: fechas de contrato y verif_* son texto libre (tal cual el archivo).
 import { PostStatus, PostType } from '../entities/post.entity';
 import { PostContractItemDto, PostOtrosiItemDto } from './post-agreements.dto';
+
+/** Motivos de baja de un puesto (dar de baja en Recepción/Operaciones). */
+export const POST_INACTIVE_REASONS = [
+  'Terminación de contrato',
+  'No renovación',
+  'Decisión del cliente',
+  'Cierre del puesto',
+  'Otro',
+] as const;
+export type PostInactiveReason = (typeof POST_INACTIVE_REASONS)[number];
 
 export class CreatePostDto {
   @IsString()
@@ -49,6 +61,11 @@ export class CreatePostDto {
   @IsOptional() @IsString() @MaxLength(30) legalRepId?: string;
   @IsOptional() @IsString() contactEmail?: string;
   @IsOptional() @IsString() observations?: string;
+
+  // --- Baja del puesto (capturados al desactivar) ---
+  @IsOptional() @IsDateString() inactiveDate?: string;
+  @IsOptional() @IsIn(POST_INACTIVE_REASONS) inactiveReason?: PostInactiveReason;
+  @IsOptional() @IsString() @MaxLength(2000) inactiveNotes?: string;
 
   // --- Documentación (texto libre: SI/NO/SOLICITUD/PDT/PARA FIRMAR/…) ---
   @IsOptional() @IsString() @MaxLength(60) docCamaraComercio?: string;
