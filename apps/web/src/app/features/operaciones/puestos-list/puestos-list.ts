@@ -54,6 +54,22 @@ function emptyOtrosi(): PostOtrosiRow {
 /** Sectores tal como vienen del archivo LISTADO_ASOCIADOS_DE_NEGOCIO_CLIENTES. */
 const SECTORS = ['RESIDENCIAL', 'COMERCIAL', 'EDUCATIVO', 'OBRA', 'MIXTA', 'INDUSTRIAL', 'SALUD'];
 
+/** Motivos de baja de un puesto (debe coincidir con POST_INACTIVE_REASONS del API). */
+const INACTIVE_REASONS = [
+  'Terminación de contrato',
+  'No renovación',
+  'Decisión del cliente',
+  'Cierre del puesto',
+  'Otro',
+];
+
+interface DeactivateDraft {
+  post: OperacionesPost;
+  date: string;
+  reason: string;
+  notes: string;
+}
+
 function zoneNumber(zone: string | null | undefined): number {
   const n = Number(String(zone ?? '').match(/\d+/)?.[0]);
   return Number.isFinite(n) ? n : -1;
@@ -504,12 +520,18 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <td>{{ p.zone || '—' }}</td>
                   <td>
                     <span class="badge" [class.ok]="p.status === 'ACTIVO'">{{ p.status }}</span>
+                    @if (p.status === 'INACTIVO' && p.inactiveDate) {
+                      <div class="baja-info">
+                        {{ p.inactiveDate }}
+                        @if (p.inactiveReason) { · {{ p.inactiveReason }} }
+                      </div>
+                    }
                   </td>
                   <td class="actions">
                     @if (auth.hasPermission('posts.edit')) {
                       <button type="button" class="link" (click)="edit(p)">Editar</button>
                       @if (p.status === 'ACTIVO') {
-                        <button type="button" class="link danger" (click)="setStatus(p, 'INACTIVO')">
+                        <button type="button" class="link danger" (click)="askDeactivate(p)">
                           Desactivar
                         </button>
                       } @else {
@@ -527,6 +549,67 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
               }
             </tbody>
           </table>
+        </div>
+      }
+      @if (pendingDeactivate(); as d) {
+        <div class="backdrop" (click)="cancelDeactivate()">
+          <form
+            class="panel deactivate-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deactivate-title"
+            (click)="$event.stopPropagation()"
+            (ngSubmit)="confirmDeactivate()"
+            #df="ngForm"
+          >
+            <header class="panel-header">
+              <h3 id="deactivate-title">Dar de baja "{{ d.post.name }}"</h3>
+              <button type="button" class="close" (click)="cancelDeactivate()" aria-label="Cerrar">×</button>
+            </header>
+            <div class="panel-body">
+              <p class="message">
+                Dejará de aparecer como activo en Programación y Dotación. Registra los datos reales
+                de la baja.
+              </p>
+              <label>
+                Fecha en que terminó el contrato *
+                <input
+                  type="date"
+                  name="inactiveDate"
+                  [(ngModel)]="d.date"
+                  required
+                  [max]="today"
+                />
+              </label>
+              <label>
+                Motivo *
+                <select name="inactiveReason" [(ngModel)]="d.reason" required>
+                  <option value="" disabled>Selecciona un motivo…</option>
+                  @for (r of inactiveReasons; track r) {
+                    <option [value]="r">{{ r }}</option>
+                  }
+                </select>
+              </label>
+              <label>
+                Observaciones {{ d.reason === 'Otro' ? '*' : '(opcional)' }}
+                <textarea
+                  name="inactiveNotes"
+                  [(ngModel)]="d.notes"
+                  rows="3"
+                  [required]="d.reason === 'Otro'"
+                  placeholder="Detalle del motivo, condiciones de la baja, etc."
+                ></textarea>
+              </label>
+              <div class="actions">
+                <button type="button" class="btn-ghost" [disabled]="saving()" (click)="cancelDeactivate()">
+                  Cancelar
+                </button>
+                <button type="submit" class="btn-confirm danger" [disabled]="saving() || df.invalid">
+                  {{ saving() ? 'Guardando…' : 'Dar de baja' }}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       }
       <app-confirm-dialog
@@ -621,7 +704,49 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .empty, .error { color: var(--text-muted, #6b7280); }
     .error { color: #b91c1c; }
+    .baja-info { margin-top: 0.2rem; font-size: 0.72rem; color: var(--text-muted, #6b7280); }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; }
+
+    /* Diálogo "Dar de baja" (mismo look que app-confirm-dialog) */
+    .backdrop {
+      position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+      display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 1rem;
+    }
+    .panel {
+      background: var(--coraza-surface, #fff); border-radius: var(--coraza-radius, 12px);
+      border: 1px solid var(--coraza-border, #e2e8f0);
+      box-shadow: var(--coraza-shadow, 0 18px 40px rgba(15, 23, 42, 0.18));
+      width: min(440px, 100%);
+    }
+    .panel-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 1rem 1.15rem; border-bottom: 1px solid var(--coraza-border, #e2e8f0);
+    }
+    .panel-header h3 { margin: 0; font-size: 1.05rem; color: var(--primary-dark, #1e3a5f); }
+    .panel .close {
+      border: none; background: transparent; font-size: 1.45rem; line-height: 1; cursor: pointer;
+      color: var(--coraza-text-muted, #64748b); width: 44px; height: 44px;
+    }
+    .panel-body { padding: 1.15rem 1.2rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
+    .panel-body .message { margin: 0; color: var(--coraza-text, #0f172a); font-size: 0.9rem; line-height: 1.45; }
+    .panel-body label {
+      display: flex; flex-direction: column; gap: 0.3rem;
+      font-size: 0.82rem; color: var(--text-muted, #6b7280);
+    }
+    .panel-body .actions { justify-content: flex-end; margin-top: 0.35rem; }
+    .btn-ghost, .btn-confirm {
+      border-radius: 999px; padding: 0.5rem 1rem; font: inherit; font-size: 0.88rem;
+      font-weight: 600; cursor: pointer; min-height: 44px;
+    }
+    .btn-ghost {
+      border: 1px solid var(--coraza-border, #e2e8f0); background: transparent; color: var(--primary-dark, #1e3a5f);
+    }
+    .btn-confirm {
+      border: 1px solid color-mix(in srgb, var(--primary, #1d4ed8) 40%, transparent);
+      background: var(--primary, #1d4ed8); color: #fff;
+    }
+    .btn-confirm.danger { border-color: color-mix(in srgb, #dc2626 40%, transparent); background: #dc2626; }
+    .btn-ghost:disabled, .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }
       .span-2, .span-3 { grid-column: span 1; }
@@ -639,6 +764,8 @@ export class PuestosList implements OnInit {
   readonly statusHints = STATUS_HINTS;
   readonly docFields = DOC_FIELDS;
   readonly verifGroups = VERIF_GROUPS;
+  readonly inactiveReasons = INACTIVE_REASONS;
+  readonly today = new Date().toISOString().slice(0, 10);
 
   readonly posts = signal<OperacionesPost[]>([]);
   readonly loading = signal(true);
@@ -649,6 +776,7 @@ export class PuestosList implements OnInit {
   readonly statusFilter = signal<'' | PostStatus>('');
   readonly zoneFilter = signal('');
   readonly pendingRemove = signal<{ kind: 'contract' | 'otrosi'; index: number } | null>(null);
+  readonly pendingDeactivate = signal<DeactivateDraft | null>(null);
 
   readonly zoneOptions = computed(() => {
     const nums = new Set<number>();
@@ -1012,21 +1140,64 @@ export class PuestosList implements OnInit {
     });
   }
 
+  /** Reactivar un puesto no requiere datos adicionales. */
   setStatus(p: OperacionesPost, status: PostStatus): void {
-    if (status === 'INACTIVO') {
-      const ok = window.confirm(
-        `¿Desactivar el puesto "${p.name}"? Dejará de aparecer como activo en Programación.`,
-      );
-      if (!ok) return;
-    }
     this.api.updatePost(p.id, { status }).subscribe({
       next: () => {
-        this.toast.success(status === 'ACTIVO' ? 'Puesto activado' : 'Puesto desactivado');
+        this.toast.success('Puesto activado');
         this.reload();
       },
       error: (err) => {
         this.toast.error('No se pudo cambiar el estado', err.error?.message ?? undefined);
       },
     });
+  }
+
+  /** Dar de baja pide fecha real de fin de contrato + motivo + observaciones. */
+  askDeactivate(p: OperacionesPost): void {
+    this.pendingDeactivate.set({ post: p, date: '', reason: '', notes: '' });
+  }
+
+  cancelDeactivate(): void {
+    if (this.saving()) return;
+    this.pendingDeactivate.set(null);
+  }
+
+  confirmDeactivate(): void {
+    const d = this.pendingDeactivate();
+    if (!d) return;
+    if (!d.date) {
+      this.toast.error('Indica la fecha en que terminó el contrato');
+      return;
+    }
+    if (!d.reason) {
+      this.toast.error('Selecciona el motivo de la baja');
+      return;
+    }
+    if (d.reason === 'Otro' && !d.notes.trim()) {
+      this.toast.error('El motivo "Otro" requiere una observación');
+      return;
+    }
+
+    this.saving.set(true);
+    this.api
+      .updatePost(d.post.id, {
+        status: 'INACTIVO',
+        inactiveDate: d.date,
+        inactiveReason: d.reason,
+        inactiveNotes: d.notes.trim() || undefined,
+      })
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.pendingDeactivate.set(null);
+          this.toast.success('Puesto desactivado');
+          this.reload();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.toast.error('No se pudo dar de baja el puesto', err.error?.message ?? undefined);
+        },
+      });
   }
 }

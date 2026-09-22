@@ -41,6 +41,16 @@ function inMonth(iso: string, year: number, month: number): boolean {
   return d.getFullYear() === year && d.getMonth() === month;
 }
 
+/**
+ * Fecha de cierre real de un puesto: la que Recepción captura al desactivar
+ * (inactiveDate). Antes de esta mejora la baja quedaba automática, así que
+ * los puestos desactivados previamente no tienen inactiveDate y se usa
+ * updatedAt como respaldo.
+ */
+function closureDate(p: OperacionesPost): string {
+  return p.inactiveDate ?? p.updatedAt;
+}
+
 function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
   const out: MonthOption[] = [];
   for (let i = 0; i < count; i++) {
@@ -337,7 +347,10 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
                     <td>{{ p.city || '—' }}</td>
                     <td>{{ p.zone || '—' }}</td>
                     <td>{{ p.contractNumber || '—' }}</td>
-                    <td>{{ p.updatedAt | date: 'dd/MM/yyyy' }}</td>
+                    <td>
+                      {{ (p.inactiveDate ?? p.updatedAt) | date: 'dd/MM/yyyy' }}
+                      @if (p.inactiveReason) { <div class="meta">{{ p.inactiveReason }}</div> }
+                    </td>
                     <td>{{ p.createdAt | date: 'dd/MM/yyyy' }}</td>
                   </tr>
                   @if (expandedId() === p.id) {
@@ -355,7 +368,10 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
               </tbody>
             </table>
           </div>
-          <p class="hint">* Cierre = última actualización del puesto en estado INACTIVO.</p>
+          <p class="hint">
+            * Cierre = fecha de fin de contrato capturada al dar de baja el puesto. Los puestos
+            desactivados antes de esta mejora no tienen esa fecha y muestran la última actualización.
+          </p>
         </section>
       </div>
 
@@ -864,8 +880,8 @@ export class ReceptionPostsDashboard implements OnInit {
   readonly endedInMonth = computed(() => {
     const { year, month } = this.selectedOption();
     return this.posts()
-      .filter((p) => p.status === 'INACTIVO' && inMonth(p.updatedAt, year, month))
-      .sort((a, b) => +new Date(b.updatedAt) - +new Date(a.updatedAt));
+      .filter((p) => p.status === 'INACTIVO' && inMonth(closureDate(p), year, month))
+      .sort((a, b) => +new Date(closureDate(b)) - +new Date(closureDate(a)));
   });
 
   readonly netMonth = computed(
@@ -923,7 +939,7 @@ export class ReceptionPostsDashboard implements OnInit {
         label,
         short: label.split(' ')[0]!.slice(0, 3),
         started: all.filter((p) => inMonth(p.createdAt, year, month)).length,
-        ended: all.filter((p) => p.status === 'INACTIVO' && inMonth(p.updatedAt, year, month))
+        ended: all.filter((p) => p.status === 'INACTIVO' && inMonth(closureDate(p), year, month))
           .length,
       });
     }

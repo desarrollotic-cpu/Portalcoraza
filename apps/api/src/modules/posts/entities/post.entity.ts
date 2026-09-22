@@ -129,6 +129,17 @@ export class Post {
   @Column({ type: 'text', nullable: true })
   observations!: string | null;
 
+  /** Fecha real de fin de contrato / baja, capturada al desactivar (no automática). */
+  @Column({ name: 'inactive_date', type: 'date', nullable: true })
+  inactiveDate!: string | null;
+
+  /** Motivo de la baja: ver POST_INACTIVE_REASONS en create-post.dto.ts. */
+  @Column({ name: 'inactive_reason', type: 'varchar', nullable: true, length: 60 })
+  inactiveReason!: string | null;
+
+  @Column({ name: 'inactive_notes', type: 'text', nullable: true })
+  inactiveNotes!: string | null;
+
   // --- Documentación (texto libre: SI/NO/SOLICITUD/PDT/PARA FIRMAR/…) ---
   @Column({ name: 'doc_camara_comercio', type: 'varchar', nullable: true, length: 60 })
   docCamaraComercio!: string | null;
