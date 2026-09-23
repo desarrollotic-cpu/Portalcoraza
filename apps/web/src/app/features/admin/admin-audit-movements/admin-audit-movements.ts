@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
 import { environment } from '../../../../environments/environment';
 
 export interface AuditMovementRow {
@@ -25,6 +26,13 @@ interface MovementsResponse {
   limit: number;
 }
 
+interface ModuleTab {
+  id: string;
+  label: string;
+  /** Códigos audit_logs.module a incluir (vacío = todos). */
+  modules: string[];
+}
+
 const MODULE_LABELS: Record<string, string> = {
   auth: 'Acceso al portal',
   users: 'Usuarios del sistema',
@@ -39,7 +47,23 @@ const MODULE_LABELS: Record<string, string> = {
   audit: 'Auditoría',
 };
 
-/** Textos en español para códigos de acción conocidos */
+/** Pestañas por módulo (lo que Gerencia/Auditor eligen para revisar). */
+const MODULE_TABS: ModuleTab[] = [
+  { id: 'all', label: 'Todos', modules: [] },
+  { id: 'hr', label: 'Gestión humana', modules: ['hr'] },
+  { id: 'reception', label: 'Recepción', modules: ['reception'] },
+  {
+    id: 'dotacion',
+    label: 'Dotación y almacén',
+    modules: ['deliveries', 'inventory', 'post_equipment'],
+  },
+  { id: 'auth', label: 'Acceso (login)', modules: ['auth'] },
+  { id: 'users', label: 'Usuarios', modules: ['users'] },
+  { id: 'posts', label: 'Puestos', modules: ['posts'] },
+  { id: 'scheduling', label: 'Programación', modules: ['scheduling'] },
+  { id: 'documental', label: 'Documental', modules: ['documental'] },
+];
+
 const ACTION_LABELS: Record<string, string> = {
   login: 'Inició sesión',
   logout: 'Cerró sesión',
@@ -147,7 +171,9 @@ function pickStr(obj: Record<string, unknown> | null | undefined, keys: string[]
 function humanAction(action: string): string {
   if (ACTION_LABELS[action]) return ACTION_LABELS[action];
   if (action.startsWith('loan.mail.')) return 'Envió correo de préstamo documental';
-  if (action.startsWith('monthly_schedule.')) return `Programación mensual: ${action.replace('monthly_schedule.', '')}`;
+  if (action.startsWith('monthly_schedule.')) {
+    return `Programación mensual: ${action.replace('monthly_schedule.', '')}`;
+  }
   return action.replace(/[._]/g, ' ');
 }
 
@@ -160,22 +186,36 @@ function humanAction(action: string): string {
         <div>
           <h2>Historial de movimientos</h2>
           <p>
-            Registro claro de lo que ocurre en el portal: quién hizo qué, en qué área y un resumen
-            del cambio. Visible para Gerencia y Auditor.
+            Elige un módulo para revisar solo esa área (por ejemplo Gestión humana). Visible para
+            Gerencia y Auditor.
           </p>
         </div>
       </header>
 
+      <div class="mov__tabs" role="tablist" aria-label="Módulos">
+        @for (tab of tabs; track tab.id) {
+          <button
+            type="button"
+            role="tab"
+            class="tab"
+            [class.active]="activeTab() === tab.id"
+            [attr.aria-selected]="activeTab() === tab.id"
+            (click)="selectTab(tab.id)"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </div>
+
+      <p class="mov__active-hint">
+        Viendo:
+        <strong>{{ activeTabLabel() }}</strong>
+        @if (activeTab() !== 'all') {
+          <span class="muted"> — solo movimientos de este módulo</span>
+        }
+      </p>
+
       <form class="mov__filters" (ngSubmit)="load(1)">
-        <label>
-          Área
-          <select [(ngModel)]="filters.module" name="module">
-            <option value="">Todas</option>
-            @for (m of moduleOptions; track m.value) {
-              <option [value]="m.value">{{ m.label }}</option>
-            }
-          </select>
-        </label>
         <label>
           Buscar en la acción
           <input
@@ -192,7 +232,7 @@ function humanAction(action: string): string {
           Hasta
           <input type="date" [(ngModel)]="filters.to" name="to" />
         </label>
-        <button type="submit" class="btn" [disabled]="loading()">Filtrar</button>
+        <button type="submit" class="btn" [disabled]="loading()">Filtrar fechas</button>
       </form>
 
       @if (error()) {
@@ -205,7 +245,9 @@ function humanAction(action: string): string {
             <tr>
               <th>Cuándo</th>
               <th>Quién</th>
-              <th>Área</th>
+              @if (showAreaColumn()) {
+                <th>Área</th>
+              }
               <th>Qué hizo</th>
               <th>Resumen</th>
             </tr>
@@ -213,14 +255,16 @@ function humanAction(action: string): string {
           <tbody>
             @if (loading()) {
               <tr>
-                <td colspan="5" class="muted">Cargando…</td>
+                <td [attr.colspan]="colCount()" class="muted">Cargando…</td>
               </tr>
             } @else {
               @for (row of items(); track row.id) {
                 <tr>
                   <td class="nowrap">{{ row.createdAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                   <td class="who">{{ row.userName || 'Sistema / sin usuario' }}</td>
-                  <td>{{ moduleLabel(row.module) }}</td>
+                  @if (showAreaColumn()) {
+                    <td>{{ moduleLabel(row.module) }}</td>
+                  }
                   <td>
                     <span class="what">{{ actionLabel(row.action) }}</span>
                   </td>
@@ -228,7 +272,9 @@ function humanAction(action: string): string {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="5" class="muted">Sin movimientos con estos filtros.</td>
+                  <td [attr.colspan]="colCount()" class="muted">
+                    Sin movimientos en {{ activeTabLabel() }} con estos filtros.
+                  </td>
                 </tr>
               }
             }
@@ -237,7 +283,7 @@ function humanAction(action: string): string {
       </div>
 
       <footer class="mov__pager">
-        <span class="muted">{{ total() }} movimiento(s)</span>
+        <span class="muted">{{ total() }} movimiento(s) en {{ activeTabLabel() }}</span>
         <div>
           <button type="button" class="btn ghost" [disabled]="page() <= 1 || loading()" (click)="load(page() - 1)">
             Anterior
@@ -256,9 +302,30 @@ function humanAction(action: string): string {
     </section>
   `,
   styles: `
-    .mov { display: flex; flex-direction: column; gap: 1rem; }
+    .mov { display: flex; flex-direction: column; gap: 0.85rem; }
     .mov__head h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
     .mov__head p { margin: 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; max-width: 40rem; }
+    .mov__tabs {
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      padding: 0.15rem 0 0.25rem;
+    }
+    .tab {
+      border: 1px solid var(--border, #e5e7eb);
+      background: var(--surface, #fff);
+      color: var(--text, #111);
+      border-radius: 999px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .tab:hover { border-color: var(--coraza-primary, #1d4ed8); color: var(--coraza-primary, #1d4ed8); }
+    .tab.active {
+      background: var(--coraza-primary, #1d4ed8);
+      border-color: transparent;
+      color: #fff;
+    }
+    .mov__active-hint { margin: 0; font-size: 0.9rem; }
     .mov__filters {
       display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end;
     }
@@ -266,7 +333,7 @@ function humanAction(action: string): string {
       display: flex; flex-direction: column; gap: 0.25rem;
       font-size: 0.75rem; color: var(--text-muted, #6b7280);
     }
-    .mov__filters input, .mov__filters select {
+    .mov__filters input {
       min-width: 9rem; padding: 0.4rem 0.55rem; border-radius: 8px;
       border: 1px solid var(--border, #e5e7eb); background: var(--surface, #fff);
     }
@@ -294,7 +361,11 @@ function humanAction(action: string): string {
 })
 export class AdminAuditMovements implements OnInit {
   private readonly http = inject(HttpClient);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
+  readonly tabs = MODULE_TABS;
+  readonly activeTab = signal('all');
   readonly items = signal<AuditMovementRow[]>([]);
   readonly total = signal(0);
   readonly page = signal(1);
@@ -302,14 +373,36 @@ export class AdminAuditMovements implements OnInit {
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
-  filters = { module: '', action: '', from: '', to: '' };
-
-  readonly moduleOptions = Object.entries(MODULE_LABELS).map(([value, label]) => ({
-    value,
-    label,
-  }));
+  filters = { action: '', from: '', to: '' };
 
   ngOnInit(): void {
+    const q = this.route.snapshot.queryParamMap.get('module') || 'all';
+    const known = MODULE_TABS.some((t) => t.id === q) ? q : 'all';
+    this.activeTab.set(known);
+    this.load(1);
+  }
+
+  activeTabLabel(): string {
+    return MODULE_TABS.find((t) => t.id === this.activeTab())?.label ?? 'Todos';
+  }
+
+  showAreaColumn(): boolean {
+    const tab = MODULE_TABS.find((t) => t.id === this.activeTab());
+    return !tab || tab.modules.length !== 1;
+  }
+
+  colCount(): number {
+    return this.showAreaColumn() ? 5 : 4;
+  }
+
+  selectTab(id: string): void {
+    this.activeTab.set(id);
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { module: id === 'all' ? null : id },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
     this.load(1);
   }
 
@@ -376,9 +469,13 @@ export class AdminAuditMovements implements OnInit {
       const assoc = pickStr(data, ['associateName', 'fullName']);
       const items = data['items'];
       const n = Array.isArray(items) ? items.length : null;
-      return [assoc, n != null ? `${n} ítem(s)` : null, status ? `Estado: ${status}` : null]
-        .filter(Boolean)
-        .join(' · ') || entity || 'Entrega de dotación';
+      return (
+        [assoc, n != null ? `${n} ítem(s)` : null, status ? `Estado: ${status}` : null]
+          .filter(Boolean)
+          .join(' · ') ||
+        entity ||
+        'Entrega de dotación'
+      );
     }
 
     if (parts.length) return parts.join(' · ');
@@ -389,10 +486,18 @@ export class AdminAuditMovements implements OnInit {
   load(page: number): void {
     this.loading.set(true);
     this.error.set(null);
+    const tab = MODULE_TABS.find((t) => t.id === this.activeTab()) ?? MODULE_TABS[0];
+
     let params = new HttpParams()
       .set('page', String(page))
       .set('limit', String(this.limit()));
-    if (this.filters.module) params = params.set('module', this.filters.module);
+
+    if (tab.modules.length === 1) {
+      params = params.set('module', tab.modules[0]);
+    } else if (tab.modules.length > 1) {
+      params = params.set('modules', tab.modules.join(','));
+    }
+
     if (this.filters.action.trim()) params = params.set('action', this.filters.action.trim());
     if (this.filters.from) params = params.set('from', this.filters.from);
     if (this.filters.to) params = params.set('to', this.filters.to);

@@ -60,6 +60,8 @@ export class AuditService {
    */
   async listMovements(query: {
     module?: string;
+    /** Varios módulos separados por coma (ej. deliveries,inventory). */
+    modules?: string;
     action?: string;
     userId?: string;
     from?: string;
@@ -76,7 +78,13 @@ export class AuditService {
     const limit = Math.min(Math.max(Number(query.limit) || 50, 1), 200);
     const qb = this.auditRepo.createQueryBuilder('a');
 
-    if (query.module?.trim()) {
+    const multi = (query.modules ?? '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (multi.length > 0) {
+      qb.andWhere('a.module IN (:...mods)', { mods: multi });
+    } else if (query.module?.trim()) {
       qb.andWhere('a.module = :module', { module: query.module.trim() });
     }
     if (query.action?.trim()) {

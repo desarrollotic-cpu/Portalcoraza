@@ -14,6 +14,7 @@ export class AuditController {
   @RequirePermissions('audit.view')
   listMovements(
     @Query('module') module?: string,
+    @Query('modules') modules?: string,
     @Query('action') action?: string,
     @Query('userId') userId?: string,
     @Query('from') from?: string,
@@ -23,6 +24,7 @@ export class AuditController {
   ) {
     return this.audit.listMovements({
       module,
+      modules,
       action,
       userId,
       from,
