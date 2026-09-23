@@ -61,7 +61,9 @@ const ACTION_LABELS: Record<string, string> = {
   ALERTA: 'Generó o gestionó una alerta HR',
   view_record: 'Consultó una ficha',
   'delivery.create': 'Creó una entrega de dotación',
+  'delivery.post.create': 'Creó entrega de dotación a puesto',
   'delivery.confirmed': 'Confirmó una entrega de dotación',
+  'delivery.sign': 'Registró firma de entrega',
   'delivery.revert': 'Revirtió una entrega',
   'category.create': 'Creó categoría de inventario',
   'category.update': 'Actualizó categoría de inventario',
@@ -356,10 +358,17 @@ export class AdminAuditMovements implements OnInit {
 
     if (row.module === 'reception' && data) {
       const visitor =
-        pickStr(data, ['fullName', 'nombre', 'visitorName', 'name']) || name;
+        pickStr(data, ['fullName', 'nombre', 'visitorName', 'name']) ||
+        [data['firstName'], data['secondName'], data['firstSurname'], data['secondSurname']]
+          .filter((x) => typeof x === 'string' && x.trim())
+          .join(' ') ||
+        name;
       const doc = pickStr(data, ['documentNumber', 'documento', 'document']);
-      if (visitor || doc) {
-        return [visitor, doc ? `Doc. ${doc}` : null].filter(Boolean).join(' · ');
+      const reason = pickStr(data, ['visitReason', 'motivo']);
+      if (visitor || doc || reason) {
+        return [visitor, doc ? `Doc. ${doc}` : null, reason ? `Motivo: ${reason}` : null]
+          .filter(Boolean)
+          .join(' · ');
       }
     }
 
