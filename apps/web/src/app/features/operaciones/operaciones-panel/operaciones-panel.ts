@@ -18,10 +18,6 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
 
       <div class="kpis">
         <article>
-          <span class="label">Total puestos</span>
-          <strong>{{ total() }}</strong>
-        </article>
-        <article>
           <span class="label">Activos</span>
           <strong>{{ activos() }}</strong>
         </article>
@@ -75,7 +71,6 @@ export class OperacionesPanel implements OnInit {
   readonly posts = signal<OperacionesPost[]>([]);
   readonly error = signal<string | null>(null);
 
-  readonly total = computed(() => this.posts().length);
   readonly activos = computed(
     () => this.posts().filter((p) => p.status === 'ACTIVO').length,
   );
