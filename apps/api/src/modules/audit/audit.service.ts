@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
+import { TenantContext } from '../../common/tenant/tenant.context';
 import { User } from '../users/entities/user.entity';
 import { AuditLog } from './entities/audit-log.entity';
 
@@ -40,7 +42,10 @@ export class AuditService {
   ) {}
 
   async log(entry: AuditEntry): Promise<void> {
+    const tenantId =
+      TenantContext.getOptional() || CENTRAL_ORGANIZATION_ID;
     const log = this.auditRepo.create({
+      tenantId,
       userId: entry.userId ?? null,
       module: entry.module,
       action: entry.action,

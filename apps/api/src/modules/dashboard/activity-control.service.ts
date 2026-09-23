@@ -160,11 +160,13 @@ export class ActivityControlService {
       const allEvents = events.filter((r) => area.modules.includes(r.module));
       // Deduplicar id (hist vs audit del mismo cambio no siempre coinciden; por id basta)
       const dedup = this.dedupeEvents(allEvents);
+      const weekSince = this.bogotaStartOfDayOffset(stripDays - 1);
+      const weekEvents = dedup.filter((e) => e.createdAt >= weekSince);
       const periodEvents = dedup.filter((e) => e.createdAt >= periodSince);
       const todayEvents = dedup.filter((e) => e.createdAt >= todayStart);
 
       const dayStrip = dayKeys.map((dk) => {
-        const count = dedup.filter((e) => this.bogotaDayKey(e.createdAt) === dk.key).length;
+        const count = weekEvents.filter((e) => this.bogotaDayKey(e.createdAt) === dk.key).length;
         return {
           date: dk.key,
           label: dk.label,
@@ -182,6 +184,7 @@ export class ActivityControlService {
         idleStreakDays += 1;
       }
 
+      // Actores del KPI “quién”: hoy si hay; si no, del rango seleccionado
       const actorSource = todayEvents.length ? todayEvents : periodEvents;
       const byUser = new Map<string, { name: string; count: number; lastAt: Date }>();
       for (const e of actorSource) {
@@ -200,19 +203,36 @@ export class ActivityControlService {
         .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime())
         .slice(0, 8);
 
-      const recent = (todayEvents.length ? todayEvents : periodEvents)
-        .slice(0, 12)
-        .map((e) => ({
-          id: e.id,
-          at: e.createdAt,
-          action: e.action,
-          label: this.label(area.key, e.action),
-          userName: e.userId ? (nameById.get(e.userId) ?? null) : null,
-          detail: this.detail(e),
-        }));
+      // Historial reciente: siempre últimos 7 días (aunque el filtro sea “Hoy”)
+      // para no aparentar “cero absoluto” cuando solo falta el día de hoy.
+      const recent = weekEvents.slice(0, 12).map((e) => ({
+        id: e.id,
+        at: e.createdAt,
+        action: e.action,
+        label: this.label(area.key, e.action),
+        userName: e.userId ? (nameById.get(e.userId) ?? null) : null,
+        detail: this.detail(e),
+      }));
+
+      // Actores de la semana (para UI cuando hoy está idle)
+      const weekByUser = new Map<string, { name: string; count: number; lastAt: Date }>();
+      for (const e of weekEvents) {
+        if (!e.userId) continue;
+        const name = nameById.get(e.userId) ?? 'Usuario';
+        const cur = weekByUser.get(e.userId);
+        if (!cur) {
+          weekByUser.set(e.userId, { name, count: 1, lastAt: e.createdAt });
+        } else {
+          cur.count += 1;
+          if (e.createdAt > cur.lastAt) cur.lastAt = e.createdAt;
+        }
+      }
+      const actorsWeek = [...weekByUser.values()]
+        .sort((a, b) => b.lastAt.getTime() - a.lastAt.getTime())
+        .slice(0, 8);
 
       const usedToday = todayEvents.length > 0;
-      const lastAt = dedup[0]?.createdAt ?? null;
+      const lastAt = weekEvents[0]?.createdAt ?? null;
 
       let statusLabel = usedToday ? 'Activa hoy' : 'Sin actividad hoy';
       if (!usedToday && idleStreakDays >= 2) {
@@ -228,6 +248,7 @@ export class ActivityControlService {
         statusLabel,
         eventCountToday: todayEvents.length,
         eventCountPeriod: periodEvents.length,
+        eventCountWeek: weekEvents.length,
         uniqueUsersToday: new Set(todayEvents.map((e) => e.userId).filter(Boolean)).size,
         uniqueUsersPeriod: new Set(periodEvents.map((e) => e.userId).filter(Boolean)).size,
         daysUsedInWeek: daysUsed,
@@ -235,6 +256,7 @@ export class ActivityControlService {
         dayStrip,
         lastAt,
         actors,
+        actorsWeek,
         recent,
         timezone: 'America/Bogota',
       };

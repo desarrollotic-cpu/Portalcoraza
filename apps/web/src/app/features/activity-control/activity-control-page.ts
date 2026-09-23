@@ -32,6 +32,7 @@ export interface ActivityArea {
   statusLabel: string;
   eventCountToday: number;
   eventCountPeriod: number;
+  eventCountWeek?: number;
   uniqueUsersToday: number;
   uniqueUsersPeriod: number;
   daysUsedInWeek: number;
@@ -39,6 +40,7 @@ export interface ActivityArea {
   dayStrip: ActivityDayCell[];
   lastAt: string | null;
   actors: { name: string; count: number; lastAt: string }[];
+  actorsWeek?: { name: string; count: number; lastAt: string }[];
   recent: {
     id: string;
     at: string;
@@ -51,6 +53,7 @@ export interface ActivityArea {
 
 export interface ActivityControlPayload {
   generatedAt: string;
+  timezone?: string;
   days: number;
   since: string;
   summary: {
@@ -204,32 +207,43 @@ export interface ActivityControlPayload {
                 </p>
               </div>
 
-              @if (area.actors.length) {
+              @if (displayActors(area).length) {
                 <div class="ac-actors">
                   <div class="ac-section-label">
                     <app-icon [icon]="icons.Users" [size]="14" />
-                    {{ area.usedToday ? 'Quién usó el área hoy' : 'Quién usó el área en el rango' }}
+                    {{
+                      area.usedToday
+                        ? 'Quién usó el área hoy'
+                        : 'Quién usó el área (últimos 7 días)'
+                    }}
                   </div>
                   <ul>
-                    @for (a of area.actors; track a.name + a.lastAt) {
+                    @for (a of displayActors(area); track a.name + a.lastAt) {
                       <li>
                         <span class="ac-actor-name">{{ a.name }}</span>
-                        <span class="ac-actor-meta">{{ a.count }} · {{ a.lastAt | date: 'HH:mm' }}</span>
+                        <span class="ac-actor-meta">{{ a.count }} · {{ a.lastAt | date: 'dd/MM HH:mm' }}</span>
                       </li>
                     }
                   </ul>
                 </div>
               } @else {
-                <p class="ac-empty-actors">Nadie ha registrado movimientos en este periodo.</p>
+                <p class="ac-empty-actors">
+                  @if (area.daysUsedInWeek > 0 && area.lastAt) {
+                    Sin movimientos en el rango «{{ days() === 1 ? 'Hoy' : days() + ' días' }}».
+                    Última actividad de la semana: {{ area.lastAt | date: 'dd/MM/yyyy HH:mm' }}.
+                  } @else {
+                    Nadie ha registrado movimientos en esta área en los últimos 7 días.
+                  }
+                </p>
               }
 
               <div class="ac-feed">
                 <div class="ac-section-label">
                   <app-icon [icon]="icons.Clock" [size]="14" />
-                  Historial reciente
+                  Historial reciente (7 días)
                 </div>
                 @if (area.recent.length === 0) {
-                  <p class="ac-empty-actors">Sin eventos.</p>
+                  <p class="ac-empty-actors">Sin eventos en los últimos 7 días.</p>
                 } @else {
                   <ul class="ac-timeline">
                     @for (ev of area.recent; track ev.id) {
@@ -720,6 +734,13 @@ export class ActivityControlPage implements OnInit {
     const max = Math.max(1, ...strip.map((d) => d.count));
     if (count <= 0) return 12;
     return Math.max(18, Math.round((count / max) * 100));
+  }
+
+  /** Si hoy no hubo uso, mostrar actores de la semana para no aparentar vacío total. */
+  displayActors(area: ActivityArea): { name: string; count: number; lastAt: string }[] {
+    if (area.usedToday && area.actors.length) return area.actors;
+    if (area.actorsWeek?.length) return area.actorsWeek;
+    return area.actors;
   }
 
   reload(): void {
