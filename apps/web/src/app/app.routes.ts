@@ -743,6 +743,15 @@ export const routes: Routes = [
                 (m) => m.RolesPermissions,
               ),
           },
+          {
+            path: 'historial-movimientos',
+            canActivate: [permissionGuard],
+            data: { permission: 'audit.view' },
+            loadComponent: () =>
+              import('./features/admin/admin-audit-movements/admin-audit-movements').then(
+                (m) => m.AdminAuditMovements,
+              ),
+          },
         ],
       },
     ],

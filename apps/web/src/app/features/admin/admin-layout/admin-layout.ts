@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideLayoutDashboard, LucideShieldCheck, LucideUserCog } from '@lucide/angular';
+import { LucideClipboardList, LucideLayoutDashboard, LucideShieldCheck, LucideUserCog } from '@lucide/angular';
 import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
@@ -9,7 +9,7 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   template: `
     <app-module-shell
       title="Administración"
-      subtitle="Usuarios, roles y permisos del portal."
+      subtitle="Usuarios, roles, permisos e historial de movimientos del portal."
       [nav]="nav"
     >
       <router-outlet />
@@ -38,6 +38,13 @@ export class AdminLayout {
       permission: 'roles.view',
       exact: true,
       icon: LucideShieldCheck,
+    },
+    {
+      label: 'Historial de movimientos',
+      route: '/admin/historial-movimientos',
+      permission: 'audit.view',
+      exact: true,
+      icon: LucideClipboardList,
     },
   ];
 }

@@ -54,6 +54,84 @@ export class AuditService {
     await this.auditRepo.save(log);
   }
 
+  /**
+   * Historial global de movimientos (Auditor / Gerencia).
+   * Incluye auth, RRHH, recepción, dotación, etc. — sin los filtros del dashboard.
+   */
+  async listMovements(query: {
+    module?: string;
+    action?: string;
+    userId?: string;
+    from?: string;
+    to?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<{
+    items: DashboardAuditRow[];
+    total: number;
+    page: number;
+    limit: number;
+  }> {
+    const page = Math.max(1, Number(query.page) || 1);
+    const limit = Math.min(Math.max(Number(query.limit) || 50, 1), 200);
+    const qb = this.auditRepo.createQueryBuilder('a');
+
+    if (query.module?.trim()) {
+      qb.andWhere('a.module = :module', { module: query.module.trim() });
+    }
+    if (query.action?.trim()) {
+      qb.andWhere('a.action ILIKE :action', {
+        action: `%${query.action.trim()}%`,
+      });
+    }
+    if (query.userId?.trim()) {
+      qb.andWhere('a.user_id = :userId', { userId: query.userId.trim() });
+    }
+    if (query.from?.trim()) {
+      qb.andWhere('a.created_at >= :from', { from: query.from.trim() });
+    }
+    if (query.to?.trim()) {
+      // inclusive end-of-day if date-only
+      const to = query.to.trim();
+      qb.andWhere('a.created_at <= :to', {
+        to: to.length <= 10 ? `${to}T23:59:59.999Z` : to,
+      });
+    }
+
+    qb.orderBy('a.created_at', 'DESC');
+    const total = await qb.getCount();
+    const rows = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getMany();
+
+    const userIds = [
+      ...new Set(rows.map((r) => r.userId).filter((x): x is string => !!x)),
+    ];
+    const users = userIds.length
+      ? await this.usersRepo.find({
+          where: { id: In(userIds) },
+          select: ['id', 'fullName', 'email'],
+        })
+      : [];
+    const names = new Map(
+      users.map((u) => [
+        u.id,
+        (u.fullName?.trim() || u.email || null) as string | null,
+      ]),
+    );
+
+    return {
+      items: rows.map((r) => ({
+        ...r,
+        userName: r.userId ? (names.get(r.userId) ?? null) : null,
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
   listByActions(module: string, actions: string[], take = 200) {
     return this.auditRepo.find({
       where: { module, action: In(actions) },
