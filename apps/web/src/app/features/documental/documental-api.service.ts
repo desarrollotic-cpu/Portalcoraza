@@ -262,6 +262,9 @@ export class DocumentalApiService {
   createCorrespondence(payload: Record<string, unknown>): Observable<Correspondence> {
     return this.http.post<Correspondence>(`${this.baseUrl}/correspondence`, payload);
   }
+  updateCorrespondence(id: string, payload: Record<string, unknown>): Observable<Correspondence> {
+    return this.http.patch<Correspondence>(`${this.baseUrl}/correspondence/${id}`, payload);
+  }
 
   // Minutas
   listMinutes(q?: string): Observable<Minute[]> {
@@ -272,6 +275,9 @@ export class DocumentalApiService {
   }
   createMinute(payload: Record<string, unknown>): Observable<Minute> {
     return this.http.post<Minute>(`${this.baseUrl}/minutes`, payload);
+  }
+  updateMinute(id: string, payload: Record<string, unknown>): Observable<Minute> {
+    return this.http.patch<Minute>(`${this.baseUrl}/minutes/${id}`, payload);
   }
 
   // Asociados retirados
@@ -339,6 +345,9 @@ export class DocumentalApiService {
   }
   createContract(payload: Record<string, unknown>): Observable<Contract> {
     return this.http.post<Contract>(`${this.baseUrl}/contracts`, payload);
+  }
+  updateContract(id: string, payload: Record<string, unknown>): Observable<Contract> {
+    return this.http.patch<Contract>(`${this.baseUrl}/contracts/${id}`, payload);
   }
   expiringContracts(days = 30): Observable<Contract[]> {
     return this.http.get<Contract[]>(`${this.baseUrl}/contracts/expiring?days=${days}`);

@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
+import { applyLockedPatch } from '../documental-edit';
 import { CreateMinuteDto } from '../dto/create-minute.dto';
+import { UpdateMinuteDto } from '../dto/update-minute.dto';
 import { Minute } from '../entities/minute.entity';
 import { SequenceService } from './sequence.service';
 
@@ -64,6 +66,30 @@ export class MinutesService {
       newValue: saved as unknown as Record<string, unknown>,
     });
 
+    return saved;
+  }
+
+  async update(id: string, dto: UpdateMinuteDto, userId: string) {
+    const existing = await this.repo.findOneBy({ id });
+    if (!existing) throw new NotFoundException('Minuta no encontrada');
+    const oldValue = { ...existing };
+    applyLockedPatch(existing, dto as Partial<Minute>, {
+      uniqueCode: existing.uniqueCode,
+      numericCode: existing.numericCode,
+      minuteType: existing.minuteType,
+      id: existing.id,
+      tenantId: existing.tenantId,
+    });
+    const saved = await this.repo.save(existing);
+    await this.audit.log({
+      userId,
+      module: 'documental',
+      action: 'minute.update',
+      entityType: 'doc_minutes',
+      entityId: saved.id,
+      oldValue: oldValue as unknown as Record<string, unknown>,
+      newValue: saved as unknown as Record<string, unknown>,
+    });
     return saved;
   }
 }

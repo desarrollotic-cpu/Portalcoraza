@@ -135,7 +135,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
           @if (canCreate()) {
             <button class="btn-primary" (click)="toggle()">
               <app-icon [icon]="showForm() ? icons.X : icons.Plus" [size]="16" [strokeWidth]="2" />
-              <span>{{ showForm() ? 'Cerrar' : 'Radicar Documento' }}</span>
+              <span>{{ showForm() ? 'Cerrar' : (editingId() ? 'Editar' : 'Radicar Documento') }}</span>
             </button>
           }
         </div>
@@ -158,7 +158,9 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
         <form class="card form-corr" (ngSubmit)="save()">
           <div class="form-header-badge">
             <app-icon [icon]="icons.FileText" [size]="18" [strokeWidth]="2" />
-            <strong>Radicación Oficial de Correspondencia (Norma AGN)</strong>
+            <strong>
+              {{ editingId() ? 'Editar correspondencia (el radicado no cambia)' : 'Radicación Oficial de Correspondencia (Norma AGN)' }}
+            </strong>
           </div>
 
           <div class="form-grid">
@@ -171,6 +173,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 required
                 (ngModelChange)="onOriginDeptChange($event)"
                 class="inp-select"
+                [disabled]="!!editingId()"
               >
                 @for (d of departamentos; track d.code) {
                   <option [value]="d.code">{{ d.name }}</option>
@@ -197,6 +200,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 required
                 (ngModelChange)="onSerieChange($event)"
                 class="inp-select highlight"
+                [disabled]="!!editingId()"
               >
                 @for (s of seriesDisponibles(); track s.val) {
                   <option [value]="s.val">{{ s.label }}</option>
@@ -307,7 +311,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
           <div class="actions">
             <button type="submit" class="btn-primary" [disabled]="saving()">
-              {{ saving() ? 'Radicando...' : ' Radicar Documento Oficial' }}
+              {{ saving() ? 'Guardando...' : (editingId() ? 'Guardar cambios' : ' Radicar Documento Oficial') }}
             </button>
             <button type="button" class="btn-ghost" (click)="toggle()">Cancelar</button>
             @if (error()) { <span class="error">{{ error() }}</span> }
@@ -375,7 +379,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                 <th>Asunto</th>
                 <th>Estado</th>
                 <th>Fecha</th>
-                <th>Rótulo</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -416,6 +420,9 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
                   </td>
                   <td>{{ r.documentDate ?? (r.createdAt | slice: 0:10) }}</td>
                   <td>
+                    @if (canCreate()) {
+                      <button type="button" class="btn-ghost" (click)="startEdit(r)">Editar</button>
+                    }
                     <button type="button" class="btn-ghost" (click)="printOne(r)" title="Generar rótulo para imprimir">
                       Imprimir rótulo
                     </button>
@@ -579,6 +586,7 @@ export class CorrespondenceScreen implements OnInit {
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly lastSaved = signal<Correspondence | null>(null);
   readonly queueCount = signal(0);
+  readonly editingId = signal<string | null>(null);
 
   readonly seriesDisponibles = signal<TrdOption[]>([]);
   readonly previewCode = signal('Calculando radicado...');
@@ -609,10 +617,40 @@ export class CorrespondenceScreen implements OnInit {
   }
 
   toggle(): void {
-    this.showForm.update((v) => !v);
     if (this.showForm()) {
-      this.refreshPreviewCode();
+      this.showForm.set(false);
+      this.resetForm();
+      return;
     }
+    this.resetForm();
+    this.showForm.set(true);
+    this.refreshPreviewCode();
+  }
+
+  startEdit(c: Correspondence): void {
+    this.editingId.set(c.id);
+    this.model.originDept = c.originDept || 'GE';
+    this.model.destinationDept = c.destinationDept || 'OP';
+    this.model.medium = c.medium || 'FISICO';
+    this.model.documentType = c.documentType || 'OFICIO';
+    this.model.documentDate = (c.documentDate ?? '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+    this.model.subject = c.subject ?? '';
+    this.model.detail = c.detail ?? '';
+    this.model.status = c.status || 'PENDIENTE';
+    this.model.voxelsera = c.voxelsera || 'VOXEL_D1';
+    this.previewCode.set(c.documentCode || '—');
+    this.seriesDisponibles.set(MAPA_TRD_COMPLETO[this.model.originDept] || []);
+    this.error.set(null);
+    this.showForm.set(true);
+  }
+
+  private resetForm(): void {
+    this.editingId.set(null);
+    this.model.subject = '';
+    this.model.detail = '';
+    this.model.status = 'PENDIENTE';
+    this.model.documentDate = new Date().toISOString().slice(0, 10);
+    this.error.set(null);
   }
 
   onOriginDeptChange(newDept: string): void {
@@ -638,6 +676,7 @@ export class CorrespondenceScreen implements OnInit {
   }
 
   private refreshPreviewCode(): void {
+    if (this.editingId()) return;
     const year = new Date().getFullYear();
     const sub = this.model.subserieCode ? `.${this.model.subserieCode}` : '';
     // Preview local inmediato
@@ -692,21 +731,37 @@ export class CorrespondenceScreen implements OnInit {
     this.saving.set(true);
     this.error.set(null);
 
-    const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));
-    this.api.createCorrespondence(payload).subscribe({
+    const editId = this.editingId();
+    const payload = editId
+      ? {
+          destinationDept: this.model.destinationDept,
+          medium: this.model.medium,
+          documentType: this.model.documentType,
+          documentDate: this.model.documentDate,
+          subject: this.model.subject,
+          detail: this.model.detail,
+          status: this.model.status,
+          voxelsera: this.model.voxelsera,
+        }
+      : Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));
+    const req = editId
+      ? this.api.updateCorrespondence(editId, payload)
+      : this.api.createCorrespondence(payload);
+    req.subscribe({
       next: (saved) => {
         this.saving.set(false);
         this.showForm.set(false);
-        addToPrintQueue(this.toRotulo(saved));
-        this.queueCount.set(getPrintQueue().length);
-        this.lastSaved.set(saved);
-        this.model.subject = '';
-        this.model.detail = '';
+        if (!editId) {
+          addToPrintQueue(this.toRotulo(saved));
+          this.queueCount.set(getPrintQueue().length);
+          this.lastSaved.set(saved);
+        }
+        this.resetForm();
         this.load();
       },
       error: () => {
         this.saving.set(false);
-        this.error.set('No se pudo radicar la correspondencia.');
+        this.error.set(editId ? 'No se pudo guardar la correspondencia.' : 'No se pudo radicar la correspondencia.');
       },
     });
   }

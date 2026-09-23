@@ -35,7 +35,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
-        @if (nextCode()) {
+        @if (editingId()) {
+          <p class="code-preview">Editando carpeta #{{ nextCode() }} — el código no cambia</p>
+        } @else if (nextCode()) {
           <p class="code-preview">Código de carpeta (Documental): #{{ nextCode() }}</p>
         }
         <p class="muted" style="grid-column:1/-1;margin:0">
@@ -80,7 +82,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         </label>
         <label class="full">Objeto del Contrato (Opcional)<textarea [(ngModel)]="model.contractObject" name="contractObject" rows="2" placeholder="Descripción del servicio contratado..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Contrato</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">
+            {{ editingId() ? 'Guardar cambios' : 'Guardar Contrato' }}
+          </button>
           <span class="muted">Valor &gt; $1.000.000 genera workflow de aprobación.</span>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
@@ -112,7 +116,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       <p>Cargando...</p>
     } @else {
       <table>
-        <thead><tr><th>Carpeta</th><th>N° contrato</th><th>Cliente</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th>Rótulo</th></tr></thead>
+        <thead><tr><th>Carpeta</th><th>N° contrato</th><th>Cliente</th><th>Valor</th><th>Vigencia</th><th>Estado</th><th></th></tr></thead>
         <tbody>
           @for (c of items(); track c.id) {
             <tr>
@@ -122,7 +126,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               <td>{{ c.contractValue ?? '—' }}</td>
               <td>{{ c.startDate ?? '—' }} → {{ c.endDate ?? 'Indef.' }}</td>
               <td><span class="badge ok">{{ c.status }}</span></td>
-              <td><button type="button" class="btn-ghost" (click)="printOne(c)">Imprimir rótulo</button></td>
+              <td>
+                @if (canCreate()) {
+                  <button type="button" class="btn-ghost" (click)="startEdit(c)">Editar</button>
+                }
+                <button type="button" class="btn-ghost" (click)="printOne(c)">Imprimir rótulo</button>
+              </td>
             </tr>
           } @empty {
             <tr><td colspan="7" class="muted">{{ query.trim() ? 'Sin coincidencias. Prueba cliente, NIT o número.' : 'Sin contratos registrados.' }}</td></tr>
@@ -171,6 +180,7 @@ export class ContractsScreen implements OnInit {
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly expiring = signal<Contract[]>([]);
+  readonly editingId = signal<string | null>(null);
 
   model = {
     contractType: '',
@@ -194,12 +204,53 @@ export class ContractsScreen implements OnInit {
   }
 
   toggle(): void {
-    this.showForm.update((v) => !v);
     if (this.showForm()) {
-      this.api.nextContractCode().subscribe({
-        next: (r) => this.nextCode.set(r.numeric),
-      });
+      this.showForm.set(false);
+      this.resetForm();
+      return;
     }
+    this.resetForm();
+    this.showForm.set(true);
+    this.api.nextContractCode().subscribe({
+      next: (r) => this.nextCode.set(r.numeric),
+    });
+  }
+
+  startEdit(c: Contract): void {
+    this.editingId.set(c.id);
+    this.nextCode.set(c.numericCode);
+    this.model = {
+      contractType: c.contractType ?? '',
+      contractNumber: c.contractNumber ?? '',
+      partyA: c.partyA ?? '',
+      partyB: c.partyB ?? '',
+      nit: c.nit ?? '',
+      contractValue: c.contractValue ?? '',
+      startDate: (c.startDate ?? '').slice(0, 10),
+      endDate: (c.endDate ?? '').slice(0, 10),
+      contractObject: c.contractObject ?? '',
+      voxelsera: c.voxelsera ?? '',
+    };
+    this.error.set(null);
+    this.showForm.set(true);
+  }
+
+  private resetForm(): void {
+    this.editingId.set(null);
+    this.nextCode.set(null);
+    this.model = {
+      contractType: '',
+      contractNumber: '',
+      partyA: '',
+      partyB: '',
+      nit: '',
+      contractValue: '',
+      startDate: '',
+      endDate: '',
+      contractObject: '',
+      voxelsera: '',
+    };
+    this.error.set(null);
   }
 
   onSearch(_value: string): void {
@@ -237,39 +288,32 @@ export class ContractsScreen implements OnInit {
     for (const [k, v] of Object.entries(this.model)) {
       if (v !== '') payload[k] = String(v);
     }
-    this.api.createContract(payload).subscribe({
+    const editId = this.editingId();
+    const req = editId ? this.api.updateContract(editId, payload) : this.api.createContract(payload);
+    req.subscribe({
       next: (saved) => {
         this.saving.set(false);
         this.showForm.set(false);
-        addToPrintQueue({
-          id: saved.id,
-          modulo: 'CONTRATOS',
-          codigo: String(saved.numericCode ?? saved.contractNumber ?? saved.id),
-          titulo: saved.partyB || saved.partyA || 'CONTRATO',
-          nit: saved.nit || undefined,
-          numContrato: saved.contractNumber || undefined,
-          fechas: `${saved.startDate || ''} -- ${saved.endDate || ''}`,
-          slotFisico: saved.voxelsera || 'Estante C',
-        });
-        this.queueCount.set(getPrintQueue().length);
-        this.lastSaved.set(saved);
-        this.model = {
-          contractType: '',
-          contractNumber: '',
-          partyA: '',
-          partyB: '',
-          nit: '',
-          contractValue: '',
-          startDate: '',
-          endDate: '',
-          contractObject: '',
-          voxelsera: '',
-        };
+        if (!editId) {
+          addToPrintQueue({
+            id: saved.id,
+            modulo: 'CONTRATOS',
+            codigo: String(saved.numericCode ?? saved.contractNumber ?? saved.id),
+            titulo: saved.partyB || saved.partyA || 'CONTRATO',
+            nit: saved.nit || undefined,
+            numContrato: saved.contractNumber || undefined,
+            fechas: `${saved.startDate || ''} -- ${saved.endDate || ''}`,
+            slotFisico: saved.voxelsera || 'Estante C',
+          });
+          this.queueCount.set(getPrintQueue().length);
+          this.lastSaved.set(saved);
+        }
+        this.resetForm();
         this.load();
       },
       error: () => {
         this.saving.set(false);
-        this.error.set('No se pudo registrar el contrato.');
+        this.error.set(editId ? 'No se pudo guardar el contrato.' : 'No se pudo registrar el contrato.');
       },
     });
   }

@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
 import { JwtPayload } from '../../auth/interfaces/jwt-payload.interface';
 import { CreateCorrespondenceDto } from '../dto/create-correspondence.dto';
+import { UpdateCorrespondenceDto } from '../dto/update-correspondence.dto';
 import { CorrespondenceService } from '../services/correspondence.service';
 
 @Controller('documental/correspondence')
@@ -35,5 +36,15 @@ export class CorrespondenceController {
   @RequirePermissions('documental.create')
   create(@Body() dto: CreateCorrespondenceDto, @CurrentUser() user: JwtPayload) {
     return this.service.create(dto, user.sub);
+  }
+
+  @Patch(':id')
+  @RequirePermissions('documental.create')
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateCorrespondenceDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.update(id, dto, user.sub);
   }
 }

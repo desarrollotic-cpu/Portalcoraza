@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
+import { applyLockedPatch } from '../documental-edit';
 import { CreateCorrespondenceDto } from '../dto/create-correspondence.dto';
+import { UpdateCorrespondenceDto } from '../dto/update-correspondence.dto';
 import { Correspondence } from '../entities/correspondence.entity';
 import { SequenceService } from './sequence.service';
 
@@ -84,6 +86,30 @@ export class CorrespondenceService {
       newValue: saved as unknown as Record<string, unknown>,
     });
 
+    return saved;
+  }
+
+  async update(id: string, dto: UpdateCorrespondenceDto, userId: string) {
+    const existing = await this.repo.findOneBy({ id });
+    if (!existing) throw new NotFoundException('Correspondencia no encontrada');
+    const oldValue = { ...existing };
+    applyLockedPatch(existing, dto as Partial<Correspondence>, {
+      documentCode: existing.documentCode,
+      numericCode: existing.numericCode,
+      originDept: existing.originDept,
+      id: existing.id,
+      tenantId: existing.tenantId,
+    });
+    const saved = await this.repo.save(existing);
+    await this.audit.log({
+      userId,
+      module: 'documental',
+      action: 'correspondence.update',
+      entityType: 'doc_correspondence',
+      entityId: saved.id,
+      oldValue: oldValue as unknown as Record<string, unknown>,
+      newValue: saved as unknown as Record<string, unknown>,
+    });
     return saved;
   }
 }

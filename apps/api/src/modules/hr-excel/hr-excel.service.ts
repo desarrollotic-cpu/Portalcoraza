@@ -382,9 +382,27 @@ export class HrExcelService {
    */
   async exportAssociates(preloadedRows?: Associate[]): Promise<Buffer> {
     const rows = preloadedRows ?? await this.associatesRepo.find({
-      relations: ['jobPosition', 'workCenter', 'eps'],
+      relations: ['jobPosition', 'workCenter'],
       order: { firstLastName: 'ASC' },
     });
+
+    const ids = rows.map((a) => a.id);
+    const retirements = ids.length
+      ? await this.associatesRepo.query<
+          { associate_id: string; retirement_date: string; reason: string | null }[]
+        >(
+          `SELECT DISTINCT ON (ar.associate_id)
+             ar.associate_id,
+             ar.retirement_date::text AS retirement_date,
+             cv.value AS reason
+           FROM associate_retirements ar
+           LEFT JOIN catalog_values cv ON cv.id = ar.reason_id
+           WHERE ar.associate_id = ANY($1)
+           ORDER BY ar.associate_id, ar.retirement_date DESC, ar.created_at DESC`,
+          [ids],
+        )
+      : [];
+    const retirementById = new Map(retirements.map((r) => [r.associate_id, r]));
 
     const esc = (v: unknown) =>
       String(v ?? '')
@@ -395,9 +413,18 @@ export class HrExcelService {
       const s = String(v ?? '').slice(0, 10);
       return s && s !== 'null' ? s : '';
     };
-    const money = (v: unknown) => {
-      const n = Number(v);
-      return Number.isFinite(n) && n !== 0 ? n.toLocaleString('es-CO') : '';
+    const bajaDate = (a: Associate) => {
+      const survey = date(retirementById.get(a.id)?.retirement_date);
+      if (survey) return survey;
+      const enriched = date((a as Associate & { retirementDate?: string | null }).retirementDate);
+      if (enriched) return enriched;
+      const inactive =
+        a.status === AssociateStatus.RETIRADO || a.status === AssociateStatus.INACTIVO;
+      if (!inactive || !a.updatedAt) return '';
+      const dt = a.updatedAt instanceof Date ? a.updatedAt : new Date(a.updatedAt);
+      return Number.isNaN(dt.getTime())
+        ? ''
+        : dt.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
     };
 
     const body = rows
@@ -408,17 +435,14 @@ export class HrExcelService {
         const zebra = i % 2 === 1 ? ' even' : '';
         return `<tr class="${zebra}">
           <td class="td-center" style="mso-number-format:'\\@';">${esc(a.folderNumber ?? '')}</td>
-          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.documentNumber)}</td>
           <td class="td-text">${esc(nombre)}</td>
           <td class="td-text">${esc(a.jobPosition?.name)}</td>
           <td class="td-text">${esc(a.workCenter?.clientName)}</td>
           <td class="td-center">${esc(a.status)}</td>
           <td class="td-center">${esc(date(a.hireDate))}</td>
           <td class="td-center" style="mso-number-format:'\\@';">${esc(a.mobile)}</td>
-          <td class="td-text">${esc(a.email)}</td>
-          <td class="td-text">${esc(a.eps?.value)}</td>
-          <td class="td-num">${esc(money(a.ordinaryCompensation))}</td>
-          <td class="td-num">${esc(money(a.averageMonthlySalary))}</td>
+          <td class="td-center">${esc(bajaDate(a))}</td>
+          <td class="td-text">${esc(retirementById.get(a.id)?.reason)}</td>
         </tr>`;
       })
       .join('');
@@ -433,26 +457,22 @@ export class HrExcelService {
         .th { background:#0F766E; color:#fff; font-weight:bold; text-align:center; border:1px solid #0D9488; height:28px; font-size:9.5pt; }
         .td-text { text-align:left; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
         .td-center { text-align:center; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
-        .td-num { text-align:right; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
         .even { background:#F8FAFC; }
       </style></head>
       <body>
         <table border="0" cellspacing="0" cellpadding="4">
-          <tr><td colspan="12" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
-          <tr><td colspan="12" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
+          <tr><td colspan="9" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
+          <tr><td colspan="9" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
           <tr>
             <th class="th">Carpeta</th>
-            <th class="th">Documento</th>
             <th class="th">Nombre completo</th>
             <th class="th">Cargo</th>
             <th class="th">Centro de trabajo</th>
             <th class="th">Estado</th>
             <th class="th">Ingreso</th>
             <th class="th">Celular</th>
-            <th class="th">Email</th>
-            <th class="th">EPS</th>
-            <th class="th">Salario ord.</th>
-            <th class="th">Salario prom.</th>
+            <th class="th">Fecha retiro</th>
+            <th class="th">Motivo retiro</th>
           </tr>
           ${body}
         </table>

@@ -37,9 +37,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
     @if (showForm()) {
       <form class="card" (ngSubmit)="save()">
+        @if (editingId()) {
+          <p class="code-preview">Editando {{ editingCode() }} — el código no cambia</p>
+        }
         <label>
           Tipo de Minuta *
-          <select [(ngModel)]="model.minuteType" name="minuteType" required>
+          <select [(ngModel)]="model.minuteType" name="minuteType" required [disabled]="!!editingId()">
             <option value="SERVICIO"> SERVICIO — Minuta de Puesto de Vigilancia</option>
             <option value="VISITANTES"> VISITANTES — Control de Ingreso y Accesos</option>
             <option value="CORRESPONDENCIA"> CORRESPONDENCIA — Paquetería y Sobres</option>
@@ -65,7 +68,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         </label>
         <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
         <div class="actions">
-          <button type="submit" class="btn-primary" [disabled]="saving()">Guardar Minuta</button>
+          <button type="submit" class="btn-primary" [disabled]="saving()">
+            {{ editingId() ? 'Guardar cambios' : 'Guardar Minuta' }}
+          </button>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
       </form>
@@ -83,7 +88,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       <p>Cargando...</p>
     } @else {
       <table>
-        <thead><tr><th>Código</th><th>Tipo</th><th>Puesto</th><th>Inicio</th><th>Estado</th><th>Rótulo</th></tr></thead>
+        <thead><tr><th>Código</th><th>Tipo</th><th>Puesto</th><th>Inicio</th><th>Estado</th><th></th></tr></thead>
         <tbody>
           @for (m of items(); track m.id) {
             <tr>
@@ -93,6 +98,9 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               <td>{{ m.startDate ?? '—' }}</td>
               <td><span class="badge ok">{{ m.status }}</span></td>
               <td>
+                @if (canCreate()) {
+                  <button type="button" class="btn-ghost" (click)="startEdit(m)">Editar</button>
+                }
                 <button type="button" class="btn-ghost" (click)="printOne(m)" title="Generar rótulo para imprimir">
                   Imprimir rótulo
                 </button>
@@ -115,6 +123,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
       font-size: .9rem;
     }
+    .code-preview { grid-column:1/-1; font-weight:700; margin:0; }
   `,
   ],
 })
@@ -130,6 +139,8 @@ export class MinutesScreen implements OnInit {
   readonly lastSaved = signal<Minute | null>(null);
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
+  readonly editingId = signal<string | null>(null);
+  readonly editingCode = signal('');
 
   model = {
     minuteType: 'SERVICIO',
@@ -148,7 +159,42 @@ export class MinutesScreen implements OnInit {
   }
 
   toggle(): void {
-    this.showForm.update((v) => !v);
+    if (this.showForm()) {
+      this.showForm.set(false);
+      this.resetForm();
+      return;
+    }
+    this.resetForm();
+    this.showForm.set(true);
+  }
+
+  startEdit(m: Minute): void {
+    this.editingId.set(m.id);
+    this.editingCode.set(m.uniqueCode || String(m.numericCode ?? ''));
+    this.model = {
+      minuteType: m.minuteType || 'SERVICIO',
+      postName: m.postName ?? '',
+      startDate: (m.startDate ?? '').slice(0, 10),
+      closeDate: (m.closeDate ?? '').slice(0, 10),
+      voxelsera: m.voxelsera ?? '',
+      observations: m.observations ?? '',
+    };
+    this.error.set(null);
+    this.showForm.set(true);
+  }
+
+  private resetForm(): void {
+    this.editingId.set(null);
+    this.editingCode.set('');
+    this.model = {
+      minuteType: 'SERVICIO',
+      postName: '',
+      startDate: '',
+      closeDate: '',
+      voxelsera: '',
+      observations: '',
+    };
+    this.error.set(null);
   }
 
   private refreshQueue(): void {
@@ -186,34 +232,31 @@ export class MinutesScreen implements OnInit {
     this.saving.set(true);
     this.error.set(null);
     const payload = Object.fromEntries(Object.entries(this.model).filter(([, v]) => v !== ''));
-    this.api.createMinute(payload).subscribe({
+    const editId = this.editingId();
+    const req = editId ? this.api.updateMinute(editId, payload) : this.api.createMinute(payload);
+    req.subscribe({
       next: (saved) => {
         this.saving.set(false);
         this.showForm.set(false);
-        const slot = saved.voxelsera || this.model.voxelsera || 'Estante A';
-        addToPrintQueue({
-          id: saved.id,
-          modulo: 'MINUTAS',
-          codigo: saved.uniqueCode || String(saved.numericCode ?? saved.id),
-          titulo: saved.postName || this.model.postName || 'MINUTA',
-          fechas: `${saved.startDate || this.model.startDate || ''} -- ${saved.closeDate || this.model.closeDate || ''}`,
-          slotFisico: slot,
-        });
-        this.refreshQueue();
-        this.lastSaved.set(saved);
-        this.model = {
-          minuteType: 'SERVICIO',
-          postName: '',
-          startDate: '',
-          closeDate: '',
-          voxelsera: '',
-          observations: '',
-        };
+        if (!editId) {
+          const slot = saved.voxelsera || this.model.voxelsera || 'Estante A';
+          addToPrintQueue({
+            id: saved.id,
+            modulo: 'MINUTAS',
+            codigo: saved.uniqueCode || String(saved.numericCode ?? saved.id),
+            titulo: saved.postName || this.model.postName || 'MINUTA',
+            fechas: `${saved.startDate || this.model.startDate || ''} -- ${saved.closeDate || this.model.closeDate || ''}`,
+            slotFisico: slot,
+          });
+          this.refreshQueue();
+          this.lastSaved.set(saved);
+        }
+        this.resetForm();
         this.load();
       },
       error: () => {
         this.saving.set(false);
-        this.error.set('No se pudo registrar la minuta.');
+        this.error.set(editId ? 'No se pudo guardar la minuta.' : 'No se pudo registrar la minuta.');
       },
     });
   }

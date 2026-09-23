@@ -29,6 +29,40 @@ const DATE_ONLY_KEYS = [
   'hasSuraPolicy',
 ] as const;
 
+const DATE_INPUT_KEYS = [
+  'birthDate',
+  'documentExpeditionDate',
+  'hireDate',
+  'courseIssuedDate',
+  'courseExpirationDate',
+  'psychophysicalIssuedDate',
+  'psychophysicalExpirationDate',
+  'psychosensometricIssuedDate',
+  'psychosensometricExpirationDate',
+] as const;
+
+const FIELD_LABELS: Record<string, string> = {
+  documentNumber: 'Documento',
+  firstName: 'Primer nombre',
+  firstLastName: 'Primer apellido',
+  birthDate: 'Fecha de nacimiento',
+  email: 'Email',
+  hireDate: 'Fecha de ingreso',
+};
+
+/** El API manda fechas ISO (`1993-01-07T04:00:00.000Z`); input type=date solo acepta YYYY-MM-DD. */
+function toDateInput(v: unknown): string {
+  if (v == null || v === '') return '';
+  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})/);
+  return m ? m[1] : '';
+}
+
+function cleanEmail(v: unknown): string | null {
+  const s = String(v ?? '').trim();
+  if (!s || !s.includes('@') || /^no informa$/i.test(s)) return null;
+  return s;
+}
+
 /**
  * Formulario de alta/edición de asociado. Estructura en 4 secciones para
  * evitar un formulario abrumador, con validaciones básicas y campos
@@ -94,8 +128,14 @@ const DATE_ONLY_KEYS = [
           <button
             type="button" class="hr-tab"
             [class.active]="section() === 4"
+            [class.has-error]="sectionErrors()[4] > 0"
             (click)="section.set(4)"
-          >4. Sociodemográfico</button>
+          >
+            4. Sociodemográfico
+            @if (sectionErrors()[4] > 0) {
+              <span class="hr-tab-err">{{ sectionErrors()[4] }}</span>
+            }
+          </button>
         </nav>
 
         <form [formGroup]="form" (ngSubmit)="submit()">
@@ -513,6 +553,7 @@ export class AssociateForm implements OnInit {
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly submitError = signal<string | null>(null);
+  readonly showErrors = signal(false);
   readonly section = signal<1 | 2 | 3 | 4>(1);
 
   readonly positions = signal<JobPosition[]>([]);
@@ -542,13 +583,13 @@ export class AssociateForm implements OnInit {
    * un badge rojo en el tab correspondiente.
    */
   readonly sectionErrors = computed<Record<1 | 2 | 3 | 4, number>>(() => {
-    // El signal es un truco: cambiamos section() para invalidar el computed
-    // cuando el usuario navega. En realidad revisamos el form completo.
     void this.section();
     void this.saving();
+    void this.showErrors();
     const counts: Record<1 | 2 | 3 | 4, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    const reveal = this.showErrors();
     Object.entries(this.form.controls).forEach(([name, ctrl]) => {
-      if (ctrl.invalid && (ctrl.touched || ctrl.dirty)) {
+      if (ctrl.invalid && (reveal || ctrl.touched || ctrl.dirty)) {
         const s = this.controlToSection[name] ?? 4;
         counts[s]++;
       }
@@ -676,10 +717,15 @@ export class AssociateForm implements OnInit {
   }
 
   private patchForm(a: Associate): void {
+    const row = a as unknown as Record<string, unknown>;
     const patch: Record<string, unknown> = {};
     for (const key of Object.keys(this.form.controls)) {
-      if (key in a) patch[key] = (a as unknown as Record<string, unknown>)[key];
+      if (key in row) patch[key] = row[key];
     }
+    for (const key of DATE_INPUT_KEYS) {
+      if (key in patch) patch[key] = toDateInput(patch[key]);
+    }
+    if ('email' in patch) patch['email'] = cleanEmail(patch['email']);
     this.form.patchValue(patch);
   }
 
@@ -706,15 +752,20 @@ export class AssociateForm implements OnInit {
   }
 
   submit(): void {
+    this.showErrors.set(true);
     if (this.form.invalid) {
-      // Marca todos los controles como touched para que los badges de error
-      // aparezcan en cada tab con problemas, y salta al primero.
       this.form.markAllAsTouched();
-      const counts = this.sectionErrors();
-      const firstBadSection = ([1, 2, 3, 4] as const).find((s) => counts[s] > 0);
-      if (firstBadSection) this.section.set(firstBadSection);
-      this.submitError.set('Revisa los campos marcados en rojo en las pestañas.');
-      this.toast.warning('Formulario incompleto', 'Hay campos obligatorios sin llenar.');
+      const bad = Object.entries(this.form.controls)
+        .filter(([, ctrl]) => ctrl.invalid)
+        .map(([name]) => FIELD_LABELS[name] ?? name);
+      const firstBad = Object.entries(this.form.controls).find(([, ctrl]) => ctrl.invalid)?.[0];
+      if (firstBad) this.section.set(this.controlToSection[firstBad] ?? 1);
+      this.submitError.set(
+        bad.length
+          ? `Revisa: ${bad.join(', ')}.`
+          : 'Revisa los campos marcados en rojo en las pestañas.',
+      );
+      this.toast.warning('Formulario incompleto', bad.join(', ') || 'Hay campos por corregir.');
       return;
     }
     const raw = this.form.getRawValue();

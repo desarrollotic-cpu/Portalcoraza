@@ -1,8 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
+import { applyLockedPatch } from '../documental-edit';
 import { CreateContractDto } from '../dto/create-contract.dto';
+import { UpdateContractDto } from '../dto/update-contract.dto';
 import { Contract } from '../entities/contract.entity';
 import { Workflow } from '../entities/workflow.entity';
 import { SequenceService } from './sequence.service';
@@ -103,6 +105,28 @@ export class ContractsService {
       newValue: saved as unknown as Record<string, unknown>,
     });
 
+    return saved;
+  }
+
+  async update(id: string, dto: UpdateContractDto, userId: string) {
+    const existing = await this.repo.findOneBy({ id });
+    if (!existing) throw new NotFoundException('Contrato no encontrado');
+    const oldValue = { ...existing };
+    applyLockedPatch(existing, dto as Partial<Contract>, {
+      numericCode: existing.numericCode,
+      id: existing.id,
+      tenantId: existing.tenantId,
+    });
+    const saved = await this.repo.save(existing);
+    await this.audit.log({
+      userId,
+      module: 'documental',
+      action: 'contract.update',
+      entityType: 'doc_contracts',
+      entityId: saved.id,
+      oldValue: oldValue as unknown as Record<string, unknown>,
+      newValue: saved as unknown as Record<string, unknown>,
+    });
     return saved;
   }
 }

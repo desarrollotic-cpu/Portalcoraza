@@ -949,6 +949,12 @@
   font-size: 0.9rem;
 }
 
+.hr-field input.ng-invalid.ng-touched,
+.hr-field select.ng-invalid.ng-touched,
+.hr-field textarea.ng-invalid.ng-touched {
+  border-color: var(--error-600, #dc2626);
+}
+
 .hr-field.checkbox {
   flex-direction: row;
   align-items: center;
