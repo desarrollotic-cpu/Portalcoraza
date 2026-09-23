@@ -33,7 +33,7 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
         </header>
         @if (auth.hasPermission('audit.view')) {
           <p class="admin-panel__muted" style="margin-top:0.5rem">
-            <a routerLink="/admin/historial-movimientos">Ver historial de movimientos →</a>
+            <a routerLink="/historial-movimientos">Ver historial de movimientos →</a>
           </p>
         }
         @if (loading()) {

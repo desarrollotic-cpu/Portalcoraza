@@ -1058,6 +1058,13 @@ export class MainLayout implements OnDestroy {
           permissions: ['users.view', 'dashboard.view'],
         },
         {
+          label: 'Historial de movimientos',
+          route: '/historial-movimientos',
+          icon: LucideClipboardList,
+          match: 'exact',
+          permission: 'audit.view',
+        },
+        {
           label: 'Control de Actividades',
           route: '/control-actividades',
           icon: LucideActivity,

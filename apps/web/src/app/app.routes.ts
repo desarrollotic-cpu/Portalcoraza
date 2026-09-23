@@ -40,6 +40,15 @@ export const routes: Routes = [
         loadComponent: () => import('./features/dashboard/dashboard').then((m) => m.Dashboard),
       },
       {
+        path: 'historial-movimientos',
+        canActivate: [permissionGuard],
+        data: { permission: 'audit.view' },
+        loadComponent: () =>
+          import('./features/admin/admin-audit-movements/admin-audit-movements').then(
+            (m) => m.AdminAuditMovements,
+          ),
+      },
+      {
         path: 'control-actividades',
         canActivate: [permissionGuard],
         data: { permission: 'activity_control.view' },

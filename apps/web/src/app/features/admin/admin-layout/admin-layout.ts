@@ -41,7 +41,7 @@ export class AdminLayout {
     },
     {
       label: 'Historial de movimientos',
-      route: '/admin/historial-movimientos',
+      route: '/historial-movimientos',
       permission: 'audit.view',
       exact: true,
       icon: LucideClipboardList,
