@@ -179,12 +179,12 @@ export class AssociatesService {
           bajaStatuses: [AssociateStatus.RETIRADO, AssociateStatus.INACTIVO],
         });
       }
-      const bajaExpr = `COALESCE(
-        (SELECT ar.retirement_date FROM associate_retirements ar
-         WHERE ar.associate_id = a.id
-         ORDER BY ar.retirement_date DESC LIMIT 1),
-        CASE WHEN a.status IN ('RETIRADO','INACTIVO')
-          THEN (timezone('America/Bogota', a.updated_at))::date END
+      // Sin fallback a updated_at: si no hay retiro real registrado, NULL no
+      // pasa ningún filtro de rango (no hay fecha real que lo ubique en un mes).
+      const bajaExpr = `(
+        SELECT ar.retirement_date FROM associate_retirements ar
+        WHERE ar.associate_id = a.id
+        ORDER BY ar.retirement_date DESC LIMIT 1
       )`;
       if (query.retiredFrom) {
         qb.andWhere(`${bajaExpr} >= :retiredFrom`, { retiredFrom: query.retiredFrom });
@@ -227,7 +227,7 @@ export class AssociatesService {
           birthDate: a.birthDate,
           hireDate: a.hireDate,
           status: a.status,
-          retirementDate: this.resolveBajaDate(a, retirementByAssociate.get(a.id)),
+          retirementDate: this.resolveBajaDate(retirementByAssociate.get(a.id)),
         });
         return tenureMonths >= minMonths && tenureMonths <= maxMonths;
       });
@@ -548,7 +548,7 @@ export class AssociatesService {
     user: JwtPayload,
     retirementDate?: string | null,
   ) {
-    const bajaDate = this.resolveBajaDate(associate, retirementDate);
+    const bajaDate = this.resolveBajaDate(retirementDate);
     const derived = this.derived.compute({
       birthDate: associate.birthDate,
       hireDate: associate.hireDate,
@@ -587,17 +587,16 @@ export class AssociatesService {
     return status === AssociateStatus.RETIRADO || status === AssociateStatus.INACTIVO;
   }
 
-  /** Encuesta de retiro; si no hay, el día en que quedó RETIRADO/INACTIVO (Bogotá). */
-  private resolveBajaDate(associate: Associate, survey?: string | null): string | null {
-    if (survey) {
-      const s = String(survey).slice(0, 10);
-      if (s) return s;
-    }
-    if (!this.isInactiveStatus(associate.status) || !associate.updatedAt) return null;
-    const dt =
-      associate.updatedAt instanceof Date ? associate.updatedAt : new Date(associate.updatedAt);
-    if (Number.isNaN(dt.getTime())) return null;
-    return dt.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
+  /**
+   * Fecha de baja real (de associate_retirements). Sin fallback a updated_at:
+   * un RETIRADO/INACTIVO sin encuesta de retiro no tiene fecha real de baja,
+   * así que se muestra vacío en vez de inventar una con la última actualización
+   * del registro (que puede ser de un proceso masivo sin relación con la baja).
+   */
+  private resolveBajaDate(survey?: string | null): string | null {
+    if (!survey) return null;
+    const s = String(survey).slice(0, 10);
+    return s || null;
   }
 
   private async latestRetirementDate(associateId: string): Promise<string | null> {
