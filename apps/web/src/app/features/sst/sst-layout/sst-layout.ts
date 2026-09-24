@@ -1,13 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {
-  LucideClipboardCheck,
-  LucideClipboardList,
-  LucideLayoutDashboard,
-  LucideListChecks,
-  LucideMapPin,
-} from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { SST_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
   selector: 'app-sst-layout',
@@ -23,41 +17,5 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   `,
 })
 export class SstLayout {
-  readonly nav: ModuleNavItem[] = [
-    {
-      label: 'Panel',
-      route: '/sst/panel',
-      permission: 'sst.view',
-      exact: true,
-      icon: LucideLayoutDashboard,
-    },
-    {
-      label: 'Nueva inspección',
-      route: '/sst/inspecciones/nueva',
-      permission: 'sst.inspect',
-      exact: true,
-      icon: LucideClipboardList,
-    },
-    {
-      label: 'Planes de acción',
-      route: '/sst/planes',
-      permission: 'sst.view',
-      exact: true,
-      icon: LucideListChecks,
-    },
-    {
-      label: 'Checklist IPT (34)',
-      route: '/sst/checklist',
-      permission: 'sst.view',
-      exact: true,
-      icon: LucideClipboardCheck,
-    },
-    {
-      label: 'Clientes y puestos',
-      route: '/sst/puestos',
-      permission: 'sst.manage',
-      exact: true,
-      icon: LucideMapPin,
-    },
-  ];
+  readonly nav = SST_NAV;
 }

@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import { LucideClipboardList, LucideLayoutDashboard, LucideShieldCheck, LucideUserCog } from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { ADMIN_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
   selector: 'app-admin-layout',
@@ -17,34 +17,5 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   `,
 })
 export class AdminLayout {
-  readonly nav: ModuleNavItem[] = [
-    {
-      label: 'Panel',
-      route: '/admin',
-      permission: 'users.view',
-      exact: true,
-      icon: LucideLayoutDashboard,
-    },
-    {
-      label: 'Usuarios',
-      route: '/admin/usuarios',
-      permission: 'users.view',
-      exact: true,
-      icon: LucideUserCog,
-    },
-    {
-      label: 'Roles y permisos',
-      route: '/admin/roles',
-      permission: 'roles.view',
-      exact: true,
-      icon: LucideShieldCheck,
-    },
-    {
-      label: 'Historial de movimientos',
-      route: '/historial-movimientos',
-      permission: 'audit.view',
-      exact: true,
-      icon: LucideClipboardList,
-    },
-  ];
+  readonly nav = ADMIN_NAV;
 }

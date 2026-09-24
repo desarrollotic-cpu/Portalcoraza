@@ -1,13 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {
-  LucideAlertTriangle,
-  LucideCalculator,
-  LucideCalendarClock,
-  LucideLayoutDashboard,
-  LucideUsersRound,
-} from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { PROGRAMACION_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
   selector: 'app-programacion-layout',
@@ -23,39 +17,5 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   `,
 })
 export class ProgramacionLayout {
-  readonly nav: ModuleNavItem[] = [
-    {
-      label: 'Panel & Disponibilidad',
-      route: '/programacion/panel',
-      permission: 'scheduling.view',
-      icon: LucideLayoutDashboard,
-    },
-    {
-      label: 'Personal',
-      route: '/rrhh/asociados',
-      permission: 'associates.view',
-      icon: LucideUsersRound,
-    },
-    {
-      label: 'Cuadro de Turnos',
-      route: '/programacion/cuadro',
-      permission: 'scheduling.view',
-      icon: LucideCalendarClock,
-    },
-    {
-      // Alertas y recargos: acceso solo a quienes editan la programación.
-      // Monitoreo (rol de visualización) NO ve estos ítems.
-      label: 'Control de Alertas',
-      route: '/programacion/alertas',
-      permission: 'scheduling.edit',
-      icon: LucideAlertTriangle,
-    },
-    {
-      label: 'Liquidación y Recargos',
-      route: '/programacion/recargos',
-      permission: 'scheduling.edit',
-      icon: LucideCalculator,
-    },
-  ];
+  readonly nav = PROGRAMACION_NAV;
 }
-

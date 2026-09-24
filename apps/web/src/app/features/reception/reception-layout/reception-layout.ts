@@ -1,14 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {
-  LucideBriefcaseBusiness,
-  LucideClipboardPen,
-  LucideFileText,
-  LucideHistory,
-  LucideLayoutDashboard,
-  LucideUsersRound,
-} from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { RECEPCION_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
   selector: 'app-reception-layout',
@@ -24,60 +17,5 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   `,
 })
 export class ReceptionLayout {
-  readonly nav: ModuleNavItem[] = [
-    {
-      label: 'Panel de control',
-      route: '/recepcion/panel',
-      permission: 'reception.view',
-      exact: true,
-      icon: LucideLayoutDashboard,
-    },
-    {
-      label: 'Personal',
-      route: '/rrhh/asociados',
-      permission: 'associates.view',
-      icon: LucideUsersRound,
-    },
-    {
-      label: 'Informe de puestos',
-      route: '/recepcion/puestos',
-      permission: 'reception.view',
-      exact: true,
-      icon: LucideBriefcaseBusiness,
-    },
-    {
-      label: 'Fichas de puestos',
-      route: '/recepcion/puestos/fichas',
-      permissions: ['reception.view', 'posts.view'],
-      icon: LucideFileText,
-    },
-    {
-      label: 'Gestionar puestos',
-      route: '/recepcion/puestos/gestionar',
-      permission: 'posts.create',
-      exact: true,
-      icon: LucideBriefcaseBusiness,
-    },
-    {
-      label: 'Registrar visitante',
-      route: '/recepcion/registrar',
-      permission: 'reception.register',
-      exact: true,
-      icon: LucideClipboardPen,
-    },
-    {
-      label: 'Visitantes dentro',
-      route: '/recepcion/dentro',
-      permission: 'reception.view',
-      exact: true,
-      icon: LucideUsersRound,
-    },
-    {
-      label: 'Historial de visitas',
-      route: '/recepcion/historial',
-      permission: 'reception.view',
-      exact: true,
-      icon: LucideHistory,
-    },
-  ];
+  readonly nav = RECEPCION_NAV;
 }

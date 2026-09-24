@@ -1,12 +1,7 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
-import {
-  LucideBriefcaseBusiness,
-  LucideClipboardList,
-  LucideFileText,
-  LucideMapPin,
-} from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { OPERACIONES_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 
 @Component({
   selector: 'app-operaciones-layout',
@@ -22,33 +17,5 @@ import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-sh
   `,
 })
 export class OperacionesLayout {
-  readonly nav: ModuleNavItem[] = [
-    {
-      label: 'Panel',
-      route: '/operaciones',
-      permission: 'operations.view',
-      icon: LucideBriefcaseBusiness,
-      exact: true,
-    },
-    {
-      label: 'Puestos de trabajo',
-      route: '/operaciones/puestos',
-      permission: 'operations.view',
-      icon: LucideMapPin,
-      exact: true,
-    },
-    {
-      label: 'Fichas de puestos',
-      route: '/operaciones/puestos/fichas',
-      permissions: ['operations.view', 'posts.view'],
-      icon: LucideFileText,
-    },
-    {
-      label: 'Minutas',
-      route: '/operaciones/minutas',
-      permission: 'operations.view',
-      icon: LucideClipboardList,
-      exact: true,
-    },
-  ];
+  readonly nav = OPERACIONES_NAV;
 }

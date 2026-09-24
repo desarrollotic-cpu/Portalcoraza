@@ -2,21 +2,14 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import {
-  LucideBoxes,
-  LucideCalendarClock,
-  LucideClipboardList,
-  LucideFileText,
   LucideHistory,
-  LucideLayoutGrid,
   LucidePrinter,
   LucideRefreshCw,
-  LucideSearch,
-  LucideShieldCheck,
   LucideTrash2,
-  LucideUsersRound,
   LucideX,
 } from '@lucide/angular';
-import { ModuleNavItem, ModuleShell } from '../../../shared/components/module-shell/module-shell';
+import { DOCUMENTAL_NAV } from '../../../layouts/main-layout/portal-nav';
+import { ModuleShell } from '../../../shared/components/module-shell/module-shell';
 import { Icon } from '../../../shared/components/icon/icon';
 import { DocumentalApiService } from '../documental-api.service';
 import {
@@ -552,18 +545,7 @@ export class DocumentalLayout implements OnInit {
     Refresh: LucideRefreshCw,
   };
 
-  readonly nav: ModuleNavItem[] = [
-    { label: 'Panel', route: '/documental', exact: true, permission: 'documental.view', icon: LucideLayoutGrid },
-    { label: 'Correspondencia', route: '/documental/correspondencia', permission: 'documental.view', icon: LucideFileText },
-    { label: 'Minutas', route: '/documental/minutas', permission: 'documental.view', icon: LucideClipboardList },
-    { label: 'Asociados Retirados', route: '/documental/asociados', permission: 'documental.view', icon: LucideUsersRound },
-    { label: 'Contratos', route: '/documental/contratos', permission: 'documental.view', icon: LucideShieldCheck },
-    { label: 'Préstamos', route: '/documental/prestamos', permissions: ['documental.view', 'documental.loans'], icon: LucideCalendarClock },
-    { label: 'Biblioteca', route: '/documental/biblioteca', permission: 'documental.view', icon: LucideBoxes },
-    { label: 'VOXELSERA', route: '/documental/voxelsera', permission: 'documental.view', icon: LucideBoxes },
-    { label: 'Buscador Universal', route: '/documental/buscador', permission: 'documental.view', icon: LucideSearch },
-    { label: 'Informes', route: '/documental/informes', permission: 'documental.view', icon: LucideClipboardList },
-  ];
+  readonly nav = DOCUMENTAL_NAV;
 
   readonly modalOpen = signal(false);
   readonly activeTab = signal<'current' | 'history'>('current');

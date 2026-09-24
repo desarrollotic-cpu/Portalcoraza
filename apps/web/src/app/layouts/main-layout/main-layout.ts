@@ -2,7 +2,6 @@ import { DatePipe } from '@angular/common';
 import {
   Component,
   OnDestroy,
-  Type,
   computed,
   effect,
   inject,
@@ -37,7 +36,6 @@ import {
   LucideUserCog,
   LucideUsersRound,
   LucideDoorOpen,
-  LucideShieldCheck,
   LucideMenu,
   LucideX,
 } from '@lucide/angular';
@@ -47,21 +45,11 @@ import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
-
-interface NavItem {
-  label: string;
-  route: string;
-  icon: Type<unknown>;
-  permission?: string;
-  permissions?: string[];
-  match?: 'subset' | 'exact';
-  /** Si existe, el ítem abre una app externa (portal = puerta de entrada). */
-  externalUrl?: string;
-}
+import { PORTAL_NAV_GROUPS, PortalNavItem, visibleModuleNav } from './portal-nav';
 
 interface NavGroup {
   label: string;
-  items: NavItem[];
+  items: PortalNavItem[];
 }
 
 @Component({
@@ -113,15 +101,60 @@ interface NavGroup {
                       <span class="nav-label">{{ item.label }}</span>
                       <span class="nav-indicator"></span>
                     </a>
+                  } @else if (item.children?.length) {
+                    <div class="nav-branch">
+                      <button
+                        type="button"
+                        class="nav-item"
+                        [class.active]="isModuleActive(item.route)"
+                        [attr.aria-expanded]="openModule() === item.route"
+                        [attr.aria-controls]="'sub' + item.route"
+                        (click)="toggleModule(item.route, $event)"
+                      >
+                        <span class="nav-icon">
+                          <app-icon [icon]="item.icon" [size]="18" [strokeWidth]="1.8" />
+                        </span>
+                        <span class="nav-label">{{ item.label }}</span>
+                        <app-icon
+                          class="nav-chevron"
+                          [class.open]="openModule() === item.route"
+                          [icon]="icons.ChevronDown"
+                          [size]="16"
+                          [strokeWidth]="2"
+                        />
+                        <span class="nav-indicator"></span>
+                      </button>
+                      <div
+                        class="subnav"
+                        [class.open]="openModule() === item.route"
+                        [id]="'sub' + item.route"
+                      >
+                        <div class="subnav-inner">
+                          @for (child of item.children; track child.route) {
+                            <a
+                              class="nav-item nav-subitem"
+                              [routerLink]="child.route"
+                              routerLinkActive="active"
+                              [routerLinkActiveOptions]="linkActiveOptions(child.exact === true)"
+                              (click)="closeMobileNav()"
+                            >
+                              <span class="nav-icon">
+                                @if (child.icon) {
+                                  <app-icon [icon]="child.icon" [size]="14" [strokeWidth]="1.8" />
+                                }
+                              </span>
+                              <span class="nav-label">{{ child.label }}</span>
+                              <span class="nav-indicator"></span>
+                            </a>
+                          }
+                        </div>
+                      </div>
+                    </div>
                   } @else {
                     <a
                       [routerLink]="item.route"
                       routerLinkActive="active"
-                      [routerLinkActiveOptions]="
-                        item.match === 'exact'
-                          ? { exact: true }
-                          : { paths: 'subset', queryParams: 'ignored', fragment: 'ignored', matrixParams: 'ignored' }
-                      "
+                      [routerLinkActiveOptions]="linkActiveOptions(item.match === 'exact')"
                       class="nav-item"
                       (click)="closeMobileNav()"
                     >
@@ -479,6 +512,47 @@ interface NavGroup {
       transition:
         opacity 0.15s ease,
         transform 0.2s ease;
+    }
+    button.nav-item {
+      width: 100%;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      color: rgba(255, 255, 255, 0.75);
+    }
+    .nav-chevron {
+      margin-left: auto;
+      margin-right: 0.85rem;
+      color: rgba(255, 255, 255, 0.65);
+      transition: transform 0.2s ease;
+    }
+    .nav-chevron.open {
+      transform: rotate(180deg);
+    }
+    .subnav {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.22s ease;
+    }
+    .subnav.open {
+      grid-template-rows: 1fr;
+    }
+    .subnav-inner {
+      overflow: hidden;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.1rem;
+    }
+    .nav-subitem {
+      padding-left: 1.35rem;
+      font-size: 0.82rem;
+    }
+    .nav-subitem .nav-icon {
+      width: 22px;
+      height: 22px;
     }
 
     .sidebar-footer {
@@ -1007,12 +1081,16 @@ export class MainLayout implements OnDestroy {
   constructor() {
     // Relee permisos (p. ej. sst.view tras migración) sin forzar logout.
     this.auth.refreshSession().subscribe({ error: () => undefined });
+    this.openModule.set(this.moduleKeyForUrl(this.router.url));
     this.router.events
       .pipe(
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => this.closeMobileNav());
+      .subscribe((event) => {
+        this.closeMobileNav();
+        this.openModule.set(this.moduleKeyForUrl(event.urlAfterRedirects));
+      });
   }
 
   readonly icons = {
@@ -1038,6 +1116,7 @@ export class MainLayout implements OnDestroy {
     X: LucideX,
   };
 
+  readonly openModule = signal<string | null>(null);
   readonly userMenuOpen = signal(false);
   readonly mobileNavOpen = signal(false);
   readonly changePasswordOpen = signal(false);
@@ -1046,105 +1125,7 @@ export class MainLayout implements OnDestroy {
   readonly pwSuccess = signal<string | null>(null);
   pwForm = { current: '', next: '', confirm: '' };
 
-  private readonly groups: NavGroup[] = [
-    {
-      label: 'General',
-      items: [
-        {
-          label: 'Dashboard',
-          route: '/dashboard',
-          icon: LucideHome,
-          match: 'exact',
-          permissions: ['users.view', 'dashboard.view'],
-        },
-        {
-          label: 'Historial de movimientos',
-          route: '/historial-movimientos',
-          icon: LucideClipboardList,
-          match: 'exact',
-          permission: 'audit.view',
-        },
-        {
-          label: 'Control de Actividades',
-          route: '/control-actividades',
-          icon: LucideActivity,
-          match: 'exact',
-          permission: 'activity_control.view',
-        },
-      ],
-    },
-    {
-      label: 'Operación',
-      items: [
-        {
-          label: 'Operaciones',
-          route: '/operaciones',
-          icon: LucideBriefcaseBusiness,
-          permission: 'operations.view',
-        },
-        {
-          label: 'Recursos Humanos',
-          route: '/rrhh',
-          icon: LucideUsersRound,
-          permissions: ['associates.view', 'hr_dashboard.view'],
-        },
-        {
-          label: 'Dotación',
-          route: '/dotacion',
-          icon: LucideBoxes,
-          permission: 'inventory.view',
-        },
-        {
-          label: 'Programación',
-          route: '/programacion',
-          icon: LucideCalendarClock,
-          permission: 'scheduling.view',
-        },
-        {
-          label: 'Nómina',
-          route: '/nomina',
-          icon: LucideBriefcaseBusiness,
-          permission: 'payroll.view',
-        },
-        {
-          label: 'Documental',
-          route: '/documental',
-          icon: LucideClipboardList,
-          permissions: ['documental.view', 'documental.loans'],
-        },
-        {
-          label: 'Recepción',
-          route: '/recepcion',
-          icon: LucideDoorOpen,
-          permission: 'reception.view',
-        },
-        {
-          label: 'SST / Salud y Seguridad',
-          route: '/sst',
-          icon: LucideShieldCheck,
-          permission: 'sst.view',
-        },
-        {
-          label: 'SIG-Indicadores',
-          route: '/sig',
-          icon: LucideSparkles,
-          permission: 'sig.view',
-        },
-      ],
-    },
-
-    {
-      label: 'Sistema',
-      items: [
-        {
-          label: 'Administración',
-          route: '/admin',
-          icon: LucideUserCog,
-          permission: 'users.view',
-        },
-      ],
-    },
-  ];
+  private readonly groups: NavGroup[] = PORTAL_NAV_GROUPS;
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -1155,19 +1136,20 @@ export class MainLayout implements OnDestroy {
     { initialValue: this.router.url },
   );
 
-  readonly visibleGroups = computed(() =>
-    this.groups
+  readonly visibleGroups = computed(() => {
+    const can = (code: string) => this.auth.hasPermission(code);
+    return this.groups
       .map((group) => ({
         ...group,
-        items: group.items.filter((item) => {
-          if (item.permissions?.length) {
-            return item.permissions.some((p) => this.auth.hasPermission(p));
-          }
-          return !item.permission || this.auth.hasPermission(item.permission);
-        }),
+        items: group.items
+          .filter((item) => this.canSeeModule(item, can))
+          .map((item) => ({
+            ...item,
+            children: item.children?.length ? visibleModuleNav(item.children, can) : undefined,
+          })),
       }))
-      .filter((group) => group.items.length > 0),
-  );
+      .filter((group) => group.items.length > 0);
+  });
 
   readonly activeItem = computed(() => {
     const url = this.currentUrl();
@@ -1218,6 +1200,50 @@ export class MainLayout implements OnDestroy {
   toggleUserMenu(event: MouseEvent): void {
     event.stopPropagation();
     this.userMenuOpen.update((v) => !v);
+  }
+
+  linkActiveOptions(exact: boolean) {
+    return exact
+      ? { exact: true }
+      : {
+          paths: 'subset' as const,
+          queryParams: 'ignored' as const,
+          fragment: 'ignored' as const,
+          matrixParams: 'ignored' as const,
+        };
+  }
+
+  isModuleActive(route: string): boolean {
+    return this.router.isActive(route, {
+      paths: 'subset',
+      queryParams: 'ignored',
+      fragment: 'ignored',
+      matrixParams: 'ignored',
+    });
+  }
+
+  toggleModule(route: string, event: Event): void {
+    event.stopPropagation();
+    this.openModule.update((current) => (current === route ? null : route));
+  }
+
+  private canSeeModule(item: PortalNavItem, can: (code: string) => boolean): boolean {
+    const allowed = item.permissions?.length
+      ? item.permissions.some((code) => can(code))
+      : !item.permission || can(item.permission);
+    if (!allowed) return false;
+    if (!item.children?.length) return true;
+    return visibleModuleNav(item.children, can).length > 0;
+  }
+
+  private moduleKeyForUrl(url: string): string | null {
+    const path = url.split('?')[0];
+    const match = this.groups
+      .flatMap((group) => group.items)
+      .filter((item) => item.children?.length)
+      .filter((item) => path === item.route || path.startsWith(`${item.route}/`))
+      .sort((a, b) => b.route.length - a.route.length)[0];
+    return match?.route ?? null;
   }
 
   toggleMobileNav(event: MouseEvent): void {
