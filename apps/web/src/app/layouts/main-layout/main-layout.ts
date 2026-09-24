@@ -106,7 +106,7 @@ interface NavGroup {
                       <button
                         type="button"
                         class="nav-item"
-                        [class.active]="isModuleActive(item.route)"
+                        [class.expanded]="openModule() === item.route"
                         [attr.aria-expanded]="openModule() === item.route"
                         [attr.aria-controls]="'sub' + item.route"
                         (click)="toggleModule(item.route, $event)"
@@ -140,7 +140,7 @@ interface NavGroup {
                             >
                               <span class="nav-icon">
                                 @if (child.icon) {
-                                  <app-icon [icon]="child.icon" [size]="14" [strokeWidth]="1.8" />
+                                  <app-icon [icon]="child.icon" [size]="16" [strokeWidth]="1.8" />
                                 }
                               </span>
                               <span class="nav-label">{{ child.label }}</span>
@@ -518,15 +518,25 @@ interface NavGroup {
       border: none;
       background: transparent;
       cursor: pointer;
-      font: inherit;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 500;
+      line-height: inherit;
       text-align: left;
       color: rgba(255, 255, 255, 0.75);
+    }
+    button.nav-item.expanded {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    button.nav-item.expanded .nav-chevron {
+      color: #fff;
     }
     .nav-chevron {
       margin-left: auto;
       margin-right: 0.85rem;
       color: rgba(255, 255, 255, 0.65);
-      transition: transform 0.2s ease;
+      transition: transform 0.2s ease, color 0.15s ease;
     }
     .nav-chevron.open {
       transform: rotate(180deg);
@@ -540,19 +550,61 @@ interface NavGroup {
       grid-template-rows: 1fr;
     }
     .subnav-inner {
+      position: relative;
       overflow: hidden;
       min-height: 0;
       display: flex;
       flex-direction: column;
-      gap: 0.1rem;
+      gap: 0.05rem;
+      margin-left: calc(0.85rem + 13px);
+      padding: 0.15rem 0.35rem 0.3rem 0.95rem;
+      border-left: 1px solid rgba(255, 255, 255, 0.22);
     }
     .nav-subitem {
-      padding-left: 1.35rem;
-      font-size: 0.82rem;
+      padding: 0.38rem 0.55rem 0.38rem 0.15rem;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 400;
+      color: rgba(255, 255, 255, 0.55);
+      box-shadow: none;
     }
     .nav-subitem .nav-icon {
-      width: 22px;
-      height: 22px;
+      width: auto;
+      height: auto;
+      border-radius: 0;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.4);
+    }
+    .nav-subitem .nav-indicator {
+      display: none;
+    }
+    .nav-subitem:hover {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.82);
+    }
+    .nav-subitem:hover .nav-icon {
+      background: transparent;
+      color: rgba(255, 255, 255, 0.72);
+    }
+    .nav-subitem.active {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: none;
+    }
+    .nav-subitem.active .nav-icon {
+      background: transparent;
+      color: #fff;
+    }
+    .nav-subitem.active::before {
+      content: '';
+      position: absolute;
+      left: calc(-0.95rem - 1px);
+      top: 0.28rem;
+      bottom: 0.28rem;
+      width: 2px;
+      border-radius: 999px;
+      background: #fff;
     }
 
     .sidebar-footer {
