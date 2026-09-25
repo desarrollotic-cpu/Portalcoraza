@@ -7,6 +7,7 @@ import {
   LucideCircleX,
   LucideDownload,
   LucideFilter,
+  LucidePrinter,
   LucideRefreshCw,
   LucideSearch,
   LucideSearchX,
@@ -16,6 +17,7 @@ import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { Icon } from '../../../shared/components/icon/icon';
+import { printRotulo, printRotulos, rotuloFromAssociate } from '../../documental/rotulo-print';
 import { AssociatesListState } from '../associates-list-state.service';
 import { HrApiService } from '../services/hr-api.service';
 import type {
@@ -69,6 +71,15 @@ function monthBounds(ym: string): { from: string; to: string } {
           >
             <app-icon [icon]="icons.Download" [size]="16" />
             {{ exporting() ? 'Exportando…' : 'Exportar Excel' }}
+          </button>
+          <button
+            type="button"
+            class="hr-btn hr-btn-ghost"
+            (click)="printPage()"
+            [disabled]="loading() || !filtered().length"
+            title="Imprimir rótulos Niimbot B1 de esta página (50×30 mm)"
+          >
+            <app-icon [icon]="icons.Printer" [size]="16" /> Rótulos
           </button>
           @if (auth.hasPermission('associates.create')) {
             <a routerLink="/rrhh/asociados/nuevo" class="hr-btn hr-btn-primary">
@@ -225,6 +236,12 @@ function monthBounds(ym: string): { from: string; to: string } {
                   </td>
                   <td>
                     <a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link hr-link-sm">Ver</a>
+                    <button
+                      type="button"
+                      class="hr-btn hr-btn-ghost hr-btn-sm"
+                      (click)="printOne(a)"
+                      title="Imprimir rótulo Niimbot B1 50×30 mm"
+                    >Rótulo</button>
                   </td>
                 </tr>
               } @empty {
@@ -270,6 +287,7 @@ export class AssociatesList implements OnInit, OnDestroy {
     UserPlus: LucideUserPlus,
     Refresh: LucideRefreshCw,
     Download: LucideDownload,
+    Printer: LucidePrinter,
     Check: LucideCircleCheck,
     X: LucideCircleX,
   };
@@ -371,6 +389,16 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   refresh(): void {
     this.applyFilters();
+  }
+
+  printOne(a: Associate): void {
+    printRotulo(rotuloFromAssociate(a));
+  }
+
+  printPage(): void {
+    const items = this.filtered().map(rotuloFromAssociate);
+    if (!items.length) return;
+    printRotulos(items);
   }
 
   /** Descarga Excel con los mismos filtros del directorio (respeta status, sede, búsqueda, fechas, etc.). */
