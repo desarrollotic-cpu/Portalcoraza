@@ -1,4 +1,4 @@
-import { PostWorkFront } from '../entities/post-work-front.entity';
+import { PostWorkFront } from './entities/post-work-front.entity';
 
 export interface WorkFrontsSummary {
   total: number;
