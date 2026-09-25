@@ -6,6 +6,7 @@ import {
   OperacionesPost,
   PostContractRow,
   PostStatus,
+  PostWorkFrontRow,
 } from '../../operaciones/operaciones-api.service';
 import { PostFichaPdfService } from './post-ficha-pdf.service';
 
@@ -120,6 +121,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                 <th>Nombre</th>
                 <th>NIT</th>
                 <th>Zona</th>
+                <th>Servicios</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -130,6 +132,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                   <td><strong>{{ p.name }}</strong></td>
                   <td>{{ dash(p.nit) }}</td>
                   <td>{{ p.zone || '—' }}</td>
+                  <td class="servicios-cell">{{ p.workFrontsSummary?.label || '—' }}</td>
                   <td>{{ p.status }}</td>
                   <td class="actions">
                     <button type="button" class="link" (click)="openFicha(p)">Ver ficha</button>
@@ -145,7 +148,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="5" class="muted">No hay puestos con ese filtro.</td></tr>
+                <tr><td colspan="6" class="muted">No hay puestos con ese filtro.</td></tr>
               }
             </tbody>
           </table>
@@ -208,6 +211,39 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
                 </div>
               } @empty {
                 <p class="muted">Sin contratos.</p>
+              }
+            </section>
+
+            <section>
+              <h4>Servicios / frentes de trabajo</h4>
+              @if (activeWorkFronts(p).length) {
+                <p class="servicios-resumen">
+                  Resumen: <strong>{{ p.workFrontsSummary?.label || workFrontsLabel(p) }}</strong>
+                </p>
+                <div class="table-wrap servicios-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>N.º</th>
+                        <th>Horas</th>
+                        <th>Detalle</th>
+                        <th>Observación</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (wf of activeWorkFronts(p); track wf.id ?? wf.frontNumber) {
+                        <tr>
+                          <td>{{ wf.frontNumber }}</td>
+                          <td>{{ wf.hours == null ? 'Horario variable' : wf.hours + ' h' }}</td>
+                          <td>{{ dash(wf.detail) }}</td>
+                          <td>{{ dash(wf.notes) }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              } @else {
+                <p class="muted">Sin servicios registrados.</p>
               }
             </section>
 
@@ -334,6 +370,9 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
     dd { margin: 0; word-break: break-word; }
     .pre { white-space: pre-wrap; }
     .muted { color: var(--text-muted, #6b7280); }
+    .servicios-cell { font-size: 0.82rem; white-space: nowrap; max-width: 14rem; }
+    .servicios-resumen { margin: 0 0 0.55rem; font-size: 0.88rem; }
+    .servicios-table { margin-top: 0.25rem; }
     .error { color: #b91c1c; }
     .pager {
       display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;
@@ -479,5 +518,40 @@ export class ReceptionPostFichas implements OnInit {
       ];
     }
     return [];
+  }
+
+  activeWorkFronts(p: OperacionesPost): PostWorkFrontRow[] {
+    return (p.workFronts ?? [])
+      .filter((wf) => wf.active !== false)
+      .slice()
+      .sort((a, b) => a.frontNumber - b.frontNumber);
+  }
+
+  workFrontsLabel(p: OperacionesPost): string {
+    const active = this.activeWorkFronts(p);
+    if (!active.length) return '—';
+    const by = new Map<string, number>();
+    for (const wf of active) {
+      const key = wf.hours == null ? 'var' : String(wf.hours);
+      by.set(key, (by.get(key) ?? 0) + 1);
+    }
+    const ordered = [...by.entries()].sort((a, b) => {
+      if (a[0] === 'var') return 1;
+      if (b[0] === 'var') return -1;
+      if (a[0] === '24') return -1;
+      if (b[0] === '24') return 1;
+      if (a[0] === '12') return -1;
+      if (b[0] === '12') return 1;
+      return Number(b[0]) - Number(a[0]);
+    });
+    return ordered
+      .map(([h, n]) =>
+        h === 'var'
+          ? n === 1
+            ? 'Horario variable'
+            : `${n} × variable`
+          : `${n} × ${h}h`,
+      )
+      .join(' + ');
   }
 }

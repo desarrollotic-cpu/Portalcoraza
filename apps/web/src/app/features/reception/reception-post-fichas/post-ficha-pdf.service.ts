@@ -3,6 +3,7 @@ import {
   OperacionesPost,
   PostContractRow,
   PostOtrosiRow,
+  PostWorkFrontRow,
 } from '../../operaciones/operaciones-api.service';
 
 function esc(v: unknown): string {
@@ -86,6 +87,40 @@ export class PostFichaPdfService {
     return [];
   }
 
+  private activeWorkFronts(p: OperacionesPost): PostWorkFrontRow[] {
+    return (p.workFronts ?? [])
+      .filter((wf) => wf.active !== false)
+      .slice()
+      .sort((a, b) => a.frontNumber - b.frontNumber);
+  }
+
+  private workFrontsLabel(fronts: PostWorkFrontRow[]): string {
+    if (!fronts.length) return '—';
+    const by = new Map<string, number>();
+    for (const wf of fronts) {
+      const key = wf.hours == null ? 'var' : String(wf.hours);
+      by.set(key, (by.get(key) ?? 0) + 1);
+    }
+    const ordered = [...by.entries()].sort((a, b) => {
+      if (a[0] === 'var') return 1;
+      if (b[0] === 'var') return -1;
+      if (a[0] === '24') return -1;
+      if (b[0] === '24') return 1;
+      if (a[0] === '12') return -1;
+      if (b[0] === '12') return 1;
+      return Number(b[0]) - Number(a[0]);
+    });
+    return ordered
+      .map(([h, n]) =>
+        h === 'var'
+          ? n === 1
+            ? 'Horario variable'
+            : `${n} × variable`
+          : `${n} × ${h}h`,
+      )
+      .join(' + ');
+  }
+
   private dlRows(pairs: [string, string][]): string {
     return pairs
       .map(
@@ -134,6 +169,29 @@ export class PostFichaPdfService {
               return `<div class="card"><h3>Contrato ${i + 1}</h3>${rows}</div>`;
             })
             .join('');
+
+    const activeFronts = this.activeWorkFronts(p);
+    const frontsSummary =
+      p.workFrontsSummary?.label || this.workFrontsLabel(activeFronts);
+    const frontsBody =
+      activeFronts.length === 0
+        ? '<p class="muted">Sin servicios registrados.</p>'
+        : `<p class="muted" style="margin:0 0 0.45rem;color:#0f172a;font-weight:600;">Resumen: ${esc(frontsSummary)}</p>
+           <table class="wf-table">
+             <thead><tr><th>N.º</th><th>Horas</th><th>Detalle</th><th>Observación</th></tr></thead>
+             <tbody>
+               ${activeFronts
+                 .map(
+                   (wf) => `<tr>
+                     <td>${esc(String(wf.frontNumber))}</td>
+                     <td>${esc(wf.hours == null ? 'Horario variable' : wf.hours + ' h')}</td>
+                     <td>${esc(dash(wf.detail))}</td>
+                     <td>${esc(dash(wf.notes))}</td>
+                   </tr>`,
+                 )
+                 .join('')}
+             </tbody>
+           </table>`;
 
     const otrosiBody =
       otrosi.length === 0
@@ -261,6 +319,18 @@ export class PostFichaPdfService {
     .k { color: #64748b; font-size: 0.78rem; }
     .v { color: #0f172a; font-weight: 600; font-size: 0.82rem; white-space: pre-wrap; word-break: break-word; }
     .muted { color: #94a3b8; font-size: 0.85rem; margin: 0.25rem 0; }
+    .wf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+    .wf-table th, .wf-table td {
+      border: 1px solid #e2e8f0;
+      padding: 0.35rem 0.45rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    .wf-table th { background: #f8fafc; color: #475569; font-weight: 700; }
     .foot {
       margin-top: 1.1rem;
       padding-top: 0.5rem;
@@ -296,6 +366,7 @@ export class PostFichaPdfService {
 
     ${this.section('Identificación', idBody)}
     ${this.section('Contratos', contractsBody)}
+    ${this.section('Servicios / frentes de trabajo', frontsBody)}
     ${this.section('Otrosí', otrosiBody)}
     ${this.section('Ubicación', ubicBody)}
     ${this.section('Representante legal y contacto', contactBody)}
