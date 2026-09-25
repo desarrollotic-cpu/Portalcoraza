@@ -5,11 +5,11 @@ import { LucideArrowLeft } from '@lucide/angular';
 import { Icon } from '../icon/icon';
 
 /**
- * Atrás predecible (ui-ux-pro-max / Navigation + Back Behavior):
- * 1) historial interno del portal (preserva filtros/estado)
- * 2) fallback explícito o padre lógico de la URL
- *
- * Touch: área ≥44px; aria-label siempre presente.
+ * Atrás predecible (ui-ux-pro-max):
+ * - Navigation/Back: historial primero, luego fallback
+ * - Accessibility: contraste texto ≥4.5:1 (fondo primary + blanco)
+ * - Touch: área ≥44px; aria-label; foco visible
+ * - Affordance: CTA sólido (no ghost) para no perderse en el topbar
  */
 @Component({
   selector: 'app-back-nav',
@@ -22,7 +22,7 @@ import { Icon } from '../icon/icon';
       [attr.aria-label]="label()"
       [title]="label()"
     >
-      <app-icon [icon]="icon" [size]="18" [strokeWidth]="2" />
+      <app-icon [icon]="icon" [size]="18" [strokeWidth]="2.4" />
       <span>{{ label() }}</span>
     </button>
   `,
@@ -31,40 +31,45 @@ import { Icon } from '../icon/icon';
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
+      gap: 0.45rem;
+      flex-shrink: 0;
       min-height: 44px;
-      min-width: 44px;
       margin: 0;
-      padding: 0.45rem 0.85rem 0.45rem 0.65rem;
-      border: 1px solid var(--border);
+      padding: 0.5rem 1.05rem 0.5rem 0.85rem;
+      border: none;
       border-radius: 10px;
-      background: var(--surface);
-      color: var(--text-secondary);
-      font-size: 0.85rem;
-      font-weight: 600;
+      background: var(--gradient-primary);
+      color: #fff;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
       cursor: pointer;
       line-height: 1.2;
+      box-shadow: var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0369a1 35%, transparent));
       transition:
-        color 160ms ease,
-        border-color 160ms ease,
-        background 160ms ease;
+        filter 160ms ease,
+        transform 160ms ease,
+        box-shadow 160ms ease;
     }
     .back-nav:hover {
-      color: var(--primary-700);
-      border-color: var(--primary-200);
-      background: var(--primary-50);
+      filter: brightness(1.08);
+      box-shadow: 0 6px 18px color-mix(in srgb, #0369a1 42%, transparent);
     }
     .back-nav:active {
-      transform: scale(0.98);
+      transform: scale(0.97);
+      filter: brightness(0.96);
     }
     .back-nav:focus-visible {
-      outline: 2px solid var(--primary-500);
-      outline-offset: 2px;
+      outline: 2px solid #fff;
+      outline-offset: 3px;
+      box-shadow:
+        0 0 0 4px var(--primary-500),
+        var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0369a1 35%, transparent));
     }
   `,
 })
 export class BackNav {
-  readonly label = input('Atrás');
+  readonly label = input('Volver');
   /** Ruta si no hay historial interno (p. ej. enlace directo / deep link). */
   readonly fallback = input<string | undefined>(undefined);
 
