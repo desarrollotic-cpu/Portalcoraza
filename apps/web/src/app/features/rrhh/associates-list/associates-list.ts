@@ -16,10 +16,10 @@ import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { Icon } from '../../../shared/components/icon/icon';
+import { AssociatesListState } from '../associates-list-state.service';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
-  AssociatesQuery,
   AssociateStatus,
   JobPosition,
   WorkCenter,
@@ -260,6 +260,7 @@ function monthBounds(ym: string): { from: string; to: string } {
 })
 export class AssociatesList implements OnInit, OnDestroy {
   private readonly api = inject(HrApiService);
+  private readonly listState = inject(AssociatesListState);
   readonly auth = inject(AuthService);
 
   readonly icons = {
@@ -284,15 +285,36 @@ export class AssociatesList implements OnInit, OnDestroy {
   readonly educationLevels = signal<CatalogValue[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
-  readonly page = signal(1);
+  readonly page = signal(this.listState.page);
   readonly limit = 50;
   readonly total = signal(0);
   readonly totalPages = signal(1);
 
-  query: AssociatesQuery = { status: 'ACTIVO' };
-  tenureBucket = '';
-  hireMonth = '';
-  retiredMonth = '';
+  /** Filtros viven en el servicio para sobrevivir al ir al detalle y volver. */
+  get query() {
+    return this.listState.query;
+  }
+  set query(value) {
+    this.listState.query = value;
+  }
+  get tenureBucket() {
+    return this.listState.tenureBucket;
+  }
+  set tenureBucket(value: string) {
+    this.listState.tenureBucket = value;
+  }
+  get hireMonth() {
+    return this.listState.hireMonth;
+  }
+  set hireMonth(value: string) {
+    this.listState.hireMonth = value;
+  }
+  get retiredMonth() {
+    return this.listState.retiredMonth;
+  }
+  set retiredMonth(value: string) {
+    this.listState.retiredMonth = value;
+  }
 
   readonly filtered = computed(() => this.associates());
 
@@ -462,6 +484,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   }
 
   applyFilters(): void {
+    this.listState.page = this.page();
     this.loading.set(true);
     this.error.set(null);
     this.api.listAssociates({ ...this.query, page: this.page(), limit: this.limit }).subscribe({
@@ -481,6 +504,7 @@ export class AssociatesList implements OnInit, OnDestroy {
   goPage(next: number): void {
     if (next < 1 || next > this.totalPages()) return;
     this.page.set(next);
+    this.listState.page = next;
     this.applyFilters();
   }
 

@@ -34,7 +34,6 @@ export function visibleModuleNav(
       <header class="module-top">
         <div class="module-brand">
           <div class="module-titles">
-            <h1>{{ title() }}</h1>
             @if (activeScreen()) {
               <span class="active-screen">
                 <span class="pulse"></span>
@@ -67,7 +66,7 @@ export function visibleModuleNav(
       display: flex;
       align-items: flex-start;
       gap: 1rem;
-      padding: 0 0 1.25rem;
+      padding: 0 0 1rem;
     }
     .module-brand {
       min-width: 0;
@@ -78,14 +77,6 @@ export function visibleModuleNav(
       flex-wrap: wrap;
       align-items: center;
       gap: 0.55rem 0.85rem;
-    }
-    .module-brand h1 {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: 1.55rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      letter-spacing: -0.02em;
     }
     .active-screen {
       display: inline-flex;
@@ -119,7 +110,7 @@ export function visibleModuleNav(
       }
     }
     .module-brand p {
-      margin: 0.4rem 0 0;
+      margin: 0.35rem 0 0;
       font-size: 0.9rem;
       color: var(--text-secondary);
       max-width: 720px;
@@ -144,10 +135,7 @@ export function visibleModuleNav(
       .module-top {
         flex-wrap: wrap;
         gap: 0.75rem;
-        padding-bottom: 0.85rem;
-      }
-      .module-brand h1 {
-        font-size: 1.2rem;
+        padding-bottom: 0.75rem;
       }
       .module-brand p {
         font-size: 0.8rem;
@@ -162,6 +150,7 @@ export function visibleModuleNav(
   `,
 })
 export class ModuleShell {
+  /** Conservado por layouts; el título del módulo ya se muestra en el topbar. */
   readonly title = input.required<string>();
   readonly subtitle = input<string>('');
   readonly nav = input<ModuleNavItem[]>([]);
@@ -186,7 +175,12 @@ export class ModuleShell {
     const url = this.currentUrl().split('?')[0];
     const match = [...this.visibleNav()]
       .sort((a, b) => b.route.length - a.route.length)
-      .find((item) => url === item.route || url.startsWith(`${item.route}/`));
+      .find((item) => {
+        if (item.exact) {
+          return url === item.route;
+        }
+        return url === item.route || url.startsWith(`${item.route}/`);
+      });
     return match?.label ?? null;
   });
 }

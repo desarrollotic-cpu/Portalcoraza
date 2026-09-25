@@ -43,8 +43,15 @@ import { filter, map, startWith } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { ThemeService } from '../../core/services/theme.service';
+import { BackNav } from '../../shared/components/back-nav/back-nav';
 import { Icon } from '../../shared/components/icon/icon';
 import { Toaster } from '../../shared/components/toaster/toaster';
+import {
+  PORTAL_BACK_EXTRA_LEAVES,
+  collectLeafRoutes,
+  portalBackFallback,
+  shouldShowPortalBack,
+} from '../../shared/utils/portal-back';
 import { PORTAL_NAV_GROUPS, PortalNavItem, visibleModuleNav } from './portal-nav';
 
 interface NavGroup {
@@ -54,7 +61,16 @@ interface NavGroup {
 
 @Component({
   selector: 'app-main-layout',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, DatePipe, Icon, Toaster, FormsModule],
+  imports: [
+    RouterOutlet,
+    RouterLink,
+    RouterLinkActive,
+    DatePipe,
+    Icon,
+    Toaster,
+    FormsModule,
+    BackNav,
+  ],
   template: `
     <div class="layout" [class.nav-open]="mobileNavOpen()">
       @if (mobileNavOpen()) {
@@ -197,6 +213,9 @@ interface NavGroup {
             >
               <app-icon [icon]="icons.Menu" [size]="20" [strokeWidth]="1.9" />
             </button>
+            @if (showBack()) {
+              <app-back-nav [fallback]="backFallback()" />
+            }
             <div class="topbar-titles">
               <p class="crumb">
                 <app-icon [icon]="icons.Home" [size]="14" [strokeWidth]="1.8" />
@@ -1178,6 +1197,10 @@ export class MainLayout implements OnDestroy {
   pwForm = { current: '', next: '', confirm: '' };
 
   private readonly groups: NavGroup[] = PORTAL_NAV_GROUPS;
+  private readonly backLeaves = collectLeafRoutes(
+    PORTAL_NAV_GROUPS,
+    PORTAL_BACK_EXTRA_LEAVES,
+  );
 
   private readonly currentUrl = toSignal(
     this.router.events.pipe(
@@ -1217,6 +1240,14 @@ export class MainLayout implements OnDestroy {
   readonly crumbRoot = computed(() => 'Portal Coraza');
   readonly crumbSection = computed(() => this.activeItem()?.label ?? '');
   readonly topbarTitle = computed(() => this.activeItem()?.label ?? 'Portal Coraza');
+
+  /** Detalles / formularios: Atrás en topbar (todo el portal). */
+  readonly showBack = computed(() =>
+    shouldShowPortalBack(this.currentUrl(), this.backLeaves),
+  );
+  readonly backFallback = computed(() =>
+    portalBackFallback(this.currentUrl(), this.backLeaves),
+  );
 
   readonly initials = computed(() => {
     const user = this.auth.currentUser();
