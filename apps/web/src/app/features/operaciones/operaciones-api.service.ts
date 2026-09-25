@@ -87,6 +87,23 @@ export interface PostOtrosiRow {
   serviceType: string | null;
 }
 
+export interface PostWorkFrontRow {
+  id?: string;
+  frontNumber: number;
+  hours: number | null;
+  detail: string | null;
+  notes: string | null;
+  active: boolean;
+}
+
+export interface WorkFrontsSummary {
+  total: number;
+  h24: number;
+  h12: number;
+  other: number;
+  label: string;
+}
+
 export interface OperacionesPost extends PostClientFields {
   id: string;
   code: string;
@@ -110,6 +127,8 @@ export interface OperacionesPost extends PostClientFields {
   updatedAt: string;
   contracts?: PostContractRow[];
   otrosi?: PostOtrosiRow[];
+  workFronts?: PostWorkFrontRow[];
+  workFrontsSummary?: WorkFrontsSummary;
 }
 
 export type CreateOperacionesPostPayload = {
@@ -190,6 +209,32 @@ export class OperacionesApiService {
 
   updatePost(id: string, payload: UpdateOperacionesPostPayload): Observable<OperacionesPost> {
     return this.http.patch<OperacionesPost>(`${this.baseUrl}/${id}`, payload);
+  }
+
+  listWorkFronts(postId: string): Observable<PostWorkFrontRow[]> {
+    return this.http.get<PostWorkFrontRow[]>(`${this.baseUrl}/${postId}/work-fronts`);
+  }
+
+  createWorkFront(
+    postId: string,
+    payload: Partial<PostWorkFrontRow>,
+  ): Observable<PostWorkFrontRow> {
+    return this.http.post<PostWorkFrontRow>(`${this.baseUrl}/${postId}/work-fronts`, payload);
+  }
+
+  updateWorkFront(
+    postId: string,
+    frontId: string,
+    payload: Partial<PostWorkFrontRow>,
+  ): Observable<PostWorkFrontRow> {
+    return this.http.patch<PostWorkFrontRow>(
+      `${this.baseUrl}/${postId}/work-fronts/${frontId}`,
+      payload,
+    );
+  }
+
+  deactivateWorkFront(postId: string, frontId: string): Observable<PostWorkFrontRow> {
+    return this.http.delete<PostWorkFrontRow>(`${this.baseUrl}/${postId}/work-fronts/${frontId}`);
   }
 
   minutaHistorial(postId: string, month: string): Observable<OperacionesMinutaHistorial> {

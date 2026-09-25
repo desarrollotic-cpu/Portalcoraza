@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { PostContract } from './post-contract.entity';
 import { PostOtrosi } from './post-otrosi.entity';
+import { PostWorkFront } from './post-work-front.entity';
 
 export enum PostStatus {
   ACTIVO = 'ACTIVO',
@@ -241,6 +242,9 @@ export class Post {
 
   @OneToMany(() => PostOtrosi, (row) => row.post)
   otrosi?: PostOtrosi[];
+
+  @OneToMany(() => PostWorkFront, (row) => row.post)
+  workFronts?: PostWorkFront[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;

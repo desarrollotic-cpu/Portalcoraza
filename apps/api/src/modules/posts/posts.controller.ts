@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -13,6 +14,10 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { CreatePostDto } from './dto/create-post.dto';
+import {
+  CreatePostWorkFrontDto,
+  UpdatePostWorkFrontDto,
+} from './dto/post-work-front.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostsService } from './posts.service';
 
@@ -31,6 +36,43 @@ export class PostsController {
   @RequirePermissions('posts.view')
   statsSummary() {
     return this.postsService.countSummary();
+  }
+
+  @Get(':id/work-fronts')
+  @RequirePermissions('posts.view')
+  listWorkFronts(@Param('id') id: string) {
+    return this.postsService.listWorkFronts(id);
+  }
+
+  @Post(':id/work-fronts')
+  @RequirePermissions('posts.edit')
+  createWorkFront(
+    @Param('id') id: string,
+    @Body() dto: CreatePostWorkFrontDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.postsService.createWorkFront(id, dto, user.sub);
+  }
+
+  @Patch(':id/work-fronts/:frontId')
+  @RequirePermissions('posts.edit')
+  updateWorkFront(
+    @Param('id') id: string,
+    @Param('frontId') frontId: string,
+    @Body() dto: UpdatePostWorkFrontDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.postsService.updateWorkFront(id, frontId, dto, user.sub);
+  }
+
+  @Delete(':id/work-fronts/:frontId')
+  @RequirePermissions('posts.edit')
+  deactivateWorkFront(
+    @Param('id') id: string,
+    @Param('frontId') frontId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.postsService.deactivateWorkFront(id, frontId, user.sub);
   }
 
   @Get(':id')

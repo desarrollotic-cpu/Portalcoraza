@@ -4,11 +4,15 @@ import { AuditModule } from '../audit/audit.module';
 import { PostContract } from './entities/post-contract.entity';
 import { PostOtrosi } from './entities/post-otrosi.entity';
 import { Post } from './entities/post.entity';
+import { PostWorkFront } from './entities/post-work-front.entity';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Post, PostContract, PostOtrosi]), AuditModule],
+  imports: [
+    TypeOrmModule.forFeature([Post, PostContract, PostOtrosi, PostWorkFront]),
+    AuditModule,
+  ],
   controllers: [PostsController],
   providers: [PostsService],
   exports: [PostsService],

@@ -12,12 +12,14 @@ import {
   PostContractRow,
   PostOtrosiRow,
   PostStatus,
+  PostWorkFrontRow,
 } from '../operaciones-api.service';
 
 type Draft = CreateOperacionesPostPayload & {
   id?: string;
   contracts: PostContractRow[];
   otrosi: PostOtrosiRow[];
+  workFronts: PostWorkFrontRow[];
 };
 
 function emptyContract(): PostContractRow {
@@ -359,6 +361,81 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
             }
           </details>
 
+          <details open>
+            <summary>
+              Servicios / frentes de trabajo
+              @if (editing()!.id && auth.hasPermission('posts.edit')) {
+                <button type="button" class="add" (click)="addWorkFront($event)">+ Agregar servicio</button>
+              }
+            </summary>
+            @if (!editing()!.id) {
+              <p class="hint">Guarda el puesto primero para registrar sus servicios.</p>
+            } @else if (!editing()!.workFronts.length) {
+              <p class="hint">Sin servicios registrados.</p>
+            }
+            @for (wf of editing()!.workFronts; track wf.id ?? $index; let i = $index) {
+              <div class="subblock" [class.dim]="wf.active === false">
+                <div class="subhead">
+                  <strong>Servicio {{ wf.frontNumber || i + 1 }}</strong>
+                  @if (wf.active === false) {
+                    <span class="badge">Inactivo</span>
+                  }
+                  @if (auth.hasPermission('posts.edit') && wf.id && wf.active !== false) {
+                    <button type="button" class="link danger" (click)="deactivateWorkFront(wf)">
+                      Desactivar
+                    </button>
+                  }
+                </div>
+                <div class="grid">
+                  <label>
+                    N.º
+                    <input
+                      type="number"
+                      min="1"
+                      [name]="'wfNum' + i"
+                      [(ngModel)]="wf.frontNumber"
+                      (change)="saveWorkFront(wf)"
+                    />
+                  </label>
+                  <label>
+                    Horas
+                    <input
+                      type="number"
+                      min="1"
+                      [name]="'wfHours' + i"
+                      [ngModel]="wf.hours"
+                      (ngModelChange)="wf.hours = $event === '' || $event == null ? null : +$event"
+                      (change)="saveWorkFront(wf)"
+                      placeholder="Vacío = variable"
+                    />
+                  </label>
+                  <label class="span-2">
+                    Detalle
+                    <input
+                      [name]="'wfDetail' + i"
+                      [(ngModel)]="wf.detail"
+                      (change)="saveWorkFront(wf)"
+                      maxlength="2000"
+                    />
+                  </label>
+                  <label class="span-2">
+                    Observación
+                    <input
+                      [name]="'wfNotes' + i"
+                      [(ngModel)]="wf.notes"
+                      (change)="saveWorkFront(wf)"
+                      maxlength="2000"
+                    />
+                  </label>
+                  <p class="hint span-2">
+                    Vista:
+                    <strong>{{ wf.hours == null ? 'Horario variable' : wf.hours + ' horas' }}</strong>
+                  </p>
+                </div>
+              </div>
+            }
+          </details>
+
           <!-- 3. Ubicación -->
           <details [attr.open]="!editing()!.id ? '' : null">
             <summary>Ubicación</summary>
@@ -506,6 +583,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 <th>Sector</th>
                 <th>Ciudad</th>
                 <th>Zona</th>
+                <th>Servicios</th>
                 <th>Estado</th>
                 <th></th>
               </tr>
@@ -518,6 +596,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                   <td>{{ p.sector || '—' }}</td>
                   <td>{{ p.city || '—' }}</td>
                   <td>{{ p.zone || '—' }}</td>
+                  <td class="servicios-cell">{{ p.workFrontsSummary?.label || '—' }}</td>
                   <td>
                     <span class="badge" [class.ok]="p.status === 'ACTIVO'">{{ p.status }}</span>
                     @if (p.status === 'INACTIVO' && p.inactiveDate) {
@@ -544,7 +623,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="7" class="empty">No hay puestos con ese filtro.</td>
+                  <td colspan="8" class="empty">No hay puestos con ese filtro.</td>
                 </tr>
               }
             </tbody>
@@ -674,6 +753,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     }
     .subhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
     .hint { margin: 0.5rem 0 0; font-size: 0.82rem; color: var(--text-muted, #6b7280); }
+    .servicios-cell { font-size: 0.82rem; white-space: nowrap; max-width: 14rem; }
     .grid {
       display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 0.75rem; margin-top: 0.5rem;
@@ -877,6 +957,73 @@ export class PuestosList implements OnInit {
     this.editing.set({ ...draft, otrosi: [...draft.otrosi, emptyOtrosi()] });
   }
 
+  addWorkFront(ev: Event): void {
+    ev.preventDefault();
+    ev.stopPropagation();
+    const draft = this.editing();
+    if (!draft?.id) return;
+    const nextNum =
+      Math.max(0, ...draft.workFronts.map((w) => Number(w.frontNumber) || 0)) + 1;
+    this.api
+      .createWorkFront(draft.id, {
+        frontNumber: nextNum,
+        hours: 24,
+        detail: '',
+        notes: '',
+        active: true,
+      })
+      .subscribe({
+        next: (created) => {
+          const d = this.editing();
+          if (!d) return;
+          this.editing.set({
+            ...d,
+            workFronts: [...d.workFronts, { ...created, detail: created.detail ?? '', notes: created.notes ?? '' }],
+          });
+          this.reload();
+          this.toast.success('Servicio agregado');
+        },
+        error: () => this.toast.error('No se pudo agregar el servicio'),
+      });
+  }
+
+  saveWorkFront(wf: PostWorkFrontRow): void {
+    const draft = this.editing();
+    if (!draft?.id || !wf.id) return;
+    this.api
+      .updateWorkFront(draft.id, wf.id, {
+        frontNumber: Number(wf.frontNumber) || 1,
+        hours: wf.hours == null || (wf.hours as unknown) === '' ? null : Number(wf.hours),
+        detail: wf.detail || null,
+        notes: wf.notes || null,
+        active: wf.active !== false,
+      })
+      .subscribe({
+        next: () => this.reload(),
+        error: () => this.toast.error('No se pudo guardar el servicio'),
+      });
+  }
+
+  deactivateWorkFront(wf: PostWorkFrontRow): void {
+    const draft = this.editing();
+    if (!draft?.id || !wf.id) return;
+    this.api.deactivateWorkFront(draft.id, wf.id).subscribe({
+      next: (updated) => {
+        const d = this.editing();
+        if (!d) return;
+        this.editing.set({
+          ...d,
+          workFronts: d.workFronts.map((row) =>
+            row.id === updated.id ? { ...row, active: false } : row,
+          ),
+        });
+        this.reload();
+        this.toast.success('Servicio desactivado');
+      },
+      error: () => this.toast.error('No se pudo desactivar el servicio'),
+    });
+  }
+
   getStr(key: keyof CreateOperacionesPostPayload): string {
     const draft = this.editing();
     if (!draft) return '';
@@ -914,6 +1061,7 @@ export class PuestosList implements OnInit {
       armed: false,
       contracts: [emptyContract()],
       otrosi: [],
+      workFronts: [],
     });
   }
 
@@ -956,6 +1104,17 @@ export class PuestosList implements OnInit {
         invoiceValue: o.invoiceValue ?? '',
         serviceType: o.serviceType ?? '',
       })),
+      workFronts: (p.workFronts ?? [])
+        .slice()
+        .sort((a, b) => a.frontNumber - b.frontNumber)
+        .map((wf) => ({
+          id: wf.id,
+          frontNumber: wf.frontNumber,
+          hours: wf.hours ?? null,
+          detail: wf.detail ?? '',
+          notes: wf.notes ?? '',
+          active: wf.active !== false,
+        })),
       requirements: p.requirements ?? '',
       instructions: p.instructions ?? '',
       nit: stripExcelId(p.nit),

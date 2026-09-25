@@ -13,11 +13,17 @@ import {
   PostContractItemDto,
   PostOtrosiItemDto,
 } from './dto/post-agreements.dto';
+import {
+  CreatePostWorkFrontDto,
+  UpdatePostWorkFrontDto,
+} from './dto/post-work-front.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { PostContract } from './entities/post-contract.entity';
 import { PostOtrosi } from './entities/post-otrosi.entity';
+import { PostWorkFront } from './entities/post-work-front.entity';
 import { Post, PostStatus, PostType } from './entities/post.entity';
 import { blank, contractEmpty, otrosiEmpty, stripExcelId } from './post-agreements.util';
+import { summarizeWorkFronts } from './work-fronts-summary';
 
 function splitAgreements(dto: CreatePostDto | UpdatePostDto) {
   const { contracts, otrosi, ...rest } = dto;
@@ -33,12 +39,14 @@ export class PostsService {
     private readonly contractsRepo: Repository<PostContract>,
     @InjectRepository(PostOtrosi)
     private readonly otrosiRepo: Repository<PostOtrosi>,
+    @InjectRepository(PostWorkFront)
+    private readonly workFrontsRepo: Repository<PostWorkFront>,
     private readonly auditService: AuditService,
   ) {}
 
   async findAll() {
     const rows = await this.postsRepo.find({
-      relations: { contracts: true, otrosi: true },
+      relations: { contracts: true, otrosi: true, workFronts: true },
     });
     return rows.sort((a, b) => {
       const za = Number(String(a.zone ?? '').match(/\d+/)?.[0] ?? -1);
@@ -128,7 +136,7 @@ export class PostsService {
   async findOne(id: string) {
     const post = await this.postsRepo.findOne({
       where: { id },
-      relations: { contracts: true, otrosi: true },
+      relations: { contracts: true, otrosi: true, workFronts: true },
     });
     if (!post) {
       throw new NotFoundException('Puesto no encontrado');
@@ -232,6 +240,9 @@ export class PostsService {
   private withAgreements(post: Post) {
     const contracts = [...(post.contracts ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
     const otrosi = [...(post.otrosi ?? [])].sort((a, b) => a.sortOrder - b.sortOrder);
+    const workFronts = [...(post.workFronts ?? [])].sort(
+      (a, b) => a.frontNumber - b.frontNumber,
+    );
     return {
       ...post,
       contracts: contracts.map((c) => ({
@@ -242,6 +253,8 @@ export class PostsService {
         ...o,
         number: stripExcelId(o.number),
       })),
+      workFronts,
+      workFrontsSummary: summarizeWorkFronts(workFronts),
       nit: stripExcelId(post.nit),
       legalRepId: stripExcelId(post.legalRepId),
       contractNumber: stripExcelId(post.contractNumber),
@@ -302,5 +315,115 @@ export class PostsService {
       );
       if (rows.length) await this.otrosiRepo.save(rows);
     }
+  }
+
+  async listWorkFronts(postId: string) {
+    await this.requirePost(postId);
+    return this.workFrontsRepo.find({
+      where: { postId },
+      order: { frontNumber: 'ASC' },
+    });
+  }
+
+  async createWorkFront(postId: string, dto: CreatePostWorkFrontDto, userId: string) {
+    const post = await this.requirePost(postId);
+    let frontNumber = dto.frontNumber;
+    if (frontNumber == null) {
+      const raw = await this.workFrontsRepo
+        .createQueryBuilder('f')
+        .select('COALESCE(MAX(f.front_number), 0)', 'max')
+        .where('f.post_id = :postId', { postId })
+        .getRawOne<{ max: string }>();
+      frontNumber = Number(raw?.max ?? 0) + 1;
+    }
+
+    const clash = await this.workFrontsRepo.findOne({
+      where: { postId, frontNumber },
+    });
+    if (clash) {
+      throw new ConflictException(
+        `Ya existe el servicio N.º ${frontNumber} en este puesto`,
+      );
+    }
+
+    const saved = await this.workFrontsRepo.save(
+      this.workFrontsRepo.create({
+        postId,
+        tenantId: post.tenantId,
+        frontNumber,
+        hours: dto.hours === undefined ? null : dto.hours,
+        detail: blank(dto.detail),
+        notes: blank(dto.notes),
+        active: dto.active !== false,
+      }),
+    );
+
+    await this.auditService.log({
+      userId,
+      module: 'posts',
+      action: 'create',
+      entityType: 'post_work_front',
+      entityId: saved.id,
+      newValue: saved as unknown as Record<string, unknown>,
+    });
+
+    return saved;
+  }
+
+  async updateWorkFront(
+    postId: string,
+    frontId: string,
+    dto: UpdatePostWorkFrontDto,
+    userId: string,
+  ) {
+    await this.requirePost(postId);
+    const existing = await this.workFrontsRepo.findOne({
+      where: { id: frontId, postId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Servicio / frente no encontrado');
+    }
+
+    if (dto.frontNumber !== undefined && dto.frontNumber !== existing.frontNumber) {
+      const clash = await this.workFrontsRepo.findOne({
+        where: { postId, frontNumber: dto.frontNumber },
+      });
+      if (clash && clash.id !== frontId) {
+        throw new ConflictException(
+          `Ya existe el servicio N.º ${dto.frontNumber} en este puesto`,
+        );
+      }
+      existing.frontNumber = dto.frontNumber;
+    }
+    if (dto.hours !== undefined) existing.hours = dto.hours;
+    if (dto.detail !== undefined) existing.detail = blank(dto.detail);
+    if (dto.notes !== undefined) existing.notes = blank(dto.notes);
+    if (dto.active !== undefined) existing.active = dto.active;
+
+    const oldSnapshot = { ...existing };
+    const saved = await this.workFrontsRepo.save(existing);
+
+    await this.auditService.log({
+      userId,
+      module: 'posts',
+      action: 'update',
+      entityType: 'post_work_front',
+      entityId: saved.id,
+      oldValue: oldSnapshot as unknown as Record<string, unknown>,
+      newValue: saved as unknown as Record<string, unknown>,
+    });
+
+    return saved;
+  }
+
+  /** Soft-delete: marca active=false. */
+  async deactivateWorkFront(postId: string, frontId: string, userId: string) {
+    return this.updateWorkFront(postId, frontId, { active: false }, userId);
+  }
+
+  private async requirePost(id: string): Promise<Post> {
+    const post = await this.postsRepo.findOne({ where: { id } });
+    if (!post) throw new NotFoundException('Puesto no encontrado');
+    return post;
   }
 }
