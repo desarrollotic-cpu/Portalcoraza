@@ -18,6 +18,7 @@ import {
 import { AuthService } from '../../../core/services/auth.service';
 import { Icon } from '../../../shared/components/icon/icon';
 import { ToastService } from '../../../shared/services/toast.service';
+import { printRotulo, rotuloFromAssociate } from '../../documental/rotulo-print';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
@@ -76,6 +77,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
             </div>
           </div>
           <div class="hr-profile-hero__actions">
+            <button type="button" class="hr-hero-btn hr-hero-btn--ghost" (click)="printLabel(a)">Rótulo</button>
             @if (auth.hasPermission('associates.edit') && a.status !== 'RETIRADO') {
               <a [routerLink]="['/rrhh/asociados', a.id, 'editar']" class="hr-hero-btn hr-hero-btn--light">Editar</a>
             }
@@ -585,6 +587,10 @@ export class AssociateDetail implements OnInit {
 
   initials(a: Associate): string {
     return `${a.firstName.charAt(0)}${a.firstLastName.charAt(0)}`.toUpperCase();
+  }
+
+  printLabel(a: Associate): void {
+    printRotulo(rotuloFromAssociate(a));
   }
 
   statusColor(status: string): string {

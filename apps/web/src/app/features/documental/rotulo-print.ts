@@ -11,7 +11,7 @@ export interface RotuloItem {
   slotFisico?: string;
   nit?: string;
   numContrato?: string;
-  modulo: 'MINUTAS' | 'CONTRATOS' | 'PERSONAL' | 'CORRESPONDENCIA' | string;
+  modulo: 'MINUTAS' | 'CONTRATOS' | 'PERSONAL' | 'PERSONAL_ACTIVO' | 'CORRESPONDENCIA' | string;
 }
 
 export interface LoteHistorial {
@@ -138,6 +138,13 @@ function labelCopy(item: RotuloItem): LabelCopy {
   }
   if (mod.includes('CORRESPONDENCIA')) {
     return { kind: 'CORRESPONDENCIA', code: codClean, title, slot, extra: [fechas, slot].filter(Boolean).join(' · ') };
+  }
+  if (mod.includes('PERSONAL_ACTIVO')) {
+    const extras: string[] = [];
+    if (item.nit) extras.push(`CC ${item.nit}`);
+    if (fechas) extras.push(fechas);
+    if (item.slotFisico) extras.push(item.slotFisico);
+    return { kind: 'PERSONAL_ACTIVO', code: codClean, title, slot: item.slotFisico || '', extra: extras.join(' · ') };
   }
   if (mod.includes('PERSONAL') || mod.includes('ASOCIAD') || mod.includes('RETIRAD')) {
     const extras: string[] = [];
@@ -274,6 +281,7 @@ function paintBigCode(copy: LabelCopy, logo: HTMLImageElement | null, header: st
 }
 
 function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasElement {
+  if (copy.kind === 'PERSONAL_ACTIVO') return paintBigCode(copy, logo, 'PERSONAL ACTIVO');
   if (copy.kind === 'PERSONAL') return paintBigCode(copy, logo, 'PERSONAL RETIRADO');
   if (copy.kind === 'MINUTAS') return paintBigCode(copy, logo, 'MINUTAS');
   if (copy.kind === 'CONTRATOS') return paintBigCode(copy, logo, 'CONTRATOS');
@@ -423,13 +431,46 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
 }
 
 export function printRotulo(item: RotuloItem): void {
-  const itemWithId = {
+  printRotulos([item]);
+}
+
+export function printRotulos(items: RotuloItem[]): void {
+  if (!items.length) return;
+  const withIds = items.map((item) => ({
     ...item,
     id: item.id || `${item.modulo}_${item.codigo}_${Date.now()}`,
+  }));
+  for (const it of withIds) addToPrintQueue(it);
+  saveBatchToHistory(withIds);
+  void printOnNiimbotB1(items);
+}
+
+/** Marquilla GH / Documental: misma B1 50×30 mm. */
+export function rotuloFromAssociate(a: {
+  id: string;
+  folderNumber?: number | null;
+  documentNumber: string;
+  fullName: string;
+  hireDate?: string | null;
+  retirementDate?: string | null;
+  status?: string | null;
+  jobPosition?: { name?: string } | null;
+}): RotuloItem {
+  const retired = a.status === 'RETIRADO' || a.status === 'INACTIVO';
+  const cargo = a.jobPosition?.name || '';
+  const ingreso = a.hireDate ? String(a.hireDate).slice(0, 10) : '';
+  const baja = a.retirementDate ? String(a.retirementDate).slice(0, 10) : '';
+  return {
+    id: a.id,
+    modulo: retired ? 'PERSONAL' : 'PERSONAL_ACTIVO',
+    codigo: String(a.folderNumber ?? a.documentNumber),
+    titulo: a.fullName,
+    nit: a.documentNumber,
+    fechas: retired
+      ? baja ? `Archivo: ${baja}` : ''
+      : ingreso ? `Ingreso: ${ingreso}` : '',
+    slotFisico: retired ? 'Estante B' : cargo,
   };
-  addToPrintQueue(itemWithId);
-  saveBatchToHistory([itemWithId]);
-  void printOnNiimbotB1([item]);
 }
 
 export function printQueue(clearAfter = false): void {
