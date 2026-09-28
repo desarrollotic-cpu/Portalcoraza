@@ -90,6 +90,7 @@ export const PROGRAMACION_NAV: ModuleNavItem[] = [
   { label: 'Personal', route: '/rrhh/asociados', permission: 'associates.view', icon: LucideUsersRound },
   { label: 'Cuadro de Turnos', route: '/programacion/cuadro', permission: 'scheduling.view', icon: LucideCalendarClock },
   { label: 'Control de Alertas', route: '/programacion/alertas', permission: 'scheduling.edit', icon: LucideAlertTriangle },
+  { label: 'Estado de Vigilantes', route: '/programacion/vigilantes', permission: 'scheduling.view', icon: LucideActivity },
   { label: 'Liquidación y Recargos', route: '/programacion/recargos', permission: 'scheduling.edit', icon: LucideCalculator },
 ];
 

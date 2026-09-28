@@ -1,7 +1,7 @@
 # Programación nativa en Portal Coraza
 
 **Fecha:** 2026-08-03  
-**Actualizado:** 2026-09-02  
+**Actualizado:** 2026-09-28  
 **Fuente de verdad de negocio:** [APP-CONTABILIDAD](https://github.com/freidercao-spec/APP-CONTABILIDAD) (CONTROL DE PUESTOS)  
 **Grafo:** `../APP-CONTABILIDAD/graphify-out/` (Graphify, code-only)
 
@@ -103,11 +103,60 @@ Abrir `../APP-CONTABILIDAD/graphify-out/graph.html` para explorar.
 - [x] Plantillas básicas (`GET/POST templates`, `POST :id/apply-template/:templateId`) + UI en cuadro
 - [x] **Retirado 2026-09-02:** MasterGrid `/programacion/matriz` (pesado; no se vuelve a montar)
 
+## Reglas del cuadro y Estado de Vigilantes (2026-09-28)
+
+Las 4 reglas del módulo: todos los puestos cubiertos, sin vigilantes repetidos, mínimo de horas y máximo de horas por asociado (sumando **todos** sus puestos).
+
+**Parámetros** — por tenant en `scheduling_settings` (migración `075`), editables por GERENCIA/ADMIN en
+Estado de Vigilantes → "Cambiar reglas" (`GET/PUT /scheduling/monthly/settings`). Sin tabla o sin fila se usan
+los valores por defecto de `DEFAULT_SCHEDULING_RULES` (`monthly-alerts.compute.ts`).
+
+| Regla | Valor | Nota |
+|-------|-------|------|
+| Mínimo | 210 h/mes | Jornada ordinaria 42 h/sem (Ley 2101, jul-2026). Baja en proporción a días con novedad (VAC/IN/LC/SP/AC). |
+| Máximo | 288 h/mes | 24 turnos de 12 h (tope histórico del portal). |
+| Descanso mínimo | 8 h | Entre fin de un turno y el inicio del siguiente, en cualquier puesto. |
+| Sin uso | > 15 días sin turno | |
+
+**Horario real por código** (`SHIFT_HOURS`): D/D12 06–18, N/N12 18–06, D8 06–14, N8 22–06, N10 20–06, D9 06–15*, N9 21–06*, 24H.
+Cruces y descansos se calculan con este horario (cruza medianoche), no por franja D/N. *D9/N9 asumidos: no tienen horario en la UI.
+
+**Alertas** (`computeMonthlyAlerts`)
+
+| Tipo | Severidad | Regla |
+|------|-----------|-------|
+| `hueco_cobertura` | error | Falta D y/o N; o puesto activo sin cuadro |
+| `asociado_inactivo` | error | Novedad en celda o status ≠ ACTIVO en turno |
+| `ausencia_rrhh` | error | Programado en días con ausencia registrada en Ausentismo (`associate_absences`, solo lectura) |
+| `conflicto_mismo_turno` | error | Turnos de la misma persona que se cruzan en horario (también 2 roles del mismo puesto) |
+| `descanso_insuficiente` | error | Menos del descanso mínimo entre turnos (p. ej. D en un puesto + N en otro = 24 h seguidas) |
+| `carga_sobre_24` | error | Id histórico: horas del mes **sobre el máximo** (todos los códigos) |
+
+El KPI "Conflictos" del panel usa la misma regla (cruces + sin descanso).
+En Control de Alertas, "Ya la revisé, no aplica" guarda la alerta en `schedule_alert_dismissals` con motivo
+(`POST /scheduling/monthly/alerts/dismiss`, auditado) y deja de mostrarse. No afecta el bloqueo al guardar ni al publicar.
+El caché de reportes (45 s) va separado por tenant.
+
+**Guardar (`PUT /:id`)**
+- **Bloquea** (409 `SCHEDULING_BLOCKED`, `confirmWarnings` no lo salta): cruces, sin descanso y no activo en turno, en días abiertos.
+- **Confirma** (409 `SCHEDULING_WARNINGS`): sobre el máximo; cambios en días ya trabajados (`edicion_dia_pasado`). Lo aceptado y el antes→después de días pasados queda en auditoría.
+- Días cerrados = antes de hoy (Bogotá). No bloquean: las novedades y reemplazos se registran después.
+
+**Publicar (`PATCH /:id/status`)** — con huecos, cruces o no disponibles responde 409 `PUBLISH_BLOCKED`. GERENCIA/ADMIN pueden publicar con `justificacion` (≥ 10 caracteres, queda en auditoría y en la notificación).
+
+**Motor** — conserva días cerrados; con `roles` filtrados conserva las celdas de los demás roles; mes pasado → 400.
+**Copiar al resto del año** — si un mes choca con otros puestos, se salta y se informa en `skipped`.
+
+**Estado de Vigilantes** — `/programacion/vigilantes`, `GET /scheduling/monthly/associates-status?year&month` (`associate-status.compute.ts`).
+Horas por asociado ACTIVO (todos los puestos), estado (en rango / bajo mínimo / sobre máximo / sin programar / con novedad), capacidad (roles de los cuadros vs activos), relevantes, días sin turno y **sugerencias**: reparte los huecos de días abiertos entre quienes están bajo el mínimo (más faltante primero, prioriza sus puestos, respeta cruces, descanso, máximo y novedades; cada hueco a una sola persona). Export CSV.
+El panel "Disponibles" del cuadro y las horas por titular usan este mismo endpoint (reemplaza `pool-disponibles`, eliminado).
+
 ## Pendiente (paridad con APP — fases siguientes)
 
-- [ ] Historial de cambios rico / auditoría de celdas
+- [ ] Historial de cambios rico / auditoría de celdas (hoy: antes→después de días pasados en auditoría del save)
 - [ ] Offline queue + realtime (Zustand APP)
-- [ ] Estados novedad LC/SP/IN/AC → ausentismo RRHH
+- [ ] Escribir novedades LC/SP/IN/AC en ausentismo RRHH (hoy solo se **lee** Ausentismo para alertar)
+- [x] `scheduling_settings` por tenant + descartar alertas con motivo — **aplicar migración 075** en cada entorno
 - [ ] WhatsApp / AI (satélites; no bloquean el tablero)
 
 ## Smoke test

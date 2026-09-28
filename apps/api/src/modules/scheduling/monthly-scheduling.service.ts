@@ -29,9 +29,13 @@ import {
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   MonthlyAlertsQueryDto,
+  DismissAlertDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
+  UpdateSchedulingRulesDto,
 } from './dto/monthly-scheduling.dto';
+import { TenantContext } from '../../common/tenant/tenant.context';
+import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
 import {
   AlertCellInput,
   AssociateStatusCode,
@@ -44,7 +48,13 @@ import {
   groupHuecosByPost,
   isDayCode,
   isNightCode,
+  isDoubleBooking,
+  SHIFT_HOURS,
+  AbsenceInput,
+  DEFAULT_SCHEDULING_RULES,
+  SchedulingRules,
 } from './monthly-alerts.compute';
+import { AssociatesStatusResult, computeAssociatesStatus } from './associate-status.compute';
 import { MotorTurnosService } from './motor-turnos.service';
 import { buildPlanillaWorkbook } from './planilla-excel';
 import { mapCopiedDay, remainingMonthsOfYear } from './copy-month-pattern';
@@ -86,18 +96,24 @@ export class MonthlySchedulingService {
     private readonly motor: MotorTurnosService,
   ) {}
 
+  /** Claves separadas por tenant: un tenant nunca lee el reporte cacheado de otro. */
+  private tenantCacheKey(key: string): string {
+    return `${TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID}:${key}`;
+  }
+
   private readReportCache<T>(key: string): T | null {
-    const hit = this.reportCache.get(key);
+    const k = this.tenantCacheKey(key);
+    const hit = this.reportCache.get(k);
     if (!hit) return null;
     if (Date.now() - hit.at > REPORT_CACHE_TTL_MS) {
-      this.reportCache.delete(key);
+      this.reportCache.delete(k);
       return null;
     }
     return hit.data as T;
   }
 
   private writeReportCache(key: string, data: unknown): void {
-    this.reportCache.set(key, { at: Date.now(), data });
+    this.reportCache.set(this.tenantCacheKey(key), { at: Date.now(), data });
   }
 
   private clearReportCache(): void {
@@ -236,33 +252,33 @@ export class MonthlySchedulingService {
   /**
    * Detecta asociados asignados el mismo día en más de un puesto (mismo mes).
    */
+  /** Misma regla que Control de Alertas: cruces de horario y turnos sin descanso. */
   async findConflicts(query: ListMonthlyScheduleDto) {
-    const rows = await this.assignmentsRepo
-      .createQueryBuilder('a')
-      .innerJoin('a.schedule', 's')
-      .where('s.year = :year AND s.month = :month', {
-        year: query.year,
-        month: query.month,
-      })
-      .andWhere('a.associate_id IS NOT NULL')
-      .andWhere(`a.jornada NOT IN ('sin_asignar')`)
-      .andWhere(`COALESCE(a.codigo, '') IN ('D', 'N', 'D8', 'N8')`)
-      .select([
-        'a.associate_id AS "associateId"',
-        'a.day AS day',
-        'COUNT(DISTINCT s.post_id)::int AS "postCount"',
-        'ARRAY_AGG(DISTINCT s.post_id::text) AS "postIds"',
-      ])
-      .groupBy('a.associate_id')
-      .addGroupBy('a.day')
-      .having('COUNT(DISTINCT s.post_id) > 1')
-      .getRawMany();
-
-    return rows.map((r) => ({
-      associateId: r.associateId as string,
-      day: Number(r.day),
-      postCount: Number(r.postCount),
-      postIds: (r.postIds as string[]) ?? [],
+    const [cells, rules] = await Promise.all([
+      this.loadAlertCells(query.year, query.month),
+      this.getRules(),
+    ]);
+    const alerts = computeMonthlyAlerts({
+      month: `${query.year}-${String(query.month).padStart(2, '0')}`,
+      daysInMonth: new Date(query.year, query.month, 0).getDate(),
+      cells,
+      rules,
+      posts: [],
+    });
+    const byKey = new Map<string, { associateId: string; day: number; postIds: Set<string> }>();
+    for (const a of alerts) {
+      if (!isDoubleBooking(a.type) || !a.associateId || !a.day) continue;
+      const key = `${a.associateId}|${a.day}`;
+      const cur = byKey.get(key) ?? { associateId: a.associateId, day: a.day, postIds: new Set() };
+      cur.postIds.add(a.postId);
+      if (a.otherPostId) cur.postIds.add(a.otherPostId);
+      byKey.set(key, cur);
+    }
+    return [...byKey.values()].map((c) => ({
+      associateId: c.associateId,
+      day: c.day,
+      postCount: c.postIds.size,
+      postIds: [...c.postIds],
     }));
   }
 
@@ -287,7 +303,13 @@ export class MonthlySchedulingService {
 
     const raw = cached ?? (await this.buildMonthAlerts(months));
     if (!cached) this.writeReportCache(cacheKey, raw);
-    return this.presentAlerts(raw.alerts, raw.months, raw.generatedAt, today);
+    // Descartadas (con motivo) no se muestran; se leen siempre frescas.
+    const dismissed = await this.loadDismissedAlertIds();
+    const visible = dismissed.size ? raw.alerts.filter((a) => !dismissed.has(a.id)) : raw.alerts;
+    return {
+      ...this.presentAlerts(visible, raw.months, raw.generatedAt, today),
+      dismissed: raw.alerts.length - visible.length,
+    };
   }
 
   private async buildMonthAlerts(months: Array<{ year: number; month: number }>) {
@@ -297,9 +319,10 @@ export class MonthlySchedulingService {
     for (const m of months) {
       const label = `${m.year}-${String(m.month).padStart(2, '0')}`;
       monthLabels.push(label);
-      const [scheduled, cells] = await Promise.all([
+      const [scheduled, cells, absences] = await Promise.all([
         this.loadMonthPosts(m.year, m.month),
         this.loadAlertCells(m.year, m.month),
+        this.loadAbsences(m.year, m.month),
       ]);
       const scheduledIds = new Set(scheduled.map((p) => p.postId));
       const daysInMonth = new Date(m.year, m.month, 0).getDate();
@@ -307,6 +330,8 @@ export class MonthlySchedulingService {
         month: label,
         daysInMonth,
         cells,
+        absences,
+        rules: await this.getRules(),
         posts: catalog.map((p) => ({
           ...p,
           scheduled: scheduledIds.has(p.postId),
@@ -334,8 +359,8 @@ export class MonthlySchedulingService {
       alerts: actionable,
       totals: {
         huecos: actionable.filter((a) => a.type === 'hueco_cobertura').length,
-        inactivos: actionable.filter((a) => a.type === 'asociado_inactivo').length,
-        conflictos: actionable.filter((a) => a.type === 'conflicto_mismo_turno').length,
+        inactivos: actionable.filter((a) => (a.type === 'asociado_inactivo' || a.type === 'ausencia_rrhh')).length,
+        conflictos: actionable.filter((a) => isDoubleBooking(a.type)).length,
         carga: actionable.filter((a) => a.type === 'carga_sobre_24').length,
       },
       huecoGroups: groupHuecosByPost(actionable),
@@ -344,9 +369,12 @@ export class MonthlySchedulingService {
 
   async getBoardAlerts(query: BoardAlertsQueryDto) {
     const month = `${query.year}-${String(query.month).padStart(2, '0')}`;
-    const cells = await this.loadAlertCellsForPost(query.postId, query.year, query.month);
+    const [cells, absences] = await Promise.all([
+      this.loadAlertCellsForPost(query.postId, query.year, query.month),
+      this.loadAbsences(query.year, query.month),
+    ]);
     const daysInMonth = new Date(query.year, query.month, 0).getDate();
-    const all = computeMonthlyAlerts({ month, daysInMonth, cells });
+    const all = computeMonthlyAlerts({ month, daysInMonth, cells, absences, rules: await this.getRules() });
     const today = this.bogotaYmd();
     const actionableAll = all.filter((a) => isActionableAlert(a, today));
 
@@ -362,7 +390,7 @@ export class MonthlySchedulingService {
         return true;
       }
       if (
-        a.type === 'conflicto_mismo_turno' &&
+        isDoubleBooking(a.type) &&
         (a.postId === query.postId || a.otherPostId === query.postId)
       ) {
         return true;
@@ -381,7 +409,7 @@ export class MonthlySchedulingService {
       if (!day) continue;
       if (a.postId !== query.postId && a.otherPostId !== query.postId) continue;
       // Solo pintar celdas del post pedido
-      if (a.postId !== query.postId && a.type !== 'conflicto_mismo_turno') continue;
+      if (a.postId !== query.postId && !isDoubleBooking(a.type)) continue;
       const cur = byDay.get(day) ?? {
         day,
         types: [],
@@ -403,8 +431,8 @@ export class MonthlySchedulingService {
       alerts: relevant,
       summary: {
         huecos: relevant.filter((a) => a.type === 'hueco_cobertura' && a.postId === query.postId).length,
-        inactivos: relevant.filter((a) => a.type === 'asociado_inactivo' && a.postId === query.postId).length,
-        conflictos: relevant.filter((a) => a.type === 'conflicto_mismo_turno').length,
+        inactivos: relevant.filter((a) => (a.type === 'asociado_inactivo' || a.type === 'ausencia_rrhh') && a.postId === query.postId).length,
+        conflictos: relevant.filter((a) => isDoubleBooking(a.type)).length,
         carga: relevant.filter((a) => a.type === 'carga_sobre_24').length,
       },
       placements: cells
@@ -632,7 +660,7 @@ export class MonthlySchedulingService {
       .leftJoin(Associate, 'assoc', 'assoc.id = a.associate_id')
       .where('s.year = :year AND s.month = :month', { year, month })
       .andWhere(
-        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8','D9','N9','D12','N12','N10','IN','VAC','LIC','SUS','ACC'))`,
+        `(a.associate_id IS NOT NULL OR a.codigo IN ('D','N','D8','N8','D9','N9','D12','N12','N10','24','24H','IN','VAC','LC','SP','AC','LIC','SUS','ACC'))`,
       )
       .select([
         's.post_id AS "postId"',
@@ -671,7 +699,13 @@ export class MonthlySchedulingService {
   private async collectSaveWarnings(
     schedule: MonthlySchedule,
     dto: SaveMonthlyScheduleDto,
-  ): Promise<ScheduleAlertItem[]> {
+  ): Promise<{
+    /** No se puede guardar aunque confirme. */
+    blocking: ScheduleAlertItem[];
+    /** Se guarda si el usuario confirma (queda en auditoría). */
+    warnings: ScheduleAlertItem[];
+    pastChanges: string[];
+  }> {
     const year = schedule.year;
     const month = schedule.month;
     const monthLabel = `${year}-${String(month).padStart(2, '0')}`;
@@ -732,13 +766,238 @@ export class MonthlySchedulingService {
       month: monthLabel,
       daysInMonth,
       cells: [...otherCells, ...dtoCells],
+      rules: await this.getRules(),
     });
 
+    // Días ya trabajados no bloquean (no se pueden corregir sin tocar el pasado).
+    const locked = this.lockedUntilDay(year, month);
+    const blocking = alerts.filter(
+      (a) =>
+        (a.day ?? 0) > locked &&
+        ((isDoubleBooking(a.type) &&
+          (a.postId === schedule.postId || a.otherPostId === schedule.postId)) ||
+          // Asociado no ACTIVO en un turno trabajado (las novedades VAC/IN/LC no traen turno).
+          (a.type === 'asociado_inactivo' && a.postId === schedule.postId && !!a.shift)),
+    );
+
+    const inPost = new Set(associateIds);
+    const warnings = alerts.filter(
+      (a) => a.type === 'carga_sobre_24' && !!a.associateId && inPost.has(a.associateId),
+    );
+
+    const pastChanges = this.pastDayChanges(schedule, dto, locked);
+    if (pastChanges.length) {
+      warnings.push({
+        id: `edicion_dia_pasado:${monthLabel}:${schedule.postId}`,
+        type: 'edicion_dia_pasado',
+        severity: 'warning',
+        month: monthLabel,
+        postId: schedule.postId,
+        postName,
+        reason: pastChanges.join(', '),
+        suggestedAction: 'Confirme solo si es una corrección real (novedad o reemplazo); queda registrado.',
+        message: `Está cambiando ${pastChanges.length} celda(s) de días ya trabajados: ${pastChanges.slice(0, 6).join(', ')}${pastChanges.length > 6 ? '…' : ''}.`,
+      });
+    }
+
+    return { blocking, warnings, pastChanges };
+  }
+
+  /** true si la tabla existe (migración aplicada). No lanza: un error abortaría la transacción de la request. */
+  private async tableExists(name: string): Promise<boolean> {
+    const rows: Array<{ t: string | null }> = await this.runInTenantTx((m) =>
+      m.query(`SELECT to_regclass($1)::text AS t`, [`public.${name}`]),
+    );
+    return !!rows[0]?.t;
+  }
+
+  /** Reglas del tenant (tabla `scheduling_settings`, migración 075). Sin tabla o sin fila → por defecto. */
+  async getRules(): Promise<SchedulingRules> {
+    const key = 'rules';
+    const cached = this.readReportCache<SchedulingRules>(key);
+    if (cached) return cached;
+    let rules: SchedulingRules = { ...DEFAULT_SCHEDULING_RULES };
+    if (await this.tableExists('scheduling_settings')) {
+      const rows: Array<SchedulingRules> = await this.runInTenantTx((m) =>
+        m.query(
+          `SELECT min_horas_mes AS "minHorasMes", max_horas_mes AS "maxHorasMes",
+                  descanso_min_horas AS "descansoMinHoras",
+                  novedades_reducen_minimo AS "novedadesReducenMinimo",
+                  dias_sin_turno_alerta AS "diasSinTurnoAlerta"
+             FROM scheduling_settings LIMIT 1`,
+        ),
+      );
+      if (rows[0]) rules = { ...rules, ...rows[0] };
+    }
+    this.writeReportCache(key, rules);
+    return rules;
+  }
+
+  async updateRules(dto: UpdateSchedulingRulesDto, userId: string): Promise<SchedulingRules> {
+    if (dto.minHorasMes > dto.maxHorasMes) {
+      throw new BadRequestException('El mínimo de horas no puede ser mayor que el máximo.');
+    }
+    if (!(await this.tableExists('scheduling_settings'))) {
+      throw new BadRequestException(
+        'Falta aplicar la migración 075 (scheduling_settings) en la base de datos.',
+      );
+    }
+    const before = await this.getRules();
+    await this.runInTenantTx((m) =>
+      m.query(
+        `INSERT INTO scheduling_settings
+           (tenant_id, min_horas_mes, max_horas_mes, descanso_min_horas,
+            novedades_reducen_minimo, dias_sin_turno_alerta, updated_by, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+         ON CONFLICT (tenant_id) DO UPDATE SET
+           min_horas_mes = EXCLUDED.min_horas_mes,
+           max_horas_mes = EXCLUDED.max_horas_mes,
+           descanso_min_horas = EXCLUDED.descanso_min_horas,
+           novedades_reducen_minimo = EXCLUDED.novedades_reducen_minimo,
+           dias_sin_turno_alerta = EXCLUDED.dias_sin_turno_alerta,
+           updated_by = EXCLUDED.updated_by,
+           updated_at = NOW()`,
+        [
+          TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID,
+          dto.minHorasMes,
+          dto.maxHorasMes,
+          dto.descansoMinHoras,
+          dto.novedadesReducenMinimo,
+          dto.diasSinTurnoAlerta,
+          userId,
+        ],
+      ),
+    );
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'scheduling_settings.update',
+      entityType: 'scheduling_settings',
+      entityId: TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID,
+      oldValue: { ...before },
+      newValue: { ...dto },
+    });
+    this.clearReportCache();
+    return this.getRules();
+  }
+
+  /** Ids de alertas descartadas (tabla `schedule_alert_dismissals`, migración 075). */
+  private async loadDismissedAlertIds(): Promise<Set<string>> {
+    if (!(await this.tableExists('schedule_alert_dismissals'))) return new Set();
+    const rows: Array<{ alertId: string }> = await this.runInTenantTx((m) =>
+      m.query(`SELECT alert_id AS "alertId" FROM schedule_alert_dismissals`),
+    );
+    return new Set(rows.map((r) => r.alertId));
+  }
+
+  async dismissAlert(dto: DismissAlertDto, userId: string) {
+    if (!(await this.tableExists('schedule_alert_dismissals'))) {
+      throw new BadRequestException(
+        'Falta aplicar la migración 075 (schedule_alert_dismissals) en la base de datos.',
+      );
+    }
+    const motivo = dto.motivo.trim();
+    if (motivo.length < 5) throw new BadRequestException('Escriba el motivo (mínimo 5 caracteres).');
+    await this.runInTenantTx((m) =>
+      m.query(
+        `INSERT INTO schedule_alert_dismissals (tenant_id, alert_id, motivo, dismissed_by)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (tenant_id, alert_id) DO UPDATE SET motivo = EXCLUDED.motivo,
+           dismissed_by = EXCLUDED.dismissed_by, created_at = NOW()`,
+        [TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID, dto.alertId, motivo, userId],
+      ),
+    );
+    await this.auditService.log({
+      userId,
+      module: 'scheduling',
+      action: 'schedule_alert.dismiss',
+      entityType: 'schedule_alert',
+      // entity_id es uuid: el id de la alerta (texto) va en newValue.
+      newValue: { alertId: dto.alertId, motivo },
+    });
+    return { alertId: dto.alertId, dismissed: true };
+  }
+
+  /** Ausencias de RRHH (Ausentismo, solo lectura) que tocan el mes, recortadas a días 1..N. */
+  private async loadAbsences(year: number, month: number): Promise<AbsenceInput[]> {
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const first = `${year}-${String(month).padStart(2, '0')}-01`;
+    const last = `${year}-${String(month).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+    const rows: Array<{ associateId: string; kind: string; eventType: string | null; start: string; end: string }> =
+      await this.runInTenantTx((m) =>
+        m.query(
+          `SELECT associate_id AS "associateId", kind::text AS kind, event_type::text AS "eventType",
+                  start_date::text AS start, end_date::text AS "end"
+             FROM associate_absences
+            WHERE start_date <= $2::date AND end_date >= $1::date`,
+          [first, last],
+        ),
+      );
+    return rows.map((r) => ({
+      associateId: r.associateId,
+      fromDay: r.start < first ? 1 : Number(r.start.slice(8, 10)),
+      toDay: r.end > last ? daysInMonth : Number(r.end.slice(8, 10)),
+      label: `${r.kind === 'MEDICO' ? 'una incapacidad médica' : `una ausencia (${r.eventType ?? 'otra'})`} del ${r.start} al ${r.end}`,
+    }));
+  }
+
+  /** Errores que impiden publicar: huecos, cruces/sin descanso y no activos en turno (días abiertos). */
+  private async publishIssues(schedule: MonthlySchedule): Promise<ScheduleAlertItem[]> {
+    const { year, month, postId } = schedule;
+    const cells = await this.loadAlertCellsForPost(postId, year, month);
+    const alerts = computeMonthlyAlerts({
+      month: `${year}-${String(month).padStart(2, '0')}`,
+      daysInMonth: new Date(year, month, 0).getDate(),
+      cells,
+      rules: await this.getRules(),
+      // Aunque el cuadro esté vacío, el puesto cuenta (si no, no saldrían sus huecos).
+      posts: [{ postId, postName: cells.find((c) => c.postId === postId)?.postName ?? 'Este puesto' }],
+    });
+    const locked = this.lockedUntilDay(year, month);
     return alerts.filter(
       (a) =>
-        (a.type === 'asociado_inactivo' || a.type === 'conflicto_mismo_turno') &&
-        a.postId === schedule.postId,
+        (a.day ?? 0) > locked &&
+        ((a.postId === postId && a.type === 'hueco_cobertura') ||
+          (a.postId === postId && a.type === 'asociado_inactivo' && !!a.shift) ||
+          (isDoubleBooking(a.type) && (a.postId === postId || a.otherPostId === postId))),
     );
+  }
+
+  /** Último día cerrado del mes (días antes de hoy en Bogotá). 0 = mes futuro, todo editable. */
+  private lockedUntilDay(year: number, month: number): number {
+    const t = this.bogotaYmd();
+    if (year < t.year || (year === t.year && month < t.month)) {
+      return new Date(year, month, 0).getDate();
+    }
+    if (year === t.year && month === t.month) return t.day - 1;
+    return 0;
+  }
+
+  /** Celdas de días cerrados que cambian respecto a lo guardado ("rol día N: antes → después"). */
+  private pastDayChanges(
+    schedule: MonthlySchedule,
+    dto: Pick<SaveMonthlyScheduleDto, 'assignments'>,
+    locked: number,
+  ): string[] {
+    if (locked <= 0) return [];
+    const sig = (a: { associateId?: string | null; codigo?: string | null }) =>
+      a.associateId || a.codigo ? `${a.codigo ?? '—'}${a.associateId ? '' : ' (sin persona)'}` : 'vacío';
+    const key = (a: { role: string; day: number }) => `${a.role}:${a.day}`;
+    const before = new Map(
+      (schedule.assignments ?? []).filter((a) => a.day <= locked).map((a) => [key(a), a]),
+    );
+    const after = new Map(dto.assignments.filter((a) => a.day <= locked).map((a) => [key(a), a]));
+    const changes: string[] = [];
+    for (const k of new Set([...before.keys(), ...after.keys()])) {
+      const b = before.get(k);
+      const a = after.get(k);
+      if ((b?.associateId ?? null) === (a?.associateId ?? null) && (b?.codigo ?? null) === (a?.codigo ?? null)) {
+        continue;
+      }
+      const [role, day] = k.split(':');
+      changes.push(`${role} día ${day}: ${b ? sig(b) : 'vacío'} → ${a ? sig(a) : 'vacío'}`);
+    }
+    return changes;
   }
 
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {
@@ -779,15 +1038,21 @@ export class MonthlySchedulingService {
   async save(id: string, dto: SaveMonthlyScheduleDto, userId: string) {
     const schedule = await this.getById(id);
 
-    if (!dto.confirmWarnings) {
-      const warnings = await this.collectSaveWarnings(schedule, dto);
-      if (warnings.length) {
-        throw new ConflictException({
-          code: 'SCHEDULING_WARNINGS',
-          message: 'Hay advertencias de programación; confirme para continuar',
-          warnings,
-        });
-      }
+    const { blocking, warnings, pastChanges } = await this.collectSaveWarnings(schedule, dto);
+    if (blocking.length) {
+      throw new ConflictException({
+        code: 'SCHEDULING_BLOCKED',
+        message:
+          'No se puede guardar: hay turnos que se cruzan, turnos sin descanso o asociados no activos programados. Corríjalos primero.',
+        warnings: blocking,
+      });
+    }
+    if (warnings.length && !dto.confirmWarnings) {
+      throw new ConflictException({
+        code: 'SCHEDULING_WARNINGS',
+        message: 'Hay advertencias de programación; confirme para continuar',
+        warnings,
+      });
     }
 
     await this.runInTenantTx(async (manager) => {
@@ -829,6 +1094,9 @@ export class MonthlySchedulingService {
         postId: schedule.postId,
         roles: dto.personal.length,
         assignments: dto.assignments.length,
+        // Qué advertencias aceptó y qué cambió en días ya trabajados.
+        confirmedWarnings: warnings.map((w) => w.message),
+        pastChanges,
       },
     });
 
@@ -836,8 +1104,24 @@ export class MonthlySchedulingService {
     return this.getById(id);
   }
 
-  async updateStatus(id: string, dto: UpdateScheduleStatusDto, userId: string) {
+  async updateStatus(id: string, dto: UpdateScheduleStatusDto, userId: string, roleCode?: string) {
     const schedule = await this.getById(id);
+    let publishIssues: ScheduleAlertItem[] = [];
+    if (dto.status === ScheduleStatus.PUBLICADO) {
+      publishIssues = await this.publishIssues(schedule);
+      const canForce = ['GERENCIA', 'ADMIN', 'SUPERADMIN'].includes(roleCode ?? '');
+      const justified = (dto.justificacion ?? '').trim().length >= 10;
+      if (publishIssues.length && !(canForce && justified)) {
+        throw new ConflictException({
+          code: 'PUBLISH_BLOCKED',
+          message: canForce
+            ? 'El cuadro tiene errores. Para publicarlo igual escriba el motivo (mínimo 10 caracteres).'
+            : 'El cuadro tiene errores y no se puede publicar. Corríjalos o pida a Gerencia que lo publique con justificación.',
+          canForce,
+          warnings: publishIssues,
+        });
+      }
+    }
     await this.schedulesRepo.update(id, {
       status: dto.status,
       updatedBy: userId,
@@ -850,14 +1134,23 @@ export class MonthlySchedulingService {
       entityType: 'monthly_schedule',
       entityId: id,
       oldValue: { status: schedule.status },
-      newValue: { status: dto.status },
+      newValue: {
+        status: dto.status,
+        ...(publishIssues.length
+          ? { publicadoConErrores: publishIssues.length, justificacion: dto.justificacion?.trim() }
+          : {}),
+      },
     });
 
     if (dto.status === ScheduleStatus.PUBLICADO) {
+      const post = await this.dataSource.getRepository(Post).findOne({ where: { id: schedule.postId } });
+      const postName = this.formatPostLabel(post ?? { id: schedule.postId, name: null, code: null });
       await this.notificationsService.sendToRole(
         'GERENCIA',
         'Programación publicada',
-        `Se publicó la programación ${schedule.month}/${schedule.year}`,
+        publishIssues.length
+          ? `Se publicó ${postName} ${schedule.month}/${schedule.year} con ${publishIssues.length} error(es). Motivo: ${dto.justificacion?.trim()}`
+          : `Se publicó ${postName} ${schedule.month}/${schedule.year} sin errores (cobertura completa, sin cruces).`,
         'scheduling',
       );
     }
@@ -869,6 +1162,12 @@ export class MonthlySchedulingService {
     const schedule = await this.getById(id);
     const daysInMonth = new Date(schedule.year, schedule.month, 0).getDate();
     const tipoCiclo = dto.tipoCiclo ?? '12x3';
+    const locked = this.lockedUntilDay(schedule.year, schedule.month);
+    if (locked >= daysInMonth) {
+      throw new BadRequestException(
+        'Este mes ya pasó: el motor no puede regenerar días trabajados. Corrija celda por celda.',
+      );
+    }
 
     let personal = schedule.personal ?? [];
     if (dto.personal?.length) {
@@ -897,9 +1196,17 @@ export class MonthlySchedulingService {
       tipoCiclo,
     );
 
+    // Se conservan los días ya trabajados y, si se pidió solo algunos roles, las celdas de los demás.
+    const regenerated = new Set(personal.map((p) => p.rol));
+    const kept = (schedule.assignments ?? []).filter(
+      (a) => a.day <= locked || (!!dto.roles?.length && !regenerated.has(a.role)),
+    );
+    const keptKeys = new Set(kept.map((a) => `${a.role}:${a.day}`));
+    const fresh = generated.filter((a) => a.day > locked && !keptKeys.has(`${a.role}:${a.day}`));
+
     await this.runInTenantTx(async (manager) => {
       await manager.delete(ScheduleAssignment, { scheduleId: id });
-      const rows = generated.map((a) =>
+      const rows = [...kept, ...fresh].map((a) =>
         manager.create(ScheduleAssignment, {
           tenantId: schedule.tenantId,
           scheduleId: id,
@@ -1360,6 +1667,7 @@ export class MonthlySchedulingService {
     }
 
     const applied: Array<{ month: number; scheduleId: string }> = [];
+    const skipped: Array<{ month: number; motivo: string }> = [];
 
     for (const month of months) {
       const destDays = new Date(source.year, month, 0).getDate();
@@ -1389,11 +1697,22 @@ export class MonthlySchedulingService {
         }
       }
 
-      await this.save(
-        dest.id,
-        { personal, assignments, confirmWarnings: true, observaciones: source.observaciones ?? null },
-        userId,
-      );
+      try {
+        await this.save(
+          dest.id,
+          { personal, assignments, confirmWarnings: true, observaciones: source.observaciones ?? null },
+          userId,
+        );
+      } catch (err) {
+        // Cruces/sin descanso con otros puestos en ese mes: no se copia ese mes y se informa.
+        const body = err instanceof ConflictException ? (err.getResponse() as { code?: string; warnings?: ScheduleAlertItem[] }) : null;
+        if (body?.code !== 'SCHEDULING_BLOCKED') throw err;
+        skipped.push({
+          month,
+          motivo: (body.warnings ?? []).slice(0, 3).map((w) => w.message).join(' · '),
+        });
+        continue;
+      }
       if (dest.status !== ScheduleStatus.BORRADOR) {
         await this.schedulesRepo.update(dest.id, {
           status: ScheduleStatus.BORRADOR,
@@ -1414,6 +1733,7 @@ export class MonthlySchedulingService {
         year: source.year,
         fromMonth: source.month,
         months: applied.map((a) => a.month),
+        skipped,
       },
     });
 
@@ -1423,6 +1743,7 @@ export class MonthlySchedulingService {
       fromMonth: source.month,
       postId: source.postId,
       applied,
+      skipped,
     };
   }
 
@@ -2241,82 +2562,142 @@ export class MonthlySchedulingService {
    * junto con el último puesto/día donde fueron programados con turno.
    * RLS del tenant se aplica vía el manager de la transacción.
    */
-  async poolDisponibles(): Promise<
-    Array<{
-      id: string;
-      firstName: string;
-      lastName: string;
-      documentNumber: string;
-      lastDay: number | null;
-      lastCodigo: string | null;
-      lastYear: number | null;
-      lastMonth: number | null;
-      lastPostId: string | null;
-      lastPostName: string | null;
-    }>
-  > {
-    return this.runInTenantTx(async (m) => {
-      const sql = `
-        WITH titulares AS (
-          SELECT DISTINCT (elem->>'associateId') AS aid
-          FROM schedule_templates st
-          CROSS JOIN LATERAL jsonb_array_elements(
-            CASE WHEN jsonb_typeof(st.personal) = 'array' THEN st.personal ELSE '[]'::jsonb END
-          ) AS elem
-          WHERE (elem->>'associateId') IS NOT NULL
-            AND (elem->>'associateId') <> ''
-        ),
-        suplentes AS (
-          SELECT a.id, a.first_name, a.last_name, a.document_number
-          FROM associates a
-          WHERE a.status = 'ACTIVO'
-            AND a.id::text NOT IN (SELECT aid FROM titulares)
-        ),
-        last_asg AS (
-          SELECT DISTINCT ON (sa.associate_id)
-            sa.associate_id,
-            sa.day,
-            sa.codigo,
-            ms.year,
-            ms.month,
-            ms.post_id
-          FROM schedule_assignments sa
-          JOIN monthly_schedules ms ON ms.id = sa.schedule_id
-          WHERE sa.associate_id IS NOT NULL
-            AND sa.codigo IS NOT NULL
-            AND sa.codigo IN ('D','N','D8','N8','24','24H')
-          ORDER BY sa.associate_id, ms.year DESC, ms.month DESC, sa.day DESC
+  /** Estado de Vigilantes: horas del mes de cada asociado ACTIVO (todos sus puestos) vs reglas. */
+  async associatesStatus(year: number, month: number): Promise<AssociatesStatusResult> {
+    const cacheKey = `associates-status:${year}-${month}`;
+    const cached = this.readReportCache<AssociatesStatusResult>(cacheKey);
+    if (cached) return cached;
+
+    const today = this.bogotaYmd();
+    const iso = (y: number, m: number, d: number) =>
+      `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const monthEnd = iso(year, month, new Date(year, month, 0).getDate());
+    const todayIso = iso(today.year, today.month, today.day);
+    const cutoff = todayIso < monthEnd ? todayIso : monthEnd;
+    const workCodes = Object.keys(SHIFT_HOURS);
+
+    const [associates, cells, lastRows, activePosts, scheduleRow] = await Promise.all([
+      this.dataSource
+        .getRepository(Associate)
+        .createQueryBuilder('a')
+        .leftJoin('a.jobPosition', 'jp')
+        .where('a.status = :st', { st: AssociateStatus.ACTIVO })
+        .select([
+          'a.id AS id',
+          'a.document_number AS "documentNumber"',
+          'a.first_name AS "firstName"',
+          'a.second_name AS "secondName"',
+          'a.first_last_name AS "firstLastName"',
+          'a.second_last_name AS "secondLastName"',
+          'jp.name AS cargo',
+        ])
+        .getRawMany<{
+          id: string;
+          documentNumber: string | null;
+          firstName: string | null;
+          secondName: string | null;
+          firstLastName: string | null;
+          secondLastName: string | null;
+          cargo: string | null;
+        }>(),
+      this.assignmentsRepo
+        .createQueryBuilder('a')
+        .innerJoin('a.schedule', 's')
+        .leftJoin(Post, 'p', 'p.id = s.post_id')
+        .where('s.year = :year AND s.month = :month', { year, month })
+        .andWhere(`s.status <> 'anulado'`)
+        .andWhere('a.associate_id IS NOT NULL')
+        .select([
+          'a.associate_id AS "associateId"',
+          's.post_id AS "postId"',
+          `${POST_LABEL_SQL} AS "postName"`,
+          'a.day AS day',
+          'a.role AS role',
+          'a.codigo AS codigo',
+          'a.jornada AS jornada',
+        ])
+        .getRawMany<{
+          associateId: string;
+          postId: string;
+          postName: string;
+          day: string | number;
+          role: string;
+          codigo: string | null;
+          jornada: string | null;
+        }>(),
+      this.assignmentsRepo
+        .createQueryBuilder('a')
+        .innerJoin('a.schedule', 's')
+        .where('a.associate_id IS NOT NULL')
+        .andWhere(`s.status <> 'anulado'`)
+        .andWhere('UPPER(a.codigo) IN (:...workCodes)', { workCodes })
+        .andWhere('make_date(s.year, s.month, a.day) <= CAST(:cutoff AS date)', { cutoff })
+        .select('a.associate_id', 'associateId')
+        .addSelect(`TO_CHAR(MAX(make_date(s.year, s.month, a.day)), 'YYYY-MM-DD')`, 'last')
+        .groupBy('a.associate_id')
+        .getRawMany<{ associateId: string; last: string }>(),
+      this.dataSource.getRepository(Post).count({ where: { status: PostStatus.ACTIVO } }),
+      this.schedulesRepo
+        .createQueryBuilder('s')
+        .where('s.year = :year AND s.month = :month', { year, month })
+        .andWhere(`s.status <> 'anulado'`)
+        .select('COUNT(*)::int', 'cuadros')
+        .addSelect(
+          `COALESCE(SUM(CASE WHEN jsonb_typeof(s.personal) = 'array' THEN jsonb_array_length(s.personal) ELSE 0 END), 0)::int`,
+          'roles',
         )
-        SELECT
-          s.id::text                             AS "id",
-          s.first_name                           AS "firstName",
-          s.last_name                            AS "lastName",
-          s.document_number                      AS "documentNumber",
-          la.day                                 AS "lastDay",
-          la.codigo                              AS "lastCodigo",
-          la.year                                AS "lastYear",
-          la.month                               AS "lastMonth",
-          la.post_id::text                       AS "lastPostId",
-          p.name                                 AS "lastPostName"
-        FROM suplentes s
-        LEFT JOIN last_asg la ON la.associate_id = s.id
-        LEFT JOIN posts p    ON p.id = la.post_id
-        ORDER BY s.first_name, s.last_name
-      `;
-      const rows = await m.query(sql);
-      return rows as Array<{
-        id: string;
-        firstName: string;
-        lastName: string;
-        documentNumber: string;
-        lastDay: number | null;
-        lastCodigo: string | null;
-        lastYear: number | null;
-        lastMonth: number | null;
-        lastPostId: string | null;
-        lastPostName: string | null;
-      }>;
+        .getRawOne<{ cuadros: number | string; roles: number | string }>(),
+    ]);
+
+    // Huecos D/N de puestos con cuadro, solo en días abiertos: base de las sugerencias.
+    const [alertCells, catalog, scheduled] = await Promise.all([
+      this.loadAlertCells(year, month),
+      this.loadActivePosts(),
+      this.loadMonthPosts(year, month),
+    ]);
+    const scheduledIds = new Set(scheduled.map((p) => p.postId));
+    const locked = this.lockedUntilDay(year, month);
+    const rules = await this.getRules();
+    const gaps = computeMonthlyAlerts({
+      month: `${year}-${String(month).padStart(2, '0')}`,
+      daysInMonth: new Date(year, month, 0).getDate(),
+      cells: alertCells,
+      rules,
+      posts: catalog.map((p) => ({ ...p, scheduled: scheduledIds.has(p.postId) })),
+    })
+      .filter((a) => a.type === 'hueco_cobertura' && a.day && a.shift && a.day > locked)
+      .map((a) => ({ postId: a.postId, postName: a.postName, day: a.day!, shift: a.shift! }));
+
+    const result = computeAssociatesStatus({
+      year,
+      month,
+      cutoff,
+      gaps,
+      rules,
+      associates: associates.map((a) => ({
+        id: a.id,
+        name:
+          this.associateDisplayName({
+            firstName: a.firstName ?? undefined,
+            secondName: a.secondName,
+            firstLastName: a.firstLastName ?? undefined,
+            secondLastName: a.secondLastName,
+          }) ||
+          a.documentNumber ||
+          a.id.slice(0, 8),
+        documentNumber: a.documentNumber,
+        cargo: a.cargo,
+      })),
+      cells: cells.map((c) => ({ ...c, day: Number(c.day) })),
+      lastShift: new Map(lastRows.map((r) => [r.associateId, r.last])),
+      posts: {
+        activos: activePosts,
+        conCuadro: Number(scheduleRow?.cuadros ?? 0),
+        rolesRequeridos: Number(scheduleRow?.roles ?? 0),
+      },
     });
+    this.writeReportCache(cacheKey, result);
+    return result;
   }
 }
 

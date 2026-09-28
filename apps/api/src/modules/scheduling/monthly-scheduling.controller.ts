@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -20,12 +21,14 @@ import {
   BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
+  DismissAlertDto,
   GenerateMotorDto,
   GetMonthlyScheduleDto,
   ListMonthlyScheduleDto,
   MonthlyAlertsQueryDto,
   SaveMonthlyScheduleDto,
   UpdateScheduleStatusDto,
+  UpdateSchedulingRulesDto,
 } from './dto/monthly-scheduling.dto';
 import { MonthlySchedulingService } from './monthly-scheduling.service';
 
@@ -136,10 +139,31 @@ export class MonthlySchedulingController {
     return this.service.listByMonth(query);
   }
 
-  @Get('pool-disponibles')
+  @Get('settings')
   @RequirePermissions('scheduling.view')
-  poolDisponibles() {
-    return this.service.poolDisponibles();
+  getRules() {
+    return this.service.getRules();
+  }
+
+  @Put('settings')
+  @RequirePermissions('scheduling.edit')
+  updateRules(@Body() dto: UpdateSchedulingRulesDto, @CurrentUser() user: JwtPayload) {
+    if (!['GERENCIA', 'ADMIN', 'SUPERADMIN'].includes(user.roleCode)) {
+      throw new ForbiddenException('Solo Gerencia puede cambiar las reglas de horas.');
+    }
+    return this.service.updateRules(dto, user.sub);
+  }
+
+  @Post('alerts/dismiss')
+  @RequirePermissions('scheduling.edit')
+  dismissAlert(@Body() dto: DismissAlertDto, @CurrentUser() user: JwtPayload) {
+    return this.service.dismissAlert(dto, user.sub);
+  }
+
+  @Get('associates-status')
+  @RequirePermissions('scheduling.view')
+  associatesStatus(@Query() query: ListMonthlyScheduleDto) {
+    return this.service.associatesStatus(query.year, query.month);
   }
 
   @Get('alerts')
@@ -203,7 +227,7 @@ export class MonthlySchedulingController {
     @Body() dto: UpdateScheduleStatusDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.service.updateStatus(id, dto, user.sub);
+    return this.service.updateStatus(id, dto, user.sub, user.roleCode);
   }
 
   @Post(':id/motor')

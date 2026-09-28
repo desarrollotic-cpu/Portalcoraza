@@ -2,7 +2,68 @@ export type AlertType =
   | 'hueco_cobertura'
   | 'asociado_inactivo'
   | 'conflicto_mismo_turno'
-  | 'carga_sobre_24';
+  | 'descanso_insuficiente'
+  /** Id histórico: hoy significa "horas del mes sobre el máximo" (todos los códigos). */
+  | 'carga_sobre_24'
+  /** Solo al guardar: cambios en días ya trabajados. */
+  | 'edicion_dia_pasado'
+  /** Programado en días con ausencia registrada en RRHH (incapacidad, licencia…). */
+  | 'ausencia_rrhh';
+
+/** Ausencia de RRHH recortada al mes (días 1..N). */
+export interface AbsenceInput {
+  associateId: string;
+  fromDay: number;
+  toDay: number;
+  /** Ej. "incapacidad médica del 2026-09-10 al 2026-09-14". */
+  label: string;
+}
+
+/**
+ * Reglas del cuadro. Un solo lugar para cambiarlas (luego: `scheduling_settings` por tenant).
+ * - min 210 h = jornada ordinaria legal mensual con 42 h/semana (Ley 2101, jul-2026).
+ * - max 288 h = 24 turnos de 12 h (tope que ya usaba el portal).
+ */
+export interface SchedulingRules {
+  minHorasMes: number;
+  maxHorasMes: number;
+  descansoMinHoras: number;
+  /** Días con novedad (VAC/IN/LC…) bajan el mínimo en proporción. */
+  novedadesReducenMinimo: boolean;
+  /** Días sin turno para considerar a un vigilante "sin uso". */
+  diasSinTurnoAlerta: number;
+}
+
+export const DEFAULT_SCHEDULING_RULES: SchedulingRules = {
+  minHorasMes: 210,
+  maxHorasMes: 288,
+  descansoMinHoras: 8,
+  novedadesReducenMinimo: true,
+  diasSinTurnoAlerta: 15,
+};
+
+/**
+ * Horario real por código: hora de inicio y duración. Fuente única para cruces,
+ * descansos y horas del mes. D9/N9 no tienen horario en la UI: se asume 06–15 / 21–06.
+ */
+export const SHIFT_HOURS: Readonly<Record<string, { start: number; hours: number }>> = {
+  D: { start: 6, hours: 12 },
+  D12: { start: 6, hours: 12 },
+  N: { start: 18, hours: 12 },
+  N12: { start: 18, hours: 12 },
+  D8: { start: 6, hours: 8 },
+  N8: { start: 22, hours: 8 },
+  N10: { start: 20, hours: 10 },
+  D9: { start: 6, hours: 9 },
+  N9: { start: 21, hours: 9 },
+  '24': { start: 6, hours: 24 },
+  '24H': { start: 6, hours: 24 },
+};
+
+/** Misma persona en dos turnos que se cruzan o sin descanso entre ellos. */
+export function isDoubleBooking(type: AlertType): boolean {
+  return type === 'conflicto_mismo_turno' || type === 'descanso_insuficiente';
+}
 
 export type AlertSeverity = 'error' | 'warning';
 
@@ -54,7 +115,8 @@ const NOVEDAD_JORNADAS = new Set([
   'accidente',
 ]);
 
-const NOVEDAD_CODIGOS = new Set(['IN', 'VAC', 'LIC', 'SUS', 'ACC']);
+/** Códigos de la UI (LC/SP/AC) + legado (LIC/SUS/ACC). */
+export const NOVEDAD_CODIGOS = new Set(['IN', 'VAC', 'LC', 'SP', 'AC', 'LIC', 'SUS', 'ACC']);
 
 const DOW = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
 
@@ -68,19 +130,13 @@ export function isNightCode(codigo: string | null | undefined): boolean {
   return c === 'N' || c === 'N8' || c === 'N9' || c === 'N10' || c === 'N12';
 }
 
-/** Solo 12h: cuenta para tope >24. */
-export function isTwelveHourCode(codigo: string | null | undefined): boolean {
-  const c = (codigo ?? '').toUpperCase();
-  return c === 'D' || c === 'N' || c === 'D12' || c === 'N12';
-}
-
 function fringeOf(codigo: string | null | undefined): 'D' | 'N' | null {
   if (isDayCode(codigo)) return 'D';
   if (isNightCode(codigo)) return 'N';
   return null;
 }
 
-function isNovedad(cell: AlertCellInput): boolean {
+export function isNovedad(cell: Pick<AlertCellInput, 'codigo' | 'jornada'>): boolean {
   if (cell.jornada && NOVEDAD_JORNADAS.has(cell.jornada)) return true;
   const c = (cell.codigo ?? '').toUpperCase();
   return NOVEDAD_CODIGOS.has(c);
@@ -91,9 +147,9 @@ function novedadLabel(cell: AlertCellInput): string {
   const c = (cell.codigo ?? '').toUpperCase();
   if (c === 'IN') return 'incapacidad';
   if (c === 'VAC') return 'vacaciones';
-  if (c === 'LIC') return 'licencia';
-  if (c === 'SUS') return 'suspensión';
-  if (c === 'ACC') return 'accidente';
+  if (c === 'LC' || c === 'LIC') return 'licencia';
+  if (c === 'SP' || c === 'SUS') return 'suspensión';
+  if (c === 'AC' || c === 'ACC') return 'accidente';
   return 'novedad';
 }
 
@@ -182,8 +238,12 @@ export function computeMonthlyAlerts(args: {
   cells: AlertCellInput[];
   /** Puestos del mes (cuadros). Si se omite, se infieren solo de `cells`. */
   posts?: AlertPostInput[];
+  rules?: Partial<SchedulingRules>;
+  /** Ausencias registradas en RRHH (Ausentismo) que tocan el mes. */
+  absences?: AbsenceInput[];
 }): ScheduleAlertItem[] {
   const { month, daysInMonth, cells } = args;
+  const rules = { ...DEFAULT_SCHEDULING_RULES, ...args.rules };
   const alerts: ScheduleAlertItem[] = [];
 
   const postNames = new Map<string, string>();
@@ -297,89 +357,174 @@ export function computeMonthlyAlerts(args: {
     });
   }
 
-  type Key = string;
-  const byFringe = new Map<Key, AlertCellInput[]>();
-  for (const c of cells) {
-    if (!c.associateId || isNovedad(c)) continue;
-    const fringe = fringeOf(c.codigo);
-    if (!fringe) continue;
-    const key = `${c.associateId}|${c.day}|${fringe}`;
-    const list = byFringe.get(key) ?? [];
-    list.push(c);
-    byFringe.set(key, list);
-  }
-  for (const [, list] of byFringe) {
-    const uniquePosts = new Map<string, AlertCellInput>();
-    for (const c of list) {
-      if (!uniquePosts.has(c.postId)) uniquePosts.set(c.postId, c);
+  // Ausentismo RRHH: una alerta por persona, puesto y ausencia, con los días afectados.
+  if (args.absences?.length) {
+    const absByAssociate = new Map<string, AbsenceInput[]>();
+    for (const ab of args.absences) {
+      absByAssociate.set(ab.associateId, [...(absByAssociate.get(ab.associateId) ?? []), ab]);
     }
-    if (uniquePosts.size < 2) continue;
-    const posts = [...uniquePosts.values()];
-    for (let i = 0; i < posts.length; i++) {
-      const a = posts[i];
-      const others = posts.filter((_, j) => j !== i);
-      const b = others[0];
-      const fringe = fringeOf(a.codigo)!;
-      const otherNames = others.map((p) => p.postName).join(', ');
-      const when = weekdayLabel(month, a.day);
+    const hits = new Map<string, { ab: AbsenceInput; cell: AlertCellInput; days: number[] }>();
+    for (const c of cells) {
+      if (!c.associateId || isNovedad(c) || !SHIFT_HOURS[(c.codigo ?? '').toUpperCase()]) continue;
+      for (const ab of absByAssociate.get(c.associateId) ?? []) {
+        if (c.day < ab.fromDay || c.day > ab.toDay) continue;
+        const key = `${c.associateId}|${c.postId}|${ab.fromDay}|${ab.toDay}`;
+        const cur = hits.get(key) ?? { ab, cell: c, days: [] };
+        if (!cur.days.includes(c.day)) cur.days.push(c.day);
+        hits.set(key, cur);
+      }
+    }
+    for (const { ab, cell, days } of hits.values()) {
+      days.sort((a, b) => a - b);
+      const last = days[days.length - 1];
       alerts.push({
-        id: `conflicto_mismo_turno:${month}:${a.associateId}:${a.day}:${fringe}:${a.postId}`,
-        type: 'conflicto_mismo_turno',
+        id: `ausencia_rrhh:${month}:${cell.associateId}:${cell.postId}:${ab.fromDay}-${ab.toDay}`,
+        type: 'ausencia_rrhh',
         severity: 'error',
         month,
-        day: a.day,
-        postId: a.postId,
-        postName: a.postName,
-        associateId: a.associateId!,
-        associateName: a.associateName ?? undefined,
-        documentNumber: a.documentNumber ?? undefined,
-        role: a.role,
-        shift: fringe,
-        otherPostId: b.postId,
-        otherPostName: b.postName,
-        reason: 'mismo día y mismo horario en dos puestos',
-        suggestedAction:
-          'Déjelo en un solo puesto ese día y horario; cubra el otro con otro vigilante o un relevo.',
-        message: `${personLabel(a)} está el ${when} en turno ${shiftWord(fringe)} a la vez en «${a.postName}» y en «${otherNames}». Una persona no puede cubrir dos puestos al mismo tiempo.`,
+        // Último día afectado: la alerta sigue visible mientras quede alguno por delante.
+        day: last,
+        postId: cell.postId,
+        postName: cell.postName,
+        associateId: cell.associateId!,
+        associateName: cell.associateName ?? undefined,
+        documentNumber: cell.documentNumber ?? undefined,
+        role: cell.role,
+        reason: ab.label,
+        suggestedAction: `Reasigne esos turnos a otro vigilante y marque la novedad (IN, VAC, LC…) en el cuadro de ${cell.postName}.`,
+        message: `RRHH tiene registrada ${ab.label}, pero ${personLabel(cell)} está programado en «${cell.postName}» los días ${days.join(', ')}. Esos turnos no se van a cumplir.`,
       });
     }
   }
 
-  const counts = new Map<
-    string,
-    { name: string | null; documentNumber: string | null; n: number; sample?: AlertCellInput }
-  >();
+  // Turnos por persona en horario real (cruzan medianoche): cruces, descansos y horas.
+  type Shift = { cell: AlertCellInput; start: number; end: number };
+  const shiftsByAssociate = new Map<string, Shift[]>();
   for (const c of cells) {
-    if (!c.associateId || !isTwelveHourCode(c.codigo)) continue;
-    const cur = counts.get(c.associateId) ?? {
-      name: c.associateName,
-      documentNumber: c.documentNumber ?? null,
-      n: 0,
-    };
-    cur.n += 1;
-    if (c.associateName) cur.name = c.associateName;
-    if (c.documentNumber) cur.documentNumber = c.documentNumber;
-    if (!cur.sample) cur.sample = c;
-    counts.set(c.associateId, cur);
+    if (!c.associateId || isNovedad(c)) continue;
+    const h = SHIFT_HOURS[(c.codigo ?? '').toUpperCase()];
+    if (!h) continue;
+    const start = (c.day - 1) * 24 + h.start;
+    const list = shiftsByAssociate.get(c.associateId) ?? [];
+    list.push({ cell: c, start, end: start + h.hours });
+    shiftsByAssociate.set(c.associateId, list);
   }
-  for (const [associateId, { name, documentNumber, n, sample }] of counts) {
-    if (n <= 24) continue;
+
+  for (const [associateId, list] of shiftsByAssociate) {
+    list.sort((x, y) => x.start - y.start || x.end - y.end);
+    const overlaps = new Map<Shift, Shift[]>();
+    let latest: Shift | null = null;
+    for (let i = 0; i < list.length; i++) {
+      const cur = list[i];
+      for (let j = i + 1; j < list.length && list[j].start < cur.end; j++) {
+        overlaps.set(cur, [...(overlaps.get(cur) ?? []), list[j]]);
+        overlaps.set(list[j], [...(overlaps.get(list[j]) ?? []), cur]);
+      }
+      if (latest && cur.start >= latest.end) {
+        const gap = cur.start - latest.end;
+        if (gap < rules.descansoMinHoras) alerts.push(restAlert(month, latest, cur, gap, rules));
+      }
+      if (!latest || cur.end > latest.end) latest = cur;
+    }
+    for (const [s, others] of overlaps) alerts.push(conflictAlert(month, s, others));
+
+    const hours = list.reduce((sum, s) => sum + (s.end - s.start), 0);
+    if (hours <= rules.maxHorasMes) continue;
+    const sample = list.find((s) => s.cell.associateName)?.cell ?? list[0].cell;
     alerts.push({
       id: `carga_sobre_24:${month}:${associateId}`,
       type: 'carga_sobre_24',
-      severity: 'warning',
+      severity: 'error',
       month,
-      postId: sample?.postId ?? '',
-      postName: sample?.postName ?? '',
+      postId: sample.postId,
+      postName: sample.postName,
       associateId,
-      associateName: name ?? undefined,
-      documentNumber: documentNumber ?? undefined,
-      suggestedAction: 'Revise recargos y redistribuya turnos de 12 h con otro vigilante.',
-      message: `${personLabel({ associateName: name, documentNumber })}: ${n} turnos D/N (12 h) en el mes (tope orientativo 24).`,
+      associateName: sample.associateName ?? undefined,
+      documentNumber: sample.documentNumber ?? undefined,
+      reason: `${hours} h programadas; máximo ${rules.maxHorasMes} h`,
+      suggestedAction: `Quite ${hours - rules.maxHorasMes} h: pase turnos a un vigilante que esté bajo el mínimo o a un relevante.`,
+      message: `${personLabel(sample)}: ${hours} h programadas en el mes, sobre el máximo de ${rules.maxHorasMes} h (sobran ${hours - rules.maxHorasMes} h).`,
     });
   }
 
   return alerts;
+}
+
+function shiftSpan(codigo: string | null): string {
+  const c = (codigo ?? '').toUpperCase();
+  const h = SHIFT_HOURS[c];
+  if (!h) return c;
+  const hh = (n: number) => `${String(n % 24).padStart(2, '0')}:00`;
+  return `${c} (${hh(h.start)}–${hh(h.start + h.hours)})`;
+}
+
+function conflictAlert(
+  month: string,
+  s: { cell: AlertCellInput },
+  others: Array<{ cell: AlertCellInput }>,
+): ScheduleAlertItem {
+  const a = s.cell;
+  const b = others.find((o) => o.cell.postId !== a.postId)?.cell ?? others[0].cell;
+  const samePost = others.every((o) => o.cell.postId === a.postId);
+  const otherNames = [...new Set(others.map((o) => o.cell.postName))].join(', ');
+  const where = samePost
+    ? `dos veces en «${a.postName}» (roles ${[a.role, ...others.map((o) => o.cell.role)].join(', ')})`
+    : `a la vez en «${a.postName}» y en «${otherNames}»`;
+  return {
+    id: `conflicto_mismo_turno:${month}:${a.associateId}:${a.day}:${(a.codigo ?? '').toUpperCase()}:${a.postId}:${a.role}`,
+    type: 'conflicto_mismo_turno',
+    severity: 'error',
+    month,
+    day: a.day,
+    postId: a.postId,
+    postName: a.postName,
+    associateId: a.associateId!,
+    associateName: a.associateName ?? undefined,
+    documentNumber: a.documentNumber ?? undefined,
+    role: a.role,
+    shift: fringeOf(a.codigo) ?? undefined,
+    otherPostId: b.postId,
+    otherPostName: b.postName,
+    reason: 'turnos que se cruzan en horario',
+    suggestedAction:
+      'Déjelo en un solo puesto en ese horario; cubra el otro con otro vigilante o un relevo.',
+    message: `${personLabel(a)} está el ${weekdayLabel(month, a.day)} en ${shiftSpan(a.codigo)} ${where}. Una persona no puede cubrir dos turnos al mismo tiempo.`,
+  };
+}
+
+function restAlert(
+  month: string,
+  prev: { cell: AlertCellInput; start: number },
+  cur: { cell: AlertCellInput; end: number },
+  gap: number,
+  rules: SchedulingRules,
+): ScheduleAlertItem {
+  const p = prev.cell;
+  const c = cur.cell;
+  const from = `«${p.postName}» (${shiftSpan(p.codigo)}, ${weekdayLabel(month, p.day)})`;
+  const to = `«${c.postName}» (${shiftSpan(c.codigo)}, ${weekdayLabel(month, c.day)})`;
+  return {
+    id: `descanso_insuficiente:${month}:${c.associateId}:${c.day}:${c.postId}:${c.role}`,
+    type: 'descanso_insuficiente',
+    severity: 'error',
+    month,
+    day: c.day,
+    postId: c.postId,
+    postName: c.postName,
+    associateId: c.associateId!,
+    associateName: c.associateName ?? undefined,
+    documentNumber: c.documentNumber ?? undefined,
+    role: c.role,
+    shift: fringeOf(c.codigo) ?? undefined,
+    otherPostId: p.postId,
+    otherPostName: p.postName,
+    reason: gap === 0 ? 'turnos seguidos sin descanso' : `solo ${gap} h de descanso`,
+    suggestedAction: `Cambie uno de los dos turnos: entre turnos deben quedar al menos ${rules.descansoMinHoras} h de descanso.`,
+    message:
+      gap === 0
+        ? `${personLabel(c)} sale de ${from} y entra directo a ${to}: ${cur.end - prev.start} h seguidas sin descanso.`
+        : `${personLabel(c)} sale de ${from} y entra a ${to} con solo ${gap} h de descanso (mínimo ${rules.descansoMinHoras} h).`,
+  };
 }
 
 export function isActionableAlert(

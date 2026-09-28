@@ -150,47 +150,113 @@ describe('computeMonthlyAlerts', () => {
       ],
     });
     expect(alerts.filter((a) => a.type === 'conflicto_mismo_turno')).toHaveLength(0);
+    const rest = alerts.find((a) => a.type === 'descanso_insuficiente');
+    expect(rest?.postId).toBe('p2');
+    expect(rest?.otherPostId).toBe('p1');
+    expect(rest?.message).toMatch(/24 h seguidas/);
   });
 
-  it('carga_sobre_24 solo con D/N; D8 no suma', () => {
+  const cell = (
+    day: number,
+    codigo: string,
+    postId = 'p1',
+    role = 'v1',
+  ): Parameters<typeof computeMonthlyAlerts>[0]['cells'][number] => ({
+    postId,
+    postName: postId.toUpperCase(),
+    day,
+    role,
+    associateId: 'a1',
+    associateName: 'Ana',
+    associateStatus: 'ACTIVO',
+    codigo,
+  });
+
+  it('N un día y D al siguiente en otro puesto → sin descanso', () => {
+    const alerts = computeMonthlyAlerts({ ...base, cells: [cell(3, 'N'), cell(4, 'D', 'p2')] });
+    const rest = alerts.filter((a) => a.type === 'descanso_insuficiente');
+    expect(rest).toHaveLength(1);
+    expect(rest[0].day).toBe(4);
+  });
+
+  it('N (18–06) y N8 (22–06) mismo día se cruzan por horario real', () => {
+    const alerts = computeMonthlyAlerts({ ...base, cells: [cell(5, 'N'), cell(5, 'N8', 'p2')] });
+    expect(alerts.filter((a) => a.type === 'conflicto_mismo_turno')).toHaveLength(2);
+  });
+
+  it('misma persona en dos roles del mismo puesto que se cruzan es conflicto', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      cells: [cell(5, 'D', 'p1', 'titular_a'), cell(5, 'D8', 'p1', 'relevante')],
+    });
+    const c = alerts.filter((a) => a.type === 'conflicto_mismo_turno');
+    expect(c).toHaveLength(2);
+    expect(c[0].message).toMatch(/dos veces en «P1»/);
+  });
+
+  it('ciclo 12x3 (6D → 6N → 3 descansos) no genera alertas de descanso ni carga', () => {
     const cells = [];
-    for (let day = 1; day <= 24; day++) {
-      cells.push({
-        postId: 'p1',
-        postName: 'P1',
-        day,
-        role: 'v1',
-        associateId: 'a1',
-        associateName: 'Ana',
-        associateStatus: 'ACTIVO' as const,
-        codigo: 'D',
-      });
+    for (let day = 1; day <= 30; day++) {
+      const pos = (day - 1) % 15;
+      if (pos < 6) cells.push(cell(day, 'D'));
+      else if (pos < 12) cells.push(cell(day, 'N'));
     }
-    cells.push({
-      postId: 'p2',
-      postName: 'P2',
-      day: 25,
-      role: 'v1',
-      associateId: 'a1',
-      associateName: 'Ana',
-      associateStatus: 'ACTIVO' as const,
-      codigo: 'D',
-    });
-    cells.push({
-      postId: 'p2',
-      postName: 'P2',
-      day: 26,
-      role: 'v1',
-      associateId: 'a1',
-      associateName: 'Ana',
-      associateStatus: 'ACTIVO' as const,
-      codigo: 'D8',
-    });
+    const alerts = computeMonthlyAlerts({ ...base, cells });
+    expect(alerts.filter((a) => a.type === 'descanso_insuficiente')).toHaveLength(0);
+    expect(alerts.filter((a) => a.type === 'conflicto_mismo_turno')).toHaveLength(0);
+    expect(alerts.filter((a) => a.type === 'carga_sobre_24')).toHaveLength(0);
+  });
+
+  it('máximo de horas cuenta todos los códigos (D8 también suma)', () => {
+    const cells = [];
+    for (let day = 1; day <= 24; day++) cells.push(cell(day, 'D'));
+    const exact = computeMonthlyAlerts({ ...base, cells });
+    expect(exact.some((a) => a.type === 'carga_sobre_24')).toBe(false);
+
+    cells.push(cell(26, 'D8', 'p2'));
     const alerts = computeMonthlyAlerts({ ...base, cells });
     const carga = alerts.find((a) => a.type === 'carga_sobre_24' && a.associateId === 'a1');
-    expect(carga).toBeTruthy();
-    expect(carga?.severity).toBe('warning');
-    expect(carga?.message).toMatch(/25/);
+    expect(carga?.severity).toBe('error');
+    expect(carga?.message).toMatch(/296 h/);
+  });
+
+  it('respeta reglas configurables', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      cells: [cell(1, 'D'), cell(2, 'D')],
+      rules: { maxHorasMes: 20, descansoMinHoras: 13 },
+    });
+    expect(alerts.some((a) => a.type === 'carga_sobre_24')).toBe(true);
+    expect(alerts.some((a) => a.type === 'descanso_insuficiente')).toBe(true);
+  });
+
+  it('ausencia en RRHH: una alerta por persona y puesto con los días afectados', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      cells: [cell(9, 'D'), cell(10, 'D'), cell(11, 'IN'), cell(12, 'N'), cell(20, 'D')],
+      absences: [{ associateId: 'a1', fromDay: 10, toDay: 14, label: 'una incapacidad médica del 2026-08-10 al 2026-08-14' }],
+    });
+    const ab = alerts.filter((a) => a.type === 'ausencia_rrhh');
+    expect(ab).toHaveLength(1);
+    expect(ab[0].message).toMatch(/días 10, 12/);
+    expect(ab[0].day).toBe(12);
+    expect(ab[0].severity).toBe('error');
+  });
+
+  it('ausencia en RRHH sin turnos en esos días no alerta', () => {
+    const alerts = computeMonthlyAlerts({
+      ...base,
+      cells: [cell(9, 'D'), cell(15, 'D')],
+      absences: [{ associateId: 'a1', fromDay: 10, toDay: 14, label: 'x' }],
+    });
+    expect(alerts.some((a) => a.type === 'ausencia_rrhh')).toBe(false);
+  });
+
+  it('códigos de novedad de la UI (LC, SP, AC) alertan y no cubren', () => {
+    for (const codigo of ['LC', 'SP', 'AC']) {
+      const alerts = computeMonthlyAlerts({ ...base, daysInMonth: 1, cells: [cell(1, codigo)] });
+      expect(alerts.some((a) => a.type === 'asociado_inactivo')).toBe(true);
+    }
   });
 
   it('D9 cubre diurno (no hueco D ese día)', () => {

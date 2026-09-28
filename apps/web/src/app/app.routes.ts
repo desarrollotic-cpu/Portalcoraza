@@ -389,6 +389,15 @@ export const routes: Routes = [
                 (m) => m.ProgramacionAlertas,
               ),
           },
+          {
+            path: 'vigilantes',
+            canActivate: [permissionGuard],
+            data: { permission: 'scheduling.view' },
+            loadComponent: () =>
+              import('./features/programacion/estado-vigilantes/estado-vigilantes').then(
+                (m) => m.EstadoVigilantes,
+              ),
+          },
         ],
       },
       {

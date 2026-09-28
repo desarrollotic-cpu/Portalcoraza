@@ -115,7 +115,76 @@ export type ScheduleAlertType =
   | 'hueco_cobertura'
   | 'asociado_inactivo'
   | 'conflicto_mismo_turno'
-  | 'carga_sobre_24';
+  | 'descanso_insuficiente'
+  /** Horas del mes sobre el máximo (id histórico). */
+  | 'carga_sobre_24'
+  /** Solo al guardar: cambios en días ya trabajados. */
+  | 'edicion_dia_pasado'
+  /** Programado en días con ausencia registrada en RRHH. */
+  | 'ausencia_rrhh';
+
+export type AssociateLoadStatus =
+  | 'bajo_minimo'
+  | 'en_rango'
+  | 'sobre_maximo'
+  | 'sin_programar'
+  | 'con_novedad';
+
+export interface AssociateLoadRow {
+  associateId: string;
+  name: string;
+  documentNumber: string | null;
+  cargo: string | null;
+  puestos: string[];
+  rol: 'titular' | 'relevante' | 'mixto' | null;
+  turnos: number;
+  horas: number;
+  diasNovedad: number;
+  minimo: number;
+  maximo: number;
+  diferencia: number;
+  cumplimiento: number;
+  estado: AssociateLoadStatus;
+  ultimoTurno: string | null;
+  diasSinTurno: number | null;
+  /** Huecos del mes que podría cubrir sin cruces ni pasar el máximo. */
+  sugerencias: Array<{ postId: string; postName: string; day: number; shift: 'D' | 'N' }>;
+}
+
+export interface AssociatesStatusResponse {
+  year: number;
+  month: number;
+  rules: SchedulingRules;
+  kpis: {
+    vigilantesActivos: number;
+    programados: number;
+    sinProgramar: number;
+    bajoMinimo: number;
+    enRango: number;
+    sobreMaximo: number;
+    conNovedad: number;
+    sinUso: number;
+    horasProgramadas: number;
+    horasFaltantes: number;
+    huecosAbiertos: number;
+    huecosCubribles: number;
+  };
+  capacidad: {
+    puestosActivos: number;
+    puestosConCuadro: number;
+    rolesRequeridos: number;
+    vigilantesActivos: number;
+    diferencia: number;
+  };
+  relevantes: {
+    total: number;
+    unSoloPuesto: number;
+    horasPromedio: number;
+    bajoMinimo: number;
+    liberablesEstimado: number;
+  };
+  rows: AssociateLoadRow[];
+}
 
 export interface ScheduleAlertItem {
   id: string;
@@ -160,6 +229,16 @@ export interface MonthlyAlertsResponse {
   };
   alerts: ScheduleAlertItem[];
   huecoGroups?: HuecoGroup[];
+  /** Alertas ocultas porque alguien las descartó con motivo. */
+  dismissed?: number;
+}
+
+export interface SchedulingRules {
+  minHorasMes: number;
+  maxHorasMes: number;
+  descansoMinHoras: number;
+  novedadesReducenMinimo: boolean;
+  diasSinTurnoAlerta: number;
 }
 
 export interface BoardAlertsResponse {
@@ -229,6 +308,28 @@ export class MonthlySchedulingApiService {
     return this.http.get<ScheduleConflict[]>(`${this.baseUrl}/conflicts`, { params });
   }
 
+  getRules(): Observable<SchedulingRules> {
+    return this.http.get<SchedulingRules>(`${this.baseUrl}/settings`);
+  }
+
+  updateRules(rules: SchedulingRules): Observable<SchedulingRules> {
+    return this.http.put<SchedulingRules>(`${this.baseUrl}/settings`, rules);
+  }
+
+  dismissAlert(alertId: string, motivo: string): Observable<{ alertId: string; dismissed: boolean }> {
+    return this.http.post<{ alertId: string; dismissed: boolean }>(`${this.baseUrl}/alerts/dismiss`, {
+      alertId,
+      motivo,
+    });
+  }
+
+  getAssociatesStatus(year: number, month: number): Observable<AssociatesStatusResponse> {
+    const params = new HttpParams()
+      .set('year', String(year))
+      .set('month', String(month));
+    return this.http.get<AssociatesStatusResponse>(`${this.baseUrl}/associates-status`, { params });
+  }
+
   getAlerts(
     year: number,
     month: number,
@@ -261,8 +362,8 @@ export class MonthlySchedulingApiService {
     return this.http.put<MonthlySchedule>(`${this.baseUrl}/${id}`, payload);
   }
 
-  updateStatus(id: string, status: ScheduleStatus): Observable<MonthlySchedule> {
-    return this.http.patch<MonthlySchedule>(`${this.baseUrl}/${id}/status`, { status });
+  updateStatus(id: string, status: ScheduleStatus, justificacion?: string): Observable<MonthlySchedule> {
+    return this.http.patch<MonthlySchedule>(`${this.baseUrl}/${id}/status`, { status, justificacion });
   }
 
   generateMotor(
@@ -336,31 +437,17 @@ export class MonthlySchedulingApiService {
     fromMonth: number;
     postId: string;
     applied: Array<{ month: number; scheduleId: string }>;
+    skipped?: Array<{ month: number; motivo: string }>;
   }> {
     return this.http.post<{
       year: number;
       fromMonth: number;
       postId: string;
       applied: Array<{ month: number; scheduleId: string }>;
+      skipped?: Array<{ month: number; motivo: string }>;
     }>(`${this.baseUrl}/${scheduleId}/apply-rest-of-year`, {});
   }
 
-  poolDisponibles(): Observable<PoolDisponibleItem[]> {
-    return this.http.get<PoolDisponibleItem[]>(`${this.baseUrl}/pool-disponibles`);
-  }
-}
-
-export interface PoolDisponibleItem {
-  id: string;
-  firstName: string;
-  lastName: string;
-  documentNumber: string;
-  lastDay: number | null;
-  lastCodigo: string | null;
-  lastYear: number | null;
-  lastMonth: number | null;
-  lastPostId: string | null;
-  lastPostName: string | null;
 }
 
 export interface ScheduleTemplate {

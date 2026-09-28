@@ -13,7 +13,7 @@ import {
   MonthlySchedule,
   MonthlySchedulingApiService,
   PersonalRole,
-  PoolDisponibleItem,
+  AssociateLoadRow,
   SavePayload,
   ScheduleAlertItem,
   ScheduleAssignment,
@@ -42,6 +42,11 @@ interface CellState {
   inicio: string | null;
   fin: string | null;
 }
+
+/** Horas reales por código (igual que SHIFT_HOURS del API). */
+const SHIFT_HOURS: Record<string, number> = {
+  D: 12, D12: 12, N: 12, N12: 12, D8: 8, N8: 8, N10: 10, D9: 9, N9: 9, '24': 24, '24H': 24,
+};
 
 const CODES: CodeConfig[] = [
   { codigo: 'D', label: 'D — Diurno 12h (06–18)', jornada: 'normal', turno: 'AM', inicio: '06:00', fin: '18:00', cssClass: 'c-d' },
@@ -237,13 +242,13 @@ const CODES: CodeConfig[] = [
                 {{ boardSummary().huecos }} hueco{{ boardSummary().huecos === 1 ? '' : 's' }} de cobertura
               }
               @if (boardSummary().conflictos) {
-                · {{ boardSummary().conflictos }} conflicto{{ boardSummary().conflictos === 1 ? '' : 's' }} (misma persona / turno)
+                · {{ boardSummary().conflictos }} conflicto{{ boardSummary().conflictos === 1 ? '' : 's' }} (cruce de turnos o sin descanso)
               }
               @if (boardSummary().inactivos) {
                 · {{ boardSummary().inactivos }} no disponible{{ boardSummary().inactivos === 1 ? '' : 's' }}
               }
               @if (boardSummary().carga) {
-                · {{ boardSummary().carga }} con carga &gt;24 turnos
+                · {{ boardSummary().carga }} sobre el máximo de horas del mes
               }
               · columnas en rojo tienen alerta
             </span>
@@ -273,12 +278,12 @@ const CODES: CodeConfig[] = [
           }
         }
 
-        <!-- Pool de disponibles: vigilantes activos sin puesto titular fijo.
-             Ayuda al programador a saber quién está libre y dónde estuvo por última vez.
+        <!-- Disponibles: vigilantes activos sin turnos o bajo el mínimo de horas en este mes
+             (todos los puestos). Primero a quien más horas le faltan: son los primeros a programar.
              Se muestra también en modo lectura (Monitoreo) porque es información, no edición. -->
         <div class="disponibles-panel">
           <div class="disponibles-head">
-            <h3>Disponibles</h3>
+            <h3>Disponibles · les faltan horas este mes</h3>
             <div class="disponibles-actions">
               <span class="disponibles-count">{{ disponibles().length }}</span>
               <input
@@ -298,29 +303,27 @@ const CODES: CodeConfig[] = [
           } @else if (filteredDisponibles().length === 0) {
             <p class="disponibles-empty">
               @if (disponibles().length === 0) {
-                No hay disponibles. Un disponible es un vigilante activo que no aparece como titular en ninguna plantilla de puesto.
+                Todos los vigilantes activos tienen al menos el mínimo de horas este mes.
               } @else {
                 Sin coincidencias para «{{ disponiblesQuery() }}».
               }
             </p>
           } @else {
             <ul class="disponibles-list">
-              @for (d of filteredDisponibles(); track d.id) {
+              @for (d of filteredDisponibles(); track d.associateId) {
                 <li class="disponible-item">
                   <div class="disponible-info">
-                    <strong>{{ d.firstName }} {{ d.lastName }}</strong>
-                    <span class="disponible-cc">CC: {{ d.documentNumber }}</span>
+                    <strong>{{ d.name }}</strong>
+                    <span class="disponible-cc">CC: {{ d.documentNumber }}{{ d.cargo ? ' · ' + d.cargo : '' }}</span>
                   </div>
-                  <div class="disponible-ultimo" [class.no-ultimo]="!d.lastPostName">
-                    @if (d.lastPostName) {
-                      <span class="ultimo-tag">Último puesto</span>
-                      <span class="ultimo-post">{{ d.lastPostName }}</span>
-                      <span class="ultimo-detalle">
-                        {{ formatUltimoPeriodo(d) }} · día {{ d.lastDay }} ({{ d.lastCodigo }})
-                      </span>
-                    } @else {
-                      <span class="ultimo-tag">Sin programación previa</span>
-                    }
+                  <div class="disponible-ultimo" [class.no-ultimo]="!d.ultimoTurno">
+                    <span class="ultimo-tag">Faltan {{ d.minimo - d.horas }} h</span>
+                    <span class="ultimo-post">
+                      {{ d.horas }} de {{ d.minimo }} h{{ d.puestos.length ? ' · ' + d.puestos.join(', ') : ' · sin turnos este mes' }}
+                    </span>
+                    <span class="ultimo-detalle">
+                      {{ d.ultimoTurno ? 'Último turno: ' + d.ultimoTurno + ' (hace ' + d.diasSinTurno + ' d.)' : 'Nunca ha tenido turno' }}
+                    </span>
                   </div>
                 </li>
               }
@@ -427,6 +430,14 @@ const CODES: CodeConfig[] = [
                   <td class="sticky-col">
                     <div class="role-label">{{ role.displayName || role.rol }}</div>
                     <div class="role-titular">{{ titularName(role) }}</div>
+                    @if (role.associateId && associateMonthHours(role.associateId); as h) {
+                      <div
+                        class="role-hours role-hours--{{ h.estado }}"
+                        [title]="'Horas del mes en todos sus puestos (incluye cambios sin guardar). Mínimo ' + h.minimo + ' h, máximo ' + h.maximo + ' h.'"
+                      >
+                        {{ h.horas }} h · mín {{ h.minimo }}
+                      </div>
+                    }
                   </td>
                   @for (day of days(); track day) {
                     <td
@@ -879,6 +890,13 @@ const CODES: CodeConfig[] = [
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
     .role-label { font-weight: 600; }
     .role-titular { color: var(--coraza-text-muted); font-size: 0.7rem; }
+    .role-hours {
+      display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 999px;
+      font-size: 0.68rem; font-weight: 700; font-variant-numeric: tabular-nums;
+      background: #dcfce7; color: #166534;
+    }
+    .role-hours--bajo { background: #fef3c7; color: #92400e; }
+    .role-hours--sobre { background: #fee2e2; color: #991b1b; }
     .cell { cursor: pointer; user-select: none; font-weight: 600; }
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
     .cell.alert-error { outline: 1.5px dashed #dc2626; outline-offset: -2px; }
@@ -1322,17 +1340,22 @@ export class ScheduleBoard implements OnInit {
   // Se calcula en cada CD (barato: lee del signal currentUser del AuthService).
   readonly canEdit = computed(() => this.auth.hasPermission('scheduling.edit'));
   // Pool de disponibles (activos sin puesto titular fijo) + último puesto donde estuvieron.
-  readonly disponibles = signal<PoolDisponibleItem[]>([]);
+  readonly statusRows = signal<AssociateLoadRow[]>([]);
+  /** Activos sin turnos o bajo el mínimo del mes; primero a quien más horas le faltan. */
+  readonly disponibles = computed(() =>
+    this.statusRows()
+      .filter((r) => r.estado === 'sin_programar' || r.estado === 'bajo_minimo')
+      .sort((a, b) => a.diferencia - b.diferencia),
+  );
   readonly disponiblesQuery = signal('');
   readonly loadingDisponibles = signal(false);
   readonly filteredDisponibles = computed(() => {
     const q = this.disponiblesQuery().trim().toLowerCase();
     const list = this.disponibles();
     if (!q) return list;
-    return list.filter((d) => {
-      const nombre = `${d.firstName} ${d.lastName}`.toLowerCase();
-      return nombre.includes(q) || (d.documentNumber || '').toLowerCase().includes(q);
-    });
+    return list.filter(
+      (d) => d.name.toLowerCase().includes(q) || (d.documentNumber || '').toLowerCase().includes(q),
+    );
   });
   readonly postTemplates = computed(() => {
     const pid = this.postId;
@@ -1546,26 +1569,21 @@ export class ScheduleBoard implements OnInit {
     }
   }
 
+  /** Estado de Vigilantes del mes visible: alimenta "Disponibles" y las horas por titular. */
   loadDisponibles(): void {
+    const [year, mon] = this.month.split('-').map(Number);
+    if (!year || !mon) return;
     this.loadingDisponibles.set(true);
-    this.api.poolDisponibles().subscribe({
-      next: (rows) => {
-        this.disponibles.set(rows);
+    this.api.getAssociatesStatus(year, mon).subscribe({
+      next: (res) => {
+        this.statusRows.set(res.rows);
         this.loadingDisponibles.set(false);
       },
       error: () => {
+        this.statusRows.set([]);
         this.loadingDisponibles.set(false);
       },
     });
-  }
-
-  formatUltimoPeriodo(d: PoolDisponibleItem): string {
-    if (!d.lastYear || !d.lastMonth) return '—';
-    const meses = [
-      'ene', 'feb', 'mar', 'abr', 'may', 'jun',
-      'jul', 'ago', 'sep', 'oct', 'nov', 'dic',
-    ];
-    return `${meses[(d.lastMonth ?? 1) - 1]} ${d.lastYear}`;
   }
 
   holidayName(day: number): string | null {
@@ -1620,12 +1638,47 @@ export class ScheduleBoard implements OnInit {
   }
 
   private reloadBoardAlerts(year: number, mon: number): void {
+    this.loadDisponibles();
     if (!this.postId) return;
     this.alertDetailsOpen.set(false);
     this.api.getBoardAlerts(this.postId, year, mon).subscribe({
       next: (res) => this.boardAlerts.set(res),
       error: () => this.boardAlerts.set(null),
     });
+  }
+
+  /** Horas del mes por asociado en TODOS los puestos (servidor, según lo guardado). */
+  readonly monthHours = computed(
+    () => new Map(this.statusRows().map((r) => [r.associateId, { horas: r.horas, minimo: r.minimo, maximo: r.maximo }])),
+  );
+
+  /** Horas de este puesto por asociado: lo guardado y lo que hay en pantalla. */
+  private readonly postHours = computed(() => {
+    const sum = (rows: Iterable<{ associateId: string | null; codigo: string | null }>) => {
+      const m = new Map<string, number>();
+      for (const r of rows) {
+        const h = SHIFT_HOURS[(r.codigo ?? '').toUpperCase()];
+        if (!r.associateId || !h) continue;
+        m.set(r.associateId, (m.get(r.associateId) ?? 0) + h);
+      }
+      return m;
+    };
+    return {
+      saved: sum(this.schedule()?.assignments ?? []),
+      local: sum(this.cells().values()),
+    };
+  });
+
+  /** Horas del mes del asociado sumando otros puestos + este puesto con los cambios sin guardar. */
+  associateMonthHours(
+    associateId: string,
+  ): { horas: number; minimo: number; maximo: number; estado: 'bajo' | 'ok' | 'sobre' } | null {
+    const server = this.monthHours().get(associateId);
+    if (!server) return null;
+    const { saved, local } = this.postHours();
+    const horas = server.horas - (saved.get(associateId) ?? 0) + (local.get(associateId) ?? 0);
+    const estado = horas > server.maximo ? 'sobre' : horas < server.minimo ? 'bajo' : 'ok';
+    return { ...server, horas, estado };
   }
 
   toggleAlertDetails(): void {
@@ -1636,7 +1689,9 @@ export class ScheduleBoard implements OnInit {
     if (type === 'hueco_cobertura') return 'Hueco';
     if (type === 'asociado_inactivo') return 'No disponible';
     if (type === 'conflicto_mismo_turno') return 'Conflicto';
-    if (type === 'carga_sobre_24') return 'Carga >24';
+    if (type === 'descanso_insuficiente') return 'Sin descanso';
+    if (type === 'ausencia_rrhh') return 'Ausencia en RRHH';
+    if (type === 'carga_sobre_24') return 'Sobre máximo de horas';
     return type;
   }
 
@@ -1903,6 +1958,12 @@ export class ScheduleBoard implements OnInit {
           this.motorOk.set(
             `Cuadro copiado a ${res.applied.length} mes(es) de este puesto: ${listed}.`,
           );
+          if (res.skipped?.length) {
+            this.error.set(
+              `No se copió a ${res.skipped.map((s) => names[s.month - 1]).join(', ')}: ` +
+                `el personal choca con otros puestos (cruces o sin descanso). ${res.skipped[0].motivo}`,
+            );
+          }
         },
         error: (err: HttpErrorResponse) => {
           this.saving.set(false);
@@ -1990,6 +2051,24 @@ export class ScheduleBoard implements OnInit {
           } | null;
           const warnBody =
             body && typeof body.message === 'object' && body.message ? body.message : body;
+          if (err.status === 409 && warnBody?.code === 'SCHEDULING_BLOCKED') {
+            const warnings = warnBody.warnings ?? body?.warnings ?? [];
+            this.confirmAction = () => this.onConfirmCancel();
+            this.confirmTitle.set('No se puede guardar');
+            this.confirmLabel.set('Entendido, voy a corregir');
+            this.confirmMessage.set(
+              (typeof warnBody.message === 'string' ? warnBody.message : null) ??
+                'Hay cruces de turno o personal no disponible.',
+            );
+            this.confirmDetail.set(
+              warnings
+                .slice(0, 8)
+                .map((w) => [w.message, w.suggestedAction ? `Qué hacer: ${w.suggestedAction}` : ''].filter(Boolean).join('\n'))
+                .join('\n\n') + (warnings.length > 8 ? `\n\n…y ${warnings.length - 8} más.` : '') || null,
+            );
+            this.confirmOpen.set(true);
+            return;
+          }
           if (err.status === 409 && warnBody?.code === 'SCHEDULING_WARNINGS') {
             const warnings = warnBody.warnings ?? body?.warnings ?? [];
             const msgs = warnings
@@ -2021,18 +2100,65 @@ export class ScheduleBoard implements OnInit {
       });
   }
 
-  setStatus(status: 'borrador' | 'publicado'): void {
+  setStatus(status: 'borrador' | 'publicado', justificacion?: string): void {
     const sched = this.schedule();
     if (!sched) return;
     this.saving.set(true);
-    this.api.updateStatus(sched.id, status).subscribe({
+    this.api.updateStatus(sched.id, status, justificacion).subscribe({
       next: (updated) => {
         this.applySchedule(updated);
         this.saving.set(false);
+        this.confirmOpen.set(false);
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.saving.set(false);
-        this.error.set('No se pudo cambiar el estado');
+        const body = err.error as {
+          code?: string;
+          message?: string;
+          canForce?: boolean;
+          warnings?: ScheduleAlertItem[];
+        } | null;
+        if (err.status !== 409 || body?.code !== 'PUBLISH_BLOCKED') {
+          this.error.set('No se pudo cambiar el estado');
+          return;
+        }
+        const w = body.warnings ?? [];
+        const huecos = w.filter((a) => a.type === 'hueco_cobertura').length;
+        const cruces = w.filter(
+          (a) => a.type === 'conflicto_mismo_turno' || a.type === 'descanso_insuficiente',
+        ).length;
+        const noDisp = w.filter((a) => a.type === 'asociado_inactivo').length;
+        this.confirmTitle.set('El cuadro tiene errores');
+        this.confirmMessage.set(body.message ?? 'No se puede publicar con errores.');
+        this.confirmDetail.set(
+          [
+            huecos ? `• ${huecos} turno(s) sin cubrir` : '',
+            cruces ? `• ${cruces} cruce(s) de turno o turnos sin descanso` : '',
+            noDisp ? `• ${noDisp} turno(s) con personal no disponible` : '',
+            '',
+            ...w.slice(0, 5).map((a) => a.message),
+          ]
+            .filter((l, i) => l || i === 3)
+            .join('\n'),
+        );
+        if (body.canForce) {
+          this.confirmLabel.set('Publicar con justificación');
+          this.confirmAction = () => {
+            const motivo = window.prompt('Motivo para publicar con errores (queda registrado):', '');
+            if (motivo && motivo.trim().length >= 10) {
+              this.setStatus('publicado', motivo.trim());
+            } else if (motivo !== null) {
+              this.error.set('El motivo debe tener al menos 10 caracteres.');
+              this.confirmOpen.set(false);
+            } else {
+              this.confirmOpen.set(false);
+            }
+          };
+        } else {
+          this.confirmLabel.set('Entendido, voy a corregir');
+          this.confirmAction = () => this.onConfirmCancel();
+        }
+        this.confirmOpen.set(true);
       },
     });
   }
@@ -2479,11 +2605,23 @@ export class ScheduleBoard implements OnInit {
 
     const placements = this.boardAlerts()?.placements ?? [];
     for (const p of placements) {
-      if (p.associateId !== associateId || p.day !== day || p.shift !== fringe) continue;
-      if (p.postId === this.postId) continue;
-      msgs.push(
-        `Este asociado está programado en el mismo turno y día en el puesto ${p.postName}.`,
-      );
+      if (p.associateId !== associateId || p.postId === this.postId) continue;
+      if (p.day === day && p.shift === fringe) {
+        msgs.push(
+          `Este asociado está programado en el mismo turno y día en el puesto ${p.postName}.`,
+        );
+        continue;
+      }
+      // Turnos pegados: D y N el mismo día, o N que termina a las 06 y D que empieza a las 06.
+      const pegado =
+        (p.day === day && p.shift !== fringe) ||
+        (fringe === 'D' && p.shift === 'N' && p.day === day - 1) ||
+        (fringe === 'N' && p.shift === 'D' && p.day === day + 1);
+      if (pegado) {
+        msgs.push(
+          `Quedaría sin descanso: tiene turno ${p.shift} el día ${p.day} en el puesto ${p.postName} pegado a este.`,
+        );
+      }
     }
 
     return [...new Set(msgs)];
@@ -2556,16 +2694,14 @@ export class ScheduleBoard implements OnInit {
 
     if (!state?.associateId) return base;
 
-    // Solo marcar alerta si este guardia específico tiene un cruce de turno en otro puesto
-    const placements = this.boardAlerts()?.placements ?? [];
-    const fringe =
-      codigo === 'D' || codigo === 'D8' || codigo === 'D9' || codigo === 'D12'
-        ? 'D'
-        : codigo === 'N' || codigo === 'N8' || codigo === 'N9' || codigo === 'N10' || codigo === 'N12'
-          ? 'N'
-          : null;
-    const hasConflict = placements.some(
-      (p) => p.associateId === state.associateId && p.day === day && p.postId !== this.postId && (!fringe || p.shift === fringe)
+    // Marcar la celda si la API detectó cruce de horario o falta de descanso para este guardia aquí.
+    const hasConflict = (this.boardAlerts()?.alerts ?? []).some(
+      (a) =>
+        (a.type === 'conflicto_mismo_turno' || a.type === 'descanso_insuficiente') &&
+        a.associateId === state.associateId &&
+        a.postId === this.postId &&
+        a.day === day &&
+        a.role === role,
     );
 
     if (hasConflict) return `${base} alert-error`;

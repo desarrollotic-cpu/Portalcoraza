@@ -9,6 +9,7 @@ import {
   IsString,
   IsUUID,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
   ValidateNested,
@@ -175,9 +176,55 @@ export class BoardAlertsQueryDto {
   month!: number;
 }
 
+/** Reglas del cuadro por tenant (solo GERENCIA/ADMIN). */
+export class UpdateSchedulingRulesDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(400)
+  minHorasMes!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(744)
+  maxHorasMes!: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(48)
+  descansoMinHoras!: number;
+
+  @IsBoolean()
+  novedadesReducenMinimo!: boolean;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  diasSinTurnoAlerta!: number;
+}
+
+export class DismissAlertDto {
+  @IsString()
+  @MaxLength(300)
+  alertId!: string;
+
+  @IsString()
+  @MaxLength(500)
+  motivo!: string;
+}
+
 export class UpdateScheduleStatusDto {
   @IsEnum(ScheduleStatus)
   status!: ScheduleStatus;
+
+  /** Publicar con errores: solo GERENCIA/ADMIN y con motivo escrito (queda en auditoría). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  justificacion?: string;
 }
 
 export class GenerateMotorDto {

@@ -11,7 +11,9 @@ import {
   LucideUsers,
 } from '@lucide/angular';
 import { Icon } from '../../../shared/components/icon/icon';
+import { AuthService } from '../../../core/services/auth.service';
 import {
+  AssociatesStatusResponse,
   MonthlyAlertsResponse,
   MonthlySchedulingApiService,
   ScheduleAlertItem,
@@ -20,11 +22,11 @@ import {
 
 type TabKey = 'huecos' | 'inactivos' | 'conflictos' | 'carga';
 
-const TAB_TYPE: Record<TabKey, ScheduleAlertType> = {
-  huecos: 'hueco_cobertura',
-  inactivos: 'asociado_inactivo',
-  conflictos: 'conflicto_mismo_turno',
-  carga: 'carga_sobre_24',
+const TAB_TYPES: Record<TabKey, ScheduleAlertType[]> = {
+  huecos: ['hueco_cobertura'],
+  inactivos: ['asociado_inactivo', 'ausencia_rrhh'],
+  conflictos: ['conflicto_mismo_turno', 'descanso_insuficiente'],
+  carga: ['carga_sobre_24'],
 };
 
 const PAGE_SIZE = 12;
@@ -52,6 +54,19 @@ const PAGE_SIZE = 12;
         <p class="alerts__error" role="alert">{{ error() }}</p>
       }
 
+      @if (horas(); as h) {
+        @if (h.bajoMinimo || h.sinProgramar) {
+          <a class="horas" routerLink="/programacion/vigilantes">
+            <span>
+              <strong>Horas del personal:</strong>
+              {{ h.bajoMinimo }} vigilante{{ h.bajoMinimo === 1 ? '' : 's' }} bajo el mínimo
+              (faltan {{ h.horasFaltantes }} h) y {{ h.sinProgramar }} activo{{ h.sinProgramar === 1 ? '' : 's' }} sin ningún turno este mes.
+            </span>
+            <span class="horas__go">Ver Estado de Vigilantes <app-icon [icon]="icons.Arrow" [size]="16" /></span>
+          </a>
+        }
+      }
+
       <div class="alerts__kpis" role="tablist" aria-label="Tipo de alerta">
         @for (t of tabs; track t.key) {
           <button
@@ -59,8 +74,7 @@ const PAGE_SIZE = 12;
             class="kpi"
             role="tab"
             [class.kpi--on]="tab() === t.key"
-            [class.kpi--hot]="count(t.key) > 0 && t.key !== 'carga'"
-            [class.kpi--warn]="t.key === 'carga' && count(t.key) > 0"
+            [class.kpi--hot]="count(t.key) > 0"
             [attr.aria-selected]="tab() === t.key"
             (click)="selectTab(t.key)"
           >
@@ -80,16 +94,21 @@ const PAGE_SIZE = 12;
             Puestos activos sin gente. Los de 8h (D8/N8) solo avisan la franja que usan; los sin cuadro salen una vez, no como 60 huecos.
           }
           @case ('inactivos') {
-            Alguien ya programado que quedó inactivo, de vacaciones o en incapacidad.
+            Alguien ya programado que quedó inactivo, de vacaciones o en incapacidad, o que tiene una ausencia registrada en RRHH (Ausentismo) en esos días.
           }
           @case ('conflictos') {
-            La misma persona en dos puestos el mismo día y el mismo horario.
+            La misma persona con turnos que se cruzan en horario, o que sale de un turno y entra a otro sin el descanso mínimo (p. ej. D en un puesto y N en otro el mismo día).
           }
           @default {
-            Personas con más de 24 turnos de 12 horas en el mes.
+            Personas con más horas programadas en el mes que el máximo permitido (suma de todos sus puestos y todos los códigos).
           }
         }
       </p>
+      @if (data()?.dismissed) {
+        <p class="dismissed-note">
+          {{ data()?.dismissed }} alerta(s) ocultas porque alguien las marcó como revisadas (el motivo queda en auditoría).
+        </p>
+      }
 
       @if (!loading() && tab() === 'huecos') {
         <div class="alerts__tools">
@@ -254,6 +273,36 @@ const PAGE_SIZE = 12;
                   Abrir {{ a.postName || 'el cuadro' }}
                   <app-icon [icon]="icons.Arrow" [size]="16" />
                 </a>
+                @if (canDismiss) {
+                  @if (dismissingId() === a.id) {
+                    <div class="dismiss">
+                      <label [for]="'motivo-' + a.id">¿Por qué no aplica? (queda registrado)</label>
+                      <textarea
+                        [id]="'motivo-' + a.id"
+                        rows="2"
+                        maxlength="500"
+                        placeholder="Ej. Acordado con el cliente: ese día el puesto no opera."
+                        [ngModel]="motivo()"
+                        (ngModelChange)="motivo.set($event)"
+                      ></textarea>
+                      <div class="dismiss__actions">
+                        <button type="button" (click)="dismissingId.set(null)">Cancelar</button>
+                        <button
+                          type="button"
+                          class="dismiss__ok"
+                          [disabled]="motivo().trim().length < 5 || dismissBusy()"
+                          (click)="confirmDismiss(a)"
+                        >
+                          {{ dismissBusy() ? 'Guardando…' : 'Marcar como revisada' }}
+                        </button>
+                      </div>
+                    </div>
+                  } @else {
+                    <button type="button" class="link-btn" (click)="startDismiss(a)">
+                      Ya la revisé, no aplica
+                    </button>
+                  }
+                }
               </li>
             }
           </ul>
@@ -278,6 +327,33 @@ const PAGE_SIZE = 12;
       border-radius: 10px; background: var(--coraza-surface); color: inherit; font: inherit;
     }
     .alerts__error { margin: 0; color: var(--coraza-error, #b91c1c); font-weight: 600; }
+    .link-btn {
+      align-self: flex-start; min-height: 40px; padding: 0.35rem 0; cursor: pointer; font: inherit; font-size: 0.85rem;
+      border: 0; background: none; color: var(--text-secondary); text-decoration: underline;
+    }
+    .link-btn:focus-visible { outline: 2px solid var(--coraza-primary, #1d4ed8); outline-offset: 2px; }
+    .dismiss { display: grid; gap: 0.4rem; font-size: 0.85rem; }
+    .dismiss label { font-weight: 600; }
+    .dismiss textarea {
+      padding: 0.45rem 0.6rem; border: 1px solid var(--coraza-border); border-radius: 10px;
+      background: var(--coraza-surface); color: inherit; font: inherit; resize: vertical;
+    }
+    .dismiss__actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+    .dismiss__actions button {
+      min-height: 40px; padding: 0.35rem 0.8rem; border-radius: 10px; cursor: pointer; font: inherit;
+      border: 1px solid var(--coraza-border); background: var(--coraza-surface); color: inherit;
+    }
+    .dismiss__actions .dismiss__ok { background: #334155; border-color: #334155; color: #fff; font-weight: 700; }
+    .dismiss__actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .dismissed-note { margin: 0; font-size: 0.8rem; color: var(--text-muted, var(--text-secondary)); }
+    .horas {
+      display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between;
+      padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid #f59e0b; border-left-width: 4px;
+      background: color-mix(in srgb, #f59e0b 10%, var(--coraza-surface)); color: inherit;
+      text-decoration: none; font-size: 0.92rem; line-height: 1.45;
+    }
+    .horas:focus-visible { outline: 3px solid var(--coraza-primary, #1d4ed8); outline-offset: 2px; }
+    .horas__go { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 700; color: var(--coraza-primary, #1d4ed8); }
     .alerts__kpis {
       display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem;
     }
@@ -299,7 +375,6 @@ const PAGE_SIZE = 12;
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--coraza-primary, #1d4ed8) 22%, transparent);
     }
     .kpi--hot .kpi__value { color: #b91c1c; }
-    .kpi--warn .kpi__value { color: #b45309; }
     .kpi__icon { color: var(--text-secondary); }
     .kpi__label { font-size: 0.8rem; font-weight: 700; }
     .kpi__value { font-size: 1.6rem; line-height: 1.1; }
@@ -417,13 +492,13 @@ export class ProgramacionAlertas implements OnInit {
     {
       key: 'conflictos',
       label: 'Doble puesto',
-      hint: 'Misma hora, dos sitios',
+      hint: 'Cruce o sin descanso',
       icon: LucideUsers,
     },
     {
       key: 'carga',
-      label: 'Carga alta',
-      hint: 'Más de 24 turnos 12 h',
+      label: 'Sobre el máximo',
+      hint: 'Más horas de las permitidas',
       icon: LucideCalendarClock,
     },
   ];
@@ -431,6 +506,50 @@ export class ProgramacionAlertas implements OnInit {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly data = signal<MonthlyAlertsResponse | null>(null);
+  /** Resumen de horas del personal (Estado de Vigilantes) para el mes elegido. */
+  readonly horas = signal<AssociatesStatusResponse['kpis'] | null>(null);
+
+  readonly canDismiss = inject(AuthService).hasPermission('scheduling.edit');
+  readonly dismissingId = signal<string | null>(null);
+  readonly motivo = signal('');
+  readonly dismissBusy = signal(false);
+
+  startDismiss(a: ScheduleAlertItem): void {
+    this.motivo.set('');
+    this.dismissingId.set(a.id);
+  }
+
+  confirmDismiss(a: ScheduleAlertItem): void {
+    const motivo = this.motivo().trim();
+    if (motivo.length < 5) return;
+    this.dismissBusy.set(true);
+    this.api.dismissAlert(a.id, motivo).subscribe({
+      next: () => {
+        this.dismissBusy.set(false);
+        this.dismissingId.set(null);
+        const key: keyof MonthlyAlertsResponse['totals'] =
+          a.type === 'asociado_inactivo' || a.type === 'ausencia_rrhh'
+            ? 'inactivos'
+            : a.type === 'carga_sobre_24'
+              ? 'carga'
+              : 'conflictos';
+        this.data.update((d) =>
+          d
+            ? {
+                ...d,
+                alerts: d.alerts.filter((x) => x.id !== a.id),
+                totals: { ...d.totals, [key]: Math.max(0, d.totals[key] - 1) },
+                dismissed: (d.dismissed ?? 0) + 1,
+              }
+            : d,
+        );
+      },
+      error: (err: { error?: { message?: string } }) => {
+        this.dismissBusy.set(false);
+        this.error.set(err.error?.message ?? 'No se pudo marcar la alerta como revisada.');
+      },
+    });
+  }
   readonly tab = signal<TabKey>('huecos');
   readonly page = signal(1);
   readonly postQuery = signal('');
@@ -441,8 +560,8 @@ export class ProgramacionAlertas implements OnInit {
   private month = new Date().getMonth() + 1;
 
   readonly filtered = computed(() => {
-    const type = TAB_TYPE[this.tab()];
-    return (this.data()?.alerts ?? []).filter((a) => a.type === type);
+    const types = TAB_TYPES[this.tab()];
+    return (this.data()?.alerts ?? []).filter((a) => types.includes(a.type));
   });
 
   readonly allHuecoGroups = computed(() => this.data()?.huecoGroups ?? []);
@@ -521,7 +640,9 @@ export class ProgramacionAlertas implements OnInit {
     if (type === 'hueco_cobertura') return 'Puesto vacío';
     if (type === 'asociado_inactivo') return 'No disponible';
     if (type === 'conflicto_mismo_turno') return 'Doble puesto';
-    return 'Carga alta';
+    if (type === 'descanso_insuficiente') return 'Sin descanso';
+    if (type === 'ausencia_rrhh') return 'Ausencia en RRHH';
+    return 'Sobre el máximo';
   }
 
   personTitle(a: ScheduleAlertItem): string {
@@ -572,6 +693,11 @@ export class ProgramacionAlertas implements OnInit {
   private reload(): void {
     this.loading.set(true);
     this.error.set(null);
+    this.horas.set(null);
+    this.api.getAssociatesStatus(this.year, this.month).subscribe({
+      next: (res) => this.horas.set(res.kpis),
+      error: () => this.horas.set(null),
+    });
     this.api.getAlerts(this.year, this.month, 'auto').subscribe({
       next: (res) => {
         this.data.set(res);
