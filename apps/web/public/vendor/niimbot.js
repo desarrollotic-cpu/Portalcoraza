@@ -897,6 +897,8 @@
 
   async function beginJob(model, totalPages, onProgress, density) {
     onProgress && onProgress("configuring…");
+    // Protocol-3 B1: without this arming, setup acks but PageEnd never gets 0xE4.
+    if (isB1(model)) await b1Handshake();
     await sendWait(0x21, [density], 0x31, 1000);                             // SetDensity
     await sendWait(0x23, [model.label_type], 0x33, 1000);                   // SetLabelType
     const n = Math.max(1, totalPages | 0);
@@ -928,10 +930,16 @@
 
     onProgress && onProgress("sending image…");
     await sendImage(buf, H, stride);                                         // shared total-mode 0x84/0x85 encoder
+    await sleep(80);   // Windows BLE: leave the last 0x84/0x85 in the radio before PageEnd
     // RETURN whether PageEnd was acknowledged. Discarding this is how a page that the
     // printer never confirmed still got logged as "buffered (PageEnd acked)", directly
     // under the ⚠ warning saying it had not been.
-    const pageEnd = await sendWait(0xe3, [0x01], 0xe4, 3000);                // PageEnd (0xE3)
+    let pageEnd = await sendWait(0xe3, [0x01], 0xe4, 8000);                // PageEnd (0xE3)
+    if (!pageEnd) {
+      logMsg("PageEnd unacked — retrying once");
+      await sleep(200);
+      pageEnd = await sendWait(0xe3, [0x01], 0xe4, 8000);
+    }
     return pageEnd != null;
   }
 

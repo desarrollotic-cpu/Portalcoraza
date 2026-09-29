@@ -46,6 +46,9 @@ interface NiimbotApi {
   identify: (model: NiimbotPrintOpts['model']) => Promise<unknown>;
   printImage: (url: string, opts: NiimbotPrintOpts) => Promise<void>;
   printBatch: (urls: string[], opts: NiimbotPrintOpts) => Promise<void>;
+  disconnect?: () => Promise<void>;
+  FORCE_PACING?: boolean;
+  BUNDLE_MAX?: number;
 }
 
 declare global {
@@ -402,6 +405,9 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
 
   reusePairedB1();
   showStatus('Imprimiendo…');
+  // Windows BLE: B1 protocol-3 drops PageEnd if rows burst without a gap.
+  api.FORCE_PACING = true;
+  api.BUNDLE_MAX = 0;
   // requestDevice debe arrancar en el mismo clic (sin await antes).
   const paired = api.identify(B1_MODEL);
   const urls: string[] = [];
@@ -423,8 +429,15 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
     const cancelled = /cancel|choos/i.test(raw);
-    showStatus(cancelled ? 'Impresión cancelada' : `No se pudo imprimir: ${raw}`);
-    setTimeout(hideStatus, cancelled ? 1600 : 6000);
+    const pageEnd = /PageEnd|print not confirmed/i.test(raw);
+    if (pageEnd) void api.disconnect?.();
+    const msg = cancelled
+      ? 'Impresión cancelada'
+      : pageEnd
+        ? 'La B1 no confirmó la etiqueta. Revisa si salió (a veces imprime igual). Tapa cerrada, rollo 50×30 mm, apaga/prende la impresora y vuelve a pulsar Rótulo.'
+        : `No se pudo imprimir: ${raw}`;
+    showStatus(msg);
+    setTimeout(hideStatus, cancelled ? 1600 : 8000);
   } finally {
     urls.forEach((u) => URL.revokeObjectURL(u));
   }
