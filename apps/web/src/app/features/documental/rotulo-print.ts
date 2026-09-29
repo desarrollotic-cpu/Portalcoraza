@@ -49,6 +49,7 @@ interface NiimbotApi {
   disconnect?: () => Promise<void>;
   FORCE_PACING?: boolean;
   BUNDLE_MAX?: number;
+  PACE_MS?: number;
 }
 
 declare global {
@@ -408,6 +409,7 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
   // Windows BLE: B1 protocol-3 drops PageEnd if rows burst without a gap.
   api.FORCE_PACING = true;
   api.BUNDLE_MAX = 0;
+  api.PACE_MS = 12;
   // requestDevice debe arrancar en el mismo clic (sin await antes).
   const paired = api.identify(B1_MODEL);
   const urls: string[] = [];

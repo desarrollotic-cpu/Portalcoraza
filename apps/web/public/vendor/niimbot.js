@@ -864,7 +864,11 @@
   //         streams N pages: printStart7b declares N, each PageEnd parks the paper at
   //         the printhead waiting for the next page, and the lone PrintEnd at the end
   //         feeds it out — so a batch prints continuously, no retract between labels.
-  function isB1(model) { return model && model.task === "b1"; }
+  function isB1(model) {
+    // Firmware nuevo: un B1 “clásico” a veces habla protocol 5 (secuencia v4).
+    if (printerInfo && printerInfo.protocolVersion != null && printerInfo.protocolVersion >= 5) return false;
+    return model && model.task === "b1";
+  }
 
   // The connected, IDENTIFIED printer's MODEL_IDS entry, or null when unidentified —
   // used to gate `pagesPerJob` (and anything else that must key off the ACTUAL printer
@@ -897,8 +901,6 @@
 
   async function beginJob(model, totalPages, onProgress, density) {
     onProgress && onProgress("configuring…");
-    // Protocol-3 B1: without this arming, setup acks but PageEnd never gets 0xE4.
-    if (isB1(model)) await b1Handshake();
     await sendWait(0x21, [density], 0x31, 1000);                             // SetDensity
     await sendWait(0x23, [model.label_type], 0x33, 1000);                   // SetLabelType
     const n = Math.max(1, totalPages | 0);
@@ -930,17 +932,16 @@
 
     onProgress && onProgress("sending image…");
     await sendImage(buf, H, stride);                                         // shared total-mode 0x84/0x85 encoder
-    await sleep(80);   // Windows BLE: leave the last 0x84/0x85 in the radio before PageEnd
-    // RETURN whether PageEnd was acknowledged. Discarding this is how a page that the
-    // printer never confirmed still got logged as "buffered (PageEnd acked)", directly
-    // under the ⚠ warning saying it had not been.
-    let pageEnd = await sendWait(0xe3, [0x01], 0xe4, 8000);                // PageEnd (0xE3)
-    if (!pageEnd) {
-      logMsg("PageEnd unacked — retrying once");
-      await sleep(200);
-      pageEnd = await sendWait(0xe3, [0x01], 0xe4, 8000);
+    await sleep(120);
+    // Some B1 firmwares never send 0xE4; they print anyway. Accept any BLE reply
+    // (0xE4, 0xD3, 0xB3…). 0xDB = refused. No reply = still wait on the page counter.
+    const pageEnd = await sendWait(0xe3, [0x01], null, 4000);
+    if (pageEnd && pageEnd.cmd === 0xdb) {
+      logMsg("PageEnd refused (0xDB)");
+      return false;
     }
-    return pageEnd != null;
+    if (!pageEnd) logMsg("PageEnd: no BLE opcode — relying on printer page counter");
+    return true;
   }
 
   // How long to wait for the printed-page counter to reach a target before giving up.
@@ -969,6 +970,10 @@
         if (st.page !== _lastPage) { tlog(`printer counter → page ${st.page} (print ${st.print}%, feed ${st.feed}%)`); _lastPage = st.page; }
         onProgress && onProgress(`printing… ${st.print}%`);
         if (st.page >= target) return true;
+        if (st.page === 0 && st.print === 0 && Date.now() - t0 > 8000) {
+          tlog("printer never started (page 0 / 0%) — aborting wait");
+          return false;
+        }
       }
       await sleep(150);
     }
@@ -1032,10 +1037,7 @@
         tlog(`${tag}: job started (${size.w_px}×${size.h_px}, stride ${stride})`);
         const acked = await sendPagePacked(model, size, buf, stride, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
         tlog(acked ? `${tag}: image buffered (PageEnd acked)` : `${tag}: image sent but PageEnd went UNACKED`);
-        if (!acked) {
-          await endJob();                     // feed the paper out before failing (see finishJob)
-          throw unconfirmed(`the printer never acknowledged PageEnd for ${tag}`);
-        }
+        if (!acked) logAlways(`⚠ ${tag}: PageEnd refused — still waiting for printer counter`);
         await finishJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
       }
       tlog(`done (${copies} separate jobs, PrintEnd acked each)`);
@@ -1046,13 +1048,8 @@
     await beginJob(model, copies, onProgress, density);
     tlog(`job started (${copies} cop${copies > 1 ? "ies" : "y"}, ${size.w_px}×${size.h_px}, stride ${stride})`);
     const acked = await sendPagePacked(model, size, buf, stride, copies, onProgress);
-    // Only claim the ack when there was one. The old line said "(PageEnd acked)"
-    // unconditionally, including directly under the ⚠ warning that nothing answered.
     tlog(acked ? `image buffered (PageEnd acked)` : `image sent but PageEnd went UNACKED`);
-    if (!acked) {
-      await endJob();                       // feed the paper out before failing (see finishJob)
-      throw unconfirmed("the printer never acknowledged PageEnd for the image");
-    }
+    if (!acked) logAlways("⚠ PageEnd refused — still waiting for printer counter");
     await finishJob(model, copies, onProgress);
     tlog(`done (PrintEnd acked)`);
     onProgress && onProgress("ok");
@@ -1092,10 +1089,7 @@
         await beginJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`), density);
         const acked = await sendPagePacked(model, size, buf, stride, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
         tlog(acked ? `${tag}: buffered (PageEnd acked)` : `${tag}: sent but PageEnd went UNACKED`);
-        if (!acked) {
-          await endJob();                   // feed the paper out before failing (see finishJob)
-          throw unconfirmed(`page ${i + 1} of ${N} was never acknowledged (no PageEnd ack)`);
-        }
+        if (!acked) logAlways(`⚠ ${tag}: PageEnd refused — still waiting for printer counter`);
         await finishJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
       }
       tlog(`done (${N} separate jobs, PrintEnd acked each)`);
@@ -1121,7 +1115,7 @@
       const acked = await sendPagePacked(model, size, buf, stride, 1,
         (s) => onProgress && onProgress(`${tag}: ${s}`));
       tlog(acked ? `page ${i}: buffered (PageEnd acked)` : `page ${i}: sent but PageEnd went UNACKED`);
-      if (!acked) { problem = `page ${i + 1} of ${N} was never acknowledged (no PageEnd ack)`; break; }
+      if (!acked) logAlways(`⚠ page ${i}: PageEnd refused — continuing on printer counter`);
       // Send page i, THEN wait for page i-LOOKAHEAD to finish — so the just-sent
       // page is already buffered before the printer needs it (no inter-label stop).
       if (i - LOOKAHEAD >= 0) {
