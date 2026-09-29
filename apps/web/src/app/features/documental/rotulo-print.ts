@@ -68,9 +68,9 @@ const STATUS_ID = 'coraza-niimbot-status';
 const B1_MODEL: NiimbotPrintOpts['model'] = {
   name_prefixes: ['B1'],
   task: 'b1',
-  density: 4,
+  density: 3,
   label_type: 1,
-  speed: 2,
+  speed: 1,
 };
 const B1_SIZE: NiimbotPrintOpts['size'] = { w_px: 384, h_px: 240, offset_y_px: 4, dpi: 203 };
 const CANVAS_W = B1_SIZE.w_px;
@@ -347,7 +347,9 @@ function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasE
 }
 
 function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
-  return Promise.resolve(canvas.toDataURL('image/png'));
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(URL.createObjectURL(b)) : reject(new Error('PNG'))), 'image/png');
+  });
 }
 
 function showStatus(text: string): void {
@@ -406,9 +408,6 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
 
   reusePairedB1();
   showStatus('Imprimiendo…');
-  // Windows: writeWithoutResponse pierde los acuses (0xE4). Cada paquete con respuesta.
-  api.WRITE_MODE = 'acked';
-  api.BUNDLE_MAX = 0;
   const paired = api.identify(B1_MODEL);
   const urls: string[] = [];
   try {
@@ -430,20 +429,24 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
     showStatus(items.length > 1 ? `Imprimiendo ${items.length} etiquetas…` : 'Imprimiendo…');
     if (urls.length === 1) await api.printImage(urls[0], opts);
     else await api.printBatch(urls, opts);
-    showStatus('Impreso en la B1 — revisa el papel');
-    setTimeout(hideStatus, 2500);
+    showStatus('Impreso en la B1');
+    setTimeout(hideStatus, 1600);
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
     const cancelled = /cancel|choos/i.test(raw);
     const bleOff = /globally disabled|Web Bluetooth/i.test(raw);
-    if (!cancelled) void api.disconnect?.();
+    const pageEnd = /PageEnd|print not confirmed/i.test(raw);
     const msg = cancelled
       ? 'Impresión cancelada'
       : bleOff
-        ? 'Chrome tiene Bluetooth web apagado. Abre chrome://flags/#enable-web-bluetooth → Enabled → Relaunch.'
-        : `No se pudo imprimir: ${raw}`;
+        ? 'Chrome tiene Bluetooth web apagado. chrome://flags/#enable-web-bluetooth → Enabled → Relaunch.'
+        : pageEnd
+          ? 'La B1 no confirmó. Mira si salió papel (puede salir en blanco). Tapa cerrada, cierra la app Niimbot, apaga/prende y reintenta.'
+          : `No se pudo imprimir: ${raw}`;
     showStatus(msg);
     setTimeout(hideStatus, cancelled ? 1600 : 8000);
+  } finally {
+    urls.forEach((u) => URL.revokeObjectURL(u));
   }
 }
 

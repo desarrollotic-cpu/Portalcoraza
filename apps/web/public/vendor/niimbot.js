@@ -927,12 +927,12 @@
     }
 
     onProgress && onProgress("sending image…");
-    await sendImage(buf, H, stride);
-    await sleep(80);
-    // Documental B1: often no 0xE4. Waiting for it (or for 0xB3) aborts a job that
-    // still prints. Send PageEnd and let finishJob feed the paper.
-    await send(0xe3, [0x01]);
-    return true;
+    await sendImage(buf, H, stride);                                         // shared total-mode 0x84/0x85 encoder
+    // RETURN whether PageEnd was acknowledged. Discarding this is how a page that the
+    // printer never confirmed still got logged as "buffered (PageEnd acked)", directly
+    // under the ⚠ warning saying it had not been.
+    const pageEnd = await sendWait(0xe3, [0x01], 0xe4, 3000);                // PageEnd (0xE3)
+    return pageEnd != null;
   }
 
   // How long to wait for the printed-page counter to reach a target before giving up.
@@ -986,13 +986,12 @@
   // feeds out and RETRACTS the paper. Skipping it on the error path would leave the label
   // parked under the printhead. Only after it is sent does the failure become a throw.
   async function finishJob(model, target, onProgress) {
-    onProgress && onProgress("printing…");
-    if (isB1(model)) {
-      await sleep(2500);
-    } else {
-      await waitPage(Math.max(1, target | 0), onProgress);
-    }
+    const want = Math.max(1, target | 0);
+    const reached = await waitPage(want, onProgress);
     await endJob();
+    if (!reached) {
+      throw unconfirmed(`printer counter stopped at page ${_pageSeen == null ? "?" : _pageSeen} of ${want} after ${PAGE_WAIT_MS}ms`);
+    }
   }
 
   // Print one image, optionally `opts.copies` times. Like niim.blue, copies are
@@ -1025,7 +1024,10 @@
         tlog(`${tag}: job started (${size.w_px}×${size.h_px}, stride ${stride})`);
         const acked = await sendPagePacked(model, size, buf, stride, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
         tlog(acked ? `${tag}: image buffered (PageEnd acked)` : `${tag}: image sent but PageEnd went UNACKED`);
-        if (!acked) logAlways(`⚠ ${tag}: PageEnd refused — still waiting for printer counter`);
+        if (!acked) {
+          await endJob();                     // feed the paper out before failing (see finishJob)
+          throw unconfirmed(`the printer never acknowledged PageEnd for ${tag}`);
+        }
         await finishJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
       }
       tlog(`done (${copies} separate jobs, PrintEnd acked each)`);
@@ -1036,8 +1038,13 @@
     await beginJob(model, copies, onProgress, density);
     tlog(`job started (${copies} cop${copies > 1 ? "ies" : "y"}, ${size.w_px}×${size.h_px}, stride ${stride})`);
     const acked = await sendPagePacked(model, size, buf, stride, copies, onProgress);
+    // Only claim the ack when there was one. The old line said "(PageEnd acked)"
+    // unconditionally, including directly under the ⚠ warning that nothing answered.
     tlog(acked ? `image buffered (PageEnd acked)` : `image sent but PageEnd went UNACKED`);
-    if (!acked) logAlways("⚠ PageEnd refused — still waiting for printer counter");
+    if (!acked) {
+      await endJob();                       // feed the paper out before failing (see finishJob)
+      throw unconfirmed("the printer never acknowledged PageEnd for the image");
+    }
     await finishJob(model, copies, onProgress);
     tlog(`done (PrintEnd acked)`);
     onProgress && onProgress("ok");
@@ -1077,7 +1084,10 @@
         await beginJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`), density);
         const acked = await sendPagePacked(model, size, buf, stride, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
         tlog(acked ? `${tag}: buffered (PageEnd acked)` : `${tag}: sent but PageEnd went UNACKED`);
-        if (!acked) logAlways(`⚠ ${tag}: PageEnd refused — still waiting for printer counter`);
+        if (!acked) {
+          await endJob();                   // feed the paper out before failing (see finishJob)
+          throw unconfirmed(`page ${i + 1} of ${N} was never acknowledged (no PageEnd ack)`);
+        }
         await finishJob(model, 1, (s) => onProgress && onProgress(`${tag}: ${s}`));
       }
       tlog(`done (${N} separate jobs, PrintEnd acked each)`);
@@ -1091,29 +1101,37 @@
     // feeds out on the final PrintEnd (verified against niimbluelib's B1PrintTask).
     await beginJob(model, N, onProgress, density);
     tlog(`job started (${N} pages)`);
-    const skipCounter = isB1(model);
+    // Anything that means "the printer stopped confirming" stops the loop. Sending more
+    // pages into a printer that is not keeping up is how a batch ends up short AND
+    // desynchronised — the 4-of-5 run on 2026-08-13 came out with every label numbered 1.
     let problem = null;
     for (let i = 0; i < N && !problem; i++) {
       const tag = `label ${i + 1}/${N}`;
       onProgress && onProgress(`${tag}: sending…`);
       const { buf, stride } = await imageToPacked(urls[i], size.w_px, size.h_px, offsetY);
       tlog(`page ${i}: start sending`);
-      await sendPagePacked(model, size, buf, stride, 1,
+      const acked = await sendPagePacked(model, size, buf, stride, 1,
         (s) => onProgress && onProgress(`${tag}: ${s}`));
-      if (!skipCounter && i - LOOKAHEAD >= 0) {
+      tlog(acked ? `page ${i}: buffered (PageEnd acked)` : `page ${i}: sent but PageEnd went UNACKED`);
+      if (!acked) { problem = `page ${i + 1} of ${N} was never acknowledged (no PageEnd ack)`; break; }
+      // Send page i, THEN wait for page i-LOOKAHEAD to finish — so the just-sent
+      // page is already buffered before the printer needs it (no inter-label stop).
+      if (i - LOOKAHEAD >= 0) {
         const want = i - LOOKAHEAD + 1;
         if (!await waitPage(want, (s) => onProgress && onProgress(`${tag}: ${s}`))) {
           problem = `printer counter stalled at page ${_pageSeen == null ? "?" : _pageSeen} of ${want} while streaming (${PAGE_WAIT_MS}ms)`;
         }
       }
     }
-    if (!skipCounter && !problem && !await waitPage(N, onProgress)) {
+    if (!problem && !await waitPage(N, onProgress)) {                       // drain remaining pages
       problem = `printer counter stopped at page ${_pageSeen == null ? "?" : _pageSeen} of ${N} after ${PAGE_WAIT_MS}ms`;
     }
-    if (skipCounter) await sleep(2500);
+    // PrintEnd goes out either way — it is what feeds out and retracts the paper.
+    // The throw comes after, never instead. (See finishJob for the same ordering.)
     tlog(problem ? `job UNCONFIRMED (${problem}); sending PrintEnd anyway` : `all ${N} pages printed; sending PrintEnd`);
     await endJob();
-    tlog(`PrintEnd sent (batch done)`);
+    if (problem) throw unconfirmed(problem);
+    tlog(`PrintEnd acked (batch done)`);
     onProgress && onProgress("ok");
   }
 
