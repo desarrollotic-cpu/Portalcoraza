@@ -50,6 +50,7 @@ interface NiimbotApi {
   FORCE_PACING?: boolean;
   BUNDLE_MAX?: number;
   PACE_MS?: number;
+  WRITE_MODE?: string | null;
   printer?: { task?: string | null; dpi?: number | null; label?: string };
 }
 
@@ -67,9 +68,9 @@ const STATUS_ID = 'coraza-niimbot-status';
 const B1_MODEL: NiimbotPrintOpts['model'] = {
   name_prefixes: ['B1'],
   task: 'b1',
-  density: 3,
+  density: 4,
   label_type: 1,
-  speed: 1,
+  speed: 2,
 };
 const B1_SIZE: NiimbotPrintOpts['size'] = { w_px: 384, h_px: 240, offset_y_px: 4, dpi: 203 };
 const CANVAS_W = B1_SIZE.w_px;
@@ -346,9 +347,7 @@ function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasE
 }
 
 function canvasPngUrl(canvas: HTMLCanvasElement): Promise<string> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(URL.createObjectURL(b)) : reject(new Error('PNG'))), 'image/png');
-  });
+  return Promise.resolve(canvas.toDataURL('image/png'));
 }
 
 function showStatus(text: string): void {
@@ -407,11 +406,9 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
 
   reusePairedB1();
   showStatus('Imprimiendo…');
-  // Windows BLE: B1 protocol-3 drops PageEnd if rows burst without a gap.
-  api.FORCE_PACING = true;
+  // Windows: writeWithoutResponse pierde los acuses (0xE4). Cada paquete con respuesta.
+  api.WRITE_MODE = 'acked';
   api.BUNDLE_MAX = 0;
-  api.PACE_MS = 12;
-  // requestDevice debe arrancar en el mismo clic (sin await antes).
   const paired = api.identify(B1_MODEL);
   const urls: string[] = [];
   try {
@@ -433,22 +430,20 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
     showStatus(items.length > 1 ? `Imprimiendo ${items.length} etiquetas…` : 'Imprimiendo…');
     if (urls.length === 1) await api.printImage(urls[0], opts);
     else await api.printBatch(urls, opts);
-    showStatus('Impreso en la B1');
-    setTimeout(hideStatus, 1600);
+    showStatus('Impreso en la B1 — revisa el papel');
+    setTimeout(hideStatus, 2500);
   } catch (err) {
     const raw = err instanceof Error ? err.message : String(err);
     const cancelled = /cancel|choos/i.test(raw);
-    const pageEnd = /PageEnd|print not confirmed/i.test(raw);
-    if (pageEnd) void api.disconnect?.();
+    const bleOff = /globally disabled|Web Bluetooth/i.test(raw);
+    if (!cancelled) void api.disconnect?.();
     const msg = cancelled
       ? 'Impresión cancelada'
-      : pageEnd
-        ? 'La B1 no confirmó la etiqueta. Revisa si salió (a veces imprime igual). Tapa cerrada, rollo 50×30 mm, apaga/prende la impresora y vuelve a pulsar Rótulo.'
+      : bleOff
+        ? 'Chrome tiene Bluetooth web apagado. Abre chrome://flags/#enable-web-bluetooth → Enabled → Relaunch.'
         : `No se pudo imprimir: ${raw}`;
     showStatus(msg);
     setTimeout(hideStatus, cancelled ? 1600 : 8000);
-  } finally {
-    urls.forEach((u) => URL.revokeObjectURL(u));
   }
 }
 

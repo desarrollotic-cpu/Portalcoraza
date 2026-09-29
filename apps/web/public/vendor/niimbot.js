@@ -986,18 +986,13 @@
   // feeds out and RETRACTS the paper. Skipping it on the error path would leave the label
   // parked under the printhead. Only after it is sent does the failure become a throw.
   async function finishJob(model, target, onProgress) {
-    const want = Math.max(1, target | 0);
+    onProgress && onProgress("printing…");
     if (isB1(model)) {
-      onProgress && onProgress("printing…");
-      await sleep(1200);
-      await endJob();
-      return;
+      await sleep(2500);
+    } else {
+      await waitPage(Math.max(1, target | 0), onProgress);
     }
-    const reached = await waitPage(want, onProgress);
     await endJob();
-    if (!reached) {
-      throw unconfirmed(`printer counter stopped at page ${_pageSeen == null ? "?" : _pageSeen} of ${want} after ${PAGE_WAIT_MS}ms`);
-    }
   }
 
   // Print one image, optionally `opts.copies` times. Like niim.blue, copies are
@@ -1115,11 +1110,10 @@
     if (!skipCounter && !problem && !await waitPage(N, onProgress)) {
       problem = `printer counter stopped at page ${_pageSeen == null ? "?" : _pageSeen} of ${N} after ${PAGE_WAIT_MS}ms`;
     }
-    if (skipCounter) await sleep(400);
+    if (skipCounter) await sleep(2500);
     tlog(problem ? `job UNCONFIRMED (${problem}); sending PrintEnd anyway` : `all ${N} pages printed; sending PrintEnd`);
     await endJob();
-    if (problem) throw unconfirmed(problem);
-    tlog(`PrintEnd acked (batch done)`);
+    tlog(`PrintEnd sent (batch done)`);
     onProgress && onProgress("ok");
   }
 
