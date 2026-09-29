@@ -50,6 +50,7 @@ interface NiimbotApi {
   FORCE_PACING?: boolean;
   BUNDLE_MAX?: number;
   PACE_MS?: number;
+  printer?: { task?: string | null; dpi?: number | null; label?: string };
 }
 
 declare global {
@@ -418,9 +419,15 @@ async function printOnNiimbotB1(items: RotuloItem[]): Promise<void> {
     const canvases = items.map((it) => paintLabel(labelCopy(it), logo));
     for (const c of canvases) urls.push(await canvasPngUrl(c));
     await paired;
+    let model = B1_MODEL;
+    let size = B1_SIZE;
+    if (api.printer?.task === 'v4') {
+      model = { ...B1_MODEL, task: 'v4', speed: 4 };
+      size = { w_px: 592, h_px: 354, offset_y_px: 0, dpi: 300 };
+    }
     const opts: NiimbotPrintOpts = {
-      model: B1_MODEL,
-      size: B1_SIZE,
+      model,
+      size,
       onProgress: (s) => showStatus(s),
     };
     showStatus(items.length > 1 ? `Imprimiendo ${items.length} etiquetas…` : 'Imprimiendo…');

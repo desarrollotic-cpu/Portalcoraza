@@ -864,11 +864,7 @@
   //         streams N pages: printStart7b declares N, each PageEnd parks the paper at
   //         the printhead waiting for the next page, and the lone PrintEnd at the end
   //         feeds it out — so a batch prints continuously, no retract between labels.
-  function isB1(model) {
-    // Firmware nuevo: un B1 “clásico” a veces habla protocol 5 (secuencia v4).
-    if (printerInfo && printerInfo.protocolVersion != null && printerInfo.protocolVersion >= 5) return false;
-    return model && model.task === "b1";
-  }
+  function isB1(model) { return model && model.task === "b1"; }
 
   // The connected, IDENTIFIED printer's MODEL_IDS entry, or null when unidentified —
   // used to gate `pagesPerJob` (and anything else that must key off the ACTUAL printer
@@ -931,16 +927,11 @@
     }
 
     onProgress && onProgress("sending image…");
-    await sendImage(buf, H, stride);                                         // shared total-mode 0x84/0x85 encoder
-    await sleep(120);
-    // Some B1 firmwares never send 0xE4; they print anyway. Accept any BLE reply
-    // (0xE4, 0xD3, 0xB3…). 0xDB = refused. No reply = still wait on the page counter.
-    const pageEnd = await sendWait(0xe3, [0x01], null, 4000);
-    if (pageEnd && pageEnd.cmd === 0xdb) {
-      logMsg("PageEnd refused (0xDB)");
-      return false;
-    }
-    if (!pageEnd) logMsg("PageEnd: no BLE opcode — relying on printer page counter");
+    await sendImage(buf, H, stride);
+    await sleep(80);
+    // Documental B1: often no 0xE4. Waiting for it (or for 0xB3) aborts a job that
+    // still prints. Send PageEnd and let finishJob feed the paper.
+    await send(0xe3, [0x01]);
     return true;
   }
 
@@ -970,10 +961,6 @@
         if (st.page !== _lastPage) { tlog(`printer counter → page ${st.page} (print ${st.print}%, feed ${st.feed}%)`); _lastPage = st.page; }
         onProgress && onProgress(`printing… ${st.print}%`);
         if (st.page >= target) return true;
-        if (st.page === 0 && st.print === 0 && Date.now() - t0 > 8000) {
-          tlog("printer never started (page 0 / 0%) — aborting wait");
-          return false;
-        }
       }
       await sleep(150);
     }
@@ -1000,6 +987,12 @@
   // parked under the printhead. Only after it is sent does the failure become a throw.
   async function finishJob(model, target, onProgress) {
     const want = Math.max(1, target | 0);
+    if (isB1(model)) {
+      onProgress && onProgress("printing…");
+      await sleep(1200);
+      await endJob();
+      return;
+    }
     const reached = await waitPage(want, onProgress);
     await endJob();
     if (!reached) {
@@ -1103,33 +1096,26 @@
     // feeds out on the final PrintEnd (verified against niimbluelib's B1PrintTask).
     await beginJob(model, N, onProgress, density);
     tlog(`job started (${N} pages)`);
-    // Anything that means "the printer stopped confirming" stops the loop. Sending more
-    // pages into a printer that is not keeping up is how a batch ends up short AND
-    // desynchronised — the 4-of-5 run on 2026-08-13 came out with every label numbered 1.
+    const skipCounter = isB1(model);
     let problem = null;
     for (let i = 0; i < N && !problem; i++) {
       const tag = `label ${i + 1}/${N}`;
       onProgress && onProgress(`${tag}: sending…`);
       const { buf, stride } = await imageToPacked(urls[i], size.w_px, size.h_px, offsetY);
       tlog(`page ${i}: start sending`);
-      const acked = await sendPagePacked(model, size, buf, stride, 1,
+      await sendPagePacked(model, size, buf, stride, 1,
         (s) => onProgress && onProgress(`${tag}: ${s}`));
-      tlog(acked ? `page ${i}: buffered (PageEnd acked)` : `page ${i}: sent but PageEnd went UNACKED`);
-      if (!acked) logAlways(`⚠ page ${i}: PageEnd refused — continuing on printer counter`);
-      // Send page i, THEN wait for page i-LOOKAHEAD to finish — so the just-sent
-      // page is already buffered before the printer needs it (no inter-label stop).
-      if (i - LOOKAHEAD >= 0) {
+      if (!skipCounter && i - LOOKAHEAD >= 0) {
         const want = i - LOOKAHEAD + 1;
         if (!await waitPage(want, (s) => onProgress && onProgress(`${tag}: ${s}`))) {
           problem = `printer counter stalled at page ${_pageSeen == null ? "?" : _pageSeen} of ${want} while streaming (${PAGE_WAIT_MS}ms)`;
         }
       }
     }
-    if (!problem && !await waitPage(N, onProgress)) {                       // drain remaining pages
+    if (!skipCounter && !problem && !await waitPage(N, onProgress)) {
       problem = `printer counter stopped at page ${_pageSeen == null ? "?" : _pageSeen} of ${N} after ${PAGE_WAIT_MS}ms`;
     }
-    // PrintEnd goes out either way — it is what feeds out and retracts the paper.
-    // The throw comes after, never instead. (See finishJob for the same ordering.)
+    if (skipCounter) await sleep(400);
     tlog(problem ? `job UNCONFIRMED (${problem}); sending PrintEnd anyway` : `all ${N} pages printed; sending PrintEnd`);
     await endJob();
     if (problem) throw unconfirmed(problem);
