@@ -479,12 +479,14 @@ interface NavGroup {
       font-size: 0.88rem;
       font-weight: 500;
       transition:
-        background 0.15s ease,
-        color 0.15s ease;
+        background 0.2s ease,
+        color 0.2s ease,
+        transform 0.2s ease;
     }
     .nav-item:hover {
       background: rgba(255, 255, 255, 0.1);
       color: #fff;
+      transform: translateX(2px);
     }
     .nav-item.active {
       background: rgba(255, 255, 255, 0.16);
@@ -525,9 +527,12 @@ interface NavGroup {
       width: 4px;
       height: 22px;
       border-radius: 999px;
-      background: linear-gradient(180deg, #22d3ee, #a855f7);
+      background: linear-gradient(180deg, #38bdf8, #075985);
       opacity: 0;
       transform: scaleY(0.4);
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
       transition:
         opacity 0.15s ease,
         transform 0.2s ease;
@@ -977,6 +982,20 @@ interface NavGroup {
       flex: 1;
       min-width: 0;
       color: var(--text-primary);
+    }
+    /* Micro-entrada al cambiar de módulo (respeta prefers-reduced-motion global). */
+    @keyframes portal-page-in {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    .content > *:not(router-outlet) {
+      animation: portal-page-in 0.22s ease both;
     }
 
     @media (max-width: 1100px) {
