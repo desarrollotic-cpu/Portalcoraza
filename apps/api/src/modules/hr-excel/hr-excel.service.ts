@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import ExcelJS from 'exceljs';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import {
   Associate,
@@ -381,10 +381,54 @@ export class HrExcelService {
    * para respetar los filtros del directorio.
    */
   async exportAssociates(preloadedRows?: Associate[]): Promise<Buffer> {
-    const rows = preloadedRows ?? await this.associatesRepo.find({
-      relations: ['jobPosition', 'workCenter'],
-      order: { firstLastName: 'ASC' },
-    });
+    const relations = [
+      'jobPosition',
+      'workCenter',
+      'eps',
+      'pensionFund',
+      'bloodType',
+      'gender',
+      'sexualOrientation',
+      'religion',
+      'race',
+      'housingType',
+      'educationLevel',
+      'incomeRange',
+      'transportMean',
+      'commuteTime',
+    ];
+
+    let rows: Associate[];
+    if (preloadedRows?.length) {
+      const idsOrdered = preloadedRows.map((a) => a.id);
+      const full = await this.associatesRepo.find({
+        where: { id: In(idsOrdered) },
+        relations,
+      });
+      const byId = new Map(full.map((a) => [a.id, a]));
+      const bajaById = new Map(
+        preloadedRows.map((p) => [
+          p.id,
+          (p as Associate & { retirementDate?: string | null }).retirementDate,
+        ]),
+      );
+      rows = idsOrdered
+        .map((id) => {
+          const row = byId.get(id);
+          if (!row) return undefined;
+          const baja = bajaById.get(id);
+          if (baja) {
+            (row as Associate & { retirementDate?: string | null }).retirementDate = baja;
+          }
+          return row;
+        })
+        .filter((a): a is Associate => !!a);
+    } else {
+      rows = await this.associatesRepo.find({
+        relations,
+        order: { firstLastName: 'ASC' },
+      });
+    }
 
     const ids = rows.map((a) => a.id);
     const retirements = ids.length
@@ -427,27 +471,142 @@ export class HrExcelService {
         : dt.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
     };
 
+    const cat = (c: { value?: string } | null | undefined) => c?.value ?? '';
+    const yn = (v: boolean) => (v ? 'Sí' : 'No');
+
+    const headers = [
+      'Carpeta',
+      'Nombre completo',
+      'Cargo',
+      'Centro de trabajo',
+      'Estado',
+      'Ingreso',
+      'Celular',
+      'Fecha retiro',
+      'Motivo retiro',
+      'Tipo documento',
+      'Documento',
+      'Fecha expedición',
+      'Primer nombre',
+      'Segundo nombre',
+      'Primer apellido',
+      'Segundo apellido',
+      'Fecha nacimiento',
+      'Sexo',
+      'Estado civil',
+      'Nº acta',
+      'Fijo',
+      'Email',
+      'Dirección',
+      'Emergencia nombre',
+      'Emergencia parentesco',
+      'Emergencia teléfono',
+      'Código centro',
+      'Salario ordinario',
+      'Salario promedio',
+      'Cuenta banco',
+      'Psicofísico vigente',
+      'Examen médico ocupacional',
+      'Código curso',
+      'NIT escuela',
+      'Nº certificado curso',
+      'Póliza SURA',
+      'Nivel póliza',
+      'Servicio funerario',
+      'EPS',
+      'Fondo pensión',
+      'Grupo sanguíneo',
+      'Género',
+      'Nivel de estudio',
+      'Rango ingresos',
+      'Vivienda',
+      'Estrato',
+      'Medio transporte',
+      'Tiempo traslado',
+      'Hijos',
+      'Dependientes',
+      'Raza / etnia',
+      'Religión',
+      'Orientación sexual',
+      'Plan de vida',
+    ];
+
     const body = rows
       .map((a, i) => {
         const nombre = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
           .filter(Boolean)
           .join(' ');
         const zebra = i % 2 === 1 ? ' even' : '';
-        return `<tr class="${zebra}">
-          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.folderNumber ?? '')}</td>
-          <td class="td-text">${esc(nombre)}</td>
-          <td class="td-text">${esc(a.jobPosition?.name)}</td>
-          <td class="td-text">${esc(a.workCenter?.clientName)}</td>
-          <td class="td-center">${esc(a.status)}</td>
-          <td class="td-center">${esc(date(a.hireDate))}</td>
-          <td class="td-center" style="mso-number-format:'\\@';">${esc(a.mobile)}</td>
-          <td class="td-center">${esc(bajaDate(a))}</td>
-          <td class="td-text">${esc(retirementById.get(a.id)?.reason)}</td>
-        </tr>`;
+        const vals: Array<{ v: unknown; kind: 'text' | 'center' | 'id' }> = [
+          { v: a.folderNumber ?? '', kind: 'id' },
+          { v: nombre, kind: 'text' },
+          { v: a.jobPosition?.name, kind: 'text' },
+          { v: a.workCenter?.clientName, kind: 'text' },
+          { v: a.status, kind: 'center' },
+          { v: date(a.hireDate), kind: 'center' },
+          { v: a.mobile, kind: 'id' },
+          { v: bajaDate(a), kind: 'center' },
+          { v: retirementById.get(a.id)?.reason, kind: 'text' },
+          { v: a.documentType, kind: 'center' },
+          { v: a.documentNumber, kind: 'id' },
+          { v: date(a.documentExpeditionDate), kind: 'center' },
+          { v: a.firstName, kind: 'text' },
+          { v: a.secondName, kind: 'text' },
+          { v: a.firstLastName, kind: 'text' },
+          { v: a.secondLastName, kind: 'text' },
+          { v: date(a.birthDate), kind: 'center' },
+          { v: a.sexAtBirth, kind: 'center' },
+          { v: a.maritalStatus, kind: 'center' },
+          { v: a.actReference, kind: 'text' },
+          { v: a.landline, kind: 'id' },
+          { v: a.email, kind: 'text' },
+          { v: a.address, kind: 'text' },
+          { v: a.emergencyContactName, kind: 'text' },
+          { v: a.emergencyContactRelationship, kind: 'text' },
+          { v: a.emergencyContactPhone, kind: 'id' },
+          { v: a.workCenter?.code, kind: 'center' },
+          { v: a.ordinaryCompensation || '', kind: 'center' },
+          { v: a.averageMonthlySalary || '', kind: 'center' },
+          { v: a.bankAccount, kind: 'id' },
+          { v: yn(!!a.psychophysicalValid), kind: 'center' },
+          { v: yn(!!a.psychosensometricValid), kind: 'center' },
+          { v: a.courseCode, kind: 'text' },
+          { v: a.schoolNit, kind: 'id' },
+          { v: a.courseCertificateNumber, kind: 'id' },
+          { v: yn(!!a.hasSuraPolicy), kind: 'center' },
+          { v: a.policyLevel ?? '', kind: 'center' },
+          { v: a.funeralService, kind: 'text' },
+          { v: cat(a.eps), kind: 'text' },
+          { v: cat(a.pensionFund), kind: 'text' },
+          { v: cat(a.bloodType), kind: 'center' },
+          { v: cat(a.gender), kind: 'text' },
+          { v: cat(a.educationLevel), kind: 'text' },
+          { v: cat(a.incomeRange), kind: 'text' },
+          { v: cat(a.housingType), kind: 'text' },
+          { v: a.estrato ?? '', kind: 'center' },
+          { v: cat(a.transportMean), kind: 'text' },
+          { v: cat(a.commuteTime), kind: 'text' },
+          { v: a.childrenCount ?? 0, kind: 'center' },
+          { v: a.dependentsCount ?? 0, kind: 'center' },
+          { v: cat(a.race), kind: 'text' },
+          { v: cat(a.religion), kind: 'text' },
+          { v: cat(a.sexualOrientation), kind: 'text' },
+          { v: a.lifePlan, kind: 'text' },
+        ];
+        const tds = vals
+          .map((c) => {
+            const cls = c.kind === 'text' ? 'td-text' : 'td-center';
+            const mso = c.kind === 'id' ? ` style="mso-number-format:'\\@';"` : '';
+            return `<td class="${cls}"${mso}>${esc(c.v)}</td>`;
+          })
+          .join('');
+        return `<tr class="${zebra}">${tds}</tr>`;
       })
       .join('');
 
     const stamp = new Date().toLocaleString('es-CO');
+    const colN = String(headers.length);
+    const headRow = headers.map((h) => `<th class="th">${esc(h)}</th>`).join('');
     const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
       <head><meta charset="utf-8" />
       <style>
@@ -461,19 +620,9 @@ export class HrExcelService {
       </style></head>
       <body>
         <table border="0" cellspacing="0" cellpadding="4">
-          <tr><td colspan="9" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
-          <tr><td colspan="9" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
-          <tr>
-            <th class="th">Carpeta</th>
-            <th class="th">Nombre completo</th>
-            <th class="th">Cargo</th>
-            <th class="th">Centro de trabajo</th>
-            <th class="th">Estado</th>
-            <th class="th">Ingreso</th>
-            <th class="th">Celular</th>
-            <th class="th">Fecha retiro</th>
-            <th class="th">Motivo retiro</th>
-          </tr>
+          <tr><td colspan="${colN}" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
+          <tr><td colspan="${colN}" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
+          <tr>${headRow}</tr>
           ${body}
         </table>
       </body></html>`;
