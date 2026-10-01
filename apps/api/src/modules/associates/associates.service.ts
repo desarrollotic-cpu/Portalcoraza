@@ -197,7 +197,7 @@ export class AssociatesService {
     qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
 
     const page = Math.max(1, parseInt(query.page ?? '1', 10) || 1);
-    const limit = Math.min(2000, Math.max(1, parseInt(query.limit ?? '50', 10) || 50));
+    const limit = Math.min(10000, Math.max(1, parseInt(query.limit ?? '50', 10) || 50));
     const skip = (page - 1) * limit;
     const tenureFilter = !!(
       query.tenureMinMonths ||

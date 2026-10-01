@@ -53,7 +53,7 @@ export class AssociatesController {
   /**
    * Exporta a Excel la lista de asociados aplicando los mismos filtros del
    * directorio (status, workCenter, jobPosition, search, fechas, etc.).
-   * Se fuerza `limit=2000` para traer todas las filas visibles.
+   * Se fuerza `limit=10000` para traer todas las filas del filtro (no solo una página).
    */
   @Get('export')
   @RequirePermissions('associates.view')
@@ -62,7 +62,7 @@ export class AssociatesController {
     @CurrentUser() user: JwtPayload,
     @Res() res: Response,
   ) {
-    const bulkQuery: AssociatesQueryDto = { ...query, page: '1', limit: '2000' };
+    const bulkQuery: AssociatesQueryDto = { ...query, page: '1', limit: '10000' };
     const result = await this.service.list(bulkQuery, user);
     const buffer = await this.excel.exportAssociates(result.items as any);
     const stamp = new Date().toISOString().slice(0, 10);

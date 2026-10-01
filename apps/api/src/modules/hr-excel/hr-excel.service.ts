@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import ExcelJS from 'exceljs';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import {
   Associate,
@@ -399,35 +399,43 @@ export class HrExcelService {
     ];
 
     let rows: Associate[];
-    if (preloadedRows?.length) {
-      const idsOrdered = preloadedRows.map((a) => a.id);
-      const full = await this.associatesRepo.find({
-        where: { id: In(idsOrdered) },
-        relations,
-      });
-      const byId = new Map(full.map((a) => [a.id, a]));
-      const bajaById = new Map(
-        preloadedRows.map((p) => [
-          p.id,
-          (p as Associate & { retirementDate?: string | null }).retirementDate,
-        ]),
-      );
-      rows = idsOrdered
-        .map((id) => {
-          const row = byId.get(id);
-          if (!row) return undefined;
-          const baja = bajaById.get(id);
-          if (baja) {
-            (row as Associate & { retirementDate?: string | null }).retirementDate = baja;
-          }
-          return row;
-        })
-        .filter((a): a is Associate => !!a);
+    if (preloadedRows) {
+      const idsOrdered = preloadedRows.map((a) => a.id).filter(Boolean);
+      if (!idsOrdered.length) {
+        rows = [];
+      } else {
+        const qb = this.associatesRepo.createQueryBuilder('a');
+        for (const rel of relations) {
+          qb.leftJoinAndSelect(`a.${rel}`, rel);
+        }
+        qb.whereInIds(idsOrdered);
+        const full = await qb.getMany();
+        const byId = new Map(full.map((a) => [a.id, a]));
+        const bajaById = new Map(
+          preloadedRows.map((p) => [
+            p.id,
+            (p as Associate & { retirementDate?: string | null }).retirementDate,
+          ]),
+        );
+        rows = idsOrdered
+          .map((id) => {
+            const row = byId.get(id);
+            if (!row) return undefined;
+            const baja = bajaById.get(id);
+            if (baja) {
+              (row as Associate & { retirementDate?: string | null }).retirementDate = baja;
+            }
+            return row;
+          })
+          .filter((a): a is Associate => !!a);
+      }
     } else {
-      rows = await this.associatesRepo.find({
-        relations,
-        order: { firstLastName: 'ASC' },
-      });
+      const qb = this.associatesRepo.createQueryBuilder('a');
+      for (const rel of relations) {
+        qb.leftJoinAndSelect(`a.${rel}`, rel);
+      }
+      qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
+      rows = await qb.getMany();
     }
 
     const ids = rows.map((a) => a.id);
@@ -600,6 +608,9 @@ export class HrExcelService {
             return `<td class="${cls}"${mso}>${esc(c.v)}</td>`;
           })
           .join('');
+        if (vals.length !== headers.length) {
+          throw new Error(`Excel GH: ${vals.length} celdas vs ${headers.length} columnas`);
+        }
         return `<tr class="${zebra}">${tds}</tr>`;
       })
       .join('');
