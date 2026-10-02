@@ -20,8 +20,11 @@ describe('loan-mail-layout', () => {
     expect(html).toContain('Gestión Documental');
     expect(html).toContain('Contrato 120');
     expect(html).toContain('20/09/2026');
-    expect(html).toContain('Estimado(a) Ana Ruiz');
+    expect(html).toContain('Señor(a) <strong>Ana Ruiz</strong>');
     expect(html).not.toContain('CC: 1017238882');
+    expect(html).toContain('Comunicación oficial');
+    expect(html).toContain('NIT 811.026.837-1');
+    expect(html).toContain('Constancia de archivo');
     expect(htmlToPlain(html)).toMatch(/Contrato 120/);
   });
 
