@@ -194,6 +194,13 @@ export class RondasApiService {
     return this.http.post<RondasPunto>(`${this.base}/puntos`, body);
   }
 
+  actualizarPunto(
+    id: string,
+    body: { nombre?: string; radioMetros?: number },
+  ): Observable<RondasPunto> {
+    return this.http.patch<RondasPunto>(`${this.base}/puntos/${id}`, body);
+  }
+
   private campoHeaders(): HttpHeaders {
     const t = this.campoToken();
     return new HttpHeaders(t ? { Authorization: `Bearer ${t}` } : {});

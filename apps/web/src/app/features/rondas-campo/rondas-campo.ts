@@ -174,6 +174,16 @@ const VIG_KEY = 'rondas_campo_vig';
               <p class="nota">{{ gpsNota() }}</p>
             }
 
+            <label>
+              Nombre del punto
+              <input
+                type="text"
+                [(ngModel)]="puntoNombre"
+                placeholder="Portería, Portal, Bodega…"
+                maxlength="80"
+              />
+            </label>
+
             @if (!grabando()) {
               <button type="button" class="cta" (click)="iniciarRecorrido()">Iniciar recorrido</button>
               <button type="button" class="ghost" [disabled]="guardando() || !pos()" (click)="marcarAquiAhora()">
@@ -181,17 +191,28 @@ const VIG_KEY = 'rondas_campo_vig';
               </button>
             } @else {
               <button type="button" class="ghost" (click)="detenerRecorrido()">Detener grabación</button>
-              <p class="hint">Camina el recorrido. Cada {{ radio }} m se crea un punto solo.</p>
+              <p class="hint">Camina el recorrido. Cada {{ radio }} m se crea un punto con el nombre de arriba (o Punto 1, 2… si lo dejas vacío).</p>
             }
 
             <ul class="puntos">
               @for (pt of puntosSetup(); track pt.id) {
                 <li class="ok">
                   <b>{{ pt.orden }}</b>
-                  <div>
-                    <strong>{{ pt.nombre }}</strong>
-                    <small>{{ pt.latitud.toFixed(5) }}, {{ pt.longitud.toFixed(5) }} · {{ pt.radioMetros }} m</small>
-                  </div>
+                  @if (editandoId === pt.id) {
+                    <div class="edit">
+                      <input type="text" [(ngModel)]="editNombre" maxlength="80" />
+                      <button type="button" class="mini cta" [disabled]="guardando()" (click)="guardarNombre(pt)">
+                        Guardar
+                      </button>
+                      <button type="button" class="mini" (click)="cancelarNombre()">Cancelar</button>
+                    </div>
+                  } @else {
+                    <div>
+                      <strong>{{ pt.nombre }}</strong>
+                      <small>{{ pt.latitud.toFixed(5) }}, {{ pt.longitud.toFixed(5) }} · {{ pt.radioMetros }} m</small>
+                    </div>
+                    <button type="button" class="mini" (click)="editarNombre(pt)">Renombrar</button>
+                  }
                 </li>
               }
             </ul>
@@ -360,6 +381,13 @@ const VIG_KEY = 'rondas_campo_vig';
     }
     .coords small { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.78rem; }
     .puntos li { display: flex; gap: 0.75rem; align-items: center; padding: 0.55rem 0; border-top: 1px solid var(--border); }
+    .puntos li .edit { flex: 1; display: grid; gap: 0.35rem; }
+    .puntos li .edit input { margin: 0; }
+    .puntos li .mini {
+      width: auto; min-height: 36px; padding: 0.35rem 0.6rem; font-size: 0.8rem; font-weight: 700;
+      background: none; color: var(--primary-600); flex-shrink: 0;
+    }
+    .puntos li .mini.cta { background: var(--gradient-primary); color: var(--text-on-primary); text-align: center; margin: 0; }
     .puntos b {
       width: 1.7rem; height: 1.7rem; border-radius: 99px; display: grid; place-items: center;
       background: var(--surface-2); font-size: 0.8rem;
@@ -417,6 +445,8 @@ export class RondasCampo implements OnDestroy {
   setupPostId = '';
   setupPostNombre = '';
   puntoNombre = '';
+  editandoId = '';
+  editNombre = '';
   radio = 25;
 
   readonly aGrados = aGrados;
@@ -634,7 +664,43 @@ export class RondasCampo implements OnDestroy {
       this.aviso.set('Espera a que el GPS fije la posición.');
       return;
     }
-    this.crearPuntoGps(c.lat, c.lng, `Punto ${this.puntosSetup().length + 1}`, true);
+    this.crearPuntoGps(c.lat, c.lng, this.nombreSiguiente(), true);
+  }
+
+  editarNombre(pt: RondasPunto) {
+    this.editandoId = pt.id;
+    this.editNombre = pt.nombre;
+  }
+
+  cancelarNombre() {
+    this.editandoId = '';
+    this.editNombre = '';
+  }
+
+  guardarNombre(pt: RondasPunto) {
+    const nombre = this.editNombre.trim();
+    if (nombre.length < 2) {
+      this.aviso.set('Escribe un nombre de al menos 2 letras.');
+      return;
+    }
+    this.guardando.set(true);
+    this.api.actualizarPunto(pt.id, { nombre }).subscribe({
+      next: (row) => {
+        this.puntosSetup.set(this.puntosSetup().map((p) => (p.id === row.id ? row : p)));
+        this.guardando.set(false);
+        this.cancelarNombre();
+        this.aviso.set(`Punto renombrado a ${row.nombre}.`);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.guardando.set(false);
+        this.aviso.set(msg(e, 'No se pudo renombrar'));
+      },
+    });
+  }
+
+  private nombreSiguiente() {
+    const n = this.puntoNombre.trim();
+    return n.length >= 2 ? n : `Punto ${this.puntosSetup().length + 1}`;
   }
 
   iniciarBrujula() {
@@ -670,7 +736,7 @@ export class RondasCampo implements OnDestroy {
       const last = pts[pts.length - 1];
       if (distanciaMetros(lat, lng, last.latitud, last.longitud) < radio) return;
     }
-    this.crearPuntoGps(lat, lng, `Punto ${pts.length + 1}`, false);
+    this.crearPuntoGps(lat, lng, this.nombreSiguiente(), false);
   }
 
   private crearPuntoGps(lat: number, lng: number, nombre: string, avisoFijo: boolean) {
@@ -689,6 +755,7 @@ export class RondasCampo implements OnDestroy {
         next: (pt) => {
           this.puntosSetup.set([...this.puntosSetup(), pt]);
           this.guardando.set(false);
+          this.puntoNombre = '';
           this.aviso.set(avisoFijo ? `${nombre} guardado.` : `${nombre} generado.`);
           navigator.vibrate?.([60, 30, 60]);
         },
