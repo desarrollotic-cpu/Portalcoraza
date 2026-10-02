@@ -22,7 +22,18 @@ export function digitsOnly(value: string | null | undefined): string {
 export function dentroDelRadio(
   distancia: number,
   radioMetros: number,
-  holgura = 1.15,
+  holgura = 1,
 ): boolean {
   return distancia <= radioMetros * holgura;
+}
+
+export const ALTITUD_MAX_DELTA_M = 8;
+
+export function alturaCoincide(
+  altPunto: number | null | undefined,
+  altVigilante: number | null | undefined,
+): boolean {
+  if (altPunto == null || !Number.isFinite(Number(altPunto))) return true;
+  if (altVigilante == null || !Number.isFinite(Number(altVigilante))) return false;
+  return Math.abs(Number(altVigilante) - Number(altPunto)) <= ALTITUD_MAX_DELTA_M;
 }

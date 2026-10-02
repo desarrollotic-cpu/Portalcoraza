@@ -59,6 +59,7 @@ export class RondasController {
       latitud: number;
       longitud: number;
       precisionMetros?: number;
+      altitud?: number | null;
       fechaHora: string;
       dispositivoId?: string;
     }> },
@@ -100,6 +101,7 @@ export class RondasController {
       nombre: string;
       latitud: number;
       longitud: number;
+      altitud?: number | null;
       radioMetros?: number;
       orden?: number;
     },

@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS rondas_puntos (
   nombre VARCHAR(120) NOT NULL,
   latitud DOUBLE PRECISION NOT NULL,
   longitud DOUBLE PRECISION NOT NULL,
-  radio_metros INTEGER NOT NULL DEFAULT 25,
+  altitud DOUBLE PRECISION,
+  radio_metros INTEGER NOT NULL DEFAULT 10,
   orden INTEGER NOT NULL DEFAULT 1,
   activo BOOLEAN NOT NULL DEFAULT true,
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -24,6 +25,7 @@ CREATE TABLE IF NOT EXISTS rondas_marcaciones (
   longitud DOUBLE PRECISION NOT NULL,
   precision_metros REAL,
   distancia_al_punto REAL NOT NULL,
+  altitud DOUBLE PRECISION,
   fecha_hora TIMESTAMPTZ NOT NULL,
   dispositivo_id VARCHAR(100),
   es_mock BOOLEAN NOT NULL DEFAULT false,
@@ -66,3 +68,7 @@ FROM role_permissions rp
 JOIN permissions ops ON ops.id = rp.permission_id AND ops.code = 'operations.view'
 JOIN permissions p ON p.code IN ('rondas.view', 'rondas.setup')
 ON CONFLICT DO NOTHING;
+
+ALTER TABLE rondas_puntos ADD COLUMN IF NOT EXISTS altitud DOUBLE PRECISION;
+ALTER TABLE rondas_marcaciones ADD COLUMN IF NOT EXISTS altitud DOUBLE PRECISION;
+

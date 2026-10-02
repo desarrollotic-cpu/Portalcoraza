@@ -1,4 +1,4 @@
-import { dentroDelRadio, digitsOnly, distanciaMetros } from './rondas-geo';
+import { alturaCoincide, dentroDelRadio, digitsOnly, distanciaMetros } from './rondas-geo';
 
 describe('rondas-geo', () => {
   it('mide ~0 m en el mismo punto', () => {
@@ -12,8 +12,14 @@ describe('rondas-geo', () => {
     expect(cerca).toBeLessThan(25);
     expect(dentroDelRadio(cerca, 25)).toBe(true);
     expect(dentroDelRadio(80, 25)).toBe(false);
-    expect(dentroDelRadio(28, 25)).toBe(true);
-    expect(dentroDelRadio(30, 25)).toBe(false);
+    expect(dentroDelRadio(28, 25)).toBe(false);
+  });
+
+  it('exige la misma altura para terraza vs piso', () => {
+    expect(alturaCoincide(1540, 1542)).toBe(true);
+    expect(alturaCoincide(1540, 1530)).toBe(false);
+    expect(alturaCoincide(1540, null)).toBe(false);
+    expect(alturaCoincide(null, 1500)).toBe(true);
   });
 
   it('compara cédula solo con dígitos', () => {

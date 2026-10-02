@@ -21,6 +21,7 @@ export type RondasPunto = {
   nombre: string;
   latitud: number;
   longitud: number;
+  altitud?: number | null;
   radioMetros: number;
   orden: number;
   activo: boolean;
@@ -137,6 +138,7 @@ export class RondasApiService {
     precisionMetros: number;
     fechaHora: string;
     dispositivoId: string;
+    altitud?: number | null;
   }>): Observable<{
     aceptadas: string[];
     duplicadas: string[];
@@ -188,6 +190,7 @@ export class RondasApiService {
     nombre: string;
     latitud: number;
     longitud: number;
+    altitud?: number | null;
     radioMetros?: number;
     orden?: number;
   }): Observable<RondasPunto> {

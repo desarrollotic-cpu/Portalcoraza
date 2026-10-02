@@ -6,11 +6,13 @@ import { AuthService } from '../../core/services/auth.service';
 import { RondasApiService, RondasPunto } from '../rondas/rondas-api.service';
 import {
   MarcaLocal,
+  candidatoMarcacion,
   detectarMarcacion,
   distanciaMetros,
   dentroDelRadio,
   esHoyBogota,
   horaBogota,
+  DWELL_MS,
 } from '../rondas/rondas-geo';
 
 type Vista = 'inicio' | 'sistemas' | 'ronda';
@@ -181,10 +183,15 @@ const VIG_KEY = 'rondas_campo_vig';
               <input
                 type="text"
                 [(ngModel)]="puntoNombre"
-                placeholder="Portería, Portal, Bodega…"
+                placeholder="Portería, Portal, Terraza…"
                 maxlength="80"
               />
             </label>
+            <label>
+              Radio (m)
+              <input type="number" [(ngModel)]="radio" min="6" max="25" />
+            </label>
+            <p class="hint">Terraza o portería: 8–12 m. Si está a 10 m y no es el punto, no debe marcar.</p>
 
             <button
               type="button"
@@ -217,7 +224,11 @@ const VIG_KEY = 'rondas_campo_vig';
                   } @else {
                     <div>
                       <strong>{{ pt.nombre }}</strong>
-                      <small>{{ pt.latitud.toFixed(5) }}, {{ pt.longitud.toFixed(5) }} · {{ pt.radioMetros }} m</small>
+                      <small>{{ pt.latitud.toFixed(5) }}, {{ pt.longitud.toFixed(5) }} · {{ pt.radioMetros }} m
+                        @if (pt.altitud != null) {
+                          · {{ pt.altitud }} m s.n.m.
+                        }
+                      </small>
                     </div>
                     <button type="button" class="mini" (click)="editarNombre(pt)">Renombrar</button>
                   }
@@ -464,11 +475,12 @@ export class RondasCampo implements OnDestroy {
   puntoNombre = '';
   editandoId = '';
   editNombre = '';
-  radio = 25;
+  radio = 10;
 
   readonly aGrados = aGrados;
 
   private watchId: number | null = null;
+  private dwell: { puntoId: string; desde: number } | null = null;
   private rumboOn = false;
   private wake: { release(): Promise<void> } | null = null;
   private lock = false;
@@ -672,7 +684,7 @@ export class RondasCampo implements OnDestroy {
       const c = await this.leerGpsMejor();
       this.aplicarCoords(c);
       this.tomandoGps.set(false);
-      this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente());
+      this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente(), c.altitude);
     } catch {
       this.tomandoGps.set(false);
       this.aviso.set('No se pudieron leer las coordenadas. Activa ubicación precisa y sal al aire libre.');
@@ -799,7 +811,7 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
-  private crearPuntoGps(lat: number, lng: number, nombre: string) {
+  private crearPuntoGps(lat: number, lng: number, nombre: string, altitud?: number | null) {
     if (!this.setupPostId || this.guardando()) return;
     this.guardando.set(true);
     this.api
@@ -808,7 +820,8 @@ export class RondasCampo implements OnDestroy {
         nombre,
         latitud: lat,
         longitud: lng,
-        radioMetros: Number(this.radio) || 25,
+        altitud: altitud ?? this.altitud(),
+        radioMetros: Number(this.radio) || 10,
         orden: this.puntosSetup().length + 1,
       })
       .subscribe({
@@ -931,39 +944,66 @@ export class RondasCampo implements OnDestroy {
       return;
     }
     this.watchId = navigator.geolocation.watchPosition(
-      (p) => this.alGps(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
+      (p) =>
+        this.alGps(
+          p.coords.latitude,
+          p.coords.longitude,
+          p.coords.accuracy,
+          p.coords.altitude,
+        ),
       () => this.gpsNota.set('Sin permiso de GPS. Actívalo para marcar la ronda.'),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
     );
   }
 
-  alGps(lat: number, lng: number, accuracy: number) {
+  alGps(lat: number, lng: number, accuracy: number, altitude: number | null) {
     this.pos.set({ lat, lng });
+    this.altitud.set(altitude != null ? Math.round(altitude) : null);
     if (this.lock) return;
-    const res = detectarMarcacion({
+    const geo = {
       lat,
       lng,
       accuracy,
+      altitud: altitude,
       puntos: this.puntos(),
-      marcas: this.marcas(),
-      antiDupMin: 5,
-      precisionMax: 50,
-      dispositivoId: this.api.deviceId(),
-    });
-    if ('motivo' in res) {
-      if (res.motivo === 'precision') {
+    };
+    const hit = candidatoMarcacion(geo);
+    if (!hit.ok) {
+      this.dwell = null;
+      if (hit.motivo === 'precision') {
         this.gpsNota.set(
-          `Señal débil (${Math.round(res.accuracy || 0)} m). Acércate o espera GPS mejor.`,
+          `GPS poco preciso (±${Math.round(hit.accuracy || accuracy)} m). Debes estar EN el punto, no a 10 m.`,
         );
-      } else if (res.motivo === 'lejos' && this.puntos().length) {
-        const near = this.puntos()
-          .map((pt) => ({ nombre: pt.nombre, d: this.dist(pt, { lat, lng }) }))
-          .sort((a, b) => a.d - b.d)[0];
-        if (near) this.gpsNota.set(`Faltan ${near.d} m para ${near.nombre}`);
+      } else if (hit.motivo === 'altura') {
+        this.gpsNota.set(
+          `Estás cerca de ${hit.puntoNombre}, pero no a la misma altura. Sube a la terraza o al piso del punto.`,
+        );
+      } else if (hit.puntoNombre && hit.distancia != null) {
+        this.gpsNota.set(
+          `Faltan ${hit.distancia} m para ${hit.puntoNombre}. Tienes que llegar al punto, no basta pasar cerca.`,
+        );
       }
       return;
     }
+    if (!this.dwell || this.dwell.puntoId !== hit.punto.id) {
+      this.dwell = { puntoId: hit.punto.id, desde: Date.now() };
+    }
+    const falta = DWELL_MS - (Date.now() - this.dwell.desde);
+    if (falta > 0) {
+      this.gpsNota.set(
+        `En ${hit.punto.nombre}: quédate ${Math.ceil(falta / 1000)} s. Si te vas, no marca.`,
+      );
+      return;
+    }
+    const res = detectarMarcacion({
+      ...geo,
+      marcas: this.marcas(),
+      antiDupMin: 5,
+      dispositivoId: this.api.deviceId(),
+    });
+    if ('motivo' in res) return;
     this.gpsNota.set('');
+    this.dwell = null;
     this.lock = true;
     const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
     const next = [res, ...this.marcas()];
@@ -1021,6 +1061,7 @@ export class RondasCampo implements OnDestroy {
             precisionMetros: m.precisionMetros,
             fechaHora: m.fechaHora,
             dispositivoId: m.dispositivoId,
+            altitud: m.altitud ?? null,
           })),
         )
         .subscribe({

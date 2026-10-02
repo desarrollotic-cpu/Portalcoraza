@@ -8,10 +8,9 @@ import { DataSource } from 'typeorm';
 import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import { AuthService } from '../auth/auth.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { dentroDelRadio, digitsOnly, distanciaMetros } from './rondas-geo';
+import { alturaCoincide, digitsOnly, distanciaMetros } from './rondas-geo';
 
 const ANTI_DUP_MS = 5 * 60 * 1000;
-const PRECISION_MAX_M = 50;
 
 type PuntoRow = {
   id: string;
@@ -20,6 +19,7 @@ type PuntoRow = {
   nombre: string;
   latitud: number;
   longitud: number;
+  altitud: number | null;
   radio_metros: number;
   orden: number;
   activo: boolean;
@@ -32,6 +32,7 @@ type MarcacionIn = {
   latitud: number;
   longitud: number;
   precisionMetros?: number;
+  altitud?: number | null;
   fechaHora: string;
   dispositivoId?: string;
 };
@@ -123,7 +124,7 @@ export class RondasService {
     const filtro = incluirInactivos ? '' : ' AND p.activo = true';
     return this.q(
       `SELECT p.id, p.post_id AS "postId", p.nombre, p.latitud, p.longitud,
-              p.radio_metros AS "radioMetros", p.orden, p.activo,
+              p.altitud, p.radio_metros AS "radioMetros", p.orden, p.activo,
               pu.name AS "puestoNombre"
        FROM rondas_puntos p
        JOIN posts pu ON pu.id = p.post_id
@@ -140,6 +141,7 @@ export class RondasService {
       nombre: string;
       latitud: number;
       longitud: number;
+      altitud?: number | null;
       radioMetros?: number;
       orden?: number;
     },
@@ -152,11 +154,15 @@ export class RondasService {
     if (post.tenant_id !== user.tenantId) {
       throw new ForbiddenException();
     }
+    const altitud =
+      dto.altitud == null || !Number.isFinite(Number(dto.altitud))
+        ? null
+        : Number(dto.altitud);
     const [row] = await this.q(
       `INSERT INTO rondas_puntos
-        (tenant_id, post_id, nombre, latitud, longitud, radio_metros, orden, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-       RETURNING id, post_id AS "postId", nombre, latitud, longitud,
+        (tenant_id, post_id, nombre, latitud, longitud, altitud, radio_metros, orden, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       RETURNING id, post_id AS "postId", nombre, latitud, longitud, altitud,
                  radio_metros AS "radioMetros", orden, activo`,
       [
         user.tenantId,
@@ -164,6 +170,7 @@ export class RondasService {
         nombre,
         dto.latitud,
         dto.longitud,
+        altitud,
         radio,
         dto.orden ?? 1,
         user.sub,
@@ -246,13 +253,18 @@ export class RondasService {
           Number(punto.latitud),
           Number(punto.longitud),
         );
-        if (!dentroDelRadio(dist, Number(punto.radio_metros))) {
+        if (dist > Number(punto.radio_metros)) {
           rechazadas.push({ uuid, motivo: 'fuera-radio' });
           continue;
         }
         const precision = Number(m.precisionMetros ?? 0);
-        if (precision > PRECISION_MAX_M) {
+        const radio = Number(punto.radio_metros) || 10;
+        if (precision > Math.max(15, radio)) {
           rechazadas.push({ uuid, motivo: 'precision' });
+          continue;
+        }
+        if (!alturaCoincide(punto.altitud, m.altitud)) {
+          rechazadas.push({ uuid, motivo: 'altura' });
           continue;
         }
         const fecha = new Date(m.fechaHora);
@@ -274,9 +286,9 @@ export class RondasService {
         const info = await this.q(
           `INSERT INTO rondas_marcaciones
             (tenant_id, uuid_cliente, punto_id, associate_id, post_id,
-             latitud, longitud, precision_metros, distancia_al_punto,
+             latitud, longitud, precision_metros, distancia_al_punto, altitud,
              fecha_hora, dispositivo_id, es_mock)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,false)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,false)
            ON CONFLICT (uuid_cliente) DO NOTHING
            RETURNING id`,
           [
@@ -289,6 +301,7 @@ export class RondasService {
             m.longitud,
             precision || null,
             Math.round(dist * 10) / 10,
+            m.altitud ?? null,
             fecha.toISOString(),
             m.dispositivoId || null,
           ],
@@ -411,7 +424,7 @@ export class RondasService {
     }
     return this.q(
       `SELECT p.id, p.post_id AS "postId", p.nombre, p.latitud, p.longitud,
-              p.radio_metros AS "radioMetros", p.orden, p.activo,
+              p.altitud, p.radio_metros AS "radioMetros", p.orden, p.activo,
               pu.name AS "puestoNombre"
        FROM rondas_puntos p
        JOIN posts pu ON pu.id = p.post_id
@@ -451,9 +464,9 @@ export class RondasService {
   }
 
   private radio(n?: number) {
-    const v = Number(n ?? 25);
-    if (!Number.isFinite(v) || v < 10 || v > 80) {
-      throw new BadRequestException('Radio entre 10 y 80 m');
+    const v = Number(n ?? 10);
+    if (!Number.isFinite(v) || v < 6 || v > 25) {
+      throw new BadRequestException('Radio entre 6 y 25 m');
     }
     return Math.round(v);
   }
