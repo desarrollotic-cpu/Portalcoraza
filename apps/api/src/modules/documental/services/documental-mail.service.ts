@@ -324,12 +324,13 @@ export class DocumentalMailService {
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (!resendKey) return { ok: false, error: null };
 
-    const fromOnboarding = 'Gestión Documental Coraza <onboarding@resend.dev>';
     const fromCustom = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
+    const fromOnboarding = 'Gestión Documental Coraza <onboarding@resend.dev>';
 
     try {
+      // Primero el dominio Coraza. onboarding@resend.dev llega, pero cae en spam.
       const tries = [
-        { from: fromOnboarding, to: [to] },
+        { from: fromCustom, to: [to], bcc: [this.senderEmail] },
         { from: fromCustom, to: [to] },
         { from: fromOnboarding, to: [to], bcc: [this.senderEmail] },
       ];
