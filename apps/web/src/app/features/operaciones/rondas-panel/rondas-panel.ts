@@ -20,7 +20,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
       <aside class="link-box">
         <div>
           <strong>1. Crear puntos GPS (ustedes)</strong>
-          <p>Reemplazo del QR: en el puesto, con tu usuario, te paras donde el cliente pidió y guardas el punto.</p>
+          <p>En el puesto, párate donde el cliente pidió el punto, ponle nombre y toca <b>Tomar punto</b>. Eso guarda las coordenadas. No uses “iniciar ronda”.</p>
           <a [href]="puntosUrl" target="_blank" rel="noopener">{{ puntosUrl }}</a>
         </div>
         <button type="button" class="ghost" (click)="copiar(puntosUrl)">

@@ -25,7 +25,7 @@ const VIG_KEY = 'rondas_campo_vig';
       <header>
         <p class="brand">{{ modoPuntos ? 'Coraza · Puntos GPS' : 'Coraza · Rondas' }}</p>
         @if (modoPuntos) {
-          <strong>Crear puntos del recorrido</strong>
+          <strong>Tomar puntos GPS</strong>
         } @else if (post(); as p) {
           <strong>{{ p.name }}</strong>
         } @else {
@@ -113,7 +113,7 @@ const VIG_KEY = 'rondas_campo_vig';
 
       @if (vista() === 'sistemas') {
         <section class="card">
-          <h1>Puntos del recorrido</h1>
+          <h1>Guardar coordenadas del puesto</h1>
           @if (!auth.isAuthenticated() || !auth.hasPermission('rondas.setup')) {
             <label>Correo<input type="email" [(ngModel)]="email" /></label>
             <label>Clave<input type="password" [(ngModel)]="clave" /></label>
@@ -184,15 +184,21 @@ const VIG_KEY = 'rondas_campo_vig';
               />
             </label>
 
-            @if (!grabando()) {
-              <button type="button" class="cta" (click)="iniciarRecorrido()">Iniciar recorrido</button>
-              <button type="button" class="ghost" [disabled]="guardando() || !pos()" (click)="marcarAquiAhora()">
-                {{ guardando() ? 'Guardando…' : 'Marcar este punto ahora' }}
-              </button>
-            } @else {
-              <button type="button" class="ghost" (click)="detenerRecorrido()">Detener grabación</button>
-              <p class="hint">Camina el recorrido. Cada {{ radio }} m se crea un punto con el nombre de arriba (o Punto 1, 2… si lo dejas vacío).</p>
-            }
+            <button
+              type="button"
+              class="cta"
+              [disabled]="guardando() || tomandoGps()"
+              (click)="tomarPunto()"
+            >
+              @if (tomandoGps()) {
+                Tomando GPS…
+              } @else if (guardando()) {
+                Guardando coordenadas…
+              } @else {
+                Tomar punto
+              }
+            </button>
+            <p class="hint">Párate en el sitio, espera a que salgan las coordenadas y toca Tomar punto. No es iniciar ronda.</p>
 
             <ul class="puntos">
               @for (pt of puntosSetup(); track pt.id) {
@@ -431,7 +437,7 @@ export class RondasCampo implements OnDestroy {
   heading = signal<number | null>(null);
   accuracy = signal<number | null>(null);
   altitud = signal<number | null>(null);
-  grabando = signal(false);
+  tomandoGps = signal(false);
   vigNombre = signal('');
   entrando = signal(false);
   guardando = signal(false);
@@ -590,12 +596,13 @@ export class RondasCampo implements OnDestroy {
   }
 
   cambiarPuestoSetup() {
-    this.detenerRecorrido();
     this.setupPostId = '';
     this.setupPostNombre = '';
     this.puntosSetup.set([]);
     this.pos.set(null);
     this.heading.set(null);
+    this.accuracy.set(null);
+    this.gpsNota.set('');
     this.pararGps();
     this.soltarRumbo();
   }
@@ -641,30 +648,20 @@ export class RondasCampo implements OnDestroy {
     return `${Math.round(h)}° ${cardinal(h)}`;
   }
 
-  iniciarRecorrido() {
-    this.grabando.set(true);
-    this.aviso.set('Grabando recorrido. Camina y los puntos se crean solos.');
-    void this.pedirWakeLock();
-    void this.pedirRumbo();
-    this.iniciarBrujula();
-    const c = this.pos();
-    const acc = this.accuracy();
-    if (c) this.talVezCrearPunto(c.lat, c.lng, acc ?? 99);
-  }
-
-  detenerRecorrido() {
-    this.grabando.set(false);
-    void this.wake?.release();
-    this.wake = null;
-  }
-
-  marcarAquiAhora() {
-    const c = this.pos();
-    if (!c) {
-      this.aviso.set('Espera a que el GPS fije la posición.');
-      return;
+  async tomarPunto() {
+    if (this.guardando() || this.tomandoGps()) return;
+    this.tomandoGps.set(true);
+    this.gpsNota.set('Tomando coordenadas… quédate quieto, con el GPS preciso activado.');
+    this.aviso.set('');
+    try {
+      const c = await this.leerGpsMejor();
+      this.aplicarCoords(c);
+      this.tomandoGps.set(false);
+      this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente());
+    } catch {
+      this.tomandoGps.set(false);
+      this.aviso.set('No se pudieron leer las coordenadas. Activa ubicación precisa y sal al aire libre.');
     }
-    this.crearPuntoGps(c.lat, c.lng, this.nombreSiguiente(), true);
   }
 
   editarNombre(pt: RondasPunto) {
@@ -710,36 +707,84 @@ export class RondasCampo implements OnDestroy {
     }
     this.pararGps();
     this.watchId = navigator.geolocation.watchPosition(
-      (p) => {
-        this.pos.set({ lat: p.coords.latitude, lng: p.coords.longitude });
-        this.accuracy.set(Math.round(p.coords.accuracy));
-        this.altitud.set(p.coords.altitude != null ? Math.round(p.coords.altitude) : null);
-        if (this.grabando()) {
-          this.talVezCrearPunto(p.coords.latitude, p.coords.longitude, p.coords.accuracy);
-        }
-      },
-      () => this.gpsNota.set('Sin permiso de GPS. Actívalo para crear los puntos.'),
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 },
+      (p) => this.aplicarCoords(p.coords),
+      () => this.gpsNota.set('Sin permiso de GPS. Activa ubicación precisa para tomar el punto.'),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 },
     );
   }
 
-  private talVezCrearPunto(lat: number, lng: number, accuracy: number) {
-    if (!this.grabando() || this.guardando() || !this.setupPostId) return;
-    if (accuracy > 40) {
-      this.gpsNota.set(`Señal débil (±${Math.round(accuracy)} m). Espera un GPS más fino.`);
-      return;
+  private aplicarCoords(c: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    altitude: number | null;
+  }) {
+    this.pos.set({ lat: c.latitude, lng: c.longitude });
+    this.accuracy.set(Math.round(c.accuracy));
+    this.altitud.set(c.altitude != null ? Math.round(c.altitude) : null);
+    if (c.accuracy > 50) {
+      this.gpsNota.set(
+        `GPS poco preciso (±${Math.round(c.accuracy)} m). Activa ubicación precisa y espera; igual puedes tomar el punto.`,
+      );
+    } else {
+      this.gpsNota.set('');
     }
-    this.gpsNota.set('');
-    const pts = this.puntosSetup();
-    const radio = Number(this.radio) || 25;
-    if (pts.length) {
-      const last = pts[pts.length - 1];
-      if (distanciaMetros(lat, lng, last.latitud, last.longitud) < radio) return;
-    }
-    this.crearPuntoGps(lat, lng, this.nombreSiguiente(), false);
   }
 
-  private crearPuntoGps(lat: number, lng: number, nombre: string, avisoFijo: boolean) {
+  private leerGpsMejor(ms = 10000): Promise<{
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    altitude: number | null;
+  }> {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('sin gps'));
+        return;
+      }
+      const snap = (c: GeolocationCoordinates) => ({
+        latitude: c.latitude,
+        longitude: c.longitude,
+        accuracy: c.accuracy,
+        altitude: c.altitude,
+      });
+      let best: ReturnType<typeof snap> | null = null;
+      let id = 0;
+      let t = 0;
+      const finish = () => {
+        if (id) navigator.geolocation.clearWatch(id);
+        if (t) clearTimeout(t);
+        if (best) {
+          resolve(best);
+          return;
+        }
+        const actual = this.pos();
+        if (actual) {
+          resolve({
+            latitude: actual.lat,
+            longitude: actual.lng,
+            accuracy: this.accuracy() ?? 99,
+            altitude: this.altitud(),
+          });
+          return;
+        }
+        reject(new Error('sin lectura'));
+      };
+      id = navigator.geolocation.watchPosition(
+        (p) => {
+          const s = snap(p.coords);
+          this.aplicarCoords(s);
+          if (!best || s.accuracy < best.accuracy) best = s;
+          if (s.accuracy <= 25) finish();
+        },
+        () => finish(),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 },
+      );
+      t = window.setTimeout(finish, ms);
+    });
+  }
+
+  private crearPuntoGps(lat: number, lng: number, nombre: string) {
     if (!this.setupPostId || this.guardando()) return;
     this.guardando.set(true);
     this.api
@@ -756,7 +801,9 @@ export class RondasCampo implements OnDestroy {
           this.puntosSetup.set([...this.puntosSetup(), pt]);
           this.guardando.set(false);
           this.puntoNombre = '';
-          this.aviso.set(avisoFijo ? `${nombre} guardado.` : `${nombre} generado.`);
+          this.aviso.set(
+            `${nombre} guardado: ${Number(pt.latitud).toFixed(6)}, ${Number(pt.longitud).toFixed(6)}`,
+          );
           navigator.vibrate?.([60, 30, 60]);
         },
         error: (e: HttpErrorResponse) => {
