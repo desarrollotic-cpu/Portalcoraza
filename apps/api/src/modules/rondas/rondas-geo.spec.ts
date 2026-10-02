@@ -12,6 +12,8 @@ describe('rondas-geo', () => {
     expect(cerca).toBeLessThan(25);
     expect(dentroDelRadio(cerca, 25)).toBe(true);
     expect(dentroDelRadio(80, 25)).toBe(false);
+    expect(dentroDelRadio(28, 25)).toBe(true);
+    expect(dentroDelRadio(30, 25)).toBe(false);
   });
 
   it('compara cédula solo con dígitos', () => {

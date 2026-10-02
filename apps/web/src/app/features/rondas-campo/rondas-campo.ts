@@ -8,6 +8,7 @@ import {
   MarcaLocal,
   detectarMarcacion,
   distanciaMetros,
+  dentroDelRadio,
   esHoyBogota,
   horaBogota,
 } from '../rondas/rondas-geo';
@@ -15,6 +16,7 @@ import {
 type Vista = 'inicio' | 'sistemas' | 'ronda';
 
 const MARCAS_KEY = 'rondas_campo_marcas';
+const PUNTOS_KEY = 'rondas_campo_puntos';
 const VIG_KEY = 'rondas_campo_vig';
 
 @Component({
@@ -237,6 +239,9 @@ const VIG_KEY = 'rondas_campo_vig';
           @if (gpsNota()) {
             <p class="nota">{{ gpsNota() }}</p>
           }
+          @if (!puntos().length) {
+            <p class="nota">Aún no hay puntos de este puesto. Cuando Sistemas los tome y haya señal, aparecen aquí solos.</p>
+          }
           <ul class="puntos">
             @for (pt of puntos(); track pt.id) {
               <li [class.ok]="marcadoHoy(pt.id)">
@@ -246,8 +251,13 @@ const VIG_KEY = 'rondas_campo_vig';
                   <small>
                     @if (marcaDe(pt.id); as m) {
                       {{ horaBogota(m.fechaHora) }}
+                      · {{ m.estado === 'enviado' ? 'enviado a Portal' : 'en el teléfono, se envía al tener datos' }}
                     } @else if (pos(); as pos) {
-                      a {{ dist(pt, pos) }} m
+                      @if (dentroDelRadio(dist(pt, pos), pt.radioMetros)) {
+                        encima del punto · espera GPS preciso
+                      } @else {
+                        a {{ dist(pt, pos) }} m
+                      }
                     } @else {
                       radio {{ pt.radioMetros }} m
                     }
@@ -418,6 +428,7 @@ export class RondasCampo implements OnDestroy {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   readonly horaBogota = horaBogota;
+  readonly dentroDelRadio = dentroDelRadio;
   readonly modoPuntos = this.route.snapshot.data['modo'] === 'puntos';
 
   vista = signal<Vista>('inicio');
@@ -464,11 +475,15 @@ export class RondasCampo implements OnDestroy {
   private syncTimer: ReturnType<typeof setInterval> | null = null;
   private onOnline = () => {
     this.online.set(true);
+    this.refrescarPuntos();
     void this.sincronizar();
   };
   private onOffline = () => this.online.set(false);
   private onVisible = () => {
-    if (document.visibilityState === 'visible') void this.sincronizar();
+    if (document.visibilityState === 'visible') {
+      this.refrescarPuntos();
+      void this.sincronizar();
+    }
   };
 
   constructor() {
@@ -861,6 +876,8 @@ export class RondasCampo implements OnDestroy {
         this.vigNombre.set(res.vigilante.nombre);
         localStorage.setItem(VIG_KEY, JSON.stringify(res.vigilante));
         this.marcas.set(leerMarcas(res.vigilante.id));
+        const cached = leerPuntos(post.id);
+        if (cached.length) this.puntos.set(cached);
         this.vista.set('ronda');
         this.cargarPuntosYGps();
       },
@@ -872,12 +889,36 @@ export class RondasCampo implements OnDestroy {
   }
 
   cargarPuntosYGps() {
+    this.iniciarGps();
+    this.refrescarPuntos();
+  }
+
+  refrescarPuntos() {
+    if (this.modoPuntos || this.vista() !== 'ronda' || !this.api.campoToken()) return;
     this.api.puntosCampo().subscribe({
       next: (pts) => {
         this.puntos.set(pts);
-        this.iniciarGps();
+        const post = this.post();
+        if (post) guardarPuntos(post.id, pts);
+        if (!pts.length) {
+          this.gpsNota.set(
+            'Aún no hay puntos. Cuando Sistemas los tome y haya señal, salen aquí.',
+          );
+        }
       },
-      error: () => this.gpsNota.set('Sin red: no hay puntos en el servidor. Abre la app con datos al menos una vez.'),
+      error: () => {
+        const post = this.post();
+        const cached = post ? leerPuntos(post.id) : [];
+        if (cached.length) {
+          this.puntos.set(cached);
+          return;
+        }
+        if (!this.puntos().length) {
+          this.gpsNota.set(
+            'Sin red: no hay puntos en este teléfono. Entra con datos al menos una vez.',
+          );
+        }
+      },
     });
   }
 
@@ -892,7 +933,7 @@ export class RondasCampo implements OnDestroy {
     this.watchId = navigator.geolocation.watchPosition(
       (p) => this.alGps(p.coords.latitude, p.coords.longitude, p.coords.accuracy),
       () => this.gpsNota.set('Sin permiso de GPS. Actívalo para marcar la ronda.'),
-      { enableHighAccuracy: true, maximumAge: 4000, timeout: 20000 },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 },
     );
   }
 
@@ -906,7 +947,7 @@ export class RondasCampo implements OnDestroy {
       puntos: this.puntos(),
       marcas: this.marcas(),
       antiDupMin: 5,
-      precisionMax: 40,
+      precisionMax: 50,
       dispositivoId: this.api.deviceId(),
     });
     if ('motivo' in res) {
@@ -914,6 +955,11 @@ export class RondasCampo implements OnDestroy {
         this.gpsNota.set(
           `Señal débil (${Math.round(res.accuracy || 0)} m). Acércate o espera GPS mejor.`,
         );
+      } else if (res.motivo === 'lejos' && this.puntos().length) {
+        const near = this.puntos()
+          .map((pt) => ({ nombre: pt.nombre, d: this.dist(pt, { lat, lng }) }))
+          .sort((a, b) => a.d - b.d)[0];
+        if (near) this.gpsNota.set(`Faltan ${near.d} m para ${near.nombre}`);
       }
       return;
     }
@@ -939,7 +985,7 @@ export class RondasCampo implements OnDestroy {
   }
 
   dist(pt: RondasPunto, pos: { lat: number; lng: number }) {
-    return Math.round(distanciaMetros(pos.lat, pos.lng, pt.latitud, pt.longitud));
+    return Math.round(distanciaMetros(pos.lat, pos.lng, Number(pt.latitud), Number(pt.longitud)));
   }
 
   hechos() {
@@ -1018,7 +1064,10 @@ export class RondasCampo implements OnDestroy {
   private iniciarSyncAuto() {
     this.pararSyncAuto();
     void this.sincronizar();
-    this.syncTimer = setInterval(() => void this.sincronizar(), 15000);
+    this.syncTimer = setInterval(() => {
+      this.refrescarPuntos();
+      void this.sincronizar();
+    }, 15000);
     document.addEventListener('visibilitychange', this.onVisible);
     window.addEventListener('pageshow', this.onOnline);
     window.addEventListener('focus', this.onOnline);
@@ -1058,6 +1107,20 @@ function leerMarcas(vigId: string): MarcaLocal[] {
 
 function guardarMarcas(vigId: string, items: MarcaLocal[]) {
   localStorage.setItem(MARCAS_KEY, JSON.stringify({ id: vigId, items }));
+}
+
+function leerPuntos(postId: string): RondasPunto[] {
+  try {
+    const data = JSON.parse(localStorage.getItem(PUNTOS_KEY) || 'null');
+    if (!data || data.postId !== postId) return [];
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarPuntos(postId: string, items: RondasPunto[]) {
+  localStorage.setItem(PUNTOS_KEY, JSON.stringify({ postId, items }));
 }
 
 function msg(e: HttpErrorResponse, fallback = 'Error') {

@@ -33,6 +33,14 @@ export function horaBogota(iso: string): string {
   }).format(new Date(iso));
 }
 
+export function dentroDelRadio(
+  distancia: number,
+  radioMetros: number,
+  holgura = 1.15,
+): boolean {
+  return distancia <= radioMetros * holgura;
+}
+
 export type PuntoGps = {
   id: string;
   nombre: string;
@@ -70,8 +78,13 @@ export function detectarMarcacion(opts: {
   const ahora = Date.now();
   const ordenados = [...opts.puntos].sort((a, b) => a.orden - b.orden);
   for (const p of ordenados) {
-    const d = distanciaMetros(opts.lat, opts.lng, p.latitud, p.longitud);
-    if (d > p.radioMetros) continue;
+    const d = distanciaMetros(
+      opts.lat,
+      opts.lng,
+      Number(p.latitud),
+      Number(p.longitud),
+    );
+    if (!dentroDelRadio(d, Number(p.radioMetros) || 25)) continue;
     const ultima = opts.marcas
       .filter((m) => m.puntoId === p.id)
       .sort((a, b) => +new Date(b.fechaHora) - +new Date(a.fechaHora))[0];
