@@ -1,6 +1,6 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 const CAMPO_TOKEN = 'rondas_campo_token';
@@ -144,7 +144,23 @@ export class RondasApiService {
   }
 
   puestosSetup(): Observable<RondasPost[]> {
-    return this.http.get<RondasPost[]>(`${this.base}/puestos`);
+    return this.http
+      .get<Array<{ id: string; name: string; code?: string; status?: string; clientName?: string | null }>>(
+        `${environment.apiUrl}/posts`,
+      )
+      .pipe(
+        map((rows) =>
+          rows
+            .filter((p) => p.status !== 'INACTIVO')
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              code: p.code,
+              clientName: p.clientName,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'es')),
+        ),
+      );
   }
 
   hoy(postId?: string): Observable<RondasHoy> {

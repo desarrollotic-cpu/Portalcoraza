@@ -70,7 +70,7 @@ const VIG_KEY = 'rondas_campo_vig';
         } @else {
           <p class="hint">Sistemas debe vincular este teléfono al puesto y marcar los puntos GPS.</p>
         }
-        <button type="button" class="link" (click)="vista.set('sistemas')">Entrar como sistemas</button>
+        <button type="button" class="link" (click)="abrirSistemas()">Entrar como sistemas</button>
       }
 
       @if (vista() === 'sistemas') {
@@ -84,14 +84,30 @@ const VIG_KEY = 'rondas_campo_vig';
             </button>
           } @else {
             <label>
-              Puesto
-              <select [(ngModel)]="setupPostId" (ngModelChange)="cargarPuntosSetup()">
-                <option value="">Seleccione</option>
-                @for (p of puestos(); track p.id) {
-                  <option [value]="p.id">{{ p.name }}</option>
-                }
-              </select>
+              Buscar puesto
+              <input
+                type="search"
+                [(ngModel)]="filtroPuesto"
+                placeholder="Nombre del puesto"
+                (ngModelChange)="filtrarPuestos()"
+              />
             </label>
+            <ul>
+              @for (p of puestosVisibles(); track p.id) {
+                <li>
+                  <button
+                    type="button"
+                    [class.cta]="p.id === setupPostId"
+                    (click)="elegirPuesto(p)"
+                  >
+                    {{ p.name }}
+                  </button>
+                </li>
+              }
+            </ul>
+            @if (!puestos().length && !entrando()) {
+              <p class="nota">No hay puestos. Revisa que la cuenta tenga acceso a Operaciones.</p>
+            }
             @if (setupPostId) {
               <button type="button" class="ghost" (click)="vincularDesdeSetup()">
                 Dejar este teléfono en este puesto
@@ -223,6 +239,7 @@ export class RondasCampo implements OnDestroy {
   visibles = signal<Array<{ id: string; nombre: string }>>([]);
   elegido = signal<{ id: string; nombre: string } | null>(null);
   puestos = signal<Array<{ id: string; name: string }>>([]);
+  puestosVisibles = signal<Array<{ id: string; name: string }>>([]);
   puntosSetup = signal<RondasPunto[]>([]);
   puntos = signal<RondasPunto[]>([]);
   marcas = signal<MarcaLocal[]>([]);
@@ -233,6 +250,7 @@ export class RondasCampo implements OnDestroy {
   sincronizando = signal(false);
 
   filtro = '';
+  filtroPuesto = '';
   cedula = '';
   email = '';
   clave = '';
@@ -285,6 +303,43 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
+  abrirSistemas() {
+    this.vista.set('sistemas');
+    this.cargarPuestos();
+  }
+
+  cargarPuestos() {
+    if (!this.auth.isAuthenticated() || !this.auth.hasPermission('rondas.setup')) {
+      return;
+    }
+    this.entrando.set(true);
+    this.api.puestosSetup().subscribe({
+      next: (ps) => {
+        this.entrando.set(false);
+        this.puestos.set(ps);
+        this.filtrarPuestos();
+        if (!ps.length) this.aviso.set('No se encontraron puestos activos.');
+      },
+      error: (e: HttpErrorResponse) => {
+        this.entrando.set(false);
+        this.aviso.set(msg(e, 'No se pudieron cargar los puestos'));
+      },
+    });
+  }
+
+  filtrarPuestos() {
+    const q = this.filtroPuesto.trim().toLowerCase();
+    const all = this.puestos();
+    this.puestosVisibles.set(
+      q ? all.filter((p) => p.name.toLowerCase().includes(q)) : all.slice(0, 60),
+    );
+  }
+
+  elegirPuesto(p: { id: string; name: string }) {
+    this.setupPostId = p.id;
+    this.cargarPuntosSetup();
+  }
+
   loginSistemas() {
     this.entrando.set(true);
     this.auth.login(this.email, this.clave).subscribe({
@@ -294,10 +349,7 @@ export class RondasCampo implements OnDestroy {
           this.aviso.set('Esa cuenta no puede crear puntos.');
           return;
         }
-        this.api.puestosSetup().subscribe({
-          next: (ps) => this.puestos.set(ps),
-          error: (e: HttpErrorResponse) => this.aviso.set(msg(e)),
-        });
+        this.cargarPuestos();
       },
       error: (e: HttpErrorResponse) => {
         this.entrando.set(false);
