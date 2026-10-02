@@ -61,27 +61,44 @@ const VIG_KEY = 'rondas_campo_vig';
           </section>
         } @else {
           <section class="card">
+            <button type="button" class="back" (click)="cambiarPuesto()">← Cambiar puesto</button>
             <h1>¿Quién da la ronda?</h1>
-            <button type="button" class="ghost" (click)="cambiarPuesto()">Cambiar puesto</button>
-            <input
-              type="search"
-              [(ngModel)]="filtro"
-              placeholder="Buscar nombre"
-              (ngModelChange)="filtrar()"
-            />
-            <ul>
-              @for (a of visibles(); track a.id) {
-                <li>
-                  <button type="button" (click)="elegir(a)">{{ a.nombre }}</button>
-                </li>
+            <p class="puesto-ok">Puesto: {{ post()?.name }}</p>
+
+            @if (!elegido()) {
+              <label>
+                Tu nombre
+                <input
+                  type="text"
+                  autocomplete="off"
+                  autocapitalize="words"
+                  [(ngModel)]="filtro"
+                  placeholder="Escribe apellido o nombre"
+                  (ngModelChange)="filtrar()"
+                />
+              </label>
+              <ul class="sugerencias">
+                @for (a of visibles(); track a.id) {
+                  <li>
+                    <button type="button" (click)="elegir(a)">{{ a.nombre }}</button>
+                  </li>
+                }
+              </ul>
+              @if (filtro.trim() && !visibles().length) {
+                <p class="nota">No hay coincidencias. Prueba con el apellido.</p>
               }
-            </ul>
-            @if (elegido(); as e) {
+            } @else {
+              <label>
+                Nombre
+                <input type="text" [value]="elegido()!.nombre" readonly />
+              </label>
+              <button type="button" class="ghost" (click)="cambiarNombre()">Elegir otro nombre</button>
               <label>
                 Número de documento
                 <input
                   type="text"
                   inputmode="numeric"
+                  autocomplete="off"
                   [(ngModel)]="cedula"
                   placeholder="Cédula"
                 />
@@ -205,12 +222,19 @@ const VIG_KEY = 'rondas_campo_vig';
     header span.on { color: #86efac; }
     .card { margin: 1rem; padding: 1rem; background: #fff; border-radius: 16px; box-shadow: 0 1px 4px #0001; }
     h1 { margin: 0 0 0.75rem; font-size: 1.2rem; }
+    .back {
+      display: inline-block; width: auto; margin: 0 0 0.6rem; padding: 0.35rem 0;
+      background: none; border: 0; color: #166534; font: inherit; font-weight: 700; cursor: pointer;
+    }
+    .puesto-ok { margin: -0.4rem 0 0.8rem; font-size: 0.85rem; color: #166534; font-weight: 600; }
     label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.6rem 0; }
     input, select {
       width: 100%; margin-top: 0.25rem; padding: 0.7rem; border: 1px solid #ddd;
-      border-radius: 10px; font: inherit; box-sizing: border-box;
+      border-radius: 10px; font: inherit; box-sizing: border-box; background: #fff;
     }
-    ul { list-style: none; margin: 0.5rem 0; padding: 0; max-height: 40vh; overflow: auto; }
+    input[readonly] { background: #ecfdf3; font-weight: 600; }
+    ul.sugerencias, ul { list-style: none; margin: 0.5rem 0 0; padding: 0; max-height: 40vh; overflow: auto; }
+    ul li { margin: 0 0 0.35rem; }
     ul button, .cta, .ghost, footer button {
       width: 100%; text-align: left; padding: 0.75rem; border: 0; border-radius: 12px;
       background: #f3f4f6; font: inherit; cursor: pointer;
@@ -318,6 +342,8 @@ export class RondasCampo implements OnDestroy {
 
   elegir(a: { id: string; nombre: string }) {
     this.elegido.set(a);
+    this.filtro = a.nombre;
+    this.visibles.set([]);
   }
 
   cargarAsociados(postId: string) {
@@ -354,7 +380,15 @@ export class RondasCampo implements OnDestroy {
     this.post.set(null);
     this.elegido.set(null);
     this.cedula = '';
+    this.filtro = '';
     this.cargarPuestosPublicos();
+  }
+
+  cambiarNombre() {
+    this.elegido.set(null);
+    this.filtro = '';
+    this.cedula = '';
+    this.filtrar();
   }
 
   abrirSistemas() {
