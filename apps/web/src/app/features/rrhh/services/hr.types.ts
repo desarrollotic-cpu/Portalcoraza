@@ -180,6 +180,9 @@ export interface Associate {
   tenureMonths: number;
   /** Celular + fecha ingreso + cargo */
   profileComplete?: boolean;
+  /** Carpeta en Gestión Documental (personal retirado). */
+  archiveCode?: number | null;
+  fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO';
 }
 
 export interface AssociatesQuery {

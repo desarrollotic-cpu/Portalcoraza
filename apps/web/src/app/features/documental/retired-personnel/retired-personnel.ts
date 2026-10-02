@@ -1,5 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { FileStatusChip } from '../../../shared/components/file-status-chip/file-status-chip';
+import { personnelFileStatus } from '../../../shared/personnel-file';
 import { AuthService } from '../../../core/services/auth.service';
 import { DocumentalApiService, RetiredPersonnel } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
@@ -7,7 +9,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
 @Component({
   selector: 'app-doc-retired',
-  imports: [FormsModule],
+  imports: [FormsModule, FileStatusChip],
   template: `
     <div class="toolbar">
       <h3>Asociados Retirados</h3>
@@ -47,9 +49,10 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
               <button type="button" class="pick-item" (click)="pickGh(m)">
                 <strong>{{ m.fullName }}</strong>
                 <span>CC {{ m.idNumber }} · {{ m.rrhhStatus || 'RRHH' }}</span>
-                @if (m.alreadyRegistered) {
-                  <span class="badge warn">Tenía #{{ m.existingCode }}</span>
-                }
+                <app-file-status-chip
+                  [kind]="m.fileStatus || personnelFileStatus(m.rrhhStatus, m.existingCode)"
+                  [archiveCode]="m.existingCode"
+                />
               </button>
             }
           </div>
@@ -57,15 +60,23 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
 
         @if (foundInRrhh() && isRetiredInGh()) {
           <div class="alert-ok" style="grid-column:1/-1">
-            {{ model.fullName }} — CC {{ model.idNumber }} (RETIRADO).
+            {{ model.fullName }} — CC {{ model.idNumber }}
+            <app-file-status-chip
+              [kind]="personnelFileStatus(rrhhStatus(), existingCode())"
+              [archiveCode]="existingCode()"
+            />
             Pon la fecha y al guardar se asigna <strong>#{{ nextCode() }}</strong>.
           </div>
         }
 
         @if (foundInRrhh() && !isRetiredInGh()) {
           <div class="alert-info" style="grid-column:1/-1">
-            Está en Gestión Humana pero <strong>no figura como retirado</strong>
-            ({{ rrhhStatus() || 'otro estado' }}). Puedes archivar la carpeta igual: revisa o escribe los datos a mano.
+            {{ model.fullName }} — CC {{ model.idNumber }}
+            <app-file-status-chip
+              [kind]="personnelFileStatus(rrhhStatus(), existingCode())"
+              [archiveCode]="existingCode()"
+            />
+            Está en Gestión Humana ({{ rrhhStatus() || 'otro estado' }}). Puedes archivar la carpeta igual.
           </div>
         }
 
@@ -170,19 +181,20 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       <p>Cargando...</p>
     } @else {
       <table>
-        <thead><tr><th>Carpeta</th><th>Nombre</th><th>Cédula</th><th>Tipo</th><th>Fecha archivo</th><th>Rótulo</th></tr></thead>
+        <thead><tr><th>Carpeta</th><th>Nombre</th><th>Cédula</th><th>Archivo</th><th>Tipo</th><th>Fecha archivo</th><th>Rótulo</th></tr></thead>
         <tbody>
           @for (p of items(); track p.id) {
             <tr>
               <td>{{ p.numericCode ? '#' + p.numericCode : '—' }}</td>
               <td>{{ p.fullName }}</td>
               <td>{{ p.idNumber }}</td>
+              <td><app-file-status-chip kind="ARCHIVADO" [archiveCode]="p.numericCode" /></td>
               <td>{{ p.personType }}</td>
               <td>{{ p.retirementDate ?? '—' }}</td>
               <td><button type="button" class="btn-ghost" (click)="printOne(p)">Imprimir rótulo</button></td>
             </tr>
           } @empty {
-            <tr><td colspan="6" class="muted">{{ query.trim() ? 'Sin carpetas con ese dato.' : 'Sin asociados retirados.' }}</td></tr>
+            <tr><td colspan="7" class="muted">{{ query.trim() ? 'Sin carpetas con ese dato.' : 'Sin asociados retirados.' }}</td></tr>
           }
         </tbody>
       </table>
@@ -241,6 +253,7 @@ export class RetiredPersonnelScreen implements OnInit {
   readonly queueCount = signal(0);
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly isRetiredInGh = computed(() => (this.rrhhStatus() || '').toUpperCase() === 'RETIRADO');
+  readonly personnelFileStatus = personnelFileStatus;
 
   readonly lookupLoading = signal(false);
   readonly lookupDone = signal(false);
@@ -257,6 +270,7 @@ export class RetiredPersonnelScreen implements OnInit {
       retirementDate: string | null;
       alreadyRegistered: boolean;
       existingCode: number | null;
+      fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO';
     }>
   >([]);
 
@@ -313,6 +327,7 @@ export class RetiredPersonnelScreen implements OnInit {
     retirementDate: string | null;
     alreadyRegistered: boolean;
     existingCode: number | null;
+    fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO';
   }): void {
     this.model.idNumber = m.idNumber;
     this.model.fullName = m.fullName;

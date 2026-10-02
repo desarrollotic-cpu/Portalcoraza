@@ -3,11 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import * as fs from 'fs';
-import * as path from 'path';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import PDFDocument = require('pdfkit');
-import { Brackets, In, Repository } from 'typeorm';
+import { Brackets, EntityManager, In, Repository } from 'typeorm';
+import { personnelFileStatus } from '../../common/personnel-file.policy';
 import {
   getMembreteBascBuffer,
   getMembreteHuellaBuffer,
@@ -79,6 +78,8 @@ export class AssociatesService {
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
     private readonly documents: HrDocumentsService,
+    @InjectEntityManager()
+    private readonly em: EntityManager,
   ) {}
 
   /**
@@ -235,8 +236,9 @@ export class AssociatesService {
       rows = rows.slice(skip, skip + limit);
       const pageRetired = rows.filter((a) => this.isInactiveStatus(a.status)).map((a) => a.id);
       const pageRetirements = await this.latestRetirementDates(pageRetired);
+      const items = rows.map((a) => this.enrich(a, user, pageRetirements.get(a.id)));
       return {
-        items: rows.map((a) => this.enrich(a, user, pageRetirements.get(a.id))),
+        items: await this.withArchiveStatus(items),
         total,
         page,
         limit,
@@ -247,9 +249,10 @@ export class AssociatesService {
     [rows, total] = await qb.skip(skip).take(limit).getManyAndCount();
     const retiredIds = rows.filter((a) => this.isInactiveStatus(a.status)).map((a) => a.id);
     const retirementByAssociate = await this.latestRetirementDates(retiredIds);
+    const items = rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id)));
 
     return {
-      items: rows.map((a) => this.enrich(a, user, retirementByAssociate.get(a.id))),
+      items: await this.withArchiveStatus(items),
       total,
       page,
       limit,
@@ -276,7 +279,8 @@ export class AssociatesService {
       .catch(() => undefined);
 
     const retirementDate = await this.latestRetirementDate(id);
-    return this.enrich(associate, user, retirementDate);
+    const [item] = await this.withArchiveStatus([this.enrich(associate, user, retirementDate)]);
+    return item;
   }
 
   async history(id: string) {
@@ -574,6 +578,39 @@ export class AssociatesService {
         .trim(),
     };
     return this.sensitive.maskAssociate(enriched, user);
+  }
+
+  private digits(value: string): string {
+    return (value || '').replace(/[^0-9a-zA-Z]/gi, '');
+  }
+
+  private async archiveCodesByDocument(docs: string[]): Promise<Map<string, number>> {
+    const keys = [...new Set(docs.map((d) => this.digits(d)).filter(Boolean))];
+    const map = new Map<string, number>();
+    if (!keys.length) return map;
+    const rows = await this.em.query<Array<{ id_number: string; numeric_code: number }>>(
+      `SELECT id_number, numeric_code
+       FROM doc_retired_personnel
+       WHERE REPLACE(REPLACE(REPLACE(id_number, '.', ''), '-', ''), ' ', '') = ANY($1::text[])
+         AND numeric_code IS NOT NULL
+       ORDER BY numeric_code DESC`,
+      [keys],
+    );
+    for (const r of rows ?? []) {
+      const k = this.digits(r.id_number);
+      if (k && !map.has(k)) map.set(k, Number(r.numeric_code));
+    }
+    return map;
+  }
+
+  private async withArchiveStatus<T extends { documentNumber: string; status: string }>(
+    items: T[],
+  ): Promise<Array<T & { archiveCode: number | null; fileStatus: ReturnType<typeof personnelFileStatus> }>> {
+    const codes = await this.archiveCodesByDocument(items.map((i) => i.documentNumber));
+    return items.map((item) => {
+      const archiveCode = codes.get(this.digits(item.documentNumber)) ?? null;
+      return { ...item, archiveCode, fileStatus: personnelFileStatus(item.status, archiveCode) };
+    });
   }
 
   /** Completa = celular + fecha ingreso + cargo (identidad ya es obligatoria al crear). */

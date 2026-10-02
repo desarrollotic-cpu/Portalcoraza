@@ -16,7 +16,9 @@ import {
   LucideUser,
 } from '@lucide/angular';
 import { AuthService } from '../../../core/services/auth.service';
+import { FileStatusChip } from '../../../shared/components/file-status-chip/file-status-chip';
 import { Icon } from '../../../shared/components/icon/icon';
+import { personnelFileStatus } from '../../../shared/personnel-file';
 import { ToastService } from '../../../shared/services/toast.service';
 import { printRotulo, rotuloFromAssociate } from '../../documental/rotulo-print';
 import { HrApiService } from '../services/hr-api.service';
@@ -49,7 +51,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
  */
 @Component({
   selector: 'app-associate-detail',
-  imports: [CommonModule, FormsModule, RouterLink, Icon],
+  imports: [CommonModule, FormsModule, RouterLink, Icon, FileStatusChip],
   template: `
     <div class="hr-page">
       @if (loading()) {
@@ -66,6 +68,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                 <span class="hr-hero-badge" [attr.data-color]="statusColor(a.status)">
                   {{ a.status }}
                 </span>
+                <app-file-status-chip [kind]="fileKind(a)" [archiveCode]="a.archiveCode ?? null" />
                 <span>{{ a.documentType }} · {{ a.documentNumber }}</span>
                 @if (a.jobPosition) {
                   <span>· {{ a.jobPosition.name }}</span>
@@ -603,6 +606,10 @@ export class AssociateDetail implements OnInit {
       default:
         return 'gray';
     }
+  }
+
+  fileKind(a: Associate) {
+    return a.fileStatus || personnelFileStatus(a.status, a.archiveCode);
   }
 
   isMasked(a: Associate): boolean {

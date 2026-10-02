@@ -181,6 +181,8 @@ export interface SearchResult {
   fecha: string | null;
   id: string;
   voxelsera: string | null;
+  fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO' | null;
+  archiveCode?: number | null;
 }
 
 export interface Analytics {
@@ -298,6 +300,7 @@ export class DocumentalApiService {
     retirementDate: string | null;
     personType: string | null;
     rrhhStatus: string | null;
+    fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO' | null;
   }> {
     return this.http.get<{
       found: boolean;
@@ -307,6 +310,7 @@ export class DocumentalApiService {
       retirementDate: string | null;
       personType: string | null;
       rrhhStatus: string | null;
+      fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO' | null;
     }>(`${this.baseUrl}/retired-personnel/lookup/${encodeURIComponent(cedula)}`);
   }
   searchFromHr(q: string): Observable<{
@@ -318,6 +322,7 @@ export class DocumentalApiService {
       retirementDate: string | null;
       alreadyRegistered: boolean;
       existingCode: number | null;
+      fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO';
     }>;
   }> {
     return this.http.get<{
@@ -329,6 +334,7 @@ export class DocumentalApiService {
         retirementDate: string | null;
         alreadyRegistered: boolean;
         existingCode: number | null;
+        fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO';
       }>;
     }>(`${this.baseUrl}/retired-personnel/from-hr`, { params: { q } });
   }

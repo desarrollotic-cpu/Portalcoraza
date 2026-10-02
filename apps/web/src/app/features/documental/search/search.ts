@@ -1,11 +1,12 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { FileStatusChip } from '../../../shared/components/file-status-chip/file-status-chip';
 import { DocumentalApiService, SearchResult } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
 
 @Component({
   selector: 'app-doc-search',
-  imports: [FormsModule],
+  imports: [FormsModule, FileStatusChip],
   template: `
     <h3>Buscador Universal</h3>
     <p class="muted">Herramientas → búsqueda en contratos, correspondencia, minutas, retirados y préstamos.</p>
@@ -19,18 +20,25 @@ import { DOC_STYLES } from '../documental.styles';
     } @else if (searched()) {
       <p class="muted">{{ results().length }} resultado(s).</p>
       <table>
-        <thead><tr><th>Módulo</th><th>Título</th><th>Código</th><th>Fecha</th><th>Ubicación</th></tr></thead>
+        <thead><tr><th>Módulo</th><th>Título</th><th>Código</th><th>Archivo</th><th>Fecha</th><th>Ubicación</th></tr></thead>
         <tbody>
           @for (r of results(); track r.modulo + r.id) {
             <tr>
               <td><span class="badge info">{{ r.modulo }}</span></td>
               <td>{{ r.titulo }}</td>
               <td>{{ r.codigo }}</td>
+              <td>
+                @if (r.fileStatus) {
+                  <app-file-status-chip [kind]="r.fileStatus" [archiveCode]="r.archiveCode ?? null" />
+                } @else {
+                  <span class="muted">—</span>
+                }
+              </td>
               <td>{{ r.fecha ?? '—' }}</td>
               <td>{{ r.voxelsera ?? '—' }}</td>
             </tr>
           } @empty {
-            <tr><td colspan="5" class="muted">Sin coincidencias.</td></tr>
+            <tr><td colspan="6" class="muted">Sin coincidencias.</td></tr>
           }
         </tbody>
       </table>

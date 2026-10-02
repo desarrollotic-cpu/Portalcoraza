@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { AuditService } from '../../audit/audit.service';
+import { personnelFileStatus } from '../../../common/personnel-file.policy';
 import { CreateRetiredPersonnelDto } from '../dto/create-retired-personnel.dto';
 import { RetiredPersonnel } from '../entities/retired-personnel.entity';
 import { SequenceService } from './sequence.service';
@@ -50,6 +51,7 @@ export class RetiredPersonnelService {
       retirementDate: string | null;
       alreadyRegistered: boolean;
       existingCode: number | null;
+      fileStatus: ReturnType<typeof personnelFileStatus>;
     }>;
   }> {
     const nextCode = await this.peekNextCode();
@@ -122,6 +124,7 @@ export class RetiredPersonnelService {
         retirementDate: a.gh_retirement_date ? String(a.gh_retirement_date).slice(0, 10) : null,
         alreadyRegistered: !!existing,
         existingCode: existing?.numericCode ?? null,
+        fileStatus: personnelFileStatus(a.status, existing?.numericCode ?? null),
       });
     }
     return { nextCode, matches };
@@ -185,13 +188,14 @@ export class RetiredPersonnelService {
     retirementDate: string | null;
     personType: string | null;
     rrhhStatus: string | null;
+    fileStatus: ReturnType<typeof personnelFileStatus> | null;
   }> {
     try {
       const rawCedula = (cedula || '').trim();
       const cleanCedula = rawCedula.replace(/[^0-9a-zA-Z]/g, '');
 
       if (!rawCedula) {
-        return { found: false, alreadyRegistered: false, existingCode: null, fullName: null, retirementDate: null, personType: null, rrhhStatus: null };
+        return { found: false, alreadyRegistered: false, existingCode: null, fullName: null, retirementDate: null, personType: null, rrhhStatus: null, fileStatus: null };
       }
 
       // 1. Buscar en RRHH (tanto activos como retirados o cualquier estado)
@@ -235,6 +239,7 @@ export class RetiredPersonnelService {
             retirementDate: existing.retirementDate,
             personType: existing.personType,
             rrhhStatus: null,
+            fileStatus: personnelFileStatus(null, existing.numericCode ?? null),
           };
         }
         return {
@@ -245,6 +250,7 @@ export class RetiredPersonnelService {
           retirementDate: null,
           personType: null,
           rrhhStatus: null,
+          fileStatus: null,
         };
       }
 
@@ -264,6 +270,7 @@ export class RetiredPersonnelService {
           retirementDate: existing.retirementDate || retirementDate,
           personType: existing.personType || 'ASOCIADO',
           rrhhStatus: a.status,
+          fileStatus: personnelFileStatus(a.status, existing.numericCode ?? null),
         };
       }
 
@@ -275,6 +282,7 @@ export class RetiredPersonnelService {
         retirementDate,
         personType: 'ASOCIADO',
         rrhhStatus: a.status,
+        fileStatus: personnelFileStatus(a.status, null),
       };
     } catch (err) {
       console.error('Error in lookupAssociate:', err);
@@ -286,6 +294,7 @@ export class RetiredPersonnelService {
         retirementDate: null,
         personType: null,
         rrhhStatus: null,
+        fileStatus: null,
       };
     }
   }

@@ -15,6 +15,8 @@ export interface SearchResult {
   fecha: string | null;
   id: string;
   voxelsera: string | null;
+  fileStatus?: 'ACTIVO' | 'RETIRADO' | 'ARCHIVADO' | null;
+  archiveCode?: number | null;
 }
 
 /** Slot físico: 4 estantes (A-D) x 9 compartimentos. */
@@ -140,6 +142,8 @@ export class OverviewService {
         fecha: r.retirementDate,
         id: r.id,
         voxelsera: r.voxelsera,
+        fileStatus: 'ARCHIVADO',
+        archiveCode: r.numericCode ?? null,
       }),
     );
 

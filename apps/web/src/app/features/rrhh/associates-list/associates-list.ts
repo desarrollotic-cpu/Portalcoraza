@@ -15,8 +15,10 @@ import {
 } from '@lucide/angular';
 import { Subject, Subscription, debounceTime } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { FileStatusChip } from '../../../shared/components/file-status-chip/file-status-chip';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { Icon } from '../../../shared/components/icon/icon';
+import { personnelFileStatus } from '../../../shared/personnel-file';
 import { printRotulo, printRotulos, rotuloFromAssociate } from '../../documental/rotulo-print';
 import { AssociatesListState } from '../associates-list-state.service';
 import { HrApiService } from '../services/hr-api.service';
@@ -51,7 +53,7 @@ function monthBounds(ym: string): { from: string; to: string } {
  */
 @Component({
   selector: 'app-associates-list',
-  imports: [CommonModule, FormsModule, RouterLink, Icon, HrPageHeader],
+  imports: [CommonModule, FormsModule, RouterLink, Icon, HrPageHeader, FileStatusChip],
   template: `
     <div class="hr-page">
       <app-hr-page-header
@@ -186,6 +188,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 <th>Nivel educativo</th>
                 <th>Centro</th>
                 <th>Estado</th>
+                <th>Archivo</th>
                 <th>Fecha de baja</th>
                 <th>Ficha</th>
                 <th>Antigüedad</th>
@@ -211,6 +214,9 @@ function monthBounds(ym: string): { from: string; to: string } {
                     <span class="hr-status" [attr.data-color]="statusColor(a.status)">
                       {{ statusLabel(a.status) }}
                     </span>
+                  </td>
+                  <td>
+                    <app-file-status-chip [kind]="fileKind(a)" [archiveCode]="a.archiveCode ?? null" />
                   </td>
                   <td>{{ formatIsoDate(a.retirementDate) }}</td>
                   <td>
@@ -246,7 +252,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 </tr>
               } @empty {
                 <tr>
-                  <td colspan="12">
+                  <td colspan="13">
                     <div class="hr-empty-state">
                       <app-icon [icon]="icons.SearchX" [size]="36" />
                       <p>Sin resultados con estos filtros.</p>
@@ -579,6 +585,10 @@ export class AssociatesList implements OnInit, OnDestroy {
 
   statusLabel(s: AssociateStatus): string {
     return STATUS_LABELS[s]?.label ?? s;
+  }
+
+  fileKind(a: Associate) {
+    return a.fileStatus || personnelFileStatus(a.status, a.archiveCode);
   }
 
   formatIsoDate(value?: string | null): string {
