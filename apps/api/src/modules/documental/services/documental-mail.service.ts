@@ -55,7 +55,7 @@ export class DocumentalMailService {
    */
   async sendOverdueReminder(notice: OverdueLoanNotice): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    const subject = `Recordatorio de Devolución de Expediente: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const subject = `Devolución pendiente — ${notice.document} | Archivo Central Coraza`;
     if (!targetEmail || !targetEmail.includes('@')) {
       return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
     }
@@ -72,7 +72,7 @@ export class DocumentalMailService {
     department?: string;
   }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    const subject = `Aprobación de Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const subject = `Préstamo autorizado — ${notice.document} | Archivo Central Coraza`;
     if (!targetEmail || !targetEmail.includes('@')) {
       return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
     }
@@ -88,7 +88,7 @@ export class DocumentalMailService {
     department?: string;
   }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    const subject = `Respuesta a Solicitud de Préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const subject = `Respuesta de archivo — ${notice.document} | Gestión Documental Coraza`;
     if (!targetEmail || !targetEmail.includes('@')) {
       return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
     }
@@ -104,7 +104,7 @@ export class DocumentalMailService {
     department?: string;
   }): Promise<MailDispatchResult> {
     const targetEmail = notice.email?.trim().toLowerCase();
-    const subject = `Devolución registrada: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const subject = `Devolución registrada — ${notice.document} | Archivo Central Coraza`;
     if (!targetEmail || !targetEmail.includes('@')) {
       return { ok: false, via: null, error: 'Sin correo válido', subject, to: notice.email || '' };
     }
@@ -121,7 +121,7 @@ export class DocumentalMailService {
     observations: string;
     returnDate?: string;
   }): Promise<MailDispatchResult> {
-    const subject = `Nueva solicitud de préstamo: ${notice.document} — Coraza Seguridad C.T.A.`;
+    const subject = `Nueva solicitud de préstamo — ${notice.document} | Archivo Central Coraza`;
     return this.dispatchMail(this.senderEmail, subject, newLoanRequestHtml(notice));
   }
 
