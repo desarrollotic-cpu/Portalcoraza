@@ -172,17 +172,7 @@ const VIG_KEY = 'rondas_campo_vig';
                 </small>
               </div>
             } @else {
-              <p class="nota">Buscando GPS… deja el teléfono al aire libre.</p>
-            }
-            @if (gpsNota()) {
-              <p class="nota">{{ gpsNota() }}</p>
-            }
-            @if (pos() && !gpsPreciso()) {
-              <p class="nota">
-                GPS ±{{ accuracy() }} m y radio {{ radioEntero() }} m. No se puede guardar:
-                el error sería mayor que el punto. Activa ubicación precisa, quédate quieto
-                al aire libre, o sube el radio hasta el ± del GPS.
-              </p>
+              <p class="nota">Buscando GPS…</p>
             }
 
             <label>
@@ -205,25 +195,21 @@ const VIG_KEY = 'rondas_campo_vig';
                 <option [ngValue]="25">25 m — máximo</option>
               </select>
             </label>
-            <p class="hint">Elige el radio. 8 m es el mínimo. El GPS tiene que marcar ese ± o menos para poder guardar.</p>
 
             <button
               type="button"
               class="cta"
-              [disabled]="guardando() || tomandoGps() || !gpsPreciso()"
+              [disabled]="guardando() || tomandoGps()"
               (click)="tomarPunto()"
             >
               @if (tomandoGps()) {
-                Fijando GPS preciso…
+                Fijando GPS…
               } @else if (guardando()) {
-                Guardando coordenadas…
-              } @else if (!gpsPreciso()) {
-                GPS impreciso — no guardar
+                Guardando…
               } @else {
                 Tomar punto
               }
             </button>
-            <p class="hint">Párate en el sitio exacto. Solo guarda cuando el botón esté activo.</p>
 
             <ul class="puntos">
               @for (pt of puntosSetup(); track pt.id) {
@@ -718,7 +704,6 @@ export class RondasCampo implements OnDestroy {
       return;
     }
     this.tomandoGps.set(true);
-    this.gpsNota.set('Fijando GPS preciso… no muevas el teléfono.');
     this.aviso.set('');
     try {
       const c = await this.leerGpsMejor(20000);
@@ -800,7 +785,7 @@ export class RondasCampo implements OnDestroy {
     this.pararGps();
     this.watchId = navigator.geolocation.watchPosition(
       (p) => this.aplicarCoords(p.coords),
-      () => this.gpsNota.set('Sin permiso de GPS. Activa ubicación precisa para tomar el punto.'),
+      () => this.aviso.set('Sin permiso de GPS. Actívalo para tomar el punto.'),
       { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 },
     );
   }
@@ -814,13 +799,6 @@ export class RondasCampo implements OnDestroy {
     this.pos.set({ lat: c.latitude, lng: c.longitude });
     this.accuracy.set(Math.round(c.accuracy));
     this.altitud.set(c.altitude != null ? Math.round(c.altitude) : null);
-    if (c.accuracy > this.radioEntero()) {
-      this.gpsNota.set(
-        `GPS ±${Math.round(c.accuracy)} m. Radio ${this.radioEntero()} m. No se guarda hasta que el ± sea menor o igual al radio.`,
-      );
-    } else {
-      this.gpsNota.set(`GPS listo ±${Math.round(c.accuracy)} m. Ya puedes tomar el punto.`);
-    }
   }
 
   private leerGpsMejor(ms = 10000): Promise<{
