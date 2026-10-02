@@ -147,24 +147,24 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
       flex-wrap: wrap; padding: 1rem; border: 1px solid var(--border, #e5e7eb);
       border-radius: 12px; background: var(--surface, #fff);
     }
-    .link-box a { color: var(--coraza-primary, #166534); word-break: break-all; }
+    .link-box a { color: var(--primary-600); word-break: break-all; font-weight: 600; }
     .ghost {
-      border: 1px solid var(--border, #e5e7eb); background: #fff; border-radius: 8px;
-      padding: 0.5rem 0.8rem; cursor: pointer;
+      border: 1px solid var(--border); background: var(--surface); color: var(--primary-700);
+      border-radius: var(--radius-sm); padding: 0.5rem 0.8rem; cursor: pointer; font-weight: 600;
     }
     .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; }
     .kpis article {
-      border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 0.85rem 1rem;
-      background: var(--surface, #fff);
+      border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1rem;
+      background: var(--surface);
     }
-    .kpis span { display: block; font-size: 0.75rem; color: #6b7280; }
-    .kpis strong { font-size: 1.35rem; }
+    .kpis span { display: block; font-size: 0.75rem; color: var(--text-muted); }
+    .kpis strong { font-size: 1.35rem; color: var(--primary-800); }
     h3 { margin: 0.4rem 0 0; font-size: 1rem; }
-    .table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 10px; background: #fff; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.5rem 0.7rem; border-top: 1px solid #f3f4f6; }
-    thead th { background: #14532d; color: #fff; border: 0; }
-    .error { color: #b91c1c; }
+    th, td { text-align: left; padding: 0.5rem 0.7rem; border-top: 1px solid var(--border); }
+    thead th { background: var(--gradient-hero); color: var(--text-on-dark); border: 0; }
+    .error { color: var(--error-600); }
   `,
 })
 export class RondasPanel implements OnInit {
