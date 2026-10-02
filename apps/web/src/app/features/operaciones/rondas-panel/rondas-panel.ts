@@ -1,6 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RondasApiService, RondasHoy, RondasPunto } from '../rondas/rondas-api.service';
+import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-api.service';
 
 @Component({
   selector: 'app-rondas-panel',
@@ -165,12 +165,12 @@ export class RondasPanel implements OnInit {
 
   ngOnInit(): void {
     this.api.hoy().subscribe({
-      next: (h) => this.hoy.set(h),
+      next: (h: RondasHoy) => this.hoy.set(h),
       error: () => this.error.set('No se pudo cargar el cumplimiento.'),
     });
     this.api.puntosAdmin().subscribe({
-      next: (p) => this.puntos.set(p),
-      error: () => {},
+      next: (p: RondasPunto[]) => this.puntos.set(p),
+      error: () => undefined,
     });
   }
 

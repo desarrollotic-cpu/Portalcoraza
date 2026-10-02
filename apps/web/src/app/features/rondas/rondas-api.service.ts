@@ -89,14 +89,25 @@ export class RondasApiService {
     localStorage.removeItem(CAMPO_TOKEN);
   }
 
-  asociados(postId: string) {
+  asociados(postId: string): Observable<{
+    post: { id: string; name: string };
+    asociados: Array<{ id: string; nombre: string }>;
+  }> {
     return this.http.get<{
       post: { id: string; name: string };
       asociados: Array<{ id: string; nombre: string }>;
     }>(`${this.base}/campo/asociados`, { params: { postId } });
   }
 
-  entrar(postId: string, associateId: string, documentNumber: string) {
+  entrar(
+    postId: string,
+    associateId: string,
+    documentNumber: string,
+  ): Observable<{
+    accessToken: string;
+    vigilante: { id: string; nombre: string };
+    post: { id: string; name: string };
+  }> {
     return this.http.post<{
       accessToken: string;
       vigilante: { id: string; nombre: string };
@@ -118,7 +129,11 @@ export class RondasApiService {
     precisionMetros: number;
     fechaHora: string;
     dispositivoId: string;
-  }>) {
+  }>): Observable<{
+    aceptadas: string[];
+    duplicadas: string[];
+    rechazadas: Array<{ uuid: string; motivo: string }>;
+  }> {
     return this.http.post<{
       aceptadas: string[];
       duplicadas: string[];
@@ -128,19 +143,19 @@ export class RondasApiService {
     });
   }
 
-  puestosSetup() {
+  puestosSetup(): Observable<RondasPost[]> {
     return this.http.get<RondasPost[]>(`${this.base}/puestos`);
   }
 
-  hoy(postId?: string) {
+  hoy(postId?: string): Observable<RondasHoy> {
     return this.http.get<RondasHoy>(`${this.base}/hoy`, {
-      params: postId ? { postId } : {},
+      ...(postId ? { params: { postId } } : {}),
     });
   }
 
-  puntosAdmin(postId?: string) {
+  puntosAdmin(postId?: string): Observable<RondasPunto[]> {
     return this.http.get<RondasPunto[]>(`${this.base}/puntos`, {
-      params: postId ? { postId } : {},
+      ...(postId ? { params: { postId } } : {}),
     });
   }
 
@@ -151,7 +166,7 @@ export class RondasApiService {
     longitud: number;
     radioMetros?: number;
     orden?: number;
-  }) {
+  }): Observable<RondasPunto> {
     return this.http.post<RondasPunto>(`${this.base}/puntos`, body);
   }
 
