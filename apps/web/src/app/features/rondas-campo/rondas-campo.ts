@@ -120,7 +120,7 @@ const VIG_KEY = 'rondas_campo_vig';
             <button type="button" class="cta" [disabled]="entrando()" (click)="loginSistemas()">
               Entrar
             </button>
-          } @else {
+          } @else if (!setupPostId) {
             <label>
               Buscar puesto
               <input
@@ -133,37 +133,68 @@ const VIG_KEY = 'rondas_campo_vig';
             <ul>
               @for (p of puestosVisibles(); track p.id) {
                 <li>
-                  <button
-                    type="button"
-                    [class.cta]="p.id === setupPostId"
-                    (click)="elegirPuesto(p)"
-                  >
-                    {{ p.name }}
-                  </button>
+                  <button type="button" (click)="elegirPuesto(p)">{{ p.name }}</button>
                 </li>
               }
             </ul>
             @if (!puestos().length && !entrando()) {
               <p class="nota">No hay puestos. Revisa que la cuenta tenga acceso a Operaciones.</p>
             }
-            @if (setupPostId) {
-              <label>
-                Nombre del punto
-                <input type="text" [(ngModel)]="puntoNombre" placeholder="Portería, bodega…" />
-              </label>
-              <label>
-                Radio (m)
-                <input type="number" [(ngModel)]="radio" min="10" max="80" />
-              </label>
-              <button type="button" class="cta" [disabled]="guardando()" (click)="guardarPuntoAqui()">
-                {{ guardando() ? 'Guardando…' : 'Guardar punto aquí' }}
-              </button>
-              <ul class="puntos">
-                @for (pt of puntosSetup(); track pt.id) {
-                  <li>{{ pt.orden }}. {{ pt.nombre }} · {{ pt.radioMetros }} m</li>
-                }
-              </ul>
+          } @else {
+            <button type="button" class="back" (click)="cambiarPuestoSetup()">← Cambiar puesto</button>
+            <p class="puesto-ok">Puesto: {{ setupPostNombre }}</p>
+
+            <div class="brujula-wrap">
+              <span class="notch" aria-hidden="true"></span>
+              <div class="brujula" [style.transform]="'rotate(' + (-(heading() ?? 0)) + 'deg)'">
+                <span class="cardinal n">N</span>
+                <span class="cardinal e">E</span>
+                <span class="cardinal s">S</span>
+                <span class="cardinal o">O</span>
+                <i class="aguja"></i>
+              </div>
+            </div>
+            <p class="rumbo">{{ rumboLabel() }}</p>
+            @if (pos(); as c) {
+              <div class="coords">
+                <strong>{{ aGrados(c.lat, 'N', 'S') }}</strong>
+                <strong>{{ aGrados(c.lng, 'E', 'O') }}</strong>
+                <small>
+                  {{ c.lat.toFixed(6) }}, {{ c.lng.toFixed(6) }}
+                  · ±{{ accuracy() ?? '—' }} m
+                  @if (altitud() != null) {
+                    · {{ altitud() }} m s.n.m.
+                  }
+                </small>
+              </div>
+            } @else {
+              <p class="nota">Buscando GPS… deja el teléfono al aire libre.</p>
             }
+            @if (gpsNota()) {
+              <p class="nota">{{ gpsNota() }}</p>
+            }
+
+            @if (!grabando()) {
+              <button type="button" class="cta" (click)="iniciarRecorrido()">Iniciar recorrido</button>
+              <button type="button" class="ghost" [disabled]="guardando() || !pos()" (click)="marcarAquiAhora()">
+                {{ guardando() ? 'Guardando…' : 'Marcar este punto ahora' }}
+              </button>
+            } @else {
+              <button type="button" class="ghost" (click)="detenerRecorrido()">Detener grabación</button>
+              <p class="hint">Camina el recorrido. Cada {{ radio }} m se crea un punto solo.</p>
+            }
+
+            <ul class="puntos">
+              @for (pt of puntosSetup(); track pt.id) {
+                <li class="ok">
+                  <b>{{ pt.orden }}</b>
+                  <div>
+                    <strong>{{ pt.nombre }}</strong>
+                    <small>{{ pt.latitud.toFixed(5) }}, {{ pt.longitud.toFixed(5) }} · {{ pt.radioMetros }} m</small>
+                  </div>
+                </li>
+              }
+            </ul>
           }
         </section>
       }
@@ -280,8 +311,54 @@ const VIG_KEY = 'rondas_campo_vig';
       background: none; border: 0; color: var(--primary-600); width: 100%; padding: 0.8rem; font: inherit; font-weight: 600;
     }
     .hint, .nota, .aviso { margin: 0.75rem 1rem; padding: 0.7rem; border-radius: var(--radius-sm); font-size: 0.9rem; }
+    .hint { margin: 0.5rem 0; background: var(--primary-50); color: var(--primary-800); }
     .aviso { background: var(--success-bg); color: var(--success-600); }
     .nota { background: var(--warning-bg); color: var(--warning-600); }
+    .brujula-wrap {
+      position: relative; width: 220px; height: 220px; margin: 0.5rem auto 0.25rem;
+    }
+    .notch {
+      position: absolute; top: -6px; left: 50%; z-index: 2;
+      width: 0; height: 0; margin-left: -8px;
+      border-left: 8px solid transparent; border-right: 8px solid transparent;
+      border-top: 12px solid var(--primary-600);
+    }
+    .brujula {
+      width: 220px; height: 220px; border-radius: 50%;
+      background: var(--gradient-hero);
+      border: 6px solid var(--primary-600);
+      box-shadow: var(--shadow-sm);
+      position: relative;
+      transition: transform 0.18s linear;
+    }
+    .cardinal {
+      position: absolute; color: var(--text-on-dark); font-weight: 800; font-size: 0.85rem;
+      font-family: var(--font-display);
+    }
+    .cardinal.n { top: 10px; left: 50%; transform: translateX(-50%); color: #7dd3fc; }
+    .cardinal.s { bottom: 10px; left: 50%; transform: translateX(-50%); }
+    .cardinal.e { right: 14px; top: 50%; transform: translateY(-50%); }
+    .cardinal.o { left: 12px; top: 50%; transform: translateY(-50%); }
+    .aguja {
+      position: absolute; left: 50%; top: 28px; width: 4px; height: 72px;
+      margin-left: -2px; background: #7dd3fc; border-radius: 99px;
+    }
+    .aguja::after {
+      content: ''; position: absolute; left: 50%; bottom: -52px; width: 4px; height: 48px;
+      margin-left: -2px; background: color-mix(in srgb, var(--text-on-dark) 45%, transparent);
+      border-radius: 99px;
+    }
+    .rumbo {
+      text-align: center; margin: 0.35rem 0 0.5rem; font-size: 1.35rem; font-weight: 800;
+      color: var(--primary-800); font-family: var(--font-display);
+    }
+    .coords {
+      text-align: center; margin: 0 0 0.75rem;
+    }
+    .coords strong {
+      display: block; font-size: 1.15rem; letter-spacing: 0.02em; color: var(--text-primary);
+    }
+    .coords small { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.78rem; }
     .puntos li { display: flex; gap: 0.75rem; align-items: center; padding: 0.55rem 0; border-top: 1px solid var(--border); }
     .puntos b {
       width: 1.7rem; height: 1.7rem; border-radius: 99px; display: grid; place-items: center;
@@ -323,6 +400,10 @@ export class RondasCampo implements OnDestroy {
   puntos = signal<RondasPunto[]>([]);
   marcas = signal<MarcaLocal[]>([]);
   pos = signal<{ lat: number; lng: number } | null>(null);
+  heading = signal<number | null>(null);
+  accuracy = signal<number | null>(null);
+  altitud = signal<number | null>(null);
+  grabando = signal(false);
   vigNombre = signal('');
   entrando = signal(false);
   guardando = signal(false);
@@ -334,10 +415,14 @@ export class RondasCampo implements OnDestroy {
   email = '';
   clave = '';
   setupPostId = '';
+  setupPostNombre = '';
   puntoNombre = '';
   radio = 25;
 
+  readonly aGrados = aGrados;
+
   private watchId: number | null = null;
+  private rumboOn = false;
   private wake: { release(): Promise<void> } | null = null;
   private lock = false;
   private syncTimer: ReturnType<typeof setInterval> | null = null;
@@ -367,6 +452,7 @@ export class RondasCampo implements OnDestroy {
 
   ngOnDestroy(): void {
     this.pararGps();
+    this.soltarRumbo();
     window.removeEventListener('online', this.onOnline);
     window.removeEventListener('offline', this.onOffline);
   }
@@ -466,7 +552,22 @@ export class RondasCampo implements OnDestroy {
 
   elegirPuesto(p: { id: string; name: string }) {
     this.setupPostId = p.id;
+    this.setupPostNombre = p.name;
+    this.filtroPuesto = '';
     this.cargarPuntosSetup();
+    this.iniciarBrujula();
+    void this.pedirRumbo();
+  }
+
+  cambiarPuestoSetup() {
+    this.detenerRecorrido();
+    this.setupPostId = '';
+    this.setupPostNombre = '';
+    this.puntosSetup.set([]);
+    this.pos.set(null);
+    this.heading.set(null);
+    this.pararGps();
+    this.soltarRumbo();
   }
 
   loginSistemas() {
@@ -504,43 +605,135 @@ export class RondasCampo implements OnDestroy {
     this.cargarAsociados(p.id);
   }
 
-  guardarPuntoAqui() {
-    if (!this.setupPostId || this.puntoNombre.trim().length < 2) {
-      this.aviso.set('Escribe el nombre del punto.');
+  rumboLabel() {
+    const h = this.heading();
+    if (h == null) return 'Buscando rumbo…';
+    return `${Math.round(h)}° ${cardinal(h)}`;
+  }
+
+  iniciarRecorrido() {
+    this.grabando.set(true);
+    this.aviso.set('Grabando recorrido. Camina y los puntos se crean solos.');
+    void this.pedirWakeLock();
+    void this.pedirRumbo();
+    this.iniciarBrujula();
+    const c = this.pos();
+    const acc = this.accuracy();
+    if (c) this.talVezCrearPunto(c.lat, c.lng, acc ?? 99);
+  }
+
+  detenerRecorrido() {
+    this.grabando.set(false);
+    void this.wake?.release();
+    this.wake = null;
+  }
+
+  marcarAquiAhora() {
+    const c = this.pos();
+    if (!c) {
+      this.aviso.set('Espera a que el GPS fije la posición.');
       return;
     }
-    this.guardando.set(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        this.api
-          .crearPunto({
-            postId: this.setupPostId,
-            nombre: this.puntoNombre.trim(),
-            latitud: pos.coords.latitude,
-            longitud: pos.coords.longitude,
-            radioMetros: Number(this.radio) || 25,
-            orden: this.puntosSetup().length + 1,
-          })
-          .subscribe({
-            next: () => {
-              this.guardando.set(false);
-              this.puntoNombre = '';
-              this.aviso.set('Punto guardado.');
-              this.cargarPuntosSetup();
-            },
-            error: (e: HttpErrorResponse) => {
-              this.guardando.set(false);
-              this.aviso.set(msg(e, 'No se pudo guardar el punto'));
-            },
-          });
+    this.crearPuntoGps(c.lat, c.lng, `Punto ${this.puntosSetup().length + 1}`, true);
+  }
+
+  iniciarBrujula() {
+    if (!navigator.geolocation) {
+      this.gpsNota.set('Este teléfono no da GPS.');
+      return;
+    }
+    this.pararGps();
+    this.watchId = navigator.geolocation.watchPosition(
+      (p) => {
+        this.pos.set({ lat: p.coords.latitude, lng: p.coords.longitude });
+        this.accuracy.set(Math.round(p.coords.accuracy));
+        this.altitud.set(p.coords.altitude != null ? Math.round(p.coords.altitude) : null);
+        if (this.grabando()) {
+          this.talVezCrearPunto(p.coords.latitude, p.coords.longitude, p.coords.accuracy);
+        }
       },
-      () => {
-        this.guardando.set(false);
-        this.aviso.set('Activa el GPS para guardar el punto.');
-      },
-      { enableHighAccuracy: true, timeout: 20000 },
+      () => this.gpsNota.set('Sin permiso de GPS. Actívalo para crear los puntos.'),
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 20000 },
     );
   }
+
+  private talVezCrearPunto(lat: number, lng: number, accuracy: number) {
+    if (!this.grabando() || this.guardando() || !this.setupPostId) return;
+    if (accuracy > 40) {
+      this.gpsNota.set(`Señal débil (±${Math.round(accuracy)} m). Espera un GPS más fino.`);
+      return;
+    }
+    this.gpsNota.set('');
+    const pts = this.puntosSetup();
+    const radio = Number(this.radio) || 25;
+    if (pts.length) {
+      const last = pts[pts.length - 1];
+      if (distanciaMetros(lat, lng, last.latitud, last.longitud) < radio) return;
+    }
+    this.crearPuntoGps(lat, lng, `Punto ${pts.length + 1}`, false);
+  }
+
+  private crearPuntoGps(lat: number, lng: number, nombre: string, avisoFijo: boolean) {
+    if (!this.setupPostId || this.guardando()) return;
+    this.guardando.set(true);
+    this.api
+      .crearPunto({
+        postId: this.setupPostId,
+        nombre,
+        latitud: lat,
+        longitud: lng,
+        radioMetros: Number(this.radio) || 25,
+        orden: this.puntosSetup().length + 1,
+      })
+      .subscribe({
+        next: (pt) => {
+          this.puntosSetup.set([...this.puntosSetup(), pt]);
+          this.guardando.set(false);
+          this.aviso.set(avisoFijo ? `${nombre} guardado.` : `${nombre} generado.`);
+          navigator.vibrate?.([60, 30, 60]);
+        },
+        error: (e: HttpErrorResponse) => {
+          this.guardando.set(false);
+          this.aviso.set(msg(e, 'No se pudo guardar el punto'));
+        },
+      });
+  }
+
+  private async pedirRumbo() {
+    try {
+      const DOE = DeviceOrientationEvent as unknown as {
+        requestPermission?: () => Promise<string>;
+      };
+      if (typeof DOE.requestPermission === 'function') {
+        const ok = await DOE.requestPermission();
+        if (ok !== 'granted') return;
+      }
+    } catch {
+      /* iOS puede negar el sensor */
+    }
+    this.soltarRumbo();
+    this.rumboOn = true;
+    window.addEventListener('deviceorientationabsolute', this.onOrient, true);
+    window.addEventListener('deviceorientation', this.onOrient, true);
+  }
+
+  private soltarRumbo() {
+    if (!this.rumboOn) return;
+    window.removeEventListener('deviceorientationabsolute', this.onOrient, true);
+    window.removeEventListener('deviceorientation', this.onOrient, true);
+    this.rumboOn = false;
+  }
+
+  private onOrient = (e: DeviceOrientationEvent) => {
+    const webkit = (e as DeviceOrientationEvent & { webkitCompassHeading?: number })
+      .webkitCompassHeading;
+    if (typeof webkit === 'number' && !Number.isNaN(webkit)) {
+      this.heading.set(webkit);
+      return;
+    }
+    if (e.alpha == null) return;
+    this.heading.set((360 - e.alpha + 360) % 360);
+  };
 
   entrar() {
     const post = this.post();
@@ -756,4 +949,28 @@ function guardarMarcas(vigId: string, items: MarcaLocal[]) {
 function msg(e: HttpErrorResponse, fallback = 'Error') {
   const m = e.error?.message || e.error?.error;
   return typeof m === 'string' ? m : fallback;
+}
+
+function aGrados(value: number, pos: string, neg: string) {
+  const hemi = value >= 0 ? pos : neg;
+  const abs = Math.abs(value);
+  let degrees = Math.floor(abs);
+  const mFloat = (abs - degrees) * 60;
+  let minutes = Math.floor(mFloat);
+  let seconds = Math.round((mFloat - minutes) * 60);
+  if (seconds === 60) {
+    seconds = 0;
+    minutes += 1;
+  }
+  if (minutes === 60) {
+    minutes = 0;
+    degrees += 1;
+  }
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${degrees}°${pad(minutes)}'${pad(seconds)}" ${hemi}`;
+}
+
+function cardinal(deg: number) {
+  const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO'];
+  return dirs[Math.round(((deg % 360) + 360) % 360 / 45) % 8];
 }
