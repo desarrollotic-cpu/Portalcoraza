@@ -26,7 +26,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      if (req.url.includes('/rondas/campo')) {
+      if (req.url.includes('/rondas/')) {
         return throwError(() => error);
       }
       if (

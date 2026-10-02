@@ -25,8 +25,13 @@ export class RondasSchemaBootstrap implements OnModuleInit {
         }
         await this.ds.query(fs.readFileSync(sqlPath, 'utf8'));
         this.log.log('Esquema rondas GPS aplicado');
-        return;
       }
+      await this.ds.query(
+        `ALTER TABLE rondas_puntos ADD COLUMN IF NOT EXISTS altitud DOUBLE PRECISION`,
+      );
+      await this.ds.query(
+        `ALTER TABLE rondas_marcaciones ADD COLUMN IF NOT EXISTS altitud DOUBLE PRECISION`,
+      );
       await this.ds.query(`
         INSERT INTO permissions (code, name, module) VALUES
           ('rondas.view', 'Ver cumplimiento de rondas GPS', 'rondas'),
