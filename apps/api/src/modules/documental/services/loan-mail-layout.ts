@@ -43,11 +43,13 @@ function mailtoCta(subject: string): { label: string; href: string } {
   };
 }
 
+const GOLD = '#b08d57';
+
 function fact(label: string, value: string): string {
   const v = (value || '').trim() || 'No indicado';
   return `<tr>
-    <td valign="top" style="padding:12px 0;border-bottom:1px solid #e2e8f0;width:34%;font-family:${FONT};font-size:12px;color:${MUTED};">${esc(label)}</td>
-    <td valign="top" style="padding:12px 0;border-bottom:1px solid #e2e8f0;font-family:${FONT};font-size:14px;color:${INK};font-weight:600;">${esc(v)}</td>
+    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #edf2f7;width:36%;font-family:${FONT};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${MUTED};">${esc(label)}</td>
+    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #edf2f7;font-family:${FONT};font-size:14px;color:${INK};font-weight:600;">${esc(v)}</td>
   </tr>`;
 }
 
@@ -84,11 +86,11 @@ export function wrapLoanMail(opts: {
     opts.tone === 'ok' ? '#15803d' : opts.tone === 'alert' ? '#b91c1c' : opts.tone === 'reject' ? '#9f1239' : NAVY;
   const name = displayName(opts.requester) || 'señora / señor';
   const btn = opts.ctaHref
-    ? `<tr><td align="center" style="padding:8px 36px 6px;font-family:${FONT};">
-        <a href="${opts.ctaHref}" style="background:${accent};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:.04em;padding:14px 28px;display:inline-block;border-radius:8px;">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
+    ? `<tr><td align="center" style="padding:20px 40px 4px;font-family:${FONT};">
+        <a href="${opts.ctaHref}" style="background:${NAVY};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:15px 36px;display:inline-block;border-radius:28px;border:1px solid ${GOLD};">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
       </td></tr>
-      <tr><td align="center" style="padding:10px 36px 0;font-family:${FONT};font-size:12px;color:${MUTED};">
-        Si este mensaje no le corresponde, ignórelo o reenvíelo a Gestión Documental.
+      <tr><td align="center" style="padding:12px 40px 0;font-family:${FONT};font-size:12px;color:${MUTED};">
+        Si no solicitó este trámite, ignore este mensaje.
       </td></tr>`
     : '';
   const pre = esc(opts.preheader || `${opts.badge} — Gestión Documental Coraza`);
@@ -99,38 +101,42 @@ export function wrapLoanMail(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(opts.badge)} — Coraza Seguridad C.T.A.</title>
 </head>
-<body style="margin:0;padding:0;background:#e0f2fe;">
+<body style="margin:0;padding:0;background:#dbeafe;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${pre}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e0f2fe;">
-<tr><td align="center" style="padding:28px 12px;">
-  <p style="margin:0 0 16px;font-family:${FONT};">
-    <img src="${LOGO_URL}" width="40" height="40" alt="Coraza" style="display:inline-block;border:0;vertical-align:middle;">
-    <span style="display:inline-block;padding-left:8px;font-size:13px;font-weight:700;color:${NAVY};vertical-align:middle;">Coraza Seguridad C.T.A.</span>
-  </p>
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;font-family:${FONT};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#dbeafe;">
+<tr><td align="center" style="padding:36px 12px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden;font-family:${FONT};box-shadow:0 12px 40px rgba(7,89,133,.12);">
   <tr>
-    <td align="center" style="padding:36px 32px 12px;background:#f0f9ff;">
-      <img src="${LOGO_URL}" width="88" height="88" alt="Coraza Seguridad C.T.A." style="display:block;border:0;margin:0 auto;">
+    <td align="center" style="padding:28px 32px 26px;background:${INK};">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;background:#ffffff;border-radius:14px;">
+        <tr><td align="center" style="padding:10px;">
+          <img src="${LOGO_URL}" width="52" height="52" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
+        </td></tr>
+      </table>
+      <p style="margin:16px auto 0;width:40px;height:2px;background:${GOLD};font-size:0;line-height:0;">&nbsp;</p>
+      <p style="margin:14px 0 0;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:${GOLD};font-weight:700;">Gestión Documental</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#94a3b8;">Archivo Central · Coraza Seguridad C.T.A.</p>
+    </td>
+  </tr>
+  <tr><td style="height:3px;background:${accent};font-size:0;line-height:0;">&nbsp;</td></tr>
+  <tr>
+    <td align="center" style="padding:32px 40px 0;">
+      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${accent};">${esc(opts.badge)}</p>
+      <p style="margin:14px 0 0;font-size:28px;line-height:1.22;font-weight:700;color:${INK};">${esc(opts.title)}</p>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:8px 36px 0;">
-      <p style="margin:0;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${accent};">${esc(opts.badge)}</p>
-      <p style="margin:12px 0 0;font-size:26px;line-height:1.25;font-weight:700;color:${NAVY};">${esc(opts.title)}</p>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" style="padding:16px 40px 8px;">
-      <p style="margin:0;font-size:15px;line-height:1.65;color:#475569;">
+    <td align="center" style="padding:18px 44px 6px;">
+      <p style="margin:0;font-size:16px;line-height:1.7;color:#475569;">
         Apreciado(a) ${esc(name)}.<br><br>
         ${opts.message}
       </p>
     </td>
   </tr>
   <tr>
-    <td style="padding:12px 40px 8px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:10px;">
-        <tr><td style="padding:8px 18px;">
+    <td style="padding:20px 40px 8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;border-left:3px solid ${GOLD};">
+        <tr><td style="padding:6px 20px 10px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             ${opts.facts.map((f) => fact(f.label, f.value)).join('')}
           </table>
@@ -141,16 +147,11 @@ export function wrapLoanMail(opts: {
   <tr><td style="padding:8px 40px;">${opts.extraHtml || ''}</td></tr>
   ${btn}
   <tr>
-    <td align="center" style="padding:28px 36px 12px;">
-      <p style="margin:0;font-size:13px;color:${NAVY};font-weight:700;">Gestión Documental</p>
-      <p style="margin:4px 0 0;font-size:12px;color:${MUTED};">Archivo Central</p>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" style="padding:8px 28px 28px;">
-      <p style="margin:0;font-size:11px;line-height:1.55;color:${MUTED};">
-        ${esc(SENDER)} · PBX (604) 444 7929 · ${esc(formatCityDate())}<br>
-        NIT 811.026.837-1 · www.corazaseguridadcta.com
+    <td align="center" style="padding:28px 36px 32px;">
+      <p style="margin:0;font-size:11px;line-height:1.6;color:${MUTED};">
+        ${esc(SENDER)} · PBX (604) 444 7929<br>
+        ${esc(formatCityDate())} · NIT 811.026.837-1<br>
+        www.corazaseguridadcta.com
       </p>
     </td>
   </tr>
