@@ -19,11 +19,23 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
 
       <aside class="link-box">
         <div>
-          <strong>URL para el celular del puesto</strong>
-          <p>Entrégalo al vigilante. Ahí elige el puesto, su nombre y empieza la ronda.</p>
+          <strong>1. Crear puntos GPS (ustedes)</strong>
+          <p>Reemplazo del QR: en el puesto, con tu usuario, te paras donde el cliente pidió y guardas el punto.</p>
+          <a [href]="puntosUrl" target="_blank" rel="noopener">{{ puntosUrl }}</a>
+        </div>
+        <button type="button" class="ghost" (click)="copiar(puntosUrl)">
+          {{ copiado() === puntosUrl ? 'Copiado' : 'Copiar' }}
+        </button>
+      </aside>
+      <aside class="link-box">
+        <div>
+          <strong>2. App del vigilante</strong>
+          <p>Elige puesto, su nombre, cédula e inicia ronda. No crea puntos.</p>
           <a [href]="campoUrl" target="_blank" rel="noopener">{{ campoUrl }}</a>
         </div>
-        <button type="button" class="ghost" (click)="copiar()">{{ copiado() ? 'Copiado' : 'Copiar link' }}</button>
+        <button type="button" class="ghost" (click)="copiar(campoUrl)">
+          {{ copiado() === campoUrl ? 'Copiado' : 'Copiar' }}
+        </button>
       </aside>
 
       @if (error()) {
@@ -158,10 +170,11 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
 export class RondasPanel implements OnInit {
   private readonly api = inject(RondasApiService);
   readonly campoUrl = `${location.origin}/rondas`;
+  readonly puntosUrl = `${location.origin}/rondas/puntos`;
   hoy = signal<RondasHoy | null>(null);
   puntos = signal<RondasPunto[]>([]);
   error = signal('');
-  copiado = signal(false);
+  copiado = signal('');
 
   ngOnInit(): void {
     this.api.hoy().subscribe({
@@ -174,10 +187,10 @@ export class RondasPanel implements OnInit {
     });
   }
 
-  copiar() {
-    void navigator.clipboard.writeText(this.campoUrl).then(() => {
-      this.copiado.set(true);
-      setTimeout(() => this.copiado.set(false), 2000);
+  copiar(url: string) {
+    void navigator.clipboard.writeText(url).then(() => {
+      this.copiado.set(url);
+      setTimeout(() => this.copiado.set(''), 2000);
     });
   }
 }

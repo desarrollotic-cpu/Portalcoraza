@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { RondasApiService, RondasPunto } from '../rondas/rondas-api.service';
 import {
@@ -22,8 +23,10 @@ const VIG_KEY = 'rondas_campo_vig';
   template: `
     <div class="campo">
       <header>
-        <p class="brand">Coraza · Rondas</p>
-        @if (post(); as p) {
+        <p class="brand">{{ modoPuntos ? 'Coraza · Puntos GPS' : 'Coraza · Rondas' }}</p>
+        @if (modoPuntos) {
+          <strong>Crear puntos del recorrido</strong>
+        } @else if (post(); as p) {
           <strong>{{ p.name }}</strong>
         } @else {
           <strong>Teléfono sin puesto</strong>
@@ -35,7 +38,7 @@ const VIG_KEY = 'rondas_campo_vig';
         <p class="aviso">{{ aviso() }}</p>
       }
 
-      @if (vista() === 'inicio') {
+      @if (vista() === 'inicio' && !modoPuntos) {
         @if (!post()) {
           <section class="card">
             <h1>¿En qué puesto estás?</h1>
@@ -89,12 +92,11 @@ const VIG_KEY = 'rondas_campo_vig';
             }
           </section>
         }
-        <button type="button" class="link" (click)="abrirSistemas()">Entrar como sistemas</button>
       }
 
       @if (vista() === 'sistemas') {
         <section class="card">
-          <h1>Entrega / puntos</h1>
+          <h1>Puntos del recorrido</h1>
           @if (!auth.isAuthenticated() || !auth.hasPermission('rondas.setup')) {
             <label>Correo<input type="email" [(ngModel)]="email" /></label>
             <label>Clave<input type="password" [(ngModel)]="clave" /></label>
@@ -128,9 +130,6 @@ const VIG_KEY = 'rondas_campo_vig';
               <p class="nota">No hay puestos. Revisa que la cuenta tenga acceso a Operaciones.</p>
             }
             @if (setupPostId) {
-              <button type="button" class="ghost" (click)="vincularDesdeSetup()">
-                Dejar este teléfono en este puesto
-              </button>
               <label>
                 Nombre del punto
                 <input type="text" [(ngModel)]="puntoNombre" placeholder="Portería, bodega…" />
@@ -149,7 +148,6 @@ const VIG_KEY = 'rondas_campo_vig';
               </ul>
             }
           }
-          <button type="button" class="link" (click)="vista.set('inicio')">Volver</button>
         </section>
       }
 
@@ -247,7 +245,9 @@ const VIG_KEY = 'rondas_campo_vig';
 export class RondasCampo implements OnDestroy {
   readonly api = inject(RondasApiService);
   readonly auth = inject(AuthService);
+  private readonly route = inject(ActivatedRoute);
   readonly horaBogota = horaBogota;
+  readonly modoPuntos = this.route.snapshot.data['modo'] === 'puntos';
 
   vista = signal<Vista>('inicio');
   online = signal(navigator.onLine);
@@ -290,8 +290,15 @@ export class RondasCampo implements OnDestroy {
     window.addEventListener('online', this.onOnline);
     window.addEventListener('offline', this.onOffline);
     const p = this.post();
-    if (p) this.cargarAsociados(p.id);
-    else this.cargarPuestosPublicos();
+    if (this.modoPuntos) {
+      this.vista.set('sistemas');
+      this.cargarPuestosPublicos();
+      this.cargarPuestos();
+    } else if (p) {
+      this.cargarAsociados(p.id);
+    } else {
+      this.cargarPuestosPublicos();
+    }
   }
 
   ngOnDestroy(): void {

@@ -48,6 +48,7 @@ const routes = [
   'operaciones/puestos',
   'operaciones/rondas',
   'rondas',
+  'rondas/puntos',
   'documental',
   'documental/prestamos',
   'recepcion',

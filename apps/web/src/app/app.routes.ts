@@ -8,9 +8,16 @@ import { MainLayout } from './layouts/main-layout/main-layout';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
+    path: 'rondas/puntos',
+    loadComponent: () =>
+      import('./features/rondas-campo/rondas-campo').then((m) => m.RondasCampo),
+    data: { modo: 'puntos' },
+  },
+  {
     path: 'rondas',
     loadComponent: () =>
       import('./features/rondas-campo/rondas-campo').then((m) => m.RondasCampo),
+    data: { modo: 'vigilante' },
   },
   {
     path: 'solicitud-prestamo',

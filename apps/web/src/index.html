@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <!-- deploy: rondas vigilantes /rondas 2026-10-02 -->
+    <!-- deploy: rondas 2 links puntos+vigilante 2026-10-02 -->
     <title>Portal Coraza — Coraza Seguridad C.T.A.</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -21,6 +21,10 @@
       (function () {
         try {
           var path = (location.pathname || '').replace(/\/$/, '');
+          if (path === '/rondas/puntos' && location.hash.indexOf('#/rondas/puntos') !== 0) {
+            location.replace('/#/rondas/puntos' + (location.search || ''));
+            return;
+          }
           if (path === '/rondas' && location.hash.indexOf('#/rondas') !== 0) {
             location.replace('/#/rondas' + (location.search || ''));
             return;
