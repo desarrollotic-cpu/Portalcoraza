@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as tls from 'tls';
 import * as nodemailer from 'nodemailer';
+import { documentalFromHeader, DOCUMENTAL_MAIL } from './documental-mail.policy';
 import {
   approvalLoanHtml,
   htmlToPlain,
@@ -30,18 +31,12 @@ export type MailDispatchResult = {
 @Injectable()
 export class DocumentalMailService {
   private readonly logger = new Logger(DocumentalMailService.name);
-  readonly senderEmail = 'documental@corazaseguridadcta.com';
+  readonly senderEmail = DOCUMENTAL_MAIL;
+  /** ponytail: si Gmail SMTP está bloqueado, no reintentar cada correo del cron (techo 15 min). */
+  private smtpSkipUntil = 0;
 
   constructor() {
-    // No abrir pool SMTP al arrancar: en Render el puerto 465/587 hace timeout y bloquea los correos.
-  }
-
-  /** En Render el SMTP de Gmail suele estar bloqueado; Resend (HTTPS) va primero. */
-  private mailProvider(): 'smtp' | 'resend' {
-    const explicit = (process.env.MAIL_PROVIDER || '').trim().toLowerCase();
-    if (explicit === 'smtp' || explicit === 'resend') return explicit;
-    if (process.env.RENDER) return 'resend';
-    return 'smtp';
+    // No abrir pool SMTP al arrancar: verify() en Render puede colgar el boot.
   }
 
   private smtpConfig(): { host: string; port: number; user: string; pass: string; secure: boolean } {
@@ -134,27 +129,15 @@ export class DocumentalMailService {
 
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
-    const provider = this.mailProvider();
     const errors: string[] = [];
+    const resendOnly = (process.env.MAIL_PROVIDER || '').trim().toLowerCase() === 'resend-only';
 
-    if (provider === 'resend') {
-      const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
-      if (resend.ok) {
-        await this.copyToGmailSent(cleanTo, subject, htmlBody);
-        return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
-      }
-      if (resend.error) errors.push(resend.error);
-      if (!process.env.RENDER) {
-        const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-        if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
-        if (smtp.error) errors.push(smtp.error);
-      }
-      return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
+    if (!resendOnly) {
+      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+      if (smtp.error) errors.push(smtp.error);
     }
 
-    const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-    if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
-    errors.push(smtp.error || 'SMTP falló');
     const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
     if (resend.ok) {
       await this.copyToGmailSent(cleanTo, subject, htmlBody);
@@ -165,12 +148,16 @@ export class DocumentalMailService {
   }
 
   private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
+    if (Date.now() < this.smtpSkipUntil) {
+      return { ok: false, error: 'SMTP omitido (bloqueo reciente)' };
+    }
     const cfg = this.smtpConfig();
     const attempts = [
       { port: 587, secure: false },
-      { port: cfg.port, secure: cfg.secure },
+      { port: 465, secure: true },
     ];
     const errors: string[] = [];
+    let blocked = true;
     for (const attempt of attempts) {
       try {
         const transporter = nodemailer.createTransport({
@@ -178,28 +165,38 @@ export class DocumentalMailService {
           port: attempt.port,
           secure: attempt.secure,
           requireTLS: !attempt.secure,
-          connectionTimeout: 6000,
-          greetingTimeout: 6000,
-          socketTimeout: 8000,
+          connectionTimeout: 15000,
+          greetingTimeout: 15000,
+          socketTimeout: 20000,
+          tls: { servername: cfg.host },
           auth: { user: cfg.user, pass: cfg.pass },
         });
         const info = await transporter.sendMail({
           from: `"Gestión Documental Coraza" <${cfg.user}>`,
           to,
-          bcc: this.senderEmail,
+          bcc: to === this.senderEmail ? undefined : this.senderEmail,
           replyTo: this.senderEmail,
           subject,
           text: htmlToPlain(htmlBody),
           html: htmlBody,
+          headers: {
+            'Message-ID': `<doc-${Date.now()}.${Math.random().toString(36).slice(2)}@corazaseguridadcta.com>`,
+            'List-Unsubscribe': `<mailto:${this.senderEmail}>`,
+          },
         });
-        this.logger.log(`✅ [SMTP ${attempt.port}] Para: ${to} | ID: ${info.messageId}`);
+        this.smtpSkipUntil = 0;
+        this.logger.log(`[SMTP ${attempt.port}] Para: ${to} | ID: ${info.messageId}`);
         return { ok: true, error: null };
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         errors.push(`SMTP ${attempt.port}: ${errorMsg}`);
+        if (!/timeout|ETIMEDOUT|ECONNREFUSED|ECONNRESET|ENETUNREACH|EHOSTUNREACH/i.test(errorMsg)) {
+          blocked = false;
+        }
       }
     }
-    this.logger.error(`❌ SMTP a ${to}: ${errors.join(' | ')}`);
+    if (blocked) this.smtpSkipUntil = Date.now() + 15 * 60 * 1000;
+    this.logger.error(`SMTP a ${to}: ${errors.join(' | ')}`);
     return { ok: false, error: errors.join(' | ') };
   }
 
@@ -324,16 +321,16 @@ export class DocumentalMailService {
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (!resendKey) return { ok: false, error: null };
 
-    const fromCustom = process.env.MAIL_FROM || `Gestión Documental Coraza <${this.senderEmail}>`;
-    const fromOnboarding = 'Gestión Documental Coraza <onboarding@resend.dev>';
+    const fromCustom = documentalFromHeader(process.env.MAIL_FROM);
 
     try {
-      // Primero el dominio Coraza. onboarding@resend.dev llega, pero cae en spam.
-      const tries = [
-        { from: fromCustom, to: [to], bcc: [this.senderEmail] },
-        { from: fromCustom, to: [to] },
-        { from: fromOnboarding, to: [to], bcc: [this.senderEmail] },
-      ];
+      const tries =
+        to === this.senderEmail
+          ? [{ from: fromCustom, to: [to] }]
+          : [
+              { from: fromCustom, to: [to], bcc: [this.senderEmail] },
+              { from: fromCustom, to: [to] },
+            ];
       let lastErr = '';
       for (const t of tries) {
         const res = await this.postResend(resendKey, {
@@ -346,23 +343,29 @@ export class DocumentalMailService {
           text: htmlToPlain(htmlBody),
         });
         if (res.ok) {
-          this.logger.log(`✅ [RESEND] Para: ${to} | ${res.body}`);
+          this.logger.log(`[RESEND] Para: ${to} | ${res.body}`);
           return { ok: true, error: null };
         }
         lastErr = `Resend ${res.status}: ${res.body.slice(0, 220)}`;
       }
 
-      // Cuenta Resend en modo prueba: solo entrega al dueño. Deja copia en documental@.
       if (to !== this.senderEmail) {
-        const copy = await this.postResend(resendKey, {
-          from: fromOnboarding,
+        const copyPayload = {
           to: [this.senderEmail],
           reply_to: to,
           subject: `${subject} (para: ${to})`,
           html: `<p><strong>Destinatario original:</strong> ${to}</p>${htmlBody}`,
-        });
-        if (copy.ok) {
-          this.logger.warn(`⚠️ Resend no entrega a ${to}; copia en ${this.senderEmail}`);
+        };
+        const copy =
+          (await this.postResend(resendKey, { ...copyPayload, from: fromCustom })).ok ||
+          (
+            await this.postResend(resendKey, {
+              ...copyPayload,
+              from: 'Gestión Documental Coraza <onboarding@resend.dev>',
+            })
+          ).ok;
+        if (copy) {
+          this.logger.warn(`Resend no entrega a ${to}; copia en ${this.senderEmail}`);
           return {
             ok: false,
             error: `${lastErr} | Copia interna dejada en ${this.senderEmail}`,

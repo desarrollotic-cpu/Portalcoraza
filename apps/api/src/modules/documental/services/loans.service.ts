@@ -133,8 +133,8 @@ export class LoansService {
       // Si nunca fue notificado o pasaron más de 20 horas desde el último aviso (aviso diario recurrente)
       const lastNotified = loan.overdueNotifiedAt ? new Date(loan.overdueNotifiedAt).getTime() : 0;
       if (!lastNotified || now - lastNotified > TWENTY_HOURS_MS) {
-        this.logger.log(`📧 [RECORDATORIO RECURRENTE] Enviando aviso diario de devolución para préstamo #${loan.id} a ${loan.email}`);
-        await this.notifyLoan(loan, 'VENCIMIENTO', () =>
+        this.logger.log(`[RECORDATORIO] Enviando aviso de devolución préstamo ${loan.id} a ${loan.email}`);
+        const mail = await this.notifyLoan(loan, 'VENCIMIENTO', () =>
           this.mailService.sendOverdueReminder({
             id: loan.id,
             requester: loan.requester,
@@ -144,8 +144,10 @@ export class LoansService {
             department: loan.department || undefined,
           }),
         );
-        loan.overdueNotifiedAt = new Date();
-        await this.repo.save(loan);
+        if (mail.ok) {
+          loan.overdueNotifiedAt = new Date();
+          await this.repo.save(loan);
+        }
       }
     }
   }
