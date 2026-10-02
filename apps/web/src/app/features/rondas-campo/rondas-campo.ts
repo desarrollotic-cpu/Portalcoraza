@@ -196,9 +196,16 @@ const VIG_KEY = 'rondas_campo_vig';
             </label>
             <label>
               Radio (m)
-              <input type="number" [(ngModel)]="radio" min="8" max="25" step="1" />
+              <select [(ngModel)]="radio">
+                <option [ngValue]="8">8 m — mínimo (portería, terraza)</option>
+                <option [ngValue]="10">10 m</option>
+                <option [ngValue]="12">12 m</option>
+                <option [ngValue]="15">15 m</option>
+                <option [ngValue]="20">20 m</option>
+                <option [ngValue]="25">25 m — máximo</option>
+              </select>
             </label>
-            <p class="hint">Mínimo 8 m (límite real del GPS del teléfono). El ± del GPS tiene que ser igual o menor a ese radio, si no no guarda.</p>
+            <p class="hint">Elige el radio. 8 m es el mínimo. El GPS tiene que marcar ese ± o menos para poder guardar.</p>
 
             <button
               type="button"
