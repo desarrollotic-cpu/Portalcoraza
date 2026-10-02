@@ -177,6 +177,13 @@ const VIG_KEY = 'rondas_campo_vig';
             @if (gpsNota()) {
               <p class="nota">{{ gpsNota() }}</p>
             }
+            @if (pos() && !gpsPreciso()) {
+              <p class="nota">
+                GPS ±{{ accuracy() }} m y radio {{ radioEntero() }} m. No se puede guardar:
+                el error sería mayor que el punto. Activa ubicación precisa, quédate quieto
+                al aire libre, o sube el radio hasta el ± del GPS.
+              </p>
+            }
 
             <label>
               Nombre del punto
@@ -191,23 +198,25 @@ const VIG_KEY = 'rondas_campo_vig';
               Radio (m)
               <input type="number" [(ngModel)]="radio" min="1" max="25" step="1" />
             </label>
-            <p class="hint">El radio se guarda tal cual. 1 m = el vigilante tiene que llegar al punto. No uses 30 m.</p>
+            <p class="hint">El radio no puede ser menor que el error del GPS (±). Si pones 1 m, el GPS tiene que marcar ±1 m o no guarda.</p>
 
             <button
               type="button"
               class="cta"
-              [disabled]="guardando() || tomandoGps()"
+              [disabled]="guardando() || tomandoGps() || !gpsPreciso()"
               (click)="tomarPunto()"
             >
               @if (tomandoGps()) {
-                Tomando GPS…
+                Fijando GPS preciso…
               } @else if (guardando()) {
                 Guardando coordenadas…
+              } @else if (!gpsPreciso()) {
+                GPS impreciso — no guardar
               } @else {
                 Tomar punto
               }
             </button>
-            <p class="hint">Párate en el sitio, espera a que salgan las coordenadas y toca Tomar punto. No es iniciar ronda.</p>
+            <p class="hint">Párate en el sitio exacto. Solo guarda cuando el botón esté activo.</p>
 
             <ul class="puntos">
               @for (pt of puntosSetup(); track pt.id) {
@@ -682,6 +691,12 @@ export class RondasCampo implements OnDestroy {
     return `${Math.round(h)}° ${cardinal(h)}`;
   }
 
+  gpsPreciso() {
+    const acc = this.accuracy();
+    if (acc == null || !this.pos()) return false;
+    return acc <= this.radioEntero();
+  }
+
   async tomarPunto() {
     if (this.guardando() || this.tomandoGps()) return;
     const radio = this.radioEntero();
@@ -689,22 +704,31 @@ export class RondasCampo implements OnDestroy {
       this.aviso.set('El radio debe ser entre 1 y 25 metros.');
       return;
     }
+    if (!this.gpsPreciso()) {
+      this.aviso.set(
+        `No se guarda: GPS ±${this.accuracy() ?? '—'} m. Tiene que ser ±${radio} m o menos.`,
+      );
+      return;
+    }
     this.tomandoGps.set(true);
-    this.gpsNota.set('Tomando coordenadas… quédate quieto.');
+    this.gpsNota.set('Fijando GPS preciso… no muevas el teléfono.');
     this.aviso.set('');
     try {
-      const c = await this.leerGpsMejor();
+      const c = await this.leerGpsMejor(20000);
       this.aplicarCoords(c);
       this.tomandoGps.set(false);
-      this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente(), c.altitude);
-    } catch {
-      const actual = this.pos();
-      this.tomandoGps.set(false);
-      if (actual) {
-        this.crearPuntoGps(actual.lat, actual.lng, this.nombreSiguiente(), this.altitud());
+      if (Math.round(c.accuracy) > radio) {
+        this.aviso.set(
+          `No se guardó: el GPS quedó en ±${Math.round(c.accuracy)} m y el radio es ${radio} m.`,
+        );
         return;
       }
-      this.aviso.set('No se pudieron leer las coordenadas. Activa ubicación precisa y sal al aire libre.');
+      this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente(), c.altitude, c.accuracy);
+    } catch {
+      this.tomandoGps.set(false);
+      this.aviso.set(
+        'GPS todavía impreciso. Activa ubicación precisa, sal al aire libre y espera. No se guarda un punto falso.',
+      );
     }
   }
 
@@ -783,12 +807,12 @@ export class RondasCampo implements OnDestroy {
     this.pos.set({ lat: c.latitude, lng: c.longitude });
     this.accuracy.set(Math.round(c.accuracy));
     this.altitud.set(c.altitude != null ? Math.round(c.altitude) : null);
-    if (c.accuracy > 50) {
+    if (c.accuracy > this.radioEntero()) {
       this.gpsNota.set(
-        `GPS poco preciso (±${Math.round(c.accuracy)} m). Activa ubicación precisa y espera; igual puedes tomar el punto.`,
+        `GPS ±${Math.round(c.accuracy)} m. Radio ${this.radioEntero()} m. No se guarda hasta que el ± sea menor o igual al radio.`,
       );
     } else {
-      this.gpsNota.set('');
+      this.gpsNota.set(`GPS listo ±${Math.round(c.accuracy)} m. Ya puedes tomar el punto.`);
     }
   }
 
@@ -815,28 +839,18 @@ export class RondasCampo implements OnDestroy {
       const finish = () => {
         if (id) navigator.geolocation.clearWatch(id);
         if (t) clearTimeout(t);
-        if (best) {
+        if (best && best.accuracy <= this.radioEntero()) {
           resolve(best);
           return;
         }
-        const actual = this.pos();
-        if (actual) {
-          resolve({
-            latitude: actual.lat,
-            longitude: actual.lng,
-            accuracy: this.accuracy() ?? 99,
-            altitude: this.altitud(),
-          });
-          return;
-        }
-        reject(new Error('sin lectura'));
+        reject(new Error('gps impreciso'));
       };
       id = navigator.geolocation.watchPosition(
         (p) => {
           const s = snap(p.coords);
           this.aplicarCoords(s);
           if (!best || s.accuracy < best.accuracy) best = s;
-          if (s.accuracy <= 25) finish();
+          if (s.accuracy <= this.radioEntero()) finish();
         },
         () => finish(),
         { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 },
@@ -845,14 +859,26 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
-  private radioEntero() {
+  radioEntero() {
     const v = Number(this.radio);
     if (!Number.isFinite(v)) return 10;
     return Math.round(v);
   }
 
-  private crearPuntoGps(lat: number, lng: number, nombre: string, altitud?: number | null) {
+  private crearPuntoGps(
+    lat: number,
+    lng: number,
+    nombre: string,
+    altitud?: number | null,
+    precisionMetros?: number,
+  ) {
     if (!this.setupPostId || this.guardando()) return;
+    const radio = this.radioEntero();
+    const acc = precisionMetros ?? this.accuracy() ?? 99;
+    if (acc > radio) {
+      this.aviso.set(`No se guarda: GPS ±${Math.round(acc)} m supera el radio de ${radio} m.`);
+      return;
+    }
     this.guardando.set(true);
     this.api
       .crearPunto({
@@ -861,7 +887,8 @@ export class RondasCampo implements OnDestroy {
         latitud: lat,
         longitud: lng,
         altitud: altitud ?? this.altitud(),
-        radioMetros: this.radioEntero(),
+        radioMetros: radio,
+        precisionMetros: acc,
         orden: this.puntosSetup().length + 1,
       })
       .subscribe({

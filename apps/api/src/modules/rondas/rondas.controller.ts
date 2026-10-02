@@ -104,6 +104,7 @@ export class RondasController {
       longitud: number;
       altitud?: number | null;
       radioMetros?: number;
+      precisionMetros?: number;
       orden?: number;
     },
   ) {

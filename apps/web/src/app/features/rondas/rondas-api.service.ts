@@ -192,6 +192,7 @@ export class RondasApiService {
     longitud: number;
     altitud?: number | null;
     radioMetros?: number;
+    precisionMetros?: number;
     orden?: number;
   }): Observable<RondasPunto> {
     return this.http.post<RondasPunto>(`${this.base}/puntos`, body);

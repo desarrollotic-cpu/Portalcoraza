@@ -143,6 +143,7 @@ export class RondasService {
       longitud: number;
       altitud?: number | null;
       radioMetros?: number;
+      precisionMetros?: number;
       orden?: number;
     },
   ) {
@@ -150,6 +151,12 @@ export class RondasService {
     const nombre = (dto.nombre || '').trim();
     if (nombre.length < 2) throw new BadRequestException('Nombre del punto');
     const radio = this.radio(dto.radioMetros);
+    const precision = Number(dto.precisionMetros);
+    if (Number.isFinite(precision) && precision > radio) {
+      throw new BadRequestException(
+        `GPS ±${Math.round(precision)} m es peor que el radio ${radio} m. No se guarda.`,
+      );
+    }
     const post = await this.postActivo(dto.postId);
     if (post.tenant_id !== user.tenantId) {
       throw new ForbiddenException();
