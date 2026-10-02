@@ -32,8 +32,6 @@ export type MailDispatchResult = {
 export class DocumentalMailService {
   private readonly logger = new Logger(DocumentalMailService.name);
   readonly senderEmail = DOCUMENTAL_MAIL;
-  /** ponytail: si Gmail SMTP está bloqueado, no reintentar cada correo del cron (techo 15 min). */
-  private smtpSkipUntil = 0;
 
   constructor() {
     // No abrir pool SMTP al arrancar: verify() en Render puede colgar el boot.
@@ -127,6 +125,10 @@ export class DocumentalMailService {
     return this.dispatchMail(this.senderEmail, subject, newLoanRequestHtml(notice));
   }
 
+  /**
+   * Un solo tubo para vencimiento, aprobación, rechazo, devolución y solicitud nueva:
+   * Gmail documental@ → Recibidos del destinatario y carpeta Enviados de archivo.
+   */
   private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
     const errors: string[] = [];
@@ -134,7 +136,11 @@ export class DocumentalMailService {
 
     if (!resendOnly) {
       const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
-      if (smtp.ok) return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+      if (smtp.ok) {
+        // Gmail SMTP suele dejarlo en Enviados; IMAP lo asegura si el tenant no copia SMTP.
+        void this.copyToGmailSent(cleanTo, subject, htmlBody);
+        return { ok: true, via: 'smtp', error: null, subject, to: cleanTo };
+      }
       if (smtp.error) errors.push(smtp.error);
     }
 
@@ -148,16 +154,12 @@ export class DocumentalMailService {
   }
 
   private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
-    if (Date.now() < this.smtpSkipUntil) {
-      return { ok: false, error: 'SMTP omitido (bloqueo reciente)' };
-    }
     const cfg = this.smtpConfig();
     const attempts = [
       { port: 587, secure: false },
       { port: 465, secure: true },
     ];
     const errors: string[] = [];
-    let blocked = true;
     for (const attempt of attempts) {
       try {
         const transporter = nodemailer.createTransport({
@@ -184,18 +186,13 @@ export class DocumentalMailService {
             'List-Unsubscribe': `<mailto:${this.senderEmail}>`,
           },
         });
-        this.smtpSkipUntil = 0;
         this.logger.log(`[SMTP ${attempt.port}] Para: ${to} | ID: ${info.messageId}`);
         return { ok: true, error: null };
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : String(err);
         errors.push(`SMTP ${attempt.port}: ${errorMsg}`);
-        if (!/timeout|ETIMEDOUT|ECONNREFUSED|ECONNRESET|ENETUNREACH|EHOSTUNREACH/i.test(errorMsg)) {
-          blocked = false;
-        }
       }
     }
-    if (blocked) this.smtpSkipUntil = Date.now() + 15 * 60 * 1000;
     this.logger.error(`SMTP a ${to}: ${errors.join(' | ')}`);
     return { ok: false, error: errors.join(' | ') };
   }
