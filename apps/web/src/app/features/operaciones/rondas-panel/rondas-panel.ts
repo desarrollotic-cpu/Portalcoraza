@@ -20,7 +20,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
       <aside class="link-box">
         <div>
           <strong>URL para el celular del puesto</strong>
-          <p>Sistemas abre este enlace al entregar el teléfono, planta los puntos y deja el puesto vinculado.</p>
+          <p>Entrégalo al vigilante. Ahí elige el puesto, su nombre y empieza la ronda.</p>
           <a [href]="campoUrl" target="_blank" rel="noopener">{{ campoUrl }}</a>
         </div>
         <button type="button" class="ghost" (click)="copiar()">{{ copiado() ? 'Copiado' : 'Copiar link' }}</button>
@@ -157,7 +157,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
 })
 export class RondasPanel implements OnInit {
   private readonly api = inject(RondasApiService);
-  readonly campoUrl = `${location.origin}/#/rondas`;
+  readonly campoUrl = `${location.origin}/rondas`;
   hoy = signal<RondasHoy | null>(null);
   puntos = signal<RondasPunto[]>([]);
   error = signal('');

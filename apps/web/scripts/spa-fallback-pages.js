@@ -46,6 +46,8 @@ const routes = [
   'programacion/recargos',
   'operaciones',
   'operaciones/puestos',
+  'operaciones/rondas',
+  'rondas',
   'documental',
   'documental/prestamos',
   'recepcion',

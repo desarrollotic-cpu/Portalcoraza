@@ -77,6 +77,10 @@ export class RondasApiService {
     localStorage.setItem(CAMPO_POST, JSON.stringify(post));
   }
 
+  quitarPost() {
+    localStorage.removeItem(CAMPO_POST);
+  }
+
   campoToken(): string | null {
     return localStorage.getItem(CAMPO_TOKEN);
   }
@@ -87,6 +91,10 @@ export class RondasApiService {
 
   clearCampoSesion() {
     localStorage.removeItem(CAMPO_TOKEN);
+  }
+
+  puestosCampo(): Observable<RondasPost[]> {
+    return this.http.get<RondasPost[]>(`${this.base}/campo/puestos`);
   }
 
   asociados(postId: string): Observable<{

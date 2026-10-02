@@ -43,6 +43,16 @@ export class RondasService {
     private readonly auth: AuthService,
   ) {}
 
+  async puestosCampo() {
+    return this.q(
+      `SELECT id, code, name
+       FROM posts
+       WHERE status = 'ACTIVO'
+       ORDER BY name
+       LIMIT 500`,
+    );
+  }
+
   async puestosActivos(tenantId: string) {
     return this.q(
       `SELECT id, code, name, client_name AS "clientName", work_center_id AS "workCenterId"

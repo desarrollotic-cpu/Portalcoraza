@@ -2,7 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <!-- deploy: rrhh filtros coinciden y se aplican 2026-09-18 -->
+    <!-- deploy: rondas vigilantes /rondas 2026-10-02 -->
     <title>Portal Coraza — Coraza Seguridad C.T.A.</title>
     <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -20,6 +20,11 @@
     <script>
       (function () {
         try {
+          var path = (location.pathname || '').replace(/\/$/, '');
+          if (path === '/rondas' && location.hash.indexOf('#/rondas') !== 0) {
+            location.replace('/#/rondas' + (location.search || ''));
+            return;
+          }
           var mode = localStorage.getItem('coraza-color-scheme');
           if (mode !== 'dark' && mode !== 'light') mode = 'light';
           document.documentElement.setAttribute('data-theme', mode);

@@ -36,9 +36,30 @@ const VIG_KEY = 'rondas_campo_vig';
       }
 
       @if (vista() === 'inicio') {
-        @if (post()) {
+        @if (!post()) {
+          <section class="card">
+            <h1>¿En qué puesto estás?</h1>
+            <input
+              type="search"
+              [(ngModel)]="filtroPuesto"
+              placeholder="Buscar puesto"
+              (ngModelChange)="filtrarPuestos()"
+            />
+            <ul>
+              @for (p of puestosVisibles(); track p.id) {
+                <li>
+                  <button type="button" (click)="elegirPuestoVigilante(p)">{{ p.name }}</button>
+                </li>
+              }
+            </ul>
+            @if (!puestos().length) {
+              <p class="nota">Cargando puestos…</p>
+            }
+          </section>
+        } @else {
           <section class="card">
             <h1>¿Quién da la ronda?</h1>
+            <button type="button" class="ghost" (click)="cambiarPuesto()">Cambiar puesto</button>
             <input
               type="search"
               [(ngModel)]="filtro"
@@ -67,8 +88,6 @@ const VIG_KEY = 'rondas_campo_vig';
               </button>
             }
           </section>
-        } @else {
-          <p class="hint">Sistemas debe vincular este teléfono al puesto y marcar los puntos GPS.</p>
         }
         <button type="button" class="link" (click)="abrirSistemas()">Entrar como sistemas</button>
       }
@@ -272,6 +291,7 @@ export class RondasCampo implements OnDestroy {
     window.addEventListener('offline', this.onOffline);
     const p = this.post();
     if (p) this.cargarAsociados(p.id);
+    else this.cargarPuestosPublicos();
   }
 
   ngOnDestroy(): void {
@@ -303,8 +323,36 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
+  cargarPuestosPublicos() {
+    this.api.puestosCampo().subscribe({
+      next: (ps) => {
+        this.puestos.set(ps);
+        this.filtrarPuestos();
+        if (!ps.length) this.aviso.set('No hay puestos activos.');
+      },
+      error: (e: HttpErrorResponse) =>
+        this.aviso.set(msg(e, 'No se pudieron cargar los puestos')),
+    });
+  }
+
+  elegirPuestoVigilante(p: { id: string; name: string }) {
+    this.api.vincularPost(p);
+    this.post.set(p);
+    this.filtroPuesto = '';
+    this.cargarAsociados(p.id);
+  }
+
+  cambiarPuesto() {
+    this.api.quitarPost();
+    this.post.set(null);
+    this.elegido.set(null);
+    this.cedula = '';
+    this.cargarPuestosPublicos();
+  }
+
   abrirSistemas() {
     this.vista.set('sistemas');
+    this.cargarPuestosPublicos();
     this.cargarPuestos();
   }
 

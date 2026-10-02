@@ -23,6 +23,12 @@ export class RondasController {
   constructor(private readonly rondas: RondasService) {}
 
   @Public()
+  @Get('campo/puestos')
+  puestosCampo() {
+    return this.rondas.puestosCampo();
+  }
+
+  @Public()
   @Get('campo/asociados')
   asociados(@Query('postId') postId: string) {
     return this.rondas.asociadosCampo(postId);
