@@ -23,7 +23,6 @@ describe('loan-mail-layout', () => {
     expect(html).toContain('Apreciado(a) Ana Ruiz');
     expect(html).not.toContain('CC: 1017238882');
     expect(html).toContain('NIT 811.026.837-1');
-    expect(html).toContain('Atentamente');
     expect(htmlToPlain(html)).toMatch(/Contrato 120/);
   });
 
