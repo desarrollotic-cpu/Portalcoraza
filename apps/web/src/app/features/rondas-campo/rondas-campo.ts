@@ -200,10 +200,15 @@ const VIG_KEY = 'rondas_campo_vig';
           </ul>
         </section>
         <footer>
-          <p>Pendientes de envío: <strong>{{ pendientes() }}</strong></p>
-          <button type="button" (click)="sincronizar()" [disabled]="sincronizando()">
-            {{ sincronizando() ? 'Enviando…' : 'Sincronizar' }}
-          </button>
+          <p>
+            @if (sincronizando()) {
+              Enviando marcas a Portal…
+            } @else if (pendientes()) {
+              {{ pendientes() }} en el teléfono. Se envían solas al tener datos.
+            } @else {
+              Marcas enviadas a Portal.
+            }
+          </p>
           <button type="button" class="link" (click)="salirRonda()">Salir</button>
         </footer>
       }
@@ -304,11 +309,15 @@ export class RondasCampo implements OnDestroy {
   private watchId: number | null = null;
   private wake: { release(): Promise<void> } | null = null;
   private lock = false;
+  private syncTimer: ReturnType<typeof setInterval> | null = null;
   private onOnline = () => {
     this.online.set(true);
     void this.sincronizar();
   };
   private onOffline = () => this.online.set(false);
+  private onVisible = () => {
+    if (document.visibilityState === 'visible') void this.sincronizar();
+  };
 
   constructor() {
     window.addEventListener('online', this.onOnline);
@@ -537,6 +546,7 @@ export class RondasCampo implements OnDestroy {
   iniciarGps() {
     this.pararGps();
     void this.pedirWakeLock();
+    this.iniciarSyncAuto();
     if (!navigator.geolocation) {
       this.gpsNota.set('Este teléfono no da GPS.');
       return;
@@ -612,7 +622,9 @@ export class RondasCampo implements OnDestroy {
 
   sincronizar(): Promise<void> {
     const pend = this.marcas().filter((m) => m.estado === 'pendiente');
-    if (!pend.length || !navigator.onLine) return Promise.resolve();
+    if (!pend.length || this.sincronizando() || !this.api.campoToken()) {
+      return Promise.resolve();
+    }
     this.sincronizando.set(true);
     return new Promise((resolve) => {
       this.api
@@ -642,7 +654,6 @@ export class RondasCampo implements OnDestroy {
             resolve();
           },
           error: () => {
-            this.aviso.set('Sin red: las marcas quedan en el teléfono.');
             this.sincronizando.set(false);
             resolve();
           },
@@ -657,12 +668,32 @@ export class RondasCampo implements OnDestroy {
   }
 
   private pararGps() {
+    this.pararSyncAuto();
     if (this.watchId != null) {
       navigator.geolocation.clearWatch(this.watchId);
       this.watchId = null;
     }
     void this.wake?.release();
     this.wake = null;
+  }
+
+  private iniciarSyncAuto() {
+    this.pararSyncAuto();
+    void this.sincronizar();
+    this.syncTimer = setInterval(() => void this.sincronizar(), 15000);
+    document.addEventListener('visibilitychange', this.onVisible);
+    window.addEventListener('pageshow', this.onOnline);
+    window.addEventListener('focus', this.onOnline);
+  }
+
+  private pararSyncAuto() {
+    if (this.syncTimer) {
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
+    }
+    document.removeEventListener('visibilitychange', this.onVisible);
+    window.removeEventListener('pageshow', this.onOnline);
+    window.removeEventListener('focus', this.onOnline);
   }
 
   private async pedirWakeLock() {
