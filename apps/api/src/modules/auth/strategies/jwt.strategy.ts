@@ -19,6 +19,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
+    if (payload.roleCode === 'RONDAS_CAMPO') {
+      if (!payload.associateId || !payload.postId || !payload.tenantId) {
+        throw new UnauthorizedException();
+      }
+      return payload;
+    }
     const user = await this.usersService.findById(payload.sub);
     if (!user?.isActive) {
       throw new UnauthorizedException();

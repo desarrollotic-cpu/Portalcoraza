@@ -60,6 +60,7 @@ export const OPERACIONES_NAV: ModuleNavItem[] = [
   { label: 'Puestos de trabajo', route: '/operaciones/puestos', permission: 'operations.view', icon: LucideMapPin, exact: true },
   { label: 'Fichas de puestos', route: '/operaciones/puestos/fichas', permissions: ['operations.view', 'posts.view'], icon: LucideFileText },
   { label: 'Minutas', route: '/operaciones/minutas', permission: 'operations.view', icon: LucideClipboardList, exact: true },
+  { label: 'Rondas', route: '/operaciones/rondas', permissions: ['rondas.view', 'operations.view'], icon: LucideActivity, exact: true },
 ];
 
 export const RRHH_NAV: ModuleNavItem[] = [

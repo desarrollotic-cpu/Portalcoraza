@@ -29,6 +29,7 @@ import { ReceptionModule } from './modules/reception/reception.module';
 import { RolesModule } from './modules/roles/roles.module';
 import { SstModule } from './modules/sst/sst.module';
 import { MinutaModule } from './modules/minuta/minuta.module';
+import { RondasModule } from './modules/rondas/rondas.module';
 import { SigModule } from './modules/sig/sig.module';
 import { UsersModule } from './modules/users/users.module';
 import { PayrollsModule } from './modules/payroll/payrolls.module';
@@ -89,6 +90,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     ReceptionModule,
     SstModule,
     MinutaModule,
+    RondasModule,
     SigModule,
     PayrollsModule,
     DashboardModule,

@@ -8,6 +8,11 @@ import { MainLayout } from './layouts/main-layout/main-layout';
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
   {
+    path: 'rondas',
+    loadComponent: () =>
+      import('./features/rondas-campo/rondas-campo').then((m) => m.RondasCampo),
+  },
+  {
     path: 'solicitud-prestamo',
     loadComponent: () =>
       import('./features/documental/public-loan-request/public-loan-request').then(
@@ -544,6 +549,15 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/operaciones/minutas-list/minutas-list').then(
                 (m) => m.MinutasList,
+              ),
+          },
+          {
+            path: 'rondas',
+            canActivate: [permissionGuard],
+            data: { permissions: ['rondas.view', 'operations.view'], permissionMode: 'any' },
+            loadComponent: () =>
+              import('./features/operaciones/rondas-panel/rondas-panel').then(
+                (m) => m.RondasPanel,
               ),
           },
         ],

@@ -170,6 +170,27 @@ export class AuthService {
     };
   }
 
+  /** Token de 7 días para el celular del vigilante (cola offline). */
+  async signCampoAccess(input: {
+    associateId: string;
+    postId: string;
+    tenantId: string;
+  }): Promise<string> {
+    const payload: JwtPayload = {
+      sub: input.associateId,
+      email: `rondas:${input.associateId}`,
+      roleCode: 'RONDAS_CAMPO',
+      permissions: ['rondas.marcar'],
+      tenantId: input.tenantId,
+      associateId: input.associateId,
+      postId: input.postId,
+    };
+    return this.jwtService.signAsync(payload, {
+      secret: this.config.getOrThrow('JWT_ACCESS_SECRET'),
+      expiresIn: '7d',
+    });
+  }
+
   async revokeAllRefreshTokens(userId: string) {
     await this.refreshRepo.update(
       { userId, revokedAt: IsNull() },

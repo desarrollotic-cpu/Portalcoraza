@@ -26,6 +26,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      if (req.url.includes('/rondas/campo')) {
+        return throwError(() => error);
+      }
       if (
         error.status === 401 &&
         !req.url.includes('/auth/login') &&

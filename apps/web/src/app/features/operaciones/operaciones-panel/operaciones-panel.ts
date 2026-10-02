@@ -34,6 +34,8 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
         <a routerLink="/operaciones/puestos">Puestos de trabajo</a>
         (alta: Recepción). Las novedades de Minuta Virtual se ven en
         <a routerLink="/operaciones/minutas">Minutas</a>.
+        Cumplimiento de recorrido GPS en
+        <a routerLink="/operaciones/rondas">Rondas</a>.
       </p>
     </section>
   `,

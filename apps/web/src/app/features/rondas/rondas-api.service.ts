@@ -1,0 +1,162 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
+
+const CAMPO_TOKEN = 'rondas_campo_token';
+const CAMPO_POST = 'rondas_campo_post';
+const CAMPO_MARCAS = 'rondas_campo_marcas';
+const CAMPO_DEVICE = 'rondas_campo_device';
+
+export type RondasPost = {
+  id: string;
+  code?: string;
+  name: string;
+  clientName?: string | null;
+};
+
+export type RondasPunto = {
+  id: string;
+  postId: string;
+  nombre: string;
+  latitud: number;
+  longitud: number;
+  radioMetros: number;
+  orden: number;
+  activo: boolean;
+  puestoNombre?: string;
+};
+
+export type RondasHoy = {
+  fecha: string;
+  cumplimientoPct: number;
+  rondasCompletas: number;
+  puestos: number;
+  porPuesto: Array<{
+    postId: string;
+    puestoNombre: string;
+    esperados: number;
+    marcados: number;
+    porcentaje: number;
+    completa: boolean;
+  }>;
+  marcaciones: Array<{
+    id: string;
+    fechaHora: string;
+    puntoNombre: string;
+    puestoNombre: string;
+    vigilanteNombre: string;
+    distanciaAlPunto: number;
+    desfaseReloj: boolean;
+  }>;
+};
+
+@Injectable({ providedIn: 'root' })
+export class RondasApiService {
+  private readonly http = inject(HttpClient);
+  private readonly base = `${environment.apiUrl}/rondas`;
+
+  deviceId(): string {
+    let id = localStorage.getItem(CAMPO_DEVICE);
+    if (!id) {
+      id = crypto.randomUUID();
+      localStorage.setItem(CAMPO_DEVICE, id);
+    }
+    return id;
+  }
+
+  postVinculado(): { id: string; name: string } | null {
+    try {
+      return JSON.parse(localStorage.getItem(CAMPO_POST) || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  vincularPost(post: { id: string; name: string }) {
+    localStorage.setItem(CAMPO_POST, JSON.stringify(post));
+  }
+
+  campoToken(): string | null {
+    return localStorage.getItem(CAMPO_TOKEN);
+  }
+
+  setCampoSesion(token: string) {
+    localStorage.setItem(CAMPO_TOKEN, token);
+  }
+
+  clearCampoSesion() {
+    localStorage.removeItem(CAMPO_TOKEN);
+  }
+
+  asociados(postId: string) {
+    return this.http.get<{
+      post: { id: string; name: string };
+      asociados: Array<{ id: string; nombre: string }>;
+    }>(`${this.base}/campo/asociados`, { params: { postId } });
+  }
+
+  entrar(postId: string, associateId: string, documentNumber: string) {
+    return this.http.post<{
+      accessToken: string;
+      vigilante: { id: string; nombre: string };
+      post: { id: string; name: string };
+    }>(`${this.base}/campo/entrar`, { postId, associateId, documentNumber });
+  }
+
+  puntosCampo(): Observable<RondasPunto[]> {
+    return this.http.get<RondasPunto[]>(`${this.base}/campo/puntos`, {
+      headers: this.campoHeaders(),
+    });
+  }
+
+  enviarMarcaciones(marcaciones: Array<{
+    uuidCliente: string;
+    puntoId: string;
+    latitud: number;
+    longitud: number;
+    precisionMetros: number;
+    fechaHora: string;
+    dispositivoId: string;
+  }>) {
+    return this.http.post<{
+      aceptadas: string[];
+      duplicadas: string[];
+      rechazadas: Array<{ uuid: string; motivo: string }>;
+    }>(`${this.base}/campo/marcaciones`, { marcaciones }, {
+      headers: this.campoHeaders(),
+    });
+  }
+
+  puestosSetup() {
+    return this.http.get<RondasPost[]>(`${this.base}/puestos`);
+  }
+
+  hoy(postId?: string) {
+    return this.http.get<RondasHoy>(`${this.base}/hoy`, {
+      params: postId ? { postId } : {},
+    });
+  }
+
+  puntosAdmin(postId?: string) {
+    return this.http.get<RondasPunto[]>(`${this.base}/puntos`, {
+      params: postId ? { postId } : {},
+    });
+  }
+
+  crearPunto(body: {
+    postId: string;
+    nombre: string;
+    latitud: number;
+    longitud: number;
+    radioMetros?: number;
+    orden?: number;
+  }) {
+    return this.http.post<RondasPunto>(`${this.base}/puntos`, body);
+  }
+
+  private campoHeaders(): HttpHeaders {
+    const t = this.campoToken();
+    return new HttpHeaders(t ? { Authorization: `Bearer ${t}` } : {});
+  }
+}
