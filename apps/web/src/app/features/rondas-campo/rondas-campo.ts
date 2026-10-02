@@ -230,7 +230,12 @@ const VIG_KEY = 'rondas_campo_vig';
                         }
                       </small>
                     </div>
-                    <button type="button" class="mini" (click)="editarNombre(pt)">Renombrar</button>
+                    <div class="acciones">
+                      <button type="button" class="mini" (click)="editarNombre(pt)">Renombrar</button>
+                      <button type="button" class="mini malo" [disabled]="guardando()" (click)="eliminarPunto(pt)">
+                        Eliminar
+                      </button>
+                    </div>
                   }
                 </li>
               }
@@ -415,6 +420,8 @@ const VIG_KEY = 'rondas_campo_vig';
       background: none; color: var(--primary-600); flex-shrink: 0;
     }
     .puntos li .mini.cta { background: var(--gradient-primary); color: var(--text-on-primary); text-align: center; margin: 0; }
+    .puntos li .acciones { display: grid; gap: 0.2rem; flex-shrink: 0; }
+    .puntos li .mini.malo { color: var(--error-600); }
     .puntos b {
       width: 1.7rem; height: 1.7rem; border-radius: 99px; display: grid; place-items: center;
       background: var(--surface-2); font-size: 0.8rem;
@@ -709,6 +716,23 @@ export class RondasCampo implements OnDestroy {
   cancelarNombre() {
     this.editandoId = '';
     this.editNombre = '';
+  }
+
+  eliminarPunto(pt: RondasPunto) {
+    if (!confirm(`¿Eliminar solo el punto “${pt.nombre}”? Los demás se quedan.`)) return;
+    this.guardando.set(true);
+    this.api.eliminarPunto(pt.id).subscribe({
+      next: () => {
+        this.puntosSetup.set(this.puntosSetup().filter((p) => p.id !== pt.id));
+        this.guardando.set(false);
+        if (this.editandoId === pt.id) this.cancelarNombre();
+        this.aviso.set(`Punto ${pt.nombre} eliminado.`);
+      },
+      error: (e: HttpErrorResponse) => {
+        this.guardando.set(false);
+        this.aviso.set(msg(e, 'No se pudo eliminar el punto'));
+      },
+    });
   }
 
   guardarNombre(pt: RondasPunto) {

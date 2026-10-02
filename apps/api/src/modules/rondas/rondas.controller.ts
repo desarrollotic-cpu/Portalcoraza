@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Delete,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -125,5 +126,11 @@ export class RondasController {
     },
   ) {
     return this.rondas.actualizarPunto(user, id, body);
+  }
+
+  @Delete('puntos/:id')
+  @RequirePermissions('rondas.setup')
+  borrar(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.rondas.eliminarPunto(user, id);
   }
 }

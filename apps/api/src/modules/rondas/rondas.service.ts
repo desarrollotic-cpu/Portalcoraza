@@ -221,6 +221,17 @@ export class RondasService {
     return row;
   }
 
+  async eliminarPunto(user: JwtPayload, id: string) {
+    const [row] = await this.q(
+      `UPDATE rondas_puntos SET activo = false
+       WHERE id = $1 AND tenant_id = $2 AND activo = true
+       RETURNING id`,
+      [id, user.tenantId],
+    );
+    if (!row) throw new BadRequestException('Punto no existe');
+    return { ok: true, id: row.id };
+  }
+
   async registrarLote(user: JwtPayload, marcaciones: MarcacionIn[]) {
     if (!user.associateId || !user.postId) {
       throw new ForbiddenException('Sesión de campo inválida');

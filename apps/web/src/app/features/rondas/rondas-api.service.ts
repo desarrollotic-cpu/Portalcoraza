@@ -204,6 +204,10 @@ export class RondasApiService {
     return this.http.patch<RondasPunto>(`${this.base}/puntos/${id}`, body);
   }
 
+  eliminarPunto(id: string): Observable<{ ok: boolean; id: string }> {
+    return this.http.delete<{ ok: boolean; id: string }>(`${this.base}/puntos/${id}`);
+  }
+
   private campoHeaders(): HttpHeaders {
     const t = this.campoToken();
     return new HttpHeaders(t ? { Authorization: `Bearer ${t}` } : {});
