@@ -1,8 +1,10 @@
 const LOGO_URL = 'https://portalcoraza-web.onrender.com/brand/logo-coraza-cta.png';
 const SENDER = 'documental@corazaseguridadcta.com';
 const NAVY = '#075985';
+const ORANGE = '#ea580c';
+const GREEN = '#166534';
 const INK = '#0f172a';
-const MUTED = '#64748b';
+const MUTED = '#78716c';
 const FONT = 'Arial,Helvetica,sans-serif';
 
 function esc(v: string | undefined): string {
@@ -43,13 +45,11 @@ function mailtoCta(subject: string): { label: string; href: string } {
   };
 }
 
-const GOLD = '#b08d57';
-
 function fact(label: string, value: string): string {
   const v = (value || '').trim() || 'No indicado';
   return `<tr>
-    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #edf2f7;width:36%;font-family:${FONT};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${MUTED};">${esc(label)}</td>
-    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #edf2f7;font-family:${FONT};font-size:14px;color:${INK};font-weight:600;">${esc(v)}</td>
+    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #fed7aa;width:36%;font-family:${FONT};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${MUTED};">${esc(label)}</td>
+    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #fed7aa;font-family:${FONT};font-size:14px;color:${INK};font-weight:600;">${esc(v)}</td>
   </tr>`;
 }
 
@@ -83,11 +83,12 @@ export function wrapLoanMail(opts: {
   reference?: string;
 }): string {
   const accent =
-    opts.tone === 'ok' ? '#15803d' : opts.tone === 'alert' ? '#b91c1c' : opts.tone === 'reject' ? '#9f1239' : NAVY;
+    opts.tone === 'ok' ? GREEN : opts.tone === 'alert' ? '#b91c1c' : opts.tone === 'reject' ? '#9f1239' : NAVY;
+  const btnColor = opts.tone === 'alert' || opts.tone === 'reject' ? accent : ORANGE;
   const name = displayName(opts.requester) || 'señora / señor';
   const btn = opts.ctaHref
-    ? `<tr><td align="center" style="padding:20px 40px 4px;font-family:${FONT};">
-        <a href="${opts.ctaHref}" style="background:${NAVY};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:15px 36px;display:inline-block;border-radius:28px;border:1px solid ${GOLD};">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
+    ? `<tr><td align="center" style="padding:22px 40px 4px;font-family:${FONT};">
+        <a href="${opts.ctaHref}" style="background:${btnColor};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:17px 44px;display:inline-block;border-radius:999px;">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
       </td></tr>
       <tr><td align="center" style="padding:12px 40px 0;font-family:${FONT};font-size:12px;color:${MUTED};">
         Si no solicitó este trámite, ignore este mensaje.
@@ -101,42 +102,43 @@ export function wrapLoanMail(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(opts.badge)} — Coraza Seguridad C.T.A.</title>
 </head>
-<body style="margin:0;padding:0;background:#dbeafe;">
+<body style="margin:0;padding:0;background:#fff4e8;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${pre}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#dbeafe;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff4e8;">
 <tr><td align="center" style="padding:36px 12px;">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:20px;overflow:hidden;font-family:${FONT};box-shadow:0 12px 40px rgba(7,89,133,.12);">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:24px;overflow:hidden;font-family:${FONT};">
+  <tr><td style="height:6px;background:${ORANGE};font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr>
-    <td align="center" style="padding:28px 32px 26px;background:${INK};">
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;background:#ffffff;border-radius:14px;">
-        <tr><td align="center" style="padding:10px;">
-          <img src="${LOGO_URL}" width="52" height="52" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
-        </td></tr>
-      </table>
-      <p style="margin:16px auto 0;width:40px;height:2px;background:${GOLD};font-size:0;line-height:0;">&nbsp;</p>
-      <p style="margin:14px 0 0;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:${GOLD};font-weight:700;">Gestión Documental</p>
-      <p style="margin:6px 0 0;font-size:13px;color:#94a3b8;">Archivo Central · Coraza Seguridad C.T.A.</p>
+    <td align="center" style="padding:36px 32px 8px;">
+      <img src="${LOGO_URL}" width="120" height="120" alt="Coraza Seguridad C.T.A." style="display:block;border:0;margin:0 auto;">
+      <p style="margin:20px 0 0;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:${ORANGE};font-weight:700;">Cooperativa de vigilancia</p>
+      <p style="margin:8px 0 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:${INK};font-weight:700;">Gestión Documental</p>
+      <p style="margin:6px 0 0;font-size:13px;color:${MUTED};">Archivo Central · Coraza Seguridad C.T.A.</p>
     </td>
   </tr>
-  <tr><td style="height:3px;background:${accent};font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr>
-    <td align="center" style="padding:32px 40px 0;">
+    <td align="center" style="padding:8px 80px 4px;">
+      <div style="height:1px;background:#fed7aa;font-size:0;line-height:0;">&nbsp;</div>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" style="padding:24px 40px 0;">
       <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${accent};">${esc(opts.badge)}</p>
-      <p style="margin:14px 0 0;font-size:28px;line-height:1.22;font-weight:700;color:${INK};">${esc(opts.title)}</p>
+      <p style="margin:14px 0 0;font-size:30px;line-height:1.22;font-weight:700;color:${INK};">${esc(opts.title)}</p>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:18px 44px 6px;">
-      <p style="margin:0;font-size:16px;line-height:1.7;color:#475569;">
+    <td align="center" style="padding:16px 44px 8px;">
+      <p style="margin:0;font-size:16px;line-height:1.7;color:#57534e;">
         Apreciado(a) ${esc(name)}.<br><br>
         ${opts.message}
       </p>
     </td>
   </tr>
   <tr>
-    <td style="padding:20px 40px 8px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f8fafc;border-radius:12px;border-left:3px solid ${GOLD};">
-        <tr><td style="padding:6px 20px 10px;">
+    <td style="padding:12px 40px 8px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff7ed;border-radius:14px;">
+        <tr><td style="padding:8px 20px 12px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
             ${opts.facts.map((f) => fact(f.label, f.value)).join('')}
           </table>
@@ -148,7 +150,7 @@ export function wrapLoanMail(opts: {
   ${btn}
   <tr>
     <td align="center" style="padding:28px 36px 32px;">
-      <p style="margin:0;font-size:11px;line-height:1.6;color:${MUTED};">
+      <p style="margin:0;font-size:11px;line-height:1.65;color:${MUTED};">
         ${esc(SENDER)} · PBX (604) 444 7929<br>
         ${esc(formatCityDate())} · NIT 811.026.837-1<br>
         www.corazaseguridadcta.com
@@ -212,7 +214,7 @@ export function rejectionLoanHtml(notice: {
       { label: 'Estado', value: 'No autorizado' },
     ],
     extraHtml: `<p style="margin:16px 0 6px;font-size:12px;color:${MUTED};font-family:${FONT};">Observación</p>
-        <p style="margin:0;padding:12px 14px;background:#f8fafc;border-left:3px solid #9f1239;color:${INK};font-size:14px;line-height:1.6;font-family:${FONT};">${esc(notice.motivoRechazo)}</p>`,
+        <p style="margin:0;padding:12px 14px;background:#fff7ed;border-left:3px solid #9f1239;color:${INK};font-size:14px;line-height:1.6;font-family:${FONT};">${esc(notice.motivoRechazo)}</p>`,
     ctaLabel: cta.label,
     ctaHref: cta.href,
   });
