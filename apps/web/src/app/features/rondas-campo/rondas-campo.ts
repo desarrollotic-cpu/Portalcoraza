@@ -189,9 +189,9 @@ const VIG_KEY = 'rondas_campo_vig';
             </label>
             <label>
               Radio (m)
-              <input type="number" [(ngModel)]="radio" min="6" max="25" />
+              <input type="number" [(ngModel)]="radio" min="1" max="25" step="1" />
             </label>
-            <p class="hint">Terraza o portería: 8–12 m. Si está a 10 m y no es el punto, no debe marcar.</p>
+            <p class="hint">El radio se guarda tal cual. 1 m = el vigilante tiene que llegar al punto. No uses 30 m.</p>
 
             <button
               type="button"
@@ -677,8 +677,13 @@ export class RondasCampo implements OnDestroy {
 
   async tomarPunto() {
     if (this.guardando() || this.tomandoGps()) return;
+    const radio = this.radioEntero();
+    if (radio < 1 || radio > 25) {
+      this.aviso.set('El radio debe ser entre 1 y 25 metros.');
+      return;
+    }
     this.tomandoGps.set(true);
-    this.gpsNota.set('Tomando coordenadas… quédate quieto, con el GPS preciso activado.');
+    this.gpsNota.set('Tomando coordenadas… quédate quieto.');
     this.aviso.set('');
     try {
       const c = await this.leerGpsMejor();
@@ -686,7 +691,12 @@ export class RondasCampo implements OnDestroy {
       this.tomandoGps.set(false);
       this.crearPuntoGps(c.latitude, c.longitude, this.nombreSiguiente(), c.altitude);
     } catch {
+      const actual = this.pos();
       this.tomandoGps.set(false);
+      if (actual) {
+        this.crearPuntoGps(actual.lat, actual.lng, this.nombreSiguiente(), this.altitud());
+        return;
+      }
       this.aviso.set('No se pudieron leer las coordenadas. Activa ubicación precisa y sal al aire libre.');
     }
   }
@@ -811,6 +821,12 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
+  private radioEntero() {
+    const v = Number(this.radio);
+    if (!Number.isFinite(v)) return 10;
+    return Math.round(v);
+  }
+
   private crearPuntoGps(lat: number, lng: number, nombre: string, altitud?: number | null) {
     if (!this.setupPostId || this.guardando()) return;
     this.guardando.set(true);
@@ -821,7 +837,7 @@ export class RondasCampo implements OnDestroy {
         latitud: lat,
         longitud: lng,
         altitud: altitud ?? this.altitud(),
-        radioMetros: Number(this.radio) || 10,
+        radioMetros: this.radioEntero(),
         orden: this.puntosSetup().length + 1,
       })
       .subscribe({
@@ -830,7 +846,7 @@ export class RondasCampo implements OnDestroy {
           this.guardando.set(false);
           this.puntoNombre = '';
           this.aviso.set(
-            `${nombre} guardado: ${Number(pt.latitud).toFixed(6)}, ${Number(pt.longitud).toFixed(6)}`,
+            `${nombre} guardado (${this.radioEntero()} m): ${Number(pt.latitud).toFixed(6)}, ${Number(pt.longitud).toFixed(6)}`,
           );
           navigator.vibrate?.([60, 30, 60]);
         },

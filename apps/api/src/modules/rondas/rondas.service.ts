@@ -465,8 +465,8 @@ export class RondasService {
 
   private radio(n?: number) {
     const v = Number(n ?? 10);
-    if (!Number.isFinite(v) || v < 6 || v > 25) {
-      throw new BadRequestException('Radio entre 6 y 25 m');
+    if (!Number.isFinite(v) || v < 1 || v > 25) {
+      throw new BadRequestException('Radio entre 1 y 25 m');
     }
     return Math.round(v);
   }
