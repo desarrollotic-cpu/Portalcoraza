@@ -276,7 +276,7 @@ export class RondasService {
           continue;
         }
         const precision = Number(m.precisionMetros ?? 0);
-        const radio = Number(punto.radio_metros) || 10;
+        const radio = Number(punto.radio_metros) || 8;
         if (precision > Math.max(15, radio)) {
           rechazadas.push({ uuid, motivo: 'precision' });
           continue;
@@ -482,9 +482,9 @@ export class RondasService {
   }
 
   private radio(n?: number) {
-    const v = Number(n ?? 10);
-    if (!Number.isFinite(v) || v < 1 || v > 25) {
-      throw new BadRequestException('Radio entre 1 y 25 m');
+    const v = Number(n ?? 8);
+    if (!Number.isFinite(v) || v < 8 || v > 25) {
+      throw new BadRequestException('Radio entre 8 y 25 m');
     }
     return Math.round(v);
   }

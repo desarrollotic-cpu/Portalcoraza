@@ -196,9 +196,9 @@ const VIG_KEY = 'rondas_campo_vig';
             </label>
             <label>
               Radio (m)
-              <input type="number" [(ngModel)]="radio" min="1" max="25" step="1" />
+              <input type="number" [(ngModel)]="radio" min="8" max="25" step="1" />
             </label>
-            <p class="hint">El radio no puede ser menor que el error del GPS (±). Si pones 1 m, el GPS tiene que marcar ±1 m o no guarda.</p>
+            <p class="hint">Mínimo 8 m (límite real del GPS del teléfono). El ± del GPS tiene que ser igual o menor a ese radio, si no no guarda.</p>
 
             <button
               type="button"
@@ -491,7 +491,7 @@ export class RondasCampo implements OnDestroy {
   puntoNombre = '';
   editandoId = '';
   editNombre = '';
-  radio = 10;
+  radio = 8;
 
   readonly aGrados = aGrados;
 
@@ -700,8 +700,8 @@ export class RondasCampo implements OnDestroy {
   async tomarPunto() {
     if (this.guardando() || this.tomandoGps()) return;
     const radio = this.radioEntero();
-    if (radio < 1 || radio > 25) {
-      this.aviso.set('El radio debe ser entre 1 y 25 metros.');
+    if (radio < 8 || radio > 25) {
+      this.aviso.set('El radio debe ser entre 8 y 25 metros.');
       return;
     }
     if (!this.gpsPreciso()) {
@@ -861,7 +861,7 @@ export class RondasCampo implements OnDestroy {
 
   radioEntero() {
     const v = Number(this.radio);
-    if (!Number.isFinite(v)) return 10;
+    if (!Number.isFinite(v)) return 8;
     return Math.round(v);
   }
 

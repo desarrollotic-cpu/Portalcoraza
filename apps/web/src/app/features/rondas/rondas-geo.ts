@@ -89,7 +89,7 @@ export function candidatoMarcacion(opts: {
   let masCerca: { nombre: string; d: number } | null = null;
   let precisionBloquea = opts.puntos.length > 0;
   for (const p of ordenados) {
-    const radio = Number(p.radioMetros) || 10;
+    const radio = Number(p.radioMetros) || 8;
     const d = distanciaMetros(
       opts.lat,
       opts.lng,
