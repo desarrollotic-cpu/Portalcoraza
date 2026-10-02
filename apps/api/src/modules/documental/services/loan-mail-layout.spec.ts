@@ -16,13 +16,13 @@ describe('loan-mail-layout', () => {
       department: 'OP — Operaciones',
     });
     expect(html).toContain('logo-coraza-cta.png');
-    expect(html).toContain('Préstamo autorizado');
+    expect(html).toContain('CORAZA SEGURIDAD C.T.A.');
+    expect(html).toContain('Préstamo aprobado');
     expect(html).toContain('Gestión Documental');
     expect(html).toContain('Contrato 120');
     expect(html).toContain('20/09/2026');
-    expect(html).toContain('Apreciado(a) Ana Ruiz');
+    expect(html).toContain('Estimado(a) Ana Ruiz');
     expect(html).not.toContain('CC: 1017238882');
-    expect(html).toContain('NIT 811.026.837-1');
     expect(htmlToPlain(html)).toMatch(/Contrato 120/);
   });
 
@@ -32,10 +32,12 @@ describe('loan-mail-layout', () => {
       document: 'Contrato 120',
       returnDate: '2026-08-31',
     });
-    expect(html).toContain('Devolución pendiente');
+    expect(html).toContain('Préstamo vencido');
+    expect(html).toContain('Debe devolver el expediente');
+    expect(html).toContain('Avisar devolución');
     expect(html).toContain('#b91c1c');
     expect(html).toContain('31/08/2026');
-    expect(html).not.toContain('Préstamo autorizado');
+    expect(html).not.toContain('Préstamo aprobado');
   });
 
   it('limpia cédula y formatea fecha', () => {

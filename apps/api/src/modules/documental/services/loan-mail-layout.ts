@@ -1,10 +1,5 @@
 const LOGO_URL = 'https://portalcoraza-web.onrender.com/brand/logo-coraza-cta.png';
 const SENDER = 'documental@corazaseguridadcta.com';
-const NAVY = '#075985';
-const ORANGE = '#ea580c';
-const GREEN = '#166534';
-const INK = '#0f172a';
-const MUTED = '#78716c';
 const FONT = 'Arial,Helvetica,sans-serif';
 
 function esc(v: string | undefined): string {
@@ -41,16 +36,16 @@ export function formatCityDate(d = new Date()): string {
 function mailtoCta(subject: string): { label: string; href: string } {
   return {
     href: `mailto:${SENDER}?subject=${encodeURIComponent(subject)}`,
-    label: 'Responder a Gestión Documental',
+    label: 'Escribir a Gestión Documental',
   };
 }
 
 function fact(label: string, value: string): string {
   const v = (value || '').trim() || 'No indicado';
-  return `<tr>
-    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #fed7aa;width:36%;font-family:${FONT};font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:${MUTED};">${esc(label)}</td>
-    <td valign="top" style="padding:11px 4px;border-bottom:1px solid #fed7aa;font-family:${FONT};font-size:14px;color:${INK};font-weight:600;">${esc(v)}</td>
-  </tr>`;
+  return `<tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;font-family:${FONT};">
+    <span style="display:block;font-size:11px;color:#64748b;font-weight:700;">${esc(label)}</span>
+    <span style="display:block;font-size:15px;color:#0f172a;font-weight:700;padding-top:4px;">${esc(v)}</span>
+  </td></tr>`;
 }
 
 export function htmlToPlain(html: string): string {
@@ -82,79 +77,61 @@ export function wrapLoanMail(opts: {
   preheader?: string;
   reference?: string;
 }): string {
-  const accent =
-    opts.tone === 'ok' ? GREEN : opts.tone === 'alert' ? '#b91c1c' : opts.tone === 'reject' ? '#9f1239' : NAVY;
-  const btnColor = opts.tone === 'alert' || opts.tone === 'reject' ? accent : ORANGE;
+  const bar =
+    opts.tone === 'ok' ? '#15803d' : opts.tone === 'alert' ? '#b91c1c' : opts.tone === 'reject' ? '#9f1239' : '#0c4a6e';
   const name = displayName(opts.requester) || 'señora / señor';
-  const btn = opts.ctaHref
-    ? `<tr><td align="center" style="padding:22px 40px 4px;font-family:${FONT};">
-        <a href="${opts.ctaHref}" style="background:${btnColor};color:#ffffff;text-decoration:none;font-weight:700;font-size:15px;padding:17px 44px;display:inline-block;border-radius:999px;">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
-      </td></tr>
-      <tr><td align="center" style="padding:12px 40px 0;font-family:${FONT};font-size:12px;color:${MUTED};">
-        Si no solicitó este trámite, ignore este mensaje.
+  const cta = opts.ctaHref
+    ? `<tr><td align="center" style="padding:18px 16px;font-family:${FONT};">
+        <a href="${opts.ctaHref}" style="background:${bar};color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:12px 20px;display:inline-block;">${esc(opts.ctaLabel || 'Contactar archivo')}</a>
       </td></tr>`
     : '';
-  const pre = esc(opts.preheader || `${opts.badge} — Gestión Documental Coraza`);
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(opts.badge)} — Coraza Seguridad C.T.A.</title>
+<title>${esc(opts.badge)}</title>
 </head>
-<body style="margin:0;padding:0;background:#fff4e8;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${pre}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff4e8;">
-<tr><td align="center" style="padding:36px 12px;">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border-radius:24px;overflow:hidden;font-family:${FONT};">
-  <tr><td style="height:6px;background:${ORANGE};font-size:0;line-height:0;">&nbsp;</td></tr>
+<body style="margin:0;padding:0;background:#e2e8f0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e2e8f0;">
+<tr><td align="center" style="padding:16px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #cbd5e1;font-family:${FONT};">
   <tr>
-    <td align="center" style="padding:36px 32px 8px;">
-      <img src="${LOGO_URL}" width="120" height="120" alt="Coraza Seguridad C.T.A." style="display:block;border:0;margin:0 auto;">
-      <p style="margin:20px 0 0;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:${ORANGE};font-weight:700;">Cooperativa de vigilancia</p>
-      <p style="margin:8px 0 0;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:${INK};font-weight:700;">Gestión Documental</p>
-      <p style="margin:6px 0 0;font-size:13px;color:${MUTED};">Archivo Central · Coraza Seguridad C.T.A.</p>
+    <td align="center" style="padding:20px 16px 12px;background:#ffffff;">
+      <img src="${LOGO_URL}" width="72" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
+      <p style="margin:10px 0 0;font-size:18px;font-weight:700;color:#0c4a6e;">CORAZA SEGURIDAD C.T.A.</p>
+      <p style="margin:4px 0 0;font-size:12px;color:#64748b;">Gestión Documental - Archivo Central</p>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:8px 80px 4px;">
-      <div style="height:1px;background:#fed7aa;font-size:0;line-height:0;">&nbsp;</div>
+    <td align="center" bgcolor="${bar}" style="padding:16px;background:${bar};">
+      <p style="margin:0;font-size:12px;font-weight:700;color:#ffffff;letter-spacing:.08em;text-transform:uppercase;">${esc(opts.badge)}</p>
+      <p style="margin:8px 0 0;font-size:20px;font-weight:700;color:#ffffff;">${esc(opts.title)}</p>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:24px 40px 0;">
-      <p style="margin:0;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:${accent};">${esc(opts.badge)}</p>
-      <p style="margin:14px 0 0;font-size:30px;line-height:1.22;font-weight:700;color:${INK};">${esc(opts.title)}</p>
+    <td style="padding:20px 16px 8px;color:#0f172a;">
+      <p style="margin:0 0 8px;font-size:16px;font-weight:700;">Estimado(a) ${esc(name)},</p>
+      <p style="margin:0;font-size:14px;line-height:1.6;color:#334155;">${opts.message}</p>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:16px 44px 8px;">
-      <p style="margin:0;font-size:16px;line-height:1.7;color:#57534e;">
-        Apreciado(a) ${esc(name)}.<br><br>
-        ${opts.message}
+    <td style="padding:8px 0 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${opts.facts.map((f) => fact(f.label, f.value)).join('')}</table>
+    </td>
+  </tr>
+  <tr><td style="padding:8px 16px;">${opts.extraHtml || ''}</td></tr>
+  ${cta}
+  <tr>
+    <td style="padding:8px 16px 20px;">
+      <p style="margin:0;padding:12px;background:#f1f5f9;font-size:13px;color:#334155;">
+        Ventanilla de Gestión Documental · PBX (604) 444 7929 · Medellín
       </p>
     </td>
   </tr>
   <tr>
-    <td style="padding:12px 40px 8px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fff7ed;border-radius:14px;">
-        <tr><td style="padding:8px 20px 12px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-            ${opts.facts.map((f) => fact(f.label, f.value)).join('')}
-          </table>
-        </td></tr>
-      </table>
-    </td>
-  </tr>
-  <tr><td style="padding:8px 40px;">${opts.extraHtml || ''}</td></tr>
-  ${btn}
-  <tr>
-    <td align="center" style="padding:28px 36px 32px;">
-      <p style="margin:0;font-size:11px;line-height:1.65;color:${MUTED};">
-        ${esc(SENDER)} · PBX (604) 444 7929<br>
-        ${esc(formatCityDate())} · NIT 811.026.837-1<br>
-        www.corazaseguridadcta.com
-      </p>
+    <td align="center" bgcolor="#0f172a" style="padding:14px;background:#0f172a;">
+      <p style="margin:0;font-size:11px;color:#cbd5e1;">Remitente: ${esc(SENDER)}</p>
     </td>
   </tr>
 </table>
@@ -174,13 +151,13 @@ export function approvalLoanHtml(notice: {
   const cta = mailtoCta(`Retiro de expediente: ${notice.document}`);
   return wrapLoanMail({
     tone: 'ok',
-    badge: 'Préstamo autorizado',
+    badge: 'Préstamo aprobado',
     title: 'Su solicitud fue autorizada',
     requester: notice.requester,
     reference: notice.document,
     preheader: `Su préstamo de ${notice.document} fue autorizado.`,
     message:
-      'Gestión Documental autorizó el préstamo. Acérquese al Archivo Central para el retiro. Conserve la fecha límite de devolución.',
+      'Gestión Documental <strong>aprobó y confirmó</strong> el préstamo del expediente. Acérquese al archivo central para retirarlo y devuélvalo en la fecha límite.',
     facts: [
       { label: 'Expediente', value: notice.document },
       { label: 'Fecha de préstamo', value: formatMailDate(notice.loanDate) },
@@ -201,20 +178,20 @@ export function rejectionLoanHtml(notice: {
   const cta = mailtoCta(`Reconsideración de préstamo: ${notice.document}`);
   return wrapLoanMail({
     tone: 'reject',
-    badge: 'Solicitud no autorizada',
-    title: 'Respuesta a su solicitud de préstamo',
+    badge: 'Solicitud no aprobada',
+    title: 'No fue posible autorizar el préstamo',
     requester: notice.requester,
     reference: notice.document,
     preheader: `Respuesta de Gestión Documental sobre ${notice.document}.`,
     message:
-      'Le informamos que, en esta oportunidad, no fue posible autorizar el préstamo. Si se atienden las observaciones, puede presentar una nueva solicitud.',
+      'En esta oportunidad el expediente no pudo entregarse. Si subsana las observaciones, puede volver a solicitarlo.',
     facts: [
       { label: 'Expediente', value: notice.document },
       { label: 'Área', value: notice.department || '' },
-      { label: 'Estado', value: 'No autorizado' },
+      { label: 'Estado', value: 'Rechazado' },
     ],
-    extraHtml: `<p style="margin:16px 0 6px;font-size:12px;color:${MUTED};font-family:${FONT};">Observación</p>
-        <p style="margin:0;padding:12px 14px;background:#fff7ed;border-left:3px solid #9f1239;color:${INK};font-size:14px;line-height:1.6;font-family:${FONT};">${esc(notice.motivoRechazo)}</p>`,
+    extraHtml: `<p style="margin:0 0 6px;font-size:12px;color:#9f1239;font-weight:700;font-family:${FONT};">Motivo</p>
+        <p style="margin:0;padding:12px;background:#fef2f2;border:1px solid #fecaca;color:#991b1b;font-size:13px;line-height:1.5;font-family:${FONT};">${esc(notice.motivoRechazo)}</p>`,
     ctaLabel: cta.label,
     ctaHref: cta.href,
   });
@@ -226,23 +203,20 @@ export function returnLoanHtml(notice: {
   returnDate?: string;
   department?: string;
 }): string {
-  const cta = mailtoCta(`Devolución registrada: ${notice.document}`);
   return wrapLoanMail({
     tone: 'ok',
     badge: 'Devolución registrada',
-    title: 'Confirmamos la recepción del expediente',
+    title: 'El expediente volvió al archivo',
     requester: notice.requester,
     reference: notice.document,
     preheader: `Devolución registrada: ${notice.document}.`,
     message:
-      'Confirmamos que el expediente fue recibido en el Archivo Central. El préstamo queda cerrado. Agradecemos su gestión.',
+      'Confirmamos la recepción física del documento. <strong>Gracias por devolverlo a tiempo.</strong> El préstamo queda cerrado en el sistema.',
     facts: [
       { label: 'Expediente', value: notice.document },
       { label: 'Fecha de devolución', value: formatMailDate(notice.returnDate) || 'Hoy' },
       { label: 'Área', value: notice.department || '' },
     ],
-    ctaLabel: cta.label,
-    ctaHref: cta.href,
   });
 }
 
@@ -255,19 +229,19 @@ export function overdueLoanHtml(notice: {
   const cta = mailtoCta(`Devolución vencida: ${notice.document}`);
   return wrapLoanMail({
     tone: 'alert',
-    badge: 'Devolución pendiente',
-    title: 'El plazo de devolución venció',
+    badge: 'Préstamo vencido',
+    title: 'Debe devolver el expediente',
     requester: notice.requester,
     reference: notice.document,
     preheader: `El plazo de ${notice.document} venció el ${formatMailDate(notice.returnDate)}.`,
     message:
-      'Le recordamos que la fecha límite de custodia del expediente ya venció. Solicitamos devolverlo en la ventanilla de Gestión Documental para cerrar el trámite. Si ya lo entregó, responda este correo para verificarlo.',
+      'La fecha límite de custodia <strong>ya venció</strong>. Entregue el expediente físico en la ventanilla de Gestión Documental para cerrar el acta de préstamo.',
     facts: [
       { label: 'Expediente', value: notice.document },
       { label: 'Fecha límite', value: formatMailDate(notice.returnDate) },
       { label: 'Área', value: notice.department || '' },
     ],
-    ctaLabel: 'Informar devolución',
+    ctaLabel: 'Avisar devolución',
     ctaHref: cta.href,
   });
 }
@@ -284,18 +258,18 @@ export function newLoanRequestHtml(notice: {
   return wrapLoanMail({
     tone: 'info',
     badge: 'Nueva solicitud',
-    title: 'Solicitud pendiente de aprobación',
+    title: 'Hay una solicitud pendiente de aprobación',
     requester: 'Gestión Documental',
     reference: notice.id,
     preheader: `Nueva solicitud: ${notice.document}.`,
-    message: `El solicitante <strong>${esc(displayName(notice.requester))}</strong> radicó un préstamo. Corresponde revisar disponibilidad y resolver en el Portal.`,
+    message: `El solicitante <strong>${esc(displayName(notice.requester))}</strong> radicó un préstamo. Revise disponibilidad y apruebe o rechace en el Portal.`,
     facts: [
       { label: 'Expediente', value: notice.document },
       { label: 'Área', value: notice.department || '' },
       { label: 'Devolución estimada', value: formatMailDate(notice.returnDate) },
     ],
-    extraHtml: `<p style="margin:16px 0 6px;font-size:12px;color:${MUTED};font-family:${FONT};">Ficha de la solicitud</p>
-        <p style="margin:0;padding:12px 14px;background:#f8fafc;border-left:3px solid ${NAVY};font-size:13px;color:${INK};white-space:pre-wrap;font-family:${FONT};">${esc(notice.observations)}</p>
-        <p style="margin:10px 0 0;font-size:12px;color:${MUTED};font-family:${FONT};">Correo: ${esc(notice.email || 'No indicado')}</p>`,
+    extraHtml: `<p style="margin:0 0 8px;font-size:12px;color:#64748b;font-weight:700;font-family:${FONT};">Ficha de la solicitud</p>
+        <p style="margin:0;padding:12px;background:#f8fafc;border:1px solid #e2e8f0;font-size:13px;color:#0f172a;white-space:pre-wrap;font-family:${FONT};">${esc(notice.observations)}</p>
+        <p style="font-size:12px;color:#64748b;font-family:${FONT};">Correo: ${esc(notice.email || 'No indicado')} - Radicado ${esc(notice.id)}</p>`,
   });
 }
