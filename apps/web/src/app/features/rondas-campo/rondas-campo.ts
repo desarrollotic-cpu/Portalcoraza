@@ -18,8 +18,26 @@ import {
 type Vista = 'inicio' | 'sistemas' | 'ronda';
 
 const MARCAS_KEY = 'rondas_campo_marcas';
+const ALERTAS_KEY = 'rondas_campo_alertas';
 const PUNTOS_KEY = 'rondas_campo_puntos';
 const VIG_KEY = 'rondas_campo_vig';
+
+type AlertaLocal = {
+  uuid: string;
+  tipo: string;
+  mensaje: string;
+  latitud: number | null;
+  longitud: number | null;
+  fechaHora: string;
+  estado: 'pendiente' | 'enviado';
+};
+
+const TIPOS_ALERTA = [
+  { id: 'EMERGENCIA', label: 'Emergencia' },
+  { id: 'INCIDENTE', label: 'Incidente' },
+  { id: 'APOYO', label: 'Pido apoyo' },
+  { id: 'NOVEDAD', label: 'Novedad' },
+] as const;
 
 @Component({
   selector: 'app-rondas-campo',
@@ -285,16 +303,37 @@ const VIG_KEY = 'rondas_campo_vig';
             }
           </ul>
         </section>
+        @if (alertaAbierta()) {
+          <section class="card">
+            <h1>Enviar alerta</h1>
+            @for (t of tiposAlerta; track t.id) {
+              <button
+                type="button"
+                [class.cta]="alertaTipo === t.id"
+                (click)="alertaTipo = t.id"
+              >
+                {{ t.label }}
+              </button>
+            }
+            <label>
+              Qué pasó
+              <input type="text" [(ngModel)]="alertaTexto" maxlength="400" placeholder="Opcional" />
+            </label>
+            <button type="button" class="cta alerta-btn" (click)="enviarAlerta()">Enviar alerta</button>
+            <button type="button" class="ghost" (click)="alertaAbierta.set(false)">Cancelar</button>
+          </section>
+        }
         <footer>
           <p>
             @if (sincronizando()) {
-              Enviando marcas a Portal…
-            } @else if (pendientes()) {
-              {{ pendientes() }} en el teléfono. Se envían solas al tener datos.
+              Enviando a Portal…
+            } @else if (pendientes() || alertasPendientes()) {
+              {{ pendientes() + alertasPendientes() }} en el teléfono. Se envían solas al tener datos.
             } @else {
-              Marcas enviadas a Portal.
+              Enviado a Portal.
             }
           </p>
+          <button type="button" class="alerta-btn" (click)="alertaAbierta.set(true)">Alerta</button>
           <button type="button" class="link" (click)="salirRonda()">Salir</button>
         </footer>
       }
@@ -440,6 +479,12 @@ const VIG_KEY = 'rondas_campo_vig';
     }
     footer p { margin: 0; flex: 1; font-size: 0.9rem; color: var(--text-secondary); }
     footer .link { width: auto; color: var(--primary-600); background: none; }
+    .alerta-btn {
+      width: auto; min-height: 48px; padding: 0.55rem 0.9rem; border: 0; border-radius: var(--radius-sm);
+      background: var(--error-600, #b91c1c); color: #fff; font: inherit; font-weight: 800; cursor: pointer;
+      text-align: center;
+    }
+    button.cta.alerta-btn { width: 100%; margin-top: 0.5rem; }
     button:disabled { opacity: 0.6; }
   `,
 })
@@ -464,6 +509,11 @@ export class RondasCampo implements OnDestroy {
   puntosSetup = signal<RondasPunto[]>([]);
   puntos = signal<RondasPunto[]>([]);
   marcas = signal<MarcaLocal[]>([]);
+  alertas = signal<AlertaLocal[]>([]);
+  alertaAbierta = signal(false);
+  tiposAlerta = TIPOS_ALERTA;
+  alertaTipo: string = 'INCIDENTE';
+  alertaTexto = '';
   pos = signal<{ lat: number; lng: number } | null>(null);
   heading = signal<number | null>(null);
   accuracy = signal<number | null>(null);
@@ -941,6 +991,7 @@ export class RondasCampo implements OnDestroy {
         this.vigNombre.set(res.vigilante.nombre);
         localStorage.setItem(VIG_KEY, JSON.stringify(res.vigilante));
         this.marcas.set(leerMarcas(res.vigilante.id));
+        this.alertas.set(leerAlertas(res.vigilante.id));
         const cached = leerPuntos(post.id);
         if (cached.length) this.puntos.set(cached);
         this.vista.set('ronda');
@@ -1096,12 +1147,43 @@ export class RondasCampo implements OnDestroy {
     return this.marcas().filter((m) => m.estado === 'pendiente').length;
   }
 
+  alertasPendientes() {
+    return this.alertas().filter((a) => a.estado === 'pendiente').length;
+  }
+
+  enviarAlerta() {
+    const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
+    const pos = this.pos();
+    const item: AlertaLocal = {
+      uuid: crypto.randomUUID(),
+      tipo: this.alertaTipo || 'INCIDENTE',
+      mensaje: this.alertaTexto.trim(),
+      latitud: pos?.lat ?? null,
+      longitud: pos?.lng ?? null,
+      fechaHora: new Date().toISOString(),
+      estado: 'pendiente',
+    };
+    const next = [item, ...this.alertas()];
+    this.alertas.set(next);
+    if (vig.id) guardarAlertas(vig.id, next);
+    this.alertaTexto = '';
+    this.alertaAbierta.set(false);
+    this.aviso.set('Alerta guardada. Se envía al tener datos.');
+    navigator.vibrate?.([120, 60, 120]);
+    void this.sincronizar();
+  }
+
   sincronizar(): Promise<void> {
-    const pend = this.marcas().filter((m) => m.estado === 'pendiente');
-    if (!pend.length || this.sincronizando() || !this.api.campoToken()) {
-      return Promise.resolve();
-    }
+    if (this.sincronizando() || !this.api.campoToken()) return Promise.resolve();
     this.sincronizando.set(true);
+    return this.flushMarcas()
+      .then(() => this.flushAlertas())
+      .finally(() => this.sincronizando.set(false));
+  }
+
+  private flushMarcas(): Promise<void> {
+    const pend = this.marcas().filter((m) => m.estado === 'pendiente');
+    if (!pend.length) return Promise.resolve();
     return new Promise((resolve) => {
       this.api
         .enviarMarcaciones(
@@ -1125,15 +1207,43 @@ export class RondasCampo implements OnDestroy {
             this.marcas.set(next);
             const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
             if (vig.id) guardarMarcas(vig.id, next);
+            resolve();
+          },
+          error: () => resolve(),
+        });
+    });
+  }
+
+  private flushAlertas(): Promise<void> {
+    const pend = this.alertas().filter((a) => a.estado === 'pendiente');
+    if (!pend.length) return Promise.resolve();
+    return new Promise((resolve) => {
+      this.api
+        .enviarAlertas(
+          pend.map((a) => ({
+            uuidCliente: a.uuid,
+            tipo: a.tipo,
+            mensaje: a.mensaje,
+            latitud: a.latitud,
+            longitud: a.longitud,
+            fechaHora: a.fechaHora,
+            dispositivoId: this.api.deviceId(),
+          })),
+        )
+        .subscribe({
+          next: (data) => {
+            const ok = new Set([...(data.aceptadas || []), ...(data.duplicadas || [])]);
+            const next = this.alertas().map((a) =>
+              ok.has(a.uuid) ? { ...a, estado: 'enviado' as const } : a,
+            );
+            this.alertas.set(next);
+            const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
+            if (vig.id) guardarAlertas(vig.id, next);
             const n = data.aceptadas?.length || 0;
-            if (n) this.aviso.set(n === 1 ? '1 marcación enviada.' : `${n} marcaciones enviadas.`);
-            this.sincronizando.set(false);
+            if (n) this.aviso.set(n === 1 ? 'Alerta enviada a Portal.' : `${n} alertas enviadas.`);
             resolve();
           },
-          error: () => {
-            this.sincronizando.set(false);
-            resolve();
-          },
+          error: () => resolve(),
         });
     });
   }
@@ -1200,6 +1310,20 @@ function leerMarcas(vigId: string): MarcaLocal[] {
 
 function guardarMarcas(vigId: string, items: MarcaLocal[]) {
   localStorage.setItem(MARCAS_KEY, JSON.stringify({ id: vigId, items }));
+}
+
+function leerAlertas(vigId: string): AlertaLocal[] {
+  try {
+    const data = JSON.parse(localStorage.getItem(ALERTAS_KEY) || 'null');
+    if (!data || data.id !== vigId) return [];
+    return data.items || [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarAlertas(vigId: string, items: AlertaLocal[]) {
+  localStorage.setItem(ALERTAS_KEY, JSON.stringify({ id: vigId, items }));
 }
 
 function leerPuntos(postId: string): RondasPunto[] {

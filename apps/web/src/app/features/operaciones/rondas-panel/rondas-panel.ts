@@ -82,6 +82,34 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
           </table>
         </div>
 
+        <h3>Alertas del vigilante</h3>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Tipo</th>
+                <th>Vigilante</th>
+                <th>Puesto</th>
+                <th>Detalle</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (a of h.alertas || []; track a.id) {
+                <tr [class.urgente]="a.tipo === 'EMERGENCIA'">
+                  <td>{{ a.fechaHora | date: 'HH:mm' }}</td>
+                  <td>{{ a.tipo }}</td>
+                  <td>{{ a.vigilanteNombre }}</td>
+                  <td>{{ a.puestoNombre }}</td>
+                  <td>{{ a.mensaje || '—' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5">Hoy no hay alertas.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
         <h3>Últimas marcaciones</h3>
         <div class="table-wrap">
           <table>
@@ -165,6 +193,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
     th, td { text-align: left; padding: 0.5rem 0.7rem; border-top: 1px solid var(--border); }
     thead th { background: var(--gradient-hero); color: var(--text-on-dark); border: 0; }
     .error { color: var(--error-600); }
+    tr.urgente td { background: color-mix(in srgb, var(--error-600, #b91c1c) 14%, var(--surface)); font-weight: 700; }
   `,
 })
 export class RondasPanel implements OnInit {
@@ -177,6 +206,11 @@ export class RondasPanel implements OnInit {
   copiado = signal('');
 
   ngOnInit(): void {
+    this.cargar();
+    setInterval(() => this.cargar(), 15000);
+  }
+
+  private cargar() {
     this.api.hoy().subscribe({
       next: (h: RondasHoy) => this.hoy.set(h),
       error: () => this.error.set('No se pudo cargar el cumplimiento.'),

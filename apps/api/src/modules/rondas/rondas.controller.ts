@@ -68,6 +68,26 @@ export class RondasController {
     return this.rondas.registrarLote(user, body.marcaciones || []);
   }
 
+  @Post('campo/alertas')
+  @RequirePermissions('rondas.marcar')
+  alertasCampo(
+    @CurrentUser() user: JwtPayload,
+    @Body()
+    body: {
+      alertas: Array<{
+        uuidCliente: string;
+        tipo: string;
+        mensaje?: string;
+        latitud?: number | null;
+        longitud?: number | null;
+        fechaHora: string;
+        dispositivoId?: string;
+      }>;
+    },
+  ) {
+    return this.rondas.registrarAlertas(user, body.alertas || []);
+  }
+
   @Get('campo/mias')
   @RequirePermissions('rondas.marcar')
   mias(@CurrentUser() user: JwtPayload) {

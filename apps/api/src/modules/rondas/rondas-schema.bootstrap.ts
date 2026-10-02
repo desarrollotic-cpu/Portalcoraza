@@ -33,6 +33,26 @@ export class RondasSchemaBootstrap implements OnModuleInit {
         `ALTER TABLE rondas_marcaciones ADD COLUMN IF NOT EXISTS altitud DOUBLE PRECISION`,
       );
       await this.ds.query(`
+        CREATE TABLE IF NOT EXISTS rondas_alertas (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          tenant_id UUID NOT NULL,
+          uuid_cliente UUID NOT NULL,
+          post_id UUID NOT NULL REFERENCES posts(id),
+          associate_id UUID NOT NULL REFERENCES associates(id),
+          tipo VARCHAR(20) NOT NULL,
+          mensaje VARCHAR(400) NOT NULL DEFAULT '',
+          latitud DOUBLE PRECISION,
+          longitud DOUBLE PRECISION,
+          fecha_hora TIMESTAMPTZ NOT NULL,
+          dispositivo_id VARCHAR(100),
+          created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          UNIQUE (uuid_cliente)
+        )
+      `);
+      await this.ds.query(
+        `CREATE INDEX IF NOT EXISTS idx_rondas_alertas_fecha ON rondas_alertas(tenant_id, fecha_hora DESC)`,
+      );
+      await this.ds.query(`
         INSERT INTO permissions (code, name, module) VALUES
           ('rondas.view', 'Ver cumplimiento de rondas GPS', 'rondas'),
           ('rondas.setup', 'Crear y ajustar puntos de ronda', 'rondas'),

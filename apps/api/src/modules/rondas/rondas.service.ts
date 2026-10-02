@@ -334,6 +334,72 @@ export class RondasService {
     return { aceptadas, duplicadas, rechazadas };
   }
 
+  async registrarAlertas(
+    user: JwtPayload,
+    items: Array<{
+      uuidCliente: string;
+      tipo: string;
+      mensaje?: string;
+      latitud?: number | null;
+      longitud?: number | null;
+      fechaHora: string;
+      dispositivoId?: string;
+    }>,
+  ) {
+    if (!user.associateId || !user.postId) {
+      throw new ForbiddenException('Sesión de campo inválida');
+    }
+    const tipos = new Set(['EMERGENCIA', 'INCIDENTE', 'APOYO', 'NOVEDAD']);
+    const aceptadas: string[] = [];
+    const duplicadas: string[] = [];
+    const rechazadas: { uuid: string; motivo: string }[] = [];
+    for (const a of items || []) {
+      const uuid = (a.uuidCliente || '').trim();
+      const tipo = (a.tipo || '').trim().toUpperCase();
+      if (!uuid) {
+        rechazadas.push({ uuid: '', motivo: 'uuid' });
+        continue;
+      }
+      if (!tipos.has(tipo)) {
+        rechazadas.push({ uuid, motivo: 'tipo' });
+        continue;
+      }
+      const fecha = new Date(a.fechaHora);
+      if (Number.isNaN(fecha.getTime())) {
+        rechazadas.push({ uuid, motivo: 'fecha' });
+        continue;
+      }
+      const mensaje = (a.mensaje || '').trim().slice(0, 400);
+      try {
+        const info = await this.q(
+          `INSERT INTO rondas_alertas
+            (tenant_id, uuid_cliente, post_id, associate_id, tipo, mensaje,
+             latitud, longitud, fecha_hora, dispositivo_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+           ON CONFLICT (uuid_cliente) DO NOTHING
+           RETURNING id`,
+          [
+            user.tenantId,
+            uuid,
+            user.postId,
+            user.associateId,
+            tipo,
+            mensaje,
+            a.latitud ?? null,
+            a.longitud ?? null,
+            fecha.toISOString(),
+            a.dispositivoId || null,
+          ],
+        );
+        if (info.length) aceptadas.push(uuid);
+        else duplicadas.push(uuid);
+      } catch {
+        rechazadas.push({ uuid, motivo: 'error' });
+      }
+    }
+    return { aceptadas, duplicadas, rechazadas };
+  }
+
   async mias(user: JwtPayload) {
     return this.q(
       `SELECT m.id, m.uuid_cliente AS "uuidCliente", m.punto_id AS "puntoId",
@@ -420,6 +486,20 @@ export class RondasService {
       (s: number, c: { marcados: number }) => s + c.marcados,
       0,
     );
+    const alertaFiltro = postId ? ' AND al.post_id = $4' : '';
+    const alertas = await this.q(
+      `SELECT al.id, al.tipo, al.mensaje, al.fecha_hora AS "fechaHora",
+              al.latitud, al.longitud, pu.name AS "puestoNombre",
+              TRIM(CONCAT_WS(' ', a.first_name, a.first_last_name)) AS "vigilanteNombre"
+       FROM rondas_alertas al
+       JOIN posts pu ON pu.id = al.post_id
+       JOIN associates a ON a.id = al.associate_id
+       WHERE al.tenant_id = $1 AND al.fecha_hora >= $2 AND al.fecha_hora < $3${alertaFiltro}
+       ORDER BY al.fecha_hora DESC
+       LIMIT 100`,
+      params,
+    );
+
     return {
       fecha: ymdBogota(),
       cumplimientoPct: esperadosTotal
@@ -430,6 +510,7 @@ export class RondasService {
       puestos: cumplimiento.length,
       porPuesto: cumplimiento,
       marcaciones,
+      alertas,
     };
   }
 

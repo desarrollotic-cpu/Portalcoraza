@@ -50,6 +50,16 @@ export type RondasHoy = {
     distanciaAlPunto: number;
     desfaseReloj: boolean;
   }>;
+  alertas: Array<{
+    id: string;
+    tipo: string;
+    mensaje: string;
+    fechaHora: string;
+    latitud: number | null;
+    longitud: number | null;
+    puestoNombre: string;
+    vigilanteNombre: string;
+  }>;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -149,6 +159,28 @@ export class RondasApiService {
       duplicadas: string[];
       rechazadas: Array<{ uuid: string; motivo: string }>;
     }>(`${this.base}/campo/marcaciones`, { marcaciones }, {
+      headers: this.campoHeaders(),
+    });
+  }
+
+  enviarAlertas(alertas: Array<{
+    uuidCliente: string;
+    tipo: string;
+    mensaje: string;
+    latitud: number | null;
+    longitud: number | null;
+    fechaHora: string;
+    dispositivoId: string;
+  }>): Observable<{
+    aceptadas: string[];
+    duplicadas: string[];
+    rechazadas: Array<{ uuid: string; motivo: string }>;
+  }> {
+    return this.http.post<{
+      aceptadas: string[];
+      duplicadas: string[];
+      rechazadas: Array<{ uuid: string; motivo: string }>;
+    }>(`${this.base}/campo/alertas`, { alertas }, {
       headers: this.campoHeaders(),
     });
   }
