@@ -3,7 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
 import { TenantContext } from '../../common/tenant/tenant.context';
+import { Associate } from '../associates/entities/associate.entity';
+import { Post } from '../posts/entities/post.entity';
 import { User } from '../users/entities/user.entity';
+import {
+  buildMovementSummary,
+  collectSummaryIds,
+  type AuditSummaryCtx,
+} from './audit-movement-summary';
 import { AuditLog } from './entities/audit-log.entity';
 
 export interface AuditEntry {
@@ -30,7 +37,11 @@ const DASHBOARD_EXCLUDE_ACTIONS = [
 /** Recepción es frecuente: limitar cupo para no tapar HR/puestos/etc. */
 const RECEPTION_CAP = 4;
 
-export type DashboardAuditRow = AuditLog & { userName: string | null };
+export type DashboardAuditRow = AuditLog & {
+  userName: string | null;
+  /** Resumen legible para Gerencia / historial de movimientos. */
+  summary?: string;
+};
 
 @Injectable()
 export class AuditService {
@@ -39,6 +50,10 @@ export class AuditService {
     private readonly auditRepo: Repository<AuditLog>,
     @InjectRepository(User)
     private readonly usersRepo: Repository<User>,
+    @InjectRepository(Associate)
+    private readonly associatesRepo: Repository<Associate>,
+    @InjectRepository(Post)
+    private readonly postsRepo: Repository<Post>,
   ) {}
 
   async log(entry: AuditEntry): Promise<void> {
@@ -134,14 +149,57 @@ export class AuditService {
       ]),
     );
 
+    const summaryCtx = await this.buildSummaryCtx(rows);
+
     return {
       items: rows.map((r) => ({
         ...r,
         userName: r.userId ? (names.get(r.userId) ?? null) : null,
+        summary: buildMovementSummary(r, summaryCtx),
       })),
       total,
       page,
       limit,
+    };
+  }
+
+  private async buildSummaryCtx(rows: AuditLog[]): Promise<AuditSummaryCtx> {
+    const { associateIds, postIds } = collectSummaryIds(rows);
+    const associates = associateIds.length
+      ? await this.associatesRepo.find({
+          where: { id: In(associateIds) },
+          select: [
+            'id',
+            'firstName',
+            'secondName',
+            'firstLastName',
+            'secondLastName',
+            'documentNumber',
+          ],
+        })
+      : [];
+    const posts = postIds.length
+      ? await this.postsRepo.find({
+          where: { id: In(postIds) },
+          select: ['id', 'code', 'name'],
+        })
+      : [];
+    return {
+      associateById: new Map(
+        associates.map((a) => {
+          const name = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+            .filter(Boolean)
+            .join(' ')
+            .trim();
+          return [
+            a.id,
+            { name: name || 'Asociado', documentNumber: a.documentNumber || '' },
+          ] as const;
+        }),
+      ),
+      postById: new Map(
+        posts.map((p) => [p.id, { code: p.code, name: p.name }] as const),
+      ),
     };
   }
 

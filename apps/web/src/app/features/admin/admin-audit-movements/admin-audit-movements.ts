@@ -17,6 +17,8 @@ export interface AuditMovementRow {
   newValue: Record<string, unknown> | null;
   ipAddress: string | null;
   createdAt: string;
+  /** Resumen enriquecido del API (nombre, fechas, etc.). */
+  summary?: string | null;
 }
 
 interface MovementsResponse {
@@ -268,7 +270,7 @@ function humanAction(action: string): string {
                   <td>
                     <span class="what">{{ actionLabel(row.action) }}</span>
                   </td>
-                  <td class="summary">{{ summarize(row) }}</td>
+                  <td class="summary" [title]="summarize(row)">{{ summarize(row) }}</td>
                 </tr>
               } @empty {
                 <tr>
@@ -353,7 +355,13 @@ function humanAction(action: string): string {
     .nowrap { white-space: nowrap; }
     .who { font-weight: 500; }
     .what { font-weight: 600; color: var(--coraza-primary, #1d4ed8); }
-    .summary { color: var(--text-secondary, #374151); line-height: 1.35; max-width: 28rem; }
+    .summary {
+      color: var(--text-secondary, #374151);
+      line-height: 1.35;
+      max-width: 36rem;
+      white-space: normal;
+      word-break: break-word;
+    }
     .muted { color: var(--text-muted, #6b7280); }
     .mov__pager { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .mov__pager > div { display: flex; align-items: center; gap: 0.5rem; }
@@ -415,47 +423,38 @@ export class AdminAuditMovements implements OnInit {
   }
 
   summarize(row: AuditMovementRow): string {
+    if (row.summary?.trim()) return row.summary.trim();
+
+    // Fallback local si el API aún no envía summary.
     const data = (row.newValue ?? row.oldValue) as Record<string, unknown> | null;
-    const entity = row.entityType
-      ? ENTITY_LABELS[row.entityType] || row.entityType.replace(/_/g, ' ')
-      : null;
-
-    const name =
-      pickStr(data, [
-        'fullName',
-        'nombre',
-        'name',
-        'visitorName',
-        'title',
-        'email',
-        'documentNumber',
-        'code',
-        'sku',
-      ]) ||
-      (data && typeof data['firstName'] === 'string'
-        ? [data['firstName'], data['firstLastName']].filter(Boolean).join(' ')
-        : null);
-
-    const status = pickStr(data, ['status', 'estado']);
-    const parts: string[] = [];
-
-    if (entity) parts.push(entity);
-    if (name) parts.push(name);
-    if (status && !['login', 'logout'].includes(row.action)) {
-      parts.push(`Estado: ${status}`);
-    }
-
     if (row.action === 'login' || row.action === 'logout') {
-      return name ? `Cuenta: ${name}` : 'Sesión en el portal';
+      const account = pickStr(data, ['fullName', 'email', 'nombre']);
+      return account ? `Cuenta: ${account}` : 'Sesión en el portal';
     }
-
+    if (row.module === 'hr' && data) {
+      const who =
+        pickStr(data, ['fullName', 'nombre']) ||
+        [data['firstName'], data['firstLastName']].filter((x) => typeof x === 'string').join(' ') ||
+        null;
+      const doc = pickStr(data, ['documentNumber']);
+      const kind = pickStr(data, ['kind', 'eventType']);
+      const start = pickStr(data, ['startDate']);
+      const end = pickStr(data, ['endDate']);
+      const parts = [
+        who,
+        doc ? `CC ${doc}` : null,
+        kind,
+        start && end ? `${start} → ${end}` : start || end,
+      ].filter(Boolean);
+      if (parts.length) return parts.join(' · ');
+    }
     if (row.module === 'reception' && data) {
       const visitor =
         pickStr(data, ['fullName', 'nombre', 'visitorName', 'name']) ||
         [data['firstName'], data['secondName'], data['firstSurname'], data['secondSurname']]
           .filter((x) => typeof x === 'string' && x.trim())
           .join(' ') ||
-        name;
+        null;
       const doc = pickStr(data, ['documentNumber', 'documento', 'document']);
       const reason = pickStr(data, ['visitReason', 'motivo']);
       if (visitor || doc || reason) {
@@ -464,23 +463,17 @@ export class AdminAuditMovements implements OnInit {
           .join(' · ');
       }
     }
-
-    if (row.module === 'deliveries' && data) {
-      const assoc = pickStr(data, ['associateName', 'fullName']);
-      const items = data['items'];
-      const n = Array.isArray(items) ? items.length : null;
-      return (
-        [assoc, n != null ? `${n} ítem(s)` : null, status ? `Estado: ${status}` : null]
-          .filter(Boolean)
-          .join(' · ') ||
-        entity ||
-        'Entrega de dotación'
-      );
-    }
-
-    if (parts.length) return parts.join(' · ');
-    if (entity) return entity;
-    return 'Sin más detalle';
+    const entity = row.entityType
+      ? ENTITY_LABELS[row.entityType] || row.entityType.replace(/_/g, ' ')
+      : null;
+    const name =
+      pickStr(data, ['fullName', 'nombre', 'name', 'title', 'email', 'code', 'sku']) ||
+      (data && typeof data['firstName'] === 'string'
+        ? [data['firstName'], data['firstLastName']].filter(Boolean).join(' ')
+        : null);
+    const status = pickStr(data, ['status', 'estado']);
+    const parts = [name, status ? `Estado: ${status}` : null, entity].filter(Boolean);
+    return parts.length ? parts.join(' · ') : 'Sin más detalle';
   }
 
   load(page: number): void {

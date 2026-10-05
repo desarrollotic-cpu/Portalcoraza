@@ -283,13 +283,19 @@ export class HrAbsenteeismService {
     });
 
     await this.absencesRepo.update(id, next);
+    const associate = await this.assertAssociate(next.associateId);
     await this.auditService.log({
       userId,
       module: 'hr',
       action: 'absence.update',
       entityType: 'associate_absence',
       entityId: id,
-      newValue: next as unknown as Record<string, unknown>,
+      newValue: {
+        ...next,
+        firstName: associate.firstName,
+        firstLastName: associate.firstLastName,
+        documentNumber: associate.documentNumber,
+      } as unknown as Record<string, unknown>,
     });
     return this.findOne(id);
   }
