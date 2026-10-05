@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AssociateHistory } from '../associates/entities/associate-history.entity';
+import { Associate } from '../associates/entities/associate.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import { User } from '../users/entities/user.entity';
 
@@ -66,6 +67,8 @@ export class ActivityControlService {
     private readonly usersRepo: Repository<User>,
     @InjectRepository(AssociateHistory)
     private readonly historyRepo: Repository<AssociateHistory>,
+    @InjectRepository(Associate)
+    private readonly associatesRepo: Repository<Associate>,
   ) {}
 
   async build(days: ActivityControlDays = 1) {
@@ -154,6 +157,26 @@ export class ActivityControlService {
       users.map((u) => [u.id, (u.fullName?.trim() || u.email || 'Usuario') as string]),
     );
 
+    const associateIds = this.collectAssociateIds(events);
+    const associates = associateIds.length
+      ? await this.associatesRepo.find({
+          where: { id: In(associateIds) },
+          select: ['id', 'firstName', 'secondName', 'firstLastName', 'secondLastName', 'documentNumber'],
+        })
+      : [];
+    const associateLabelById = new Map(
+      associates.map((a) => {
+        const name = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+          .filter(Boolean)
+          .join(' ')
+          .trim();
+        const label = a.documentNumber
+          ? `${name || 'Asociado'} · ${a.documentNumber}`
+          : name || 'Asociado';
+        return [a.id, label] as const;
+      }),
+    );
+
     const dayKeys = this.lastBogotaDayKeys(stripDays);
 
     const areas = AREAS.map((area) => {
@@ -211,7 +234,7 @@ export class ActivityControlService {
         action: e.action,
         label: this.label(area.key, e.action),
         userName: e.userId ? (nameById.get(e.userId) ?? null) : null,
-        detail: this.detail(e),
+        detail: this.detail(e, associateLabelById),
       }));
 
       // Actores de la semana (para UI cuando hoy está idle)
@@ -365,7 +388,9 @@ export class ActivityControlService {
       'loan.create': 'Préstamo',
       'loan.approve': 'Préstamo aprobado',
       'loan.return': 'Devolución',
-      'absence.create': 'Ausencia',
+      'absence.create': 'Ausencia registrada',
+      'absence.update': 'Ausencia actualizada',
+      'absence.delete': 'Ausencia eliminada',
       'item.create': 'Ítem inventario',
       'variant.create': 'Variante',
     };
@@ -378,15 +403,39 @@ export class ActivityControlService {
     return map[action] ?? action.replace(/[._]/g, ' ');
   }
 
-  private detail(e: ActivityEvent): string | null {
+  private collectAssociateIds(events: ActivityEvent[]): string[] {
+    const ids = new Set<string>();
+    for (const e of events) {
+      if (e.entityType === 'associate' && e.entityId) ids.add(e.entityId);
+      const v = e.newValue ?? e.oldValue;
+      if (v && typeof v['associateId'] === 'string' && v['associateId'].trim()) {
+        ids.add(v['associateId']);
+      }
+    }
+    return [...ids];
+  }
+
+  private detail(
+    e: ActivityEvent,
+    associateLabelById: Map<string, string>,
+  ): string | null {
     const v = e.newValue ?? e.oldValue;
     if (!v) return null;
     if (e.module === 'hr' || e.module === 'associates') {
       const name = [v['firstName'], v['firstLastName']].filter((x) => typeof x === 'string').join(' ');
       const doc = typeof v['documentNumber'] === 'string' ? v['documentNumber'] : '';
       if (name && doc) return `${name} · ${doc}`;
-      if (typeof v['associateId'] === 'string') return `Asociado ${String(v['associateId']).slice(0, 8)}…`;
-      return name || doc || null;
+      if (name) return name;
+      const associateId =
+        typeof v['associateId'] === 'string'
+          ? v['associateId']
+          : e.entityType === 'associate'
+            ? e.entityId
+            : null;
+      if (associateId && associateLabelById.has(associateId)) {
+        return associateLabelById.get(associateId) ?? null;
+      }
+      return doc || null;
     }
     if (e.module === 'posts') {
       const name = typeof v['name'] === 'string' ? v['name'] : '';

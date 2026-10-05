@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AssociateHistory } from '../associates/entities/associate-history.entity';
+import { Associate } from '../associates/entities/associate.entity';
 import { AuditModule } from '../audit/audit.module';
 import { AuditLog } from '../audit/entities/audit-log.entity';
 import { DeliveriesModule } from '../deliveries/deliveries.module';
@@ -18,7 +19,7 @@ import { DashboardController } from './dashboard.controller';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([AuditLog, User, AssociateHistory]),
+    TypeOrmModule.forFeature([AuditLog, User, AssociateHistory, Associate]),
     HrDashboardModule,
     DeliveriesModule,
     InventoryModule,

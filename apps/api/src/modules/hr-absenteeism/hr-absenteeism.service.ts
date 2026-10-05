@@ -228,7 +228,7 @@ export class HrAbsenteeismService {
   }
 
   async create(dto: CreateAbsenceDto, userId: string) {
-    await this.assertAssociate(dto.associateId);
+    const associate = await this.assertAssociate(dto.associateId);
     const payload = this.normalizePayload(dto);
     const saved = await this.absencesRepo.save(
       this.absencesRepo.create({
@@ -242,7 +242,12 @@ export class HrAbsenteeismService {
       action: 'absence.create',
       entityType: 'associate_absence',
       entityId: saved.id,
-      newValue: payload as unknown as Record<string, unknown>,
+      newValue: {
+        ...payload,
+        firstName: associate.firstName,
+        firstLastName: associate.firstLastName,
+        documentNumber: associate.documentNumber,
+      } as unknown as Record<string, unknown>,
     });
     return this.findOne(saved.id);
   }
