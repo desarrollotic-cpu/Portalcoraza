@@ -9,7 +9,7 @@ import { ModuleShell } from '../../../shared/components/module-shell/module-shel
   template: `
     <app-module-shell
       title="Operaciones"
-      subtitle="Puestos, fichas, minutas y rondas GPS. Alta de puestos: solo Recepción."
+      subtitle="Puestos, fichas, minutas, rondas GPS e inspección de patineta. Alta de puestos: solo Recepción."
       [nav]="nav"
     >
       <router-outlet />

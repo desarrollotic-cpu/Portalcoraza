@@ -4,7 +4,9 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 > **Inicio rápido para compañeros:** [`docs/CONTINUAR-DESARROLLO.md`](CONTINUAR-DESARROLLO.md) — mensaje listo para copiar al agente de Cursor.
 
-**Corte 2026-09-11:** Minuta = app `apps/minuta-web` (https://portalcoraza-minuta.onrender.com). Docs vivos: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md), [`MINUTA-WEB-DEPLOY-HANDOFF.md`](MINUTA-WEB-DEPLOY-HANDOFF.md). Grafo local: `graphify-out/` (rebuild `graphify update . --force`). Coordinar pushes a `main` con Freider (SST/documental) — ver `.cursor/rules/deploy-con-companero.mdc`.
+**Corte 2026-10-05:** Inspección preoperacional **patineta eléctrica** (PESV): Minuta `/patineta` + Operaciones `/operaciones/patineta`; flag `posts.tiene_patineta_electrica`; migración `079`; módulo API `scooter-inspections`. Spec: [`superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`](superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md). Docs: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md).
+
+**Corte 2026-09-11:** Minuta = app `apps/minuta-web` (https://portalcoraza-minuta.onrender.com). Docs vivos: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md), [`MINUTA-WEB-DEPLOY-HANDOFF.md`](MINUTA-WEB-DEPLOY-HANDOFF.md). Grafo local: `graphify-out/` (rebuild `graphify update . --force`). Coordinar pushes a `main` — ver `.cursor/rules/deploy-con-companero.mdc`.
 
 **Corte 2026-08-19:** Residencial **retirado**. Dotación con almacenes Medellín/Rionegro. Filtro de nivel educativo en Directorio. Auditoría de rendimiento en [`docs/RENDIMIENTO.md`](RENDIMIENTO.md). **Puestos:** 226 cargados. **No** se migran turnos/asignaciones de la app de programación. No reabrir el bloque 12.x residencial de la sección OpenSpec de abajo; esa lista quedó vieja.
 

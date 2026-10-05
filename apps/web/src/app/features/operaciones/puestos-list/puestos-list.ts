@@ -559,6 +559,14 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
                 Notas
                 <input name="notes" [(ngModel)]="editing()!.notes" />
               </label>
+              <label class="check span-3">
+                <input
+                  type="checkbox"
+                  name="tienePatineta"
+                  [(ngModel)]="editing()!.tienePatinetaElectrica"
+                />
+                Tiene patineta eléctrica (inspección PESV en Minuta)
+              </label>
             </div>
           </details>
 
@@ -1059,6 +1067,7 @@ export class PuestosList implements OnInit {
       type: 'SERVICIO_ESPECIAL',
       status: 'ACTIVO',
       armed: false,
+      tienePatinetaElectrica: false,
       contracts: [emptyContract()],
       otrosi: [],
       workFronts: [],
@@ -1081,6 +1090,7 @@ export class PuestosList implements OnInit {
       contractNumber: stripExcelId(p.contractNumber),
       serviceType: p.serviceType ?? '',
       armed: !!p.armed,
+      tienePatinetaElectrica: !!p.tienePatinetaElectrica,
       contracts: (p.contracts?.length ? p.contracts : [this.seedContract(p)]).map((c) => ({
         ...emptyContract(),
         ...c,
@@ -1218,6 +1228,7 @@ export class PuestosList implements OnInit {
       zone: trimStr(draft.zone),
       contactName: trimStr(draft.contactName),
       phone: trimStr(draft.phone),
+      tienePatinetaElectrica: !!draft.tienePatinetaElectrica,
       contractNumber: trimStr(
         stripExcelId(draft.contracts.at(-1)?.contractNumber ?? draft.contractNumber),
       ),

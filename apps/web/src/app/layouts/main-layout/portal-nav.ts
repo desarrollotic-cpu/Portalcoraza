@@ -61,6 +61,13 @@ export const OPERACIONES_NAV: ModuleNavItem[] = [
   { label: 'Fichas de puestos', route: '/operaciones/puestos/fichas', permissions: ['operations.view', 'posts.view'], icon: LucideFileText },
   { label: 'Minutas', route: '/operaciones/minutas', permission: 'operations.view', icon: LucideClipboardList, exact: true },
   { label: 'Rondas', route: '/operaciones/rondas', permissions: ['rondas.view', 'operations.view'], icon: LucideActivity, exact: true },
+  {
+    label: 'Inspección patineta eléctrica',
+    route: '/operaciones/patineta',
+    permissions: ['scooter.view', 'operations.view'],
+    icon: LucideClipboardCheck,
+    exact: true,
+  },
 ];
 
 export const RRHH_NAV: ModuleNavItem[] = [

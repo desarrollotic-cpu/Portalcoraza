@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { MinutaApiService } from '../minuta-api.service';
+import { ScooterApiService } from '../scooter-api.service';
 import { MINUTA_GRUPOS, MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta.shared';
 
 @Component({
@@ -12,6 +13,14 @@ import { MINUTA_GRUPOS, MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta
         <h2>Tu turno</h2>
         <p class="hint">Resumen de hoy (hora Bogotá). Elige una minuta para registrar.</p>
       </div>
+      @if (showPatineta()) {
+        <section class="grid-modulos">
+          <a class="tile tile-patineta" routerLink="/patineta">
+            <span>Inspección patineta eléctrica</span>
+            <span class="tile-hint">Checklist preoperacional PESV antes de usar el equipo</span>
+          </a>
+        </section>
+      }
       <section class="grid-modulos">
         @for (g of grupos; track g.id) {
           <a class="tile" [routerLink]="['/nuevo', g.id]">
@@ -45,11 +54,21 @@ import { MINUTA_GRUPOS, MINUTA_PAGE_STYLES, labelForMinutaTipo } from '../minuta
       }
     </section>
   `,
-  styles: [MINUTA_PAGE_STYLES],
+  styles: [
+    MINUTA_PAGE_STYLES,
+    `
+      .tile-patineta {
+        border-color: color-mix(in srgb, var(--primary-600) 35%, var(--border));
+        background: color-mix(in srgb, var(--primary-50) 80%, var(--surface));
+      }
+    `,
+  ],
 })
 export class MinutaInicio implements OnInit {
   private readonly api = inject(MinutaApiService);
+  private readonly scooter = inject(ScooterApiService);
   readonly grupos = MINUTA_GRUPOS;
+  readonly showPatineta = signal(false);
   readonly stats = signal({
     registrosHoy: 0,
     visitantesHoy: 0,
@@ -66,6 +85,10 @@ export class MinutaInicio implements OnInit {
     this.api.historial(10, 'TODOS').subscribe({
       next: (r) => this.historial.set((r.historial || []) as Record<string, unknown>[]),
       error: () => this.historial.set([]),
+    });
+    this.scooter.eligiblePosts().subscribe({
+      next: (posts) => this.showPatineta.set(posts.length > 0),
+      error: () => this.showPatineta.set(false),
     });
   }
 

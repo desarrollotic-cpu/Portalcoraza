@@ -1,7 +1,7 @@
 # Inspección preoperacional — Patineta eléctrica (PESV)
 
 **Fecha:** 2026-10-05  
-**Estado:** aprobado en conversación (Jhon) — pendiente revisión de este archivo  
+**Estado:** MVP implementado (2026-10-05) — pendiente commit/push y habilitar flag en puesto San Juan de Dios  
 **Contexto:** Plan Estratégico de Seguridad Vial (PESV); evidencia de inspección del equipo de movilidad en puestos con patineta eléctrica (piloto: Clínica San Juan de Dios, La Ceja).
 
 ## Objetivo

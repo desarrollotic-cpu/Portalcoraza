@@ -120,6 +120,7 @@ export interface OperacionesPost extends PostClientFields {
   contractNumber: string | null;
   serviceType: string | null;
   armed: boolean;
+  tienePatinetaElectrica?: boolean;
   requirements: string | null;
   instructions: string | null;
   workCenterId: string | null;
@@ -146,6 +147,7 @@ export type CreateOperacionesPostPayload = {
   contractNumber?: string;
   serviceType?: string;
   armed?: boolean;
+  tienePatinetaElectrica?: boolean;
   requirements?: string;
   instructions?: string;
   contracts?: PostContractRow[];

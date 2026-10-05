@@ -46,6 +46,7 @@ export class CreatePostDto {
   @IsOptional() @IsString() @MaxLength(80) contractNumber?: string;
   @IsOptional() @IsString() @MaxLength(80) serviceType?: string;
   @IsOptional() @IsBoolean() armed?: boolean;
+  @IsOptional() @IsBoolean() tienePatinetaElectrica?: boolean;
   @IsOptional() @IsString() requirements?: string;
   @IsOptional() @IsString() instructions?: string;
 

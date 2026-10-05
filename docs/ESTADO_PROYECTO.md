@@ -6,7 +6,8 @@
 > ### Parche de continuidad (2026-09-11) — no reescribe el cuerpo histórico de julio
 >
 > - **Minuta Virtual** es app separada (`apps/minuta-web`, Render `portalcoraza-minuta`). Ver [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md).
-> - Portal **sin** nav “Minuta Virtual”; supervisión en **Operaciones → Minutas** (+ fichas, enlace copiable, cuentas PUESTO). Ver [`OPERACIONES.md`](OPERACIONES.md).
+> - Portal **sin** nav “Minuta Virtual”; supervisión en **Operaciones → Minutas** (+ fichas, rondas, **inspección patineta**). Ver [`OPERACIONES.md`](OPERACIONES.md).
+> - **PESV patineta (2026-10-05):** flag por puesto + formulario en Minuta + consulta en Operaciones. Spec `docs/superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`.
 > - UX vigilante: Inicio / Registrar / Historial más claros y táctiles (commit `7ca0b8e`).
 > - Residencial / Vigía legado: **retirados** (el cuerpo de este doc aún puede mencionarlos; no reabrir).
 > - Grafo código: `graphify update . --force` → `graphify-out/` (8634 nodos, 14934 edges, HEAD `7ca0b8e`).

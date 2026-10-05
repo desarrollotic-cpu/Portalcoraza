@@ -567,6 +567,18 @@ export const routes: Routes = [
                 (m) => m.RondasPanel,
               ),
           },
+          {
+            path: 'patineta',
+            canActivate: [permissionGuard],
+            data: {
+              permissions: ['scooter.view', 'operations.view'],
+              permissionMode: 'any',
+            },
+            loadComponent: () =>
+              import(
+                './features/operaciones/scooter-inspections-panel/scooter-inspections-panel'
+              ).then((m) => m.ScooterInspectionsPanel),
+          },
         ],
       },
       {

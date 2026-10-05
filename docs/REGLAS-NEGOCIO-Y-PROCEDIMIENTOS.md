@@ -1,6 +1,6 @@
 # Portal Coraza — Reglas de negocio y procedimientos
 
-**Versión:** 2026-09-16  
+**Versión:** 2026-10-05  
 **Audiencia:** gerencia, operaciones, soporte, nómina y desarrollo  
 **Objetivo:** entender *cómo funciona* cada módulo sin tener que leer el código.
 
@@ -343,18 +343,19 @@ El módulo Contabilidad / PUC / comprobantes **ya no forma parte del producto**.
 
 ### 9.1 Operaciones (Portal)
 
-**Rutas:** `/operaciones`, `/operaciones/puestos`, `/operaciones/minutas`  
-**Permisos:** `operations.view` / `posts.view` (y create/edit de puestos)
+**Rutas:** `/operaciones`, `/operaciones/puestos`, `/operaciones/minutas`, `/operaciones/rondas`, `/operaciones/patineta`  
+**Permisos:** `operations.view` / `posts.view` (y create/edit de puestos); `scooter.view` o `operations.view` para patineta
 
-- Catálogo operativo de **puestos**.
-- Supervisión de minutas: historial / PDF por puesto y mes; enlace a Minuta Web; cuentas `PUESTO`.
+- Catálogo operativo de **puestos** (incluye flag `tiene_patineta_electrica`).
+- Supervisión de minutas: historial / PDF por puesto y mes; enlace a Minuta Web.
+- Rondas GPS y **inspección patineta eléctrica** (consulta de formularios PESV).
 
 Detalle: `[OPERACIONES.md](OPERACIONES.md)`.
 
 ### 9.2 Minuta Virtual (app aparte)
 
 **App:** `apps/minuta-web` · rol `PUESTO`  
-**Permisos:** `minuta.view`, `minuta.create`
+**Permisos:** `minuta.view`, `minuta.create` (+ `scooter.create` vía seed si aplica)
 
 
 | Regla          | Detalle                                                  |
@@ -362,10 +363,11 @@ Detalle: `[OPERACIONES.md](OPERACIONES.md)`.
 | Alcance        | Cuenta ligada a puesto (`user_posts`)                    |
 | Registros      | Inmutables (sin edición posterior)                       |
 | Quién registra | Vigilante escribe su nombre; la hora la pone el sistema  |
+| Patineta PESV  | Tile solo si el puesto tiene patineta; nombre = sesión   |
 | Portal         | No muestra Minuta en el menú principal; solo Operaciones |
 
 
-Detalle: `[MINUTA-VIRTUAL.md](MINUTA-VIRTUAL.md)`.
+Detalle: `[MINUTA-VIRTUAL.md](MINUTA-VIRTUAL.md)` · Spec patineta: `docs/superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`.
 
 ---
 

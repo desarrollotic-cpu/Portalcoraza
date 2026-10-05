@@ -85,6 +85,9 @@ export class Post {
   @Column({ type: 'boolean', default: false })
   armed!: boolean;
 
+  @Column({ name: 'tiene_patineta_electrica', type: 'boolean', default: false })
+  tienePatinetaElectrica!: boolean;
+
   @Column({ type: 'text', nullable: true })
   requirements!: string | null;
 

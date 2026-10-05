@@ -43,6 +43,13 @@ export const routes: Routes = [
             (m) => m.MinutaHistorial,
           ),
       },
+      {
+        path: 'patineta',
+        loadComponent: () =>
+          import('./features/minuta/minuta-patineta/minuta-patineta').then(
+            (m) => m.MinutaPatineta,
+          ),
+      },
     ],
   },
   { path: '**', redirectTo: '' },
