@@ -430,11 +430,11 @@ export class DocumentalApiService {
     return this.http.get(`${this.baseUrl}/campaign/status`);
   }
 
-  campaignPreview(payload: { to: string; subject: string; body: string }): Observable<{ ok: boolean; error: string | null }> {
+  campaignPreview(payload: { to: string; subject: string; body: string; includeImage: boolean }): Observable<{ ok: boolean; error: string | null }> {
     return this.http.post<{ ok: boolean; error: string | null }>(`${this.baseUrl}/campaign/preview`, payload);
   }
 
-  campaignSend(payload: { subject: string; body: string }): Observable<{ running: boolean; total: number }> {
+  campaignSend(payload: { subject: string; body: string; includeImage: boolean }): Observable<{ running: boolean; total: number }> {
     return this.http.post<{ running: boolean; total: number }>(`${this.baseUrl}/campaign/send`, payload);
   }
 }

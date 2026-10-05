@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, Logger } from '@nes
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Associate, AssociateStatus } from '../../associates/entities/associate.entity';
-import { campaignLetterHtml } from './loan-mail-layout';
+import { CAMPAIGN_IMAGE, campaignLetterHtml } from './loan-mail-layout';
 import { DocumentalMailService } from './documental-mail.service';
 
 export type CampaignStatus = {
@@ -46,12 +46,12 @@ export class DocumentalCampaignService {
     return { active: rows.length, withEmail, withoutEmail: rows.length - withEmail };
   }
 
-  async sendPreview(to: string, subject: string, body: string) {
-    const html = campaignLetterHtml({ name: 'Equipo de archivo', title: subject, body });
+  async sendPreview(to: string, subject: string, body: string, includeImage = true) {
+    const html = this.letter('Equipo de archivo', subject, body, includeImage);
     return this.mail.sendHtml(to, subject, html, { bccArchive: false });
   }
 
-  async start(subject: string, body: string): Promise<CampaignStatus> {
+  async start(subject: string, body: string, includeImage = true): Promise<CampaignStatus> {
     if (this.state.running) {
       throw new ConflictException('Ya hay una campaña enviándose');
     }
@@ -70,7 +70,7 @@ export class DocumentalCampaignService {
       skipped: 0,
       lastError: null,
     };
-    void this.run(people, title, text);
+    void this.run(people, title, text, includeImage);
     return this.status();
   }
 
@@ -78,10 +78,11 @@ export class DocumentalCampaignService {
     people: Array<Pick<Associate, 'firstName' | 'firstLastName' | 'email'>>,
     subject: string,
     body: string,
+    includeImage: boolean,
   ) {
     for (const person of people) {
       const name = [person.firstName, person.firstLastName].filter(Boolean).join(' ').trim();
-      const html = campaignLetterHtml({ name: name || 'asociado', title: subject, body });
+      const html = this.letter(name || 'asociado', subject, body, includeImage);
       try {
         const result = await this.mail.sendHtml(String(person.email), subject, html, { bccArchive: false });
         if (result.ok) this.state.sent += 1;
@@ -97,6 +98,15 @@ export class DocumentalCampaignService {
     }
     this.state.running = false;
     this.logger.log(`Campaña "${subject}": ${this.state.sent} enviados, ${this.state.failed} fallidos`);
+  }
+
+  private letter(name: string, subject: string, body: string, includeImage: boolean) {
+    return campaignLetterHtml({
+      name,
+      title: subject,
+      body,
+      imageUrl: includeImage ? CAMPAIGN_IMAGE : undefined,
+    });
   }
 
   private activeRows() {

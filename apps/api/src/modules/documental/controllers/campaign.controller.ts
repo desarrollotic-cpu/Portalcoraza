@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { RequirePermissions } from '../../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../../common/guards/permissions.guard';
@@ -15,6 +15,10 @@ class CampaignBodyDto {
   @MinLength(10)
   @MaxLength(4000)
   body!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  includeImage?: boolean;
 }
 
 class CampaignPreviewDto extends CampaignBodyDto {
@@ -40,11 +44,11 @@ export class DocumentalCampaignController {
 
   @Post('preview')
   preview(@Body() dto: CampaignPreviewDto) {
-    return this.campaign.sendPreview(dto.to, dto.subject, dto.body);
+    return this.campaign.sendPreview(dto.to, dto.subject, dto.body, dto.includeImage !== false);
   }
 
   @Post('send')
   send(@Body() dto: CampaignBodyDto) {
-    return this.campaign.start(dto.subject, dto.body);
+    return this.campaign.start(dto.subject, dto.body, dto.includeImage !== false);
   }
 }

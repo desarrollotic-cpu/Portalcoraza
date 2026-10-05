@@ -9,7 +9,7 @@ import { DOC_STYLES } from '../documental.styles';
   template: `
     <h3>Campaña a asociados activos</h3>
     <p class="muted">
-      La carta ya trae la ilustración y el aviso de la minuta. El texto de abajo es el saludo de cada persona.
+      El membrete es el de Campaña · Gestión Documental. Cambie el asunto y el texto para la siguiente.
       Solo reciben quienes están activos y tienen correo.
     </p>
 
@@ -23,6 +23,10 @@ import { DOC_STYLES } from '../documental.styles';
       </label>
       <label class="full">Mensaje
         <textarea [(ngModel)]="body" name="body" rows="8" maxlength="4000" required placeholder="Escriba el comunicado. Un renglón en blanco separa párrafos."></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" [(ngModel)]="includeImage" name="includeImage" />
+        Incluir la ilustración
       </label>
       <label>Correo de prueba
         <input type="email" [(ngModel)]="testTo" name="testTo" placeholder="su correo" />
@@ -58,7 +62,8 @@ export class CampaignScreen implements OnInit, OnDestroy {
 
   subject = 'Marque la minuta con el puesto, de forma clara';
   body =
-    'La minuta de cada puesto es el registro del servicio. Para que Gestión Documental pueda archivarla donde corresponde, el nombre del puesto tiene que verse claro y completo.\n\nEscríbalo despacio y con letra legible. Una sigla suelta, un tachón o una marca que no se lee deja la minuta sin puesto.';
+    'La minuta de cada puesto es el registro del servicio. Para que Gestión Documental pueda archivarla donde corresponde, el nombre del puesto tiene que verse claro y completo.\n\nSi la minuta no queda bien legible, perdemos el documento: no se puede saber a qué puesto corresponde.\n\nEn cada hoja debe leerse el nombre del puesto completo, la sede o el cliente, la fecha del servicio y una letra clara, sin tachar el puesto.';
+  includeImage = true;
   testTo = '';
   readonly audience = signal<{ active: number; withEmail: number; withoutEmail: number } | null>(null);
   readonly status = signal<{
@@ -90,7 +95,7 @@ export class CampaignScreen implements OnInit, OnDestroy {
       return;
     }
     this.busy.set(true);
-    this.api.campaignPreview({ to: this.testTo.trim(), subject: this.subject, body: this.body }).subscribe({
+    this.api.campaignPreview({ to: this.testTo.trim(), subject: this.subject, body: this.body, includeImage: this.includeImage }).subscribe({
       next: (res) => {
         this.busy.set(false);
         this.notice.set(res.ok ? 'Prueba enviada. Revise la bandeja.' : res.error || 'No se pudo enviar la prueba');
@@ -106,7 +111,7 @@ export class CampaignScreen implements OnInit, OnDestroy {
     const n = this.audience()?.withEmail ?? 0;
     if (!confirm(`Se enviará el comunicado a ${n} asociados activos. ¿Continuar?`)) return;
     this.busy.set(true);
-    this.api.campaignSend({ subject: this.subject, body: this.body }).subscribe({
+    this.api.campaignSend({ subject: this.subject, body: this.body, includeImage: this.includeImage }).subscribe({
       next: (row) => {
         this.busy.set(false);
         this.notice.set(`Campaña iniciada para ${row.total} personas`);

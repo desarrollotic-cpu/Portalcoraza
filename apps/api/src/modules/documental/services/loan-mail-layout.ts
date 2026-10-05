@@ -1,6 +1,6 @@
 const LOGO_URL = 'https://portalcoraza-web.onrender.com/brand/logo-coraza-cta.png';
-const MINUTA_IMG = 'https://portalcoraza-web.onrender.com/brand/minuta-marcacion.jpg';
 const SENDER = 'documental@corazaseguridadcta.com';
+export const CAMPAIGN_IMAGE = 'https://portalcoraza-web.onrender.com/brand/minuta-marcacion.png';
 const FONT = 'Arial,Helvetica,sans-serif';
 
 function esc(v: string | undefined): string {
@@ -49,14 +49,12 @@ function fact(label: string, value: string): string {
   </td></tr>`;
 }
 
-const MINUTA_RULES = [
-  'Nombre del puesto, completo',
-  'Sede o cliente',
-  'Fecha del servicio',
-  'Letra clara, sin tachar el puesto',
-];
-
-export function campaignLetterHtml(opts: { name: string; title: string; body: string }): string {
+export function campaignLetterHtml(opts: {
+  name: string;
+  title: string;
+  body: string;
+  imageUrl?: string;
+}): string {
   const name = displayName(opts.name) || 'señora / señor';
   const paragraphs = opts.body
     .split(/\n{2,}/)
@@ -64,78 +62,60 @@ export function campaignLetterHtml(opts: { name: string; title: string; body: st
     .filter((block) => block.trim())
     .map(
       (block) =>
-        `<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#1e293b;">${block}</p>`,
+        `<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#243044;">${block}</p>`,
     )
     .join('');
-  const rules = MINUTA_RULES.map(
-    (rule, i) => `<tr>
-      <td width="36" valign="top" style="padding:8px 0;font-family:${FONT};font-size:15px;font-weight:700;color:#8a6a1f;">${i + 1}</td>
-      <td valign="top" style="padding:8px 0;font-family:${FONT};font-size:15px;line-height:1.5;color:#0b1f3a;">${esc(rule)}</td>
-    </tr>`,
-  ).join('');
+  const image = opts.imageUrl
+    ? `<tr><td align="center" style="padding:28px 36px 0;background:#ffffff;">
+        <img src="${esc(opts.imageUrl)}" width="280" alt="" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
+      </td></tr>`
+    : '';
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(opts.title)}</title>
+<title>Campaña · Gestión Documental</title>
 </head>
-<body style="margin:0;padding:0;background:#f3efe6;">
-<div style="display:none;max-height:0;overflow:hidden;">${esc(opts.title)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f3efe6;">
+<body style="margin:0;padding:0;background:#e7edf3;">
+<div style="display:none;max-height:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e7edf3;">
 <tr><td align="center" style="padding:28px 12px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #e4dcc8;font-family:${FONT};">
-  <tr><td height="4" bgcolor="#b8952c" style="background:#b8952c;font-size:0;line-height:0;">&nbsp;</td></tr>
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #d5dee8;font-family:${FONT};">
   <tr>
-    <td align="center" style="padding:28px 32px 8px;">
-      <img src="${LOGO_URL}" width="64" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
-      <p style="margin:14px 0 0;font-size:13px;letter-spacing:.16em;font-weight:700;color:#0b1f3a;">CORAZA SEGURIDAD C.T.A.</p>
-      <p style="margin:6px 0 0;font-size:12px;letter-spacing:.08em;color:#8a6a1f;">GESTIÓN DOCUMENTAL</p>
+    <td align="center" style="padding:26px 32px 18px;background:#ffffff;">
+      <img src="${LOGO_URL}" width="56" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
     </td>
   </tr>
   <tr>
-    <td style="padding:18px 32px 0;">
-      <img src="${MINUTA_IMG}" width="536" alt="Vigilante marcando el control del puesto" style="display:block;width:100%;max-width:536px;height:auto;border:0;">
+    <td align="center" bgcolor="#0b1f3a" style="padding:20px 28px 18px;background:#0b1f3a;">
+      <p style="margin:0;font-size:11px;letter-spacing:.28em;font-weight:700;color:#d4bc74;">CAMPAÑA</p>
+      <p style="margin:8px 0 0;font-size:22px;line-height:1.2;font-weight:700;color:#ffffff;">Gestión Documental</p>
     </td>
   </tr>
+  <tr><td height="3" bgcolor="#b8952c" style="background:#b8952c;font-size:0;line-height:0;">&nbsp;</td></tr>
+  ${image}
   <tr>
-    <td style="padding:22px 32px 0;">
+    <td style="padding:28px 36px 0;">
       <p style="margin:0;font-size:12px;letter-spacing:.04em;color:#8a6a1f;">${esc(formatCityDate())}</p>
-      <p style="margin:14px 0 0;font-size:26px;line-height:1.25;font-weight:700;color:#0b1f3a;">${esc(opts.title)}</p>
+      <p style="margin:12px 0 0;font-size:24px;line-height:1.3;font-weight:700;color:#0b1f3a;">${esc(opts.title)}</p>
     </td>
   </tr>
   <tr>
-    <td style="padding:22px 32px 0;">
+    <td style="padding:22px 36px 0;">
       <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#0b1f3a;">Estimado(a) ${esc(name)},</p>
       ${paragraphs}
     </td>
   </tr>
   <tr>
-    <td style="padding:4px 32px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0b1f3a;">
-        <tr><td style="padding:18px 20px;font-family:${FONT};">
-          <p style="margin:0 0 6px;font-size:11px;letter-spacing:.12em;font-weight:700;color:#d4bc74;">LO QUE ESTÁ EN JUEGO</p>
-          <p style="margin:0;font-size:16px;line-height:1.6;color:#ffffff;">Si la minuta no queda bien legible, perdemos el documento: no se puede saber a qué puesto corresponde.</p>
-        </td></tr>
-      </table>
+    <td style="padding:8px 36px 32px;">
+      <p style="margin:0;padding-top:16px;border-top:1px solid #e4dcc8;font-size:14px;font-weight:700;color:#0b1f3a;">Gestión Documental</p>
+      <p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#5c6b7a;">Archivo Central · ${esc(SENDER)} · PBX (604) 444 7929</p>
     </td>
   </tr>
   <tr>
-    <td style="padding:22px 32px 8px;">
-      <p style="margin:0 0 8px;font-size:13px;letter-spacing:.1em;font-weight:700;color:#8a6a1f;">EN CADA HOJA DEBE LEERSE</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">${rules}</table>
-    </td>
-  </tr>
-  <tr>
-    <td style="padding:8px 32px 28px;">
-      <p style="margin:0 0 4px;font-size:15px;line-height:1.6;color:#1e293b;">Quedamos atentos en Gestión Documental.</p>
-      <p style="margin:14px 0 0;font-size:14px;font-weight:700;color:#0b1f3a;">Archivo Central</p>
-      <p style="margin:2px 0 0;font-size:13px;color:#5c6b7a;">${esc(SENDER)} · PBX (604) 444 7929</p>
-    </td>
-  </tr>
-  <tr>
-    <td align="center" bgcolor="#0b1f3a" style="padding:16px 24px;background:#0b1f3a;">
-      <p style="margin:0;font-size:11px;letter-spacing:.06em;color:#d4bc74;">CORAZA SEGURIDAD C.T.A. · MEDELLÍN</p>
+    <td align="center" bgcolor="#0b1f3a" style="padding:14px 24px;background:#0b1f3a;">
+      <p style="margin:0;font-size:11px;letter-spacing:.16em;color:#d4bc74;">CAMPAÑA · GESTIÓN DOCUMENTAL</p>
     </td>
   </tr>
 </table>
