@@ -241,13 +241,15 @@ function monthBounds(ym: string): { from: string; to: string } {
                     </div>
                   </td>
                   <td>
-                    <a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link hr-link-sm">Ver</a>
-                    <button
-                      type="button"
-                      class="hr-btn hr-btn-ghost hr-btn-sm"
-                      (click)="printOne(a)"
-                      title="Imprimir rótulo Niimbot B1 50×30 mm"
-                    >Rótulo</button>
+                    <div class="row-actions">
+                      <a [routerLink]="['/rrhh/asociados', a.id]" class="hr-link hr-link-sm">Ver</a>
+                      <button
+                        type="button"
+                        class="hr-btn hr-btn-ghost hr-btn-sm row-rotulo"
+                        (click)="printOne(a)"
+                        title="Imprimir rótulo Niimbot B1 50×30 mm"
+                      >Rótulo</button>
+                    </div>
                   </td>
                 </tr>
               } @empty {
@@ -279,6 +281,17 @@ function monthBounds(ym: string): { from: string; to: string } {
         }
       }
     </div>
+  `,
+  styles: `
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.35rem 0;
+    }
+    .row-rotulo {
+      padding: 0.5rem 1rem;
+    }
   `,
 })
 export class AssociatesList implements OnInit, OnDestroy {

@@ -14,6 +14,7 @@ import { AuthService } from '../../../core/services/auth.service';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { Icon } from '../../../shared/components/icon/icon';
 import { ToastService } from '../../../shared/services/toast.service';
+import { prorrogaReached180 } from './prorroga-180';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   AbsenteeismEventType,
@@ -99,6 +100,7 @@ import type {
           <div><span>Días totales</span><strong>{{ s.totalDays }}</strong></div>
           <div><span>Médicas</span><strong>{{ s.medical }}</strong></div>
           <div><span>Administrativas</span><strong>{{ s.admin }}</strong></div>
+          <div><span>Prórroga 180 días</span><strong>{{ s.prorroga180 }}</strong></div>
         </section>
 
         <div class="hr-grid-2" style="margin-bottom: 1.25rem">
@@ -298,6 +300,9 @@ import type {
                         {{ r.associate.firstName }} {{ r.associate.firstLastName }}
                       </a>
                       <div class="hr-muted">Carpeta {{ r.associate.folderNumber ?? '—' }} · {{ r.associate.documentNumber }}</div>
+                      @if (reached180(r)) {
+                        <span class="hr-status" data-color="red">Cumplió 180 días</span>
+                      }
                     } @else {
                       {{ r.associateId }}
                     }
@@ -475,6 +480,7 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
     });
   });
 
+  readonly reached180 = prorrogaReached180;
   readonly filteredStats = computed(() => this.breakdown(this.visibleRows()));
   /** Barras sobre el resultado de búsqueda/fechas/tipo (para poder hacer clic a otro). */
   readonly eventBars = computed(() => this.toBars(this.breakdown(this.rows()).byEvent));
@@ -561,7 +567,7 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
             <td class="td-center">${esc(r.eventType)}</td>
             <td class="td-center">${esc(date(r.startDate))}</td>
             <td class="td-center">${esc(date(r.endDate))}</td>
-            <td class="td-num">${esc(r.absenceDays)}</td>
+            <td class="td-num">${esc(r.absenceDays)}${prorrogaReached180(r) ? ' · Cumplió 180 días' : ''}</td>
             <td class="td-center">${esc(r.isExtension ? 'Sí' : 'No')}</td>
             <td class="td-center">${esc(r.postIncapacityExam ? 'Sí' : 'No')}</td>
             <td class="td-text">${esc(r.incapacityOrigin)}</td>
@@ -853,6 +859,7 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
       totalDays: list.reduce((s, r) => s + (r.absenceDays || 0), 0),
       medical: list.filter((r) => r.kind === 'MEDICO').length,
       admin: list.filter((r) => r.kind === 'OTRO').length,
+      prorroga180: new Set(list.filter((r) => prorrogaReached180(r)).map((r) => r.associateId)).size,
       byEvent,
       byOrigin,
     };

@@ -21,6 +21,7 @@ import { Icon } from '../../../shared/components/icon/icon';
 import { personnelFileStatus } from '../../../shared/personnel-file';
 import { ToastService } from '../../../shared/services/toast.service';
 import { printRotulo, rotuloFromAssociate } from '../../documental/rotulo-print';
+import { prorrogaReached180 } from '../absenteeism-panel/prorroga-180';
 import { HrApiService } from '../services/hr-api.service';
 import type {
   Associate,
@@ -425,7 +426,12 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                         <td>{{ ab.eventType }}</td>
                         <td>{{ ab.startDate }}</td>
                         <td>{{ ab.endDate }}</td>
-                        <td>{{ ab.absenceDays }}</td>
+                        <td>
+                          {{ ab.absenceDays }}
+                          @if (reached180(ab)) {
+                            <span class="hr-status" data-color="red">Cumplió 180 días</span>
+                          }
+                        </td>
                         <td>
                           @if (ab.diagnosis) {
                             {{ ab.diagnosis.codigo }} — {{ ab.diagnosis.descripcion }}
@@ -510,6 +516,7 @@ export class AssociateDetail implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly toast = inject(ToastService);
   readonly auth = inject(AuthService);
+  readonly reached180 = prorrogaReached180;
 
   readonly icons = {
     User: LucideUser,
