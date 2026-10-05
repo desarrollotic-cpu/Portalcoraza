@@ -9,7 +9,7 @@ import { DOC_STYLES } from '../documental.styles';
   template: `
     <h3>Campaña a asociados activos</h3>
     <p class="muted">
-      El mensaje sale como carta de Gestión Documental, con el nombre de cada persona.
+      La carta ya trae la ilustración y el aviso de la minuta. El texto de abajo es el saludo de cada persona.
       Solo reciben quienes están activos y tienen correo.
     </p>
 
@@ -56,8 +56,9 @@ export class CampaignScreen implements OnInit, OnDestroy {
   private readonly api = inject(DocumentalApiService);
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  subject = '';
-  body = '';
+  subject = 'Marque la minuta con el puesto, de forma clara';
+  body =
+    'La minuta de cada puesto es el registro del servicio. Para que Gestión Documental pueda archivarla donde corresponde, el nombre del puesto tiene que verse claro y completo.\n\nEscríbalo despacio y con letra legible. Una sigla suelta, un tachón o una marca que no se lee deja la minuta sin puesto.';
   testTo = '';
   readonly audience = signal<{ active: number; withEmail: number; withoutEmail: number } | null>(null);
   readonly status = signal<{

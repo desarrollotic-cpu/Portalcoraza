@@ -10,6 +10,8 @@ describe('campaignLetterHtml', () => {
     expect(html).toContain('Ana Ruiz');
     expect(html).toContain('Actualice su carpeta');
     expect(html).toContain('Traiga la cédula.');
+    expect(html).toContain('minuta-marcacion.jpg');
+    expect(html).toContain('a qué puesto corresponde');
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });
