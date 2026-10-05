@@ -74,10 +74,6 @@ const ANSWER_LABELS: Record<string, string> = {
             <option value="false">Sin novedad</option>
           </select>
         </label>
-        <label>
-          Vigilante
-          <input type="search" [(ngModel)]="q" (ngModelChange)="reload()" placeholder="Nombre…" />
-        </label>
       </div>
 
       @if (error()) {
@@ -214,7 +210,6 @@ export class ScooterInspectionsPanel implements OnInit {
   to = '';
   apt = '';
   novelty = '';
-  q = '';
 
   ngOnInit(): void {
     this.ops.listPosts().subscribe({
@@ -234,7 +229,6 @@ export class ScooterInspectionsPanel implements OnInit {
         to: this.to || undefined,
         apt: this.apt || undefined,
         novelty: this.novelty || undefined,
-        q: this.q || undefined,
       })
       .subscribe({
         next: (rows) => this.rows.set(rows),
