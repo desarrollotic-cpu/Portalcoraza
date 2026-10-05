@@ -11,6 +11,8 @@ import { OverviewController } from './controllers/overview.controller';
 import { PublicLoansController } from './controllers/public-loans.controller';
 import { RetiredPersonnelController } from './controllers/retired-personnel.controller';
 import { WorkflowsController } from './controllers/workflows.controller';
+import { Associate } from '../associates/entities/associate.entity';
+import { DocumentalCampaignController } from './controllers/campaign.controller';
 import { DocumentalController } from './documental.controller';
 import { DocumentalService } from './documental.service';
 import { Contract } from './entities/contract.entity';
@@ -28,6 +30,7 @@ import { RetiredPersonnel } from './entities/retired-personnel.entity';
 import { Workflow } from './entities/workflow.entity';
 import { ContractsService } from './services/contracts.service';
 import { CorrespondenceService } from './services/correspondence.service';
+import { DocumentalCampaignService } from './services/documental-campaign.service';
 import { DocumentalMailService } from './services/documental-mail.service';
 import { LibraryService } from './services/library.service';
 import { LoansService } from './services/loans.service';
@@ -53,12 +56,14 @@ import { WorkflowsService } from './services/workflows.service';
       LoanMailLog,
       LibraryFolder,
       LibraryFile,
+      Associate,
     ]),
     AuditModule,
     NotificationsModule,
   ],
   controllers: [
     DocumentalController,
+    DocumentalCampaignController,
     CorrespondenceController,
     MinutesController,
     RetiredPersonnelController,
@@ -81,6 +86,7 @@ import { WorkflowsService } from './services/workflows.service';
     WorkflowsService,
     OverviewService,
     DocumentalMailService,
+    DocumentalCampaignService,
   ],
   exports: [DocumentalService, OverviewService, DocumentalMailService],
 })

@@ -113,6 +113,7 @@ export const DOCUMENTAL_NAV: ModuleNavItem[] = [
   { label: 'VOXELSERA', route: '/documental/voxelsera', permission: 'documental.view', icon: LucideBoxes },
   { label: 'Buscador Universal', route: '/documental/buscador', permission: 'documental.view', icon: LucideSearch },
   { label: 'Informes', route: '/documental/informes', permission: 'documental.view', icon: LucideClipboardList },
+  { label: 'Campaña', route: '/documental/campana', permission: 'documental.manage', icon: LucideSparkles },
 ];
 
 export const RECEPCION_NAV: ModuleNavItem[] = [

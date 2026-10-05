@@ -48,6 +48,30 @@ function fact(label: string, value: string): string {
   </td></tr>`;
 }
 
+export function campaignLetterHtml(opts: { name: string; title: string; body: string }): string {
+  const paragraphs = opts.body
+    .split(/\n{2,}/)
+    .map((block) => esc(block).replace(/\n/g, '<br>'))
+    .filter((block) => block.trim())
+    .map(
+      (block) =>
+        `<p style="margin:0 0 14px;font-size:15px;line-height:1.65;color:#334155;">${block}</p>`,
+    )
+    .join('');
+  return wrapLoanMail({
+    tone: 'info',
+    badge: 'Comunicado de archivo',
+    title: opts.title,
+    requester: opts.name,
+    message: 'Le escribimos desde Gestión Documental:',
+    facts: [{ label: 'Fecha', value: formatCityDate() }],
+    extraHtml: paragraphs,
+    ctaLabel: 'Escribir a Gestión Documental',
+    ctaHref: `mailto:${SENDER}?subject=${encodeURIComponent('Re: ' + opts.title)}`,
+    preheader: opts.title,
+  });
+}
+
 export function htmlToPlain(html: string): string {
   return html
     .replace(/<br\s*\/?>/gi, '\n')

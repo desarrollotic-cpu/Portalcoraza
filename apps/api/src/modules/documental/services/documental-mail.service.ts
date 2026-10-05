@@ -129,13 +129,32 @@ export class DocumentalMailService {
    * Un solo tubo para vencimiento, aprobación, rechazo, devolución y solicitud nueva:
    * Gmail documental@ → Recibidos del destinatario y carpeta Enviados de archivo.
    */
-  private async dispatchMail(to: string, subject: string, htmlBody: string): Promise<MailDispatchResult> {
+  /** Carta ya armada en HTML. `bccArchive` en falso evita copiar a documental@ en cada envío masivo. */
+  sendHtml(
+    to: string,
+    subject: string,
+    htmlBody: string,
+    opts?: { bccArchive?: boolean },
+  ): Promise<MailDispatchResult> {
+    const cleanTo = to.trim().toLowerCase();
+    if (!cleanTo.includes('@')) {
+      return { ok: false, via: null, error: 'Sin correo válido', subject, to };
+    }
+    return this.dispatchMail(cleanTo, subject, htmlBody, opts);
+  }
+
+  private async dispatchMail(
+    to: string,
+    subject: string,
+    htmlBody: string,
+    opts?: { bccArchive?: boolean },
+  ): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
     const errors: string[] = [];
     const resendOnly = (process.env.MAIL_PROVIDER || '').trim().toLowerCase() === 'resend-only';
 
     if (!resendOnly) {
-      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody);
+      const smtp = await this.sendViaSmtp(cleanTo, subject, htmlBody, opts);
       if (smtp.ok) {
         // Gmail SMTP suele dejarlo en Enviados; IMAP lo asegura si el tenant no copia SMTP.
         void this.copyToGmailSent(cleanTo, subject, htmlBody);
@@ -153,7 +172,12 @@ export class DocumentalMailService {
     return { ok: false, via: null, error: errors.join(' | ') || 'No se pudo enviar', subject, to: cleanTo };
   }
 
-  private async sendViaSmtp(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
+  private async sendViaSmtp(
+    to: string,
+    subject: string,
+    htmlBody: string,
+    opts?: { bccArchive?: boolean },
+  ): Promise<{ ok: boolean; error: string | null }> {
     const cfg = this.smtpConfig();
     const attempts = [
       { port: 587, secure: false },
@@ -176,7 +200,7 @@ export class DocumentalMailService {
         const info = await transporter.sendMail({
           from: `"Gestión Documental Coraza" <${cfg.user}>`,
           to,
-          bcc: to === this.senderEmail ? undefined : this.senderEmail,
+          bcc: opts?.bccArchive === false || to === this.senderEmail ? undefined : this.senderEmail,
           replyTo: this.senderEmail,
           subject,
           text: htmlToPlain(htmlBody),

@@ -447,6 +447,13 @@ export const routes: Routes = [
               import('./features/documental/reports/reports').then((m) => m.ReportsScreen),
           },
           {
+            path: 'campana',
+            canActivate: [permissionGuard],
+            data: { permission: 'documental.manage' },
+            loadComponent: () =>
+              import('./features/documental/campaign/campaign').then((m) => m.CampaignScreen),
+          },
+          {
             path: 'correspondencia',
             canActivate: [permissionGuard],
             data: { permission: 'documental.view' },

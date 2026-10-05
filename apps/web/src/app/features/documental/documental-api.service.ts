@@ -412,4 +412,29 @@ export class DocumentalApiService {
   resolveWorkflow(id: string, decision: 'APROBAR' | 'RECHAZAR', comment?: string): Observable<Workflow> {
     return this.http.post<Workflow>(`${this.baseUrl}/workflows/resolve`, { id, decision, comment });
   }
+
+  campaignAudience(): Observable<{ active: number; withEmail: number; withoutEmail: number }> {
+    return this.http.get<{ active: number; withEmail: number; withoutEmail: number }>(
+      `${this.baseUrl}/campaign/audience`,
+    );
+  }
+
+  campaignStatus(): Observable<{
+    running: boolean;
+    subject: string;
+    total: number;
+    sent: number;
+    failed: number;
+    lastError: string | null;
+  }> {
+    return this.http.get(`${this.baseUrl}/campaign/status`);
+  }
+
+  campaignPreview(payload: { to: string; subject: string; body: string }): Observable<{ ok: boolean; error: string | null }> {
+    return this.http.post<{ ok: boolean; error: string | null }>(`${this.baseUrl}/campaign/preview`, payload);
+  }
+
+  campaignSend(payload: { subject: string; body: string }): Observable<{ running: boolean; total: number }> {
+    return this.http.post<{ running: boolean; total: number }>(`${this.baseUrl}/campaign/send`, payload);
+  }
 }
