@@ -54,7 +54,11 @@ export interface ScooterAnswers {
   noAbnormalNoise: boolean;
 }
 
-const BOOL_KEYS: (keyof ScooterAnswers)[] = [
+type BoolAnswerKey = {
+  [K in keyof ScooterAnswers]: ScooterAnswers[K] extends boolean ? K : never;
+}[keyof ScooterAnswers];
+
+const BOOL_KEYS: BoolAnswerKey[] = [
   'structureOk',
   'platformOk',
   'handlebarOk',
