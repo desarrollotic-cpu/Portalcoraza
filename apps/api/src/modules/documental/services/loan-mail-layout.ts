@@ -56,21 +56,20 @@ export function campaignLetterHtml(opts: {
   imageUrl?: string;
 }): string {
   const name = displayName(opts.name) || 'señora / señor';
-  const head = `"Zilla Slab",Georgia,"Times New Roman",serif`;
-  const body = `Manrope,Arial,Helvetica,sans-serif`;
-  const mono = `"DM Mono","Courier New",Courier,monospace`;
+  const head = `Georgia,"Times New Roman",serif`;
+  const body = `Arial,Helvetica,sans-serif`;
   const paragraphs = opts.body
     .split(/\n{2,}/)
     .map((block) => esc(block).replace(/\n/g, '<br>'))
     .filter((block) => block.trim())
     .map(
       (block) =>
-        `<p style="margin:0 0 18px;font-family:${body};font-size:17px;line-height:1.75;color:#4e5366;">${block}</p>`,
+        `<p style="margin:0 0 16px;font-family:${body};font-size:16px;line-height:1.7;color:#3a3d4a;">${block}</p>`,
     )
     .join('');
-  const hero = opts.imageUrl
-    ? `<tr><td bgcolor="#080b16" style="padding:0;background:#080b16;line-height:0;font-size:0;">
-        <img src="${esc(opts.imageUrl)}" width="640" alt="" style="display:block;width:100%;max-width:640px;height:auto;border:0;">
+  const image = opts.imageUrl
+    ? `<tr><td align="center" bgcolor="#f7f6f2" style="padding:8px 48px 8px;background:#f7f6f2;">
+        <img src="${esc(opts.imageUrl)}" width="220" alt="" style="display:block;width:220px;max-width:70%;height:auto;border:0;margin:0 auto;">
       </td></tr>`
     : '';
   return `<!DOCTYPE html>
@@ -79,82 +78,44 @@ export function campaignLetterHtml(opts: {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Campaña · Gestión Documental</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;600;700&family=Zilla+Slab:wght@600;700&display=swap" rel="stylesheet">
 </head>
-<body style="margin:0;padding:0;background:#0c1020;">
+<body style="margin:0;padding:0;background:#e7e4dc;">
 <div style="display:none;max-height:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0c1020;">
-<tr><td align="center" style="padding:40px 12px;">
-<table role="presentation" width="640" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:640px;background:#080b16;border:1px solid #2a2a6e;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e7e4dc;">
+<tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#f7f6f2;">
   <tr>
-    <td bgcolor="#080b16" style="padding:22px 32px;background:#080b16;border-bottom:1px solid rgba(244,241,234,0.16);">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td width="72" valign="middle" bgcolor="#ffffff" style="width:72px;background:#ffffff;padding:6px;border-radius:10px;">
-            <img src="${LOGO_URL}" width="60" alt="Coraza Seguridad C.T.A." style="display:block;width:60px;height:auto;border:0;">
-          </td>
-          <td valign="middle" style="padding-left:16px;">
-            <p style="margin:0;font-family:${head};font-size:22px;line-height:1;font-weight:700;letter-spacing:.12em;color:#f4f1ea;">CORAZA</p>
-            <p style="margin:7px 0 0;font-family:${mono};font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c5c9dc;">Seguridad C.T.A.</p>
-          </td>
-          <td valign="middle" align="right">
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="right">
-              <tr>
-                <td width="8" height="8" bgcolor="#ff4b52" style="width:8px;height:8px;background:#ff4b52;font-size:0;line-height:0;">&nbsp;</td>
-                <td style="padding-left:8px;font-family:${mono};font-size:11px;letter-spacing:.16em;color:#c5c9dc;">ARCHIVO CENTRAL</td>
-              </tr>
-            </table>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-  ${hero}
-  <tr>
-    <td bgcolor="#080b16" style="padding:36px 40px 32px;background:#080b16;">
-      <p style="margin:0;font-family:${mono};font-size:12px;letter-spacing:.22em;color:#c8102e;">CAMPAÑA · GESTIÓN DOCUMENTAL</p>
-      <p style="margin:14px 0 0;font-family:${head};font-size:40px;line-height:1.08;font-weight:700;color:#f4f1ea;">${esc(opts.title)}</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:20px;">
-        <tr><td width="64" height="3" bgcolor="#c8102e" style="width:64px;height:3px;background:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr>
-      </table>
-      <p style="margin:16px 0 0;font-family:${mono};font-size:12px;letter-spacing:.06em;color:#c5c9dc;">${esc(formatCityDate())}</p>
+    <td align="center" bgcolor="#f7f6f2" style="padding:36px 40px 0;background:#f7f6f2;">
+      <img src="${LOGO_URL}" width="64" alt="Coraza Seguridad C.T.A." style="display:block;border:0;margin:0 auto;">
+      <p style="margin:14px 0 0;font-family:${head};font-size:13px;letter-spacing:.22em;color:#14162c;">CORAZA</p>
+      <p style="margin:4px 0 0;font-family:${body};font-size:12px;letter-spacing:.08em;color:#6b6e7a;">Gestión Documental</p>
     </td>
   </tr>
   <tr>
-    <td bgcolor="#f3f4f8" style="padding:36px 40px 12px;background:#f3f4f8;">
-      <p style="margin:0 0 18px;font-family:${body};font-size:18px;line-height:1.45;font-weight:700;color:#14162c;">Estimado(a) ${esc(name)},</p>
+    <td align="center" style="padding:18px 40px 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr><td width="48" height="2" bgcolor="#c8102e" style="width:48px;height:2px;background:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td bgcolor="#f7f6f2" style="padding:22px 48px 0;background:#f7f6f2;">
+      <p style="margin:0;font-family:${body};font-size:12px;color:#6b6e7a;">${esc(formatCityDate())}</p>
+      <p style="margin:12px 0 0;font-family:${head};font-size:26px;line-height:1.3;color:#14162c;">${esc(opts.title)}</p>
+    </td>
+  </tr>
+  ${image}
+  <tr>
+    <td bgcolor="#f7f6f2" style="padding:22px 48px 8px;background:#f7f6f2;">
+      <p style="margin:0 0 16px;font-family:${body};font-size:16px;line-height:1.7;color:#14162c;">Estimado(a) ${esc(name)},</p>
       ${paragraphs}
     </td>
   </tr>
   <tr>
-    <td bgcolor="#e6e8f2" style="padding:14px 40px;background:#e6e8f2;">
-      <p style="margin:0;font-family:${mono};font-size:12px;letter-spacing:.12em;color:#2a2a6e;">MINUTAS <span style="color:#c8102e;">·</span> CONTRATOS <span style="color:#c8102e;">·</span> CORRESPONDENCIA <span style="color:#c8102e;">·</span> ARCHIVO</p>
-    </td>
-  </tr>
-  <tr>
-    <td bgcolor="#f3f4f8" style="padding:0;background:#f3f4f8;border-top:1px solid #d5d8e6;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td width="33%" valign="top" style="padding:20px 12px 20px 40px;border-right:1px solid #d5d8e6;">
-            <p style="margin:0;font-family:${mono};font-size:10px;letter-spacing:.18em;color:#414099;">ARCHIVO</p>
-            <p style="margin:8px 0 0;font-family:${body};font-size:15px;font-weight:700;color:#14162c;">Archivo Central</p>
-          </td>
-          <td width="34%" valign="top" style="padding:20px 12px;border-right:1px solid #d5d8e6;">
-            <p style="margin:0;font-family:${mono};font-size:10px;letter-spacing:.18em;color:#414099;">PBX</p>
-            <p style="margin:8px 0 0;font-family:${body};font-size:15px;font-weight:700;color:#14162c;">(604) 444 7929</p>
-          </td>
-          <td width="33%" valign="top" style="padding:20px 40px 20px 12px;">
-            <p style="margin:0;font-family:${mono};font-size:10px;letter-spacing:.18em;color:#414099;">CIUDAD</p>
-            <p style="margin:8px 0 0;font-family:${body};font-size:15px;font-weight:700;color:#14162c;">Medellín</p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-  <tr>
-    <td bgcolor="#080b16" style="padding:22px 40px;background:#080b16;border-top:3px solid #c8102e;">
-      <p style="margin:0;font-family:${mono};font-size:11px;letter-spacing:.18em;color:#c5c9dc;">CORAZA SEGURIDAD C.T.A.</p>
-      <p style="margin:8px 0 0;font-family:${body};font-size:14px;line-height:1.5;color:#f4f1ea;">Mensaje informativo. No responda a este correo.</p>
+    <td bgcolor="#f7f6f2" style="padding:8px 48px 36px;background:#f7f6f2;">
+      <p style="margin:0;padding-top:16px;border-top:1px solid #ddd9d0;font-family:${body};font-size:14px;font-weight:700;color:#14162c;">Gestión Documental</p>
+      <p style="margin:4px 0 0;font-family:${body};font-size:13px;line-height:1.5;color:#6b6e7a;">Archivo Central · Medellín · PBX (604) 444 7929</p>
+      <p style="margin:12px 0 0;font-family:${body};font-size:12px;line-height:1.5;color:#8a8d98;">Mensaje informativo. No responda a este correo.</p>
     </td>
   </tr>
 </table>
