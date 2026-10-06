@@ -150,12 +150,12 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Dashboard', route: '/dashboard', icon: LucideHome, match: 'exact', permissions: ['users.view', 'dashboard.view'] },
       { label: 'Historial de movimientos', route: '/historial-movimientos', icon: LucideClipboardList, match: 'exact', permission: 'audit.view' },
       { label: 'Control de Actividades', route: '/control-actividades', icon: LucideActivity, match: 'exact', permission: 'activity_control.view' },
-      { label: 'Control', route: '/control', icon: LucideRadio, match: 'exact', permission: 'radio_control.view' },
     ],
   },
   {
     label: 'Operación',
     items: [
+      { label: 'Control', route: '/control', icon: LucideRadio, match: 'exact', permission: 'radio_control.view' },
       { label: 'Operaciones', route: '/operaciones', icon: LucideBriefcaseBusiness, permission: 'operations.view', children: OPERACIONES_NAV },
       { label: 'Recursos Humanos', route: '/rrhh', icon: LucideUsersRound, permissions: ['associates.view', 'hr_dashboard.view'], children: RRHH_NAV },
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },
