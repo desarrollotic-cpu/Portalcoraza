@@ -9,6 +9,46 @@ import { Contract } from '../entities/contract.entity';
 import { Workflow } from '../entities/workflow.entity';
 import { SequenceService } from './sequence.service';
 
+type PlaceRow = {
+  id: string;
+  name: string;
+  nit: string | null;
+  contract_number: string | null;
+  contract_start: string | null;
+  contract_end: string | null;
+  invoice_value: string | null;
+};
+
+export type ContractPlace = {
+  id: string;
+  name: string;
+  nit: string | null;
+  contractNumber: string | null;
+  contractValue: string | null;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+function isoDate(raw: string | null): string | null {
+  const t = String(raw ?? '').trim();
+  const iso = /^(\d{4})-(\d{2})-(\d{2})/.exec(t);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const dmy = /^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})/.exec(t);
+  if (!dmy) return null;
+  const day = dmy[1].padStart(2, '0');
+  const month = dmy[2].padStart(2, '0');
+  return `${dmy[3]}-${month}-${day}`;
+}
+
+function money(raw: string | null): string | null {
+  const t = String(raw ?? '').replace(/[$\s]/g, '');
+  if (!t) return null;
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) return t.replace(/\./g, '').replace(',', '.');
+  if (/^\d+,\d+$/.test(t)) return t.replace(',', '.');
+  const digits = t.replace(/[^\d.]/g, '');
+  return digits || null;
+}
+
 /** Umbral de alto valor que dispara workflow de aprobación (COP). */
 const HIGH_VALUE_THRESHOLD = 1_000_000;
 const HIGH_VALUE_APPROVER = 'ge@corazacta.com';
@@ -24,14 +64,46 @@ export class ContractsService {
     private readonly audit: AuditService,
   ) {}
 
-  async clients(tenantId: string): Promise<{ name: string; nit: string | null }[]> {
-    return this.repo.manager.query(
-      `SELECT DISTINCT ON (lower(btrim(party_b))) btrim(party_b) AS name, nit
-       FROM doc_contracts
-       WHERE tenant_id = $1 AND party_b IS NOT NULL AND btrim(party_b) <> ''
-       ORDER BY lower(btrim(party_b)), numeric_code DESC NULLS LAST`,
+  async clients(tenantId: string): Promise<ContractPlace[]> {
+    const rows = await this.repo.manager.query(
+      `SELECT p.id,
+              btrim(p.name) AS name,
+              p.nit,
+              COALESCE(NULLIF(btrim(pc.contract_number), ''), NULLIF(btrim(p.contract_number), '')) AS contract_number,
+              COALESCE(NULLIF(btrim(pc.contract_start), ''), NULLIF(btrim(p.contract_start), '')) AS contract_start,
+              COALESCE(NULLIF(btrim(pc.contract_end), ''), NULLIF(btrim(p.contract_end), '')) AS contract_end,
+              COALESCE(
+                NULLIF(btrim(pc.invoice_value), ''),
+                NULLIF(btrim(po.invoice_value), '')
+              ) AS invoice_value
+       FROM posts p
+       LEFT JOIN LATERAL (
+         SELECT contract_number, contract_start, contract_end, invoice_value
+         FROM post_contracts
+         WHERE post_id = p.id
+         ORDER BY sort_order DESC
+         LIMIT 1
+       ) pc ON true
+       LEFT JOIN LATERAL (
+         SELECT invoice_value
+         FROM post_otrosi
+         WHERE post_id = p.id AND btrim(coalesce(invoice_value, '')) <> ''
+         ORDER BY sort_order DESC
+         LIMIT 1
+       ) po ON true
+       WHERE p.tenant_id = $1 AND btrim(coalesce(p.name, '')) <> ''
+       ORDER BY p.name`,
       [tenantId],
     );
+    return rows.map((row: PlaceRow) => ({
+      id: row.id,
+      name: row.name,
+      nit: row.nit || null,
+      contractNumber: row.contract_number || null,
+      contractValue: money(row.invoice_value),
+      startDate: isoDate(row.contract_start),
+      endDate: isoDate(row.contract_end),
+    }));
   }
 
   list(q?: string) {

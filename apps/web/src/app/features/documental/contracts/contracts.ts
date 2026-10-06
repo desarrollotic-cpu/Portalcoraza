@@ -1,7 +1,7 @@
 import { Component, OnInit, computed, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
-import { Contract, DocumentalApiService } from '../documental-api.service';
+import { Contract, ContractPlace, DocumentalApiService } from '../documental-api.service';
 import { DOC_STYLES } from '../documental.styles';
 import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotulo-print';
 
@@ -75,11 +75,11 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             />
             @if (clientOpen && clientFilter.trim()) {
               <ul class="client-results">
-                @for (c of visibleClients(); track c.name) {
-                  <li><button type="button" (mousedown)="$event.preventDefault(); chooseClient(c)">{{ c.name }}{{ c.nit ? ' · ' + c.nit : '' }}</button></li>
+                @for (c of visibleClients(); track c.id) {
+                  <li><button type="button" (mousedown)="$event.preventDefault(); chooseClient(c)">{{ c.name }}{{ c.contractNumber ? ' · N° ' + c.contractNumber : '' }}{{ c.nit ? ' · ' + c.nit : '' }}</button></li>
                 } @empty {
                   @if (clients().length) {
-                    <li class="client-empty">No está en la lista. Se guardará este nombre.</li>
+                    <li class="client-empty">Ese lugar no está en puestos. Se guardará el nombre escrito.</li>
                   }
                 }
               </ul>
@@ -224,7 +224,7 @@ export class ContractsScreen implements OnInit {
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly expiring = signal<Contract[]>([]);
   readonly editingId = signal<string | null>(null);
-  readonly clients = signal<{ name: string; nit: string | null }[]>([]);
+  readonly clients = signal<ContractPlace[]>([]);
 
   model = {
     contractType: '',
@@ -243,26 +243,39 @@ export class ContractsScreen implements OnInit {
   clientOpen = false;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  visibleClients(): { name: string; nit: string | null }[] {
+  visibleClients(): ContractPlace[] {
     const q = this.clientFilter.trim().toLowerCase();
     if (!q) return [];
     return this.clients()
-      .filter((c) => c.name.toLowerCase().includes(q) || (c.nit || '').toLowerCase().includes(q))
+      .filter((c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.nit || '').toLowerCase().includes(q) ||
+        (c.contractNumber || '').toLowerCase().includes(q),
+      )
       .slice(0, 15);
   }
 
   onClientInput(value: string): void {
-    this.model.partyB = value.trim();
+    const typed = value.trim();
+    this.model.partyB = typed;
     this.clientOpen = true;
-    const exact = this.clients().find((c) => c.name.toLowerCase() === value.trim().toLowerCase());
-    if (exact?.nit) this.model.nit = exact.nit;
+    const exact = this.clients().filter((c) => c.name.toLowerCase() === typed.toLowerCase());
+    if (exact.length === 1) this.fillFromPlace(exact[0]);
   }
 
-  chooseClient(c: { name: string; nit: string | null }): void {
+  chooseClient(c: ContractPlace): void {
     this.clientFilter = c.name;
+    this.fillFromPlace(c);
+    this.clientOpen = false;
+  }
+
+  private fillFromPlace(c: ContractPlace): void {
     this.model.partyB = c.name;
     if (c.nit) this.model.nit = c.nit;
-    this.clientOpen = false;
+    if (c.contractNumber) this.model.contractNumber = c.contractNumber;
+    if (c.contractValue) this.model.contractValue = c.contractValue;
+    if (c.startDate) this.model.startDate = c.startDate;
+    if (c.endDate) this.model.endDate = c.endDate;
   }
 
   onClientEnter(event: Event): void {
@@ -383,7 +396,18 @@ export class ContractsScreen implements OnInit {
           localStorage.setItem('doc-contract-voxel', this.model.voxelsera);
           const name = this.model.partyB.trim();
           if (name && !this.clients().some((c) => c.name.toLowerCase() === name.toLowerCase())) {
-            this.clients.update((list) => [...list, { name, nit: this.model.nit || null }]);
+            this.clients.update((list) => [
+              ...list,
+              {
+                id: `local-${name}`,
+                name,
+                nit: this.model.nit || null,
+                contractNumber: null,
+                contractValue: null,
+                startDate: null,
+                endDate: null,
+              },
+            ]);
           }
           addToPrintQueue({
             id: saved.id,

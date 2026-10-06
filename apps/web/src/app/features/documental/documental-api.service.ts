@@ -113,6 +113,16 @@ export interface Contract {
   voxelsera: string | null;
 }
 
+export interface ContractPlace {
+  id: string;
+  name: string;
+  nit: string | null;
+  contractNumber: string | null;
+  contractValue: string | null;
+  startDate: string | null;
+  endDate: string | null;
+}
+
 export interface Loan {
   id: string;
   requester: string;
@@ -343,8 +353,8 @@ export class DocumentalApiService {
   }
 
   // Contratos
-  listContractClients(): Observable<{ name: string; nit: string | null }[]> {
-    return this.http.get<{ name: string; nit: string | null }[]>(`${this.baseUrl}/contracts/clientes`);
+  listContractClients(): Observable<ContractPlace[]> {
+    return this.http.get<ContractPlace[]>(`${this.baseUrl}/contracts/clientes`);
   }
   listContracts(q?: string): Observable<Contract[]> {
     const query = (q || '').trim();
