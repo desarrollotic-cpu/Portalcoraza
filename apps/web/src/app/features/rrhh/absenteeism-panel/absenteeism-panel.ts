@@ -749,7 +749,9 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
 
   selectedAssocLabel(): string {
     const a = this.selectedAssociate;
-    return a ? `${a.documentNumber} · ${a.fullName}` : this.form.associateId;
+    if (!a) return this.form.associateId;
+    const name = (a.fullName || `${a.firstName ?? ''} ${a.firstLastName ?? ''}`).trim();
+    return name ? `${a.documentNumber} · ${name}` : a.documentNumber;
   }
 
   selectedDiagLabel(): string {
@@ -772,8 +774,9 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
 
     this.saving.set(true);
     const id = this.editingId();
+    const { associateId: _keep, ...changes } = this.form;
     const req = id
-      ? this.api.updateAbsence(id, this.form)
+      ? this.api.updateAbsence(id, changes)
       : this.api.createAbsence(this.form);
 
     req.subscribe({

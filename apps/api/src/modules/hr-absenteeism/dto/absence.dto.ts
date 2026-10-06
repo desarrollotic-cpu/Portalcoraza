@@ -63,6 +63,10 @@ export class CreateAbsenceDto {
 }
 
 export class UpdateAbsenceDto {
+  /** El formulario de edición reenvía el asociado. No cambia la persona. */
+  @IsOptional() @IsUUID()
+  associateId?: string;
+
   @IsOptional() @IsEnum(AbsenteeismKind)
   kind?: AbsenteeismKind;
 
