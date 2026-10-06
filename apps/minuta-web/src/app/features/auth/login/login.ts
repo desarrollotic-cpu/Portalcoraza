@@ -14,6 +14,9 @@ import { environment } from '../../../../environments/environment';
   imports: [ReactiveFormsModule],
   template: `
     <div class="wrap">
+      @if (embedded) {
+        <p class="sub">Abriendo la minuta del puesto…</p>
+      } @else {
       <form class="card" [formGroup]="form" (ngSubmit)="submit()">
         <button type="button" class="back" (click)="goPortal()">Atrás</button>
         <img
@@ -40,6 +43,7 @@ import { environment } from '../../../../environments/environment';
           {{ loading() ? 'Entrando…' : 'Entrar' }}
         </button>
       </form>
+      }
     </div>
   `,
   styles: `
@@ -136,6 +140,7 @@ import { environment } from '../../../../environments/environment';
   `,
 })
 export class Login {
+  readonly embedded = window.parent !== window;
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly fb = inject(FormBuilder);

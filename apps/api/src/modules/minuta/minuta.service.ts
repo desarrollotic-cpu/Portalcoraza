@@ -71,7 +71,7 @@ export class MinutaService {
 
   /** PUESTO solo ve/crea en posts de user_posts; resto sin restricción. */
   async resolvePostScope(user: JwtPayload): Promise<MinutaPostScope> {
-    if (user.roleCode !== 'PUESTO') return { restricted: false };
+    if (user.roleCode !== 'PUESTO' && user.roleCode !== 'CONTROL') return { restricted: false };
     const rows = await this.userPosts.find({ where: { userId: user.sub } });
     const postIds = rows.map((r) => r.postId);
     if (postIds.length === 0) {

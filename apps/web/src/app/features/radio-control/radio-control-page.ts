@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../core/services/auth.service';
@@ -97,11 +97,11 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
 
       <section class="rc-minuta">
         <h4>Minuta virtual · Control Coraza</h4>
-        <p class="hr-muted">La misma minuta de los vigilantes. Entra con el usuario de este puesto.</p>
+        <p class="hr-muted">La misma minuta de los vigilantes, con la sesión de Control.</p>
         <iframe
           class="rc-minuta-frame"
           title="Minuta virtual Control Coraza"
-          src="https://portalcoraza-minuta.onrender.com"
+          src="https://portalcoraza-minuta.onrender.com/?embed=1"
         ></iframe>
       </section>
 
@@ -247,7 +247,7 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     }
   `,
 })
-export class RadioControlPage implements OnInit {
+export class RadioControlPage implements OnInit, OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
@@ -265,6 +265,7 @@ export class RadioControlPage implements OnInit {
   readonly savingId = signal<string | null>(null);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+  private minutaSession: Promise<void> | null = null;
 
   canEdit(): boolean {
     return (
@@ -275,7 +276,12 @@ export class RadioControlPage implements OnInit {
   }
 
   ngOnInit(): void {
+    window.addEventListener('message', this.onMinutaReady);
     this.reload();
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('message', this.onMinutaReady);
   }
 
   onSearch(): void {
@@ -403,6 +409,35 @@ export class RadioControlPage implements OnInit {
           this.toast.error(e?.error?.message || 'No se pudo guardar la franja');
         },
       });
+  }
+
+  private readonly onMinutaReady = (ev: MessageEvent) => {
+    if (ev.origin !== 'https://portalcoraza-minuta.onrender.com') return;
+    if (ev.data?.type !== 'coraza-minuta-ready') return;
+    const target = ev.source;
+    if (!target || !('postMessage' in target)) return;
+    void this.portalSession().then(() => {
+      const user = this.auth.currentUser();
+      (target as Window).postMessage(
+        {
+          type: 'coraza-minuta-session',
+          accessToken: this.auth.getAccessToken(),
+          refreshToken: localStorage.getItem('coraza_refresh'),
+          user,
+          tenantId: user?.tenantId || localStorage.getItem('coraza_tenant_id'),
+        },
+        'https://portalcoraza-minuta.onrender.com',
+      );
+    });
+  };
+
+  private portalSession(): Promise<void> {
+    if (!this.minutaSession) {
+      this.minutaSession = new Promise((resolve) => {
+        this.auth.refreshSession().subscribe({ next: () => resolve(), error: () => resolve() });
+      });
+    }
+    return this.minutaSession;
   }
 
   private nearestSlot(): string {

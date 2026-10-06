@@ -55,6 +55,25 @@ export class AuthService {
     this.currentUser.set(null);
   }
 
+  adoptSession(session: {
+    accessToken?: string;
+    refreshToken?: string;
+    user?: AuthUser;
+    tenantId?: string;
+  }): boolean {
+    const access = session.accessToken || '';
+    const user = session.user;
+    if (!access || !user?.permissions?.includes('minuta.view')) return false;
+    if (localStorage.getItem(ACCESS_KEY) === access) return false;
+    localStorage.setItem(ACCESS_KEY, access);
+    if (session.refreshToken) localStorage.setItem(REFRESH_KEY, session.refreshToken);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    const tenant = session.tenantId || user.tenantId;
+    if (tenant) localStorage.setItem(TENANT_KEY, tenant);
+    this.currentUser.set(user);
+    return true;
+  }
+
   getAccessToken(): string | null {
     return localStorage.getItem(ACCESS_KEY);
   }

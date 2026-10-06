@@ -25,6 +25,18 @@ describe('MinutaService post scope (PUESTO)', () => {
     expect(scope).toEqual({ restricted: false });
   });
 
+  it('restricts CONTROL to assigned posts', async () => {
+    const service = makeService(['post-control']);
+    const scope = await service.resolvePostScope({
+      sub: 'u4',
+      email: 'control@corazaseguridadcta.com',
+      roleCode: 'CONTROL',
+      permissions: ['minuta.view', 'minuta.create'],
+      tenantId: TENANT,
+    });
+    expect(scope).toEqual({ restricted: true, postIds: ['post-control'] });
+  });
+
   it('restricts PUESTO to assigned posts', async () => {
     const service = makeService(['post-a']);
     const scope = await service.resolvePostScope({
