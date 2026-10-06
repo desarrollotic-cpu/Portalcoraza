@@ -10,11 +10,15 @@ import { ToastService } from '../../shared/services/toast.service';
 type Status = 'S/N' | 'N/C' | 'N/A' | 'C/N';
 
 interface BoardRow {
-  postId: string;
-  code: string;
+  sortOrder: number;
+  callsign: string | null;
+  label: string;
+  postId: string | null;
+  code: string | null;
   name: string;
   zone: string | null;
   phone: string | null;
+  linked: boolean;
   status: Status | null;
   notes: string | null;
 }
@@ -50,17 +54,26 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     <div class="hr-page">
       <app-hr-page-header
         title="Control"
-        subtitle="Contactos de radio por franja · estados S/N · N/C · N/A · C/N"
+        subtitle="Orden de llamada como en el Excel · estados S/N · N/C · N/A · C/N"
       >
         @if (canEdit()) {
           <button
             actions
             type="button"
-            class="hr-btn hr-btn-primary"
+            class="hr-btn"
             [disabled]="busy() || !board()"
             (click)="fillPendingSn()"
           >
             Marcar pendientes S/N
+          </button>
+          <button
+            actions
+            type="button"
+            class="hr-btn hr-btn-primary"
+            [disabled]="busy() || !board()"
+            (click)="saveAndNextSlot()"
+          >
+            Guardar y siguiente franja
           </button>
         }
       </app-hr-page-header>
@@ -82,7 +95,7 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           Buscar
           <input
             type="search"
-            placeholder="Puesto, código o zona"
+            placeholder="Indicativo, puesto o zona"
             [(ngModel)]="q"
             (ngModelChange)="onSearch()"
           />
@@ -99,38 +112,45 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           <table class="hr-table rc-table">
             <thead>
               <tr>
-                <th>Zona</th>
-                <th>Puesto</th>
-                <th>Código</th>
+                <th>#</th>
+                <th>Indicativo</th>
+                <th>Puesto (radio)</th>
                 <th>Estado</th>
               </tr>
             </thead>
             <tbody>
-              @for (row of b.rows; track row.postId) {
-                <tr [class.rc-done]="!!row.status">
-                  <td>{{ row.zone || '—' }}</td>
+              @for (row of b.rows; track row.sortOrder + (row.postId || row.label)) {
+                <tr [class.rc-done]="!!row.status" [class.rc-unlinked]="!row.linked">
+                  <td>{{ row.sortOrder }}</td>
+                  <td>{{ row.callsign || '—' }}</td>
                   <td>
-                    <strong>{{ row.name }}</strong>
-                    @if (row.phone) {
-                      <div class="hr-muted">{{ row.phone }}</div>
+                    <strong>{{ row.label }}</strong>
+                    @if (row.linked && row.name && row.name !== row.label) {
+                      <div class="hr-muted">{{ row.name }}</div>
+                    }
+                    @if (!row.linked) {
+                      <div class="hr-muted">Sin vincular a puesto del portal</div>
                     }
                   </td>
-                  <td>{{ row.code }}</td>
                   <td>
-                    <div class="rc-status">
-                      @for (st of statuses; track st) {
-                        <button
-                          type="button"
-                          class="rc-chip"
-                          [class.active]="row.status === st"
-                          [attr.data-st]="st"
-                          [disabled]="!canEdit() || savingId() === row.postId"
-                          (click)="setStatus(row, st)"
-                        >
-                          {{ st }}
-                        </button>
-                      }
-                    </div>
+                    @if (row.linked && row.postId) {
+                      <div class="rc-status">
+                        @for (st of statuses; track st) {
+                          <button
+                            type="button"
+                            class="rc-chip"
+                            [class.active]="row.status === st"
+                            [attr.data-st]="st"
+                            [disabled]="!canEdit() || savingId() === row.postId"
+                            (click)="setStatus(row, st)"
+                          >
+                            {{ st }}
+                          </button>
+                        }
+                      </div>
+                    } @else {
+                      <span class="hr-muted">—</span>
+                    }
                   </td>
                 </tr>
               }
@@ -208,6 +228,9 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     .rc-done td {
       background: #f8fafc;
     }
+    .rc-unlinked td {
+      opacity: 0.65;
+    }
   `,
 })
 export class RadioControlPage implements OnInit {
@@ -261,7 +284,7 @@ export class RadioControlPage implements OnInit {
   }
 
   setStatus(row: BoardRow, status: Status): void {
-    if (!this.canEdit()) return;
+    if (!this.canEdit() || !row.postId) return;
     this.savingId.set(row.postId);
     this.http
       .put(`${environment.apiUrl}/radio-control/check`, {
@@ -277,7 +300,7 @@ export class RadioControlPage implements OnInit {
           if (b) {
             this.board.set({
               ...b,
-              filled: b.rows.filter((r) => r.status).length,
+              filled: b.rows.filter((r) => r.linked && r.status).length,
             });
           }
           this.savingId.set(null);
@@ -292,7 +315,9 @@ export class RadioControlPage implements OnInit {
   fillPendingSn(): void {
     const b = this.board();
     if (!b || !this.canEdit()) return;
-    const pending = b.rows.filter((r) => !r.status).map((r) => r.postId);
+    const pending = b.rows
+      .filter((r) => r.linked && r.postId && !r.status)
+      .map((r) => r.postId!);
     if (pending.length === 0) {
       this.toast.info('No hay pendientes en esta franja');
       return;
@@ -314,6 +339,56 @@ export class RadioControlPage implements OnInit {
         error: (e) => {
           this.busy.set(false);
           this.toast.error(e?.error?.message || 'No se pudo marcar');
+        },
+      });
+  }
+
+  /** Confirma la franja actual (marca pendientes S/N) y pasa a la siguiente. */
+  saveAndNextSlot(): void {
+    const b = this.board();
+    if (!b || !this.canEdit()) return;
+    const fromSlot = this.slot;
+    const pending = b.rows
+      .filter((r) => r.linked && r.postId && !r.status)
+      .map((r) => r.postId!);
+
+    const advance = () => {
+      const idx = SLOTS.indexOf(this.slot as (typeof SLOTS)[number]);
+      if (idx < 0 || idx >= SLOTS.length - 1) {
+        // Última franja del día → día siguiente 01:00
+        const d = new Date(this.date + 'T12:00:00');
+        d.setDate(d.getDate() + 1);
+        this.date = d.toISOString().slice(0, 10);
+        this.slot = SLOTS[0];
+        this.toast.success(`Franja ${fromSlot} guardada · día siguiente ${this.slot}`);
+      } else {
+        this.slot = SLOTS[idx + 1];
+        this.toast.success(`Franja ${fromSlot} guardada · pasando a ${this.slot}`);
+      }
+      this.reload();
+    };
+
+    if (pending.length === 0) {
+      advance();
+      return;
+    }
+
+    this.busy.set(true);
+    this.http
+      .post(`${environment.apiUrl}/radio-control/fill`, {
+        date: this.date,
+        slot: this.slot,
+        status: 'S/N',
+        postIds: pending,
+      })
+      .subscribe({
+        next: () => {
+          this.busy.set(false);
+          advance();
+        },
+        error: (e) => {
+          this.busy.set(false);
+          this.toast.error(e?.error?.message || 'No se pudo guardar la franja');
         },
       });
   }
