@@ -70,6 +70,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'control',
+        canActivate: [permissionGuard],
+        data: { permission: 'radio_control.view' },
+        loadComponent: () =>
+          import('./features/radio-control/radio-control-page').then(
+            (m) => m.RadioControlPage,
+          ),
+      },
+      {
         path: 'sin-acceso',
         loadComponent: () =>
           import('./features/auth/sin-acceso/sin-acceso').then((m) => m.SinAcceso),

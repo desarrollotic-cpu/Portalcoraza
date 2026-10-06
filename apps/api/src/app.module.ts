@@ -30,6 +30,7 @@ import { RolesModule } from './modules/roles/roles.module';
 import { SstModule } from './modules/sst/sst.module';
 import { MinutaModule } from './modules/minuta/minuta.module';
 import { RondasModule } from './modules/rondas/rondas.module';
+import { RadioControlModule } from './modules/radio-control/radio-control.module';
 import { ScooterInspectionsModule } from './modules/scooter-inspections/scooter-inspections.module';
 import { SigModule } from './modules/sig/sig.module';
 import { UsersModule } from './modules/users/users.module';
@@ -93,6 +94,7 @@ function isSupabaseDatabaseUrl(url?: string): boolean {
     MinutaModule,
     RondasModule,
     ScooterInspectionsModule,
+    RadioControlModule,
     SigModule,
     PayrollsModule,
     DashboardModule,

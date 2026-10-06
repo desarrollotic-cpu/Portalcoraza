@@ -24,6 +24,7 @@ import {
   LucideListChecks,
   LucideMapPin,
   LucidePackageSearch,
+  LucideRadio,
   LucideSearch,
   LucideShieldCheck,
   LucideSparkles,
@@ -149,6 +150,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Dashboard', route: '/dashboard', icon: LucideHome, match: 'exact', permissions: ['users.view', 'dashboard.view'] },
       { label: 'Historial de movimientos', route: '/historial-movimientos', icon: LucideClipboardList, match: 'exact', permission: 'audit.view' },
       { label: 'Control de Actividades', route: '/control-actividades', icon: LucideActivity, match: 'exact', permission: 'activity_control.view' },
+      { label: 'Control', route: '/control', icon: LucideRadio, match: 'exact', permission: 'radio_control.view' },
     ],
   },
   {
