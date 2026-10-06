@@ -427,7 +427,14 @@ export class DocumentalApiService {
     failed: number;
     lastError: string | null;
   }> {
-    return this.http.get(`${this.baseUrl}/campaign/status`);
+    return this.http.get<{
+      running: boolean;
+      subject: string;
+      total: number;
+      sent: number;
+      failed: number;
+      lastError: string | null;
+    }>(`${this.baseUrl}/campaign/status`);
   }
 
   campaignPreview(payload: { to: string; subject: string; body: string; includeImage: boolean }): Observable<{ ok: boolean; error: string | null }> {
