@@ -56,21 +56,20 @@ export function campaignLetterHtml(opts: {
   imageUrl?: string;
 }): string {
   const name = displayName(opts.name) || 'señora / señor';
-  const font = `'Helvetica Neue',Arial,sans-serif`;
+  const serif = `Georgia,'Times New Roman',serif`;
+  const sans = `'Helvetica Neue',Arial,sans-serif`;
   const paragraphs = opts.body
     .split(/\n{2,}/)
     .map((block) => esc(block).replace(/\n/g, '<br>'))
     .filter((block) => block.trim())
     .map(
       (block) =>
-        `<div style="font-family:${font};font-size:16px;line-height:22px;text-align:left;color:#555555;">${block}</div>`,
+        `<div style="font-family:${sans};font-size:17px;line-height:28px;text-align:left;color:#2c3344;">${block}</div>`,
     )
-    .join(
-      `<div style="font-size:0;line-height:0;height:16px;">&nbsp;</div>`,
-    );
+    .join(`<div style="font-size:0;line-height:0;height:18px;">&nbsp;</div>`);
   const image = opts.imageUrl
-    ? `<tr><td align="center" style="font-size:0;padding:10px 25px 0;word-break:break-word;">
-        <img src="${esc(opts.imageUrl)}" width="220" height="auto" alt="Marcación de minuta" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:220px;margin:0 auto;">
+    ? `<tr><td align="center" bgcolor="#16325c" style="background-color:#16325c;font-size:0;padding:8px 32px 6px;">
+        <img src="${esc(opts.imageUrl)}" width="260" alt="Marcación de minuta" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:260px;margin:0 auto;">
       </td></tr>`
     : '';
   return `<!doctype html>
@@ -90,6 +89,9 @@ export function campaignLetterHtml(opts: {
 body { margin:0; padding:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
 table, td { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
 img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+@media only screen and (max-width:480px) {
+  .hero-title { font-size:30px !important; line-height:36px !important; }
+}
 </style>
 <!--[if mso]>
 <xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
@@ -98,59 +100,55 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
 <style type="text/css">.outlook-group-fix { width:100% !important; }</style>
 <![endif]-->
 </head>
-<body style="background-color:#f9f9f9;margin:0;padding:0;">
-<div style="display:none;font-size:1px;color:#f9f9f9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9f9f9;" bgcolor="#f9f9f9">
-<tr><td align="center" style="padding:20px 12px;">
+<body style="background-color:#e6ebf2;margin:0;padding:0;">
+<div style="display:none;font-size:1px;color:#e6ebf2;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e6ebf2;" bgcolor="#e6ebf2">
+<tr><td align="center" style="padding:28px 12px;">
 <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="width:600px;" width="600"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<table align="center" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dddddd;" bgcolor="#ffffff">
-  <tr><td height="5" bgcolor="#1d4e89" style="background-color:#1d4e89;font-size:0;line-height:0;">&nbsp;</td></tr>
+<table align="center" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#f7f6f2;" bgcolor="#f7f6f2">
   <tr>
-    <td align="center" style="padding:28px 25px 8px;">
-      <img src="${LOGO_URL}" width="64" alt="Coraza Seguridad C.T.A." style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:64px;margin:0 auto;">
+    <td align="center" bgcolor="#ffffff" style="background-color:#ffffff;padding:26px 32px 18px;">
+      <img src="${LOGO_URL}" width="56" alt="Coraza Seguridad C.T.A." style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:56px;margin:0 auto 12px;">
+      <div style="font-family:${serif};font-size:34px;line-height:34px;letter-spacing:6px;text-align:center;color:#12182b;">CORAZA</div>
+      <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;text-align:center;color:#c8102e;padding-top:8px;">CAMPAÑA · GESTIÓN DOCUMENTAL</div>
     </td>
   </tr>
-  <tr>
-    <td align="center" style="padding:8px 25px 0;word-break:break-word;">
-      <div style="font-family:${font};font-size:13px;font-weight:bold;letter-spacing:2px;line-height:16px;text-align:center;color:#1d4e89;">CAMPAÑA · GESTIÓN DOCUMENTAL</div>
-    </td>
-  </tr>
+  <tr><td height="6" bgcolor="#c8102e" style="background-color:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr>
   ${image}
   <tr>
-    <td align="center" class="outlook-group-fix" style="padding:18px 25px 8px;word-break:break-word;">
-      <div style="font-family:${font};font-size:28px;font-weight:bold;line-height:34px;text-align:center;color:#333957;">${esc(opts.title)}</div>
+    <td align="center" bgcolor="#16325c" class="outlook-group-fix" style="background-color:#16325c;padding:22px 36px 8px;word-break:break-word;">
+      <div class="hero-title" style="font-family:${serif};font-size:40px;line-height:46px;text-align:center;color:#ffffff;">${esc(opts.title)}</div>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:0 25px 22px;word-break:break-word;">
-      <div style="font-family:${font};font-size:14px;line-height:20px;text-align:center;color:#888888;">${esc(formatCityDate())}</div>
+    <td align="center" bgcolor="#16325c" style="background-color:#16325c;padding:16px 36px 8px;">
+      <table role="presentation" align="center" width="42" cellpadding="0" cellspacing="0" border="0"><tr><td height="3" bgcolor="#c8102e" style="background-color:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr></table>
     </td>
   </tr>
   <tr>
-    <td align="left" style="padding:6px 25px 10px;word-break:break-word;">
-      <div style="font-family:${font};font-size:16px;font-weight:bold;line-height:22px;text-align:left;color:#555555;">Estimado(a) ${esc(name)},</div>
+    <td align="center" bgcolor="#16325c" style="background-color:#16325c;padding:12px 36px 40px;word-break:break-word;">
+      <div style="font-family:${sans};font-size:14px;line-height:20px;letter-spacing:1px;text-align:center;color:#d5e2f2;">${esc(formatCityDate())}</div>
     </td>
   </tr>
   <tr>
-    <td align="left" style="padding:0 25px 24px;word-break:break-word;">
+    <td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:36px 40px 8px;word-break:break-word;">
+      <div style="font-family:${serif};font-size:28px;line-height:34px;color:#12182b;">Estimado(a) ${esc(name)},</div>
+    </td>
+  </tr>
+  <tr>
+    <td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:14px 40px 32px;word-break:break-word;">
       ${paragraphs}
     </td>
   </tr>
   <tr>
-    <td style="padding:0 25px 28px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f7fb;" bgcolor="#f4f7fb">
-        <tr>
-          <td style="padding:16px 18px;word-break:break-word;">
-            <div style="font-family:${font};font-size:15px;font-weight:bold;line-height:20px;color:#333957;">Gestión Documental</div>
-            <div style="font-family:${font};font-size:14px;line-height:20px;color:#525252;padding-top:6px;">Archivo Central, Medellín. PBX (604) 444 7929</div>
-          </td>
-        </tr>
-      </table>
+    <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 40px 22px;word-break:break-word;">
+      <div style="font-family:${serif};font-size:22px;line-height:28px;color:#ffffff;">Gestión Documental</div>
+      <div style="font-family:${sans};font-size:14px;line-height:22px;color:#d5e2f2;padding-top:8px;">Archivo Central. Medellín. PBX (604) 444 7929</div>
     </td>
   </tr>
   <tr>
-    <td align="center" style="padding:4px 25px 24px;border-top:1px solid #dddddd;word-break:break-word;">
-      <div style="font-family:${font};font-size:12px;line-height:18px;text-align:center;color:#888888;padding-top:16px;">Mensaje informativo. No responda a este correo.</div>
+    <td align="center" bgcolor="#10243f" style="background-color:#10243f;padding:14px 24px 18px;word-break:break-word;">
+      <div style="font-family:${sans};font-size:12px;line-height:18px;text-align:center;color:#b7c6da;">Mensaje informativo. No responda a este correo.</div>
     </td>
   </tr>
 </table>
