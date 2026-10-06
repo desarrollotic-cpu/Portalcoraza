@@ -13,6 +13,8 @@ describe('campaignLetterHtml', () => {
     expect(html).toContain('Traiga la cédula.');
     expect(html).toContain('Campaña');
     expect(html).toContain('Gestión Documental');
+    expect(html).toContain('No responda a este correo');
+    expect(html).not.toContain('documental@');
     expect(html).toContain('minuta-marcacion.png');
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');

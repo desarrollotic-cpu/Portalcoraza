@@ -129,12 +129,12 @@ export class DocumentalMailService {
    * Un solo tubo para vencimiento, aprobación, rechazo, devolución y solicitud nueva:
    * Gmail documental@ → Recibidos del destinatario y carpeta Enviados de archivo.
    */
-  /** Carta ya armada en HTML. `bccArchive` en falso evita copiar a documental@ en cada envío masivo. */
+  /** Carta ya armada en HTML. `bccArchive` en falso evita copiar a documental@ en cada envío masivo. `noReply` manda la respuesta a no-responder@. */
   async sendHtml(
     to: string,
     subject: string,
     htmlBody: string,
-    opts?: { bccArchive?: boolean },
+    opts?: { bccArchive?: boolean; noReply?: boolean },
   ): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
     if (!cleanTo.includes('@')) {
@@ -147,7 +147,7 @@ export class DocumentalMailService {
     to: string,
     subject: string,
     htmlBody: string,
-    opts?: { bccArchive?: boolean },
+    opts?: { bccArchive?: boolean; noReply?: boolean },
   ): Promise<MailDispatchResult> {
     const cleanTo = to.trim().toLowerCase();
     const errors: string[] = [];
@@ -163,7 +163,7 @@ export class DocumentalMailService {
       if (smtp.error) errors.push(smtp.error);
     }
 
-    const resend = await this.sendViaResend(cleanTo, subject, htmlBody);
+    const resend = await this.sendViaResend(cleanTo, subject, htmlBody, opts);
     if (resend.ok) {
       await this.copyToGmailSent(cleanTo, subject, htmlBody);
       return { ok: true, via: 'resend', error: null, subject, to: cleanTo };
@@ -176,7 +176,7 @@ export class DocumentalMailService {
     to: string,
     subject: string,
     htmlBody: string,
-    opts?: { bccArchive?: boolean },
+    opts?: { bccArchive?: boolean; noReply?: boolean },
   ): Promise<{ ok: boolean; error: string | null }> {
     const cfg = this.smtpConfig();
     const attempts = [
@@ -201,13 +201,15 @@ export class DocumentalMailService {
           from: `"Gestión Documental Coraza" <${cfg.user}>`,
           to,
           bcc: opts?.bccArchive === false || to === this.senderEmail ? undefined : this.senderEmail,
-          replyTo: this.senderEmail,
+          replyTo: opts?.noReply ? 'no-responder@corazaseguridadcta.com' : this.senderEmail,
           subject,
           text: htmlToPlain(htmlBody),
           html: htmlBody,
           headers: {
             'Message-ID': `<doc-${Date.now()}.${Math.random().toString(36).slice(2)}@corazaseguridadcta.com>`,
-            'List-Unsubscribe': `<mailto:${this.senderEmail}>`,
+            ...(opts?.noReply
+              ? { 'Auto-Submitted': 'auto-generated', 'X-Auto-Response-Suppress': 'All' }
+              : { 'List-Unsubscribe': `<mailto:${this.senderEmail}>` }),
           },
         });
         this.logger.log(`[SMTP ${attempt.port}] Para: ${to} | ID: ${info.messageId}`);
@@ -338,7 +340,12 @@ export class DocumentalMailService {
     return { ok: res.ok, status: res.status, body };
   }
 
-  private async sendViaResend(to: string, subject: string, htmlBody: string): Promise<{ ok: boolean; error: string | null }> {
+  private async sendViaResend(
+    to: string,
+    subject: string,
+    htmlBody: string,
+    opts?: { noReply?: boolean },
+  ): Promise<{ ok: boolean; error: string | null }> {
     const resendKey = process.env.RESEND_API_KEY?.trim();
     if (!resendKey) return { ok: false, error: null };
 
@@ -358,7 +365,7 @@ export class DocumentalMailService {
           from: t.from,
           to: t.to,
           bcc: t.bcc,
-          reply_to: this.senderEmail,
+          reply_to: opts?.noReply ? 'no-responder@corazaseguridadcta.com' : this.senderEmail,
           subject,
           html: htmlBody,
           text: htmlToPlain(htmlBody),

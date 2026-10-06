@@ -48,7 +48,7 @@ export class DocumentalCampaignService {
 
   async sendPreview(to: string, subject: string, body: string, includeImage = true) {
     const html = this.letter('Equipo de archivo', subject, body, includeImage);
-    return this.mail.sendHtml(to, subject, html, { bccArchive: false });
+    return this.mail.sendHtml(to, subject, html, { bccArchive: false, noReply: true });
   }
 
   async start(subject: string, body: string, includeImage = true): Promise<CampaignStatus> {
@@ -84,7 +84,7 @@ export class DocumentalCampaignService {
       const name = [person.firstName, person.firstLastName].filter(Boolean).join(' ').trim();
       const html = this.letter(name || 'asociado', subject, body, includeImage);
       try {
-        const result = await this.mail.sendHtml(String(person.email), subject, html, { bccArchive: false });
+        const result = await this.mail.sendHtml(String(person.email), subject, html, { bccArchive: false, noReply: true });
         if (result.ok) this.state.sent += 1;
         else {
           this.state.failed += 1;

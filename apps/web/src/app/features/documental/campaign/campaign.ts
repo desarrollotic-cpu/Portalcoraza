@@ -9,7 +9,7 @@ import { DOC_STYLES } from '../documental.styles';
   template: `
     <h3>Campaña a asociados activos</h3>
     <p class="muted">
-      El membrete es el de Campaña · Gestión Documental. Cambie el asunto y el texto para la siguiente.
+      El membrete es el de Campaña · Gestión Documental y la carta pide no responder. Cambie el asunto y el texto para la siguiente.
       Solo reciben quienes están activos y tienen correo.
     </p>
 

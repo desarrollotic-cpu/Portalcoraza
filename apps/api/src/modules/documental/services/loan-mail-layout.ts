@@ -110,7 +110,8 @@ export function campaignLetterHtml(opts: {
   <tr>
     <td style="padding:8px 36px 32px;">
       <p style="margin:0;padding-top:16px;border-top:1px solid #e4dcc8;font-size:14px;font-weight:700;color:#0b1f3a;">Gestión Documental</p>
-      <p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#5c6b7a;">Archivo Central · ${esc(SENDER)} · PBX (604) 444 7929</p>
+      <p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#5c6b7a;">Archivo Central · PBX (604) 444 7929</p>
+      <p style="margin:10px 0 0;font-size:12px;line-height:1.5;color:#8a6a1f;">Mensaje informativo. No responda a este correo.</p>
     </td>
   </tr>
   <tr>
