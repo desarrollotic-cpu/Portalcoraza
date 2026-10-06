@@ -343,6 +343,9 @@ export class DocumentalApiService {
   }
 
   // Contratos
+  listContractClients(): Observable<{ name: string; nit: string | null }[]> {
+    return this.http.get<{ name: string; nit: string | null }[]>(`${this.baseUrl}/contracts/clientes`);
+  }
   listContracts(q?: string): Observable<Contract[]> {
     const query = (q || '').trim();
     return this.http.get<Contract[]>(`${this.baseUrl}/contracts`, {

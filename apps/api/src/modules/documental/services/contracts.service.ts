@@ -24,6 +24,16 @@ export class ContractsService {
     private readonly audit: AuditService,
   ) {}
 
+  async clients(tenantId: string): Promise<{ name: string; nit: string | null }[]> {
+    return this.repo.manager.query(
+      `SELECT DISTINCT ON (lower(btrim(party_b))) btrim(party_b) AS name, nit
+       FROM doc_contracts
+       WHERE tenant_id = $1 AND party_b IS NOT NULL AND btrim(party_b) <> ''
+       ORDER BY lower(btrim(party_b)), numeric_code DESC NULLS LAST`,
+      [tenantId],
+    );
+  }
+
   list(q?: string) {
     const clean = (q || '').replace(/^#/, '').trim().replace(/[%_]/g, '');
     const qb = this.repo.createQueryBuilder('c');

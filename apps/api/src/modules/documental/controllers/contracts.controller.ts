@@ -25,6 +25,12 @@ export class ContractsController {
     return this.service.nextCode();
   }
 
+  @Get('clientes')
+  @RequirePermissions('documental.view')
+  clientes(@CurrentUser() user: JwtPayload) {
+    return this.service.clients(user.tenantId);
+  }
+
   @Get('expiring')
   @RequirePermissions('documental.view')
   expiring(@Query('days') days?: string) {

@@ -60,7 +60,32 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         </label>
         <label>Número de contrato (el del cliente)<input [(ngModel)]="model.contractNumber" name="contractNumber" placeholder="Ej: 1047" /></label>
         <label>Parte A (Contratante)<input [(ngModel)]="model.partyA" name="partyA" placeholder="CORAZA SEGURIDAD C.T.A." /></label>
-        <label>Parte B (Cliente / Proveedor) *<input [(ngModel)]="model.partyB" name="partyB" required placeholder="Nombre de la empresa o cliente" /></label>
+        <label>Parte B (Cliente / Proveedor) *
+          <div class="client-pick">
+            <input
+              [(ngModel)]="clientFilter"
+              name="partyB"
+              required
+              placeholder="Escriba para buscar el cliente"
+              autocomplete="off"
+              (ngModelChange)="onClientInput($event)"
+              (focus)="clientOpen = true"
+              (blur)="clientOpen = false"
+              (keydown.enter)="onClientEnter($event)"
+            />
+            @if (clientOpen && clientFilter.trim()) {
+              <ul class="client-results">
+                @for (c of visibleClients(); track c.name) {
+                  <li><button type="button" (mousedown)="$event.preventDefault(); chooseClient(c)">{{ c.name }}{{ c.nit ? ' · ' + c.nit : '' }}</button></li>
+                } @empty {
+                  @if (clients().length) {
+                    <li class="client-empty">No está en la lista. Se guardará este nombre.</li>
+                  }
+                }
+              </ul>
+            }
+          </div>
+        </label>
         <label>NIT / Cédula Cliente *<input [(ngModel)]="model.nit" name="nit" required placeholder="Ej: 900.123.456-7" /></label>
         <label>Valor Total COP (Opcional)<input type="text" inputmode="decimal" [(ngModel)]="model.contractValue" name="contractValue" placeholder="Ej: 15000000" /></label>
         <label>Fecha de Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
@@ -83,8 +108,13 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label class="full">Objeto del Contrato (Opcional)<textarea [(ngModel)]="model.contractObject" name="contractObject" rows="2" placeholder="Descripción del servicio contratado..."></textarea></label>
         <div class="actions">
           <button type="submit" class="btn-primary" [disabled]="saving()">
-            {{ editingId() ? 'Guardar cambios' : 'Guardar Contrato' }}
+            {{ editingId() ? 'Guardar cambios' : 'Guardar contrato' }}
           </button>
+          @if (!editingId()) {
+            <button type="button" class="btn-ghost" [disabled]="saving()" (click)="save(true)">
+              Guardar y otro
+            </button>
+          }
           <span class="muted">Valor &gt; $1.000.000 genera workflow de aprobación.</span>
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
@@ -163,6 +193,19 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
       letter-spacing:.02em; margin:0;
     }
+    .client-pick { position: relative; }
+    .client-results {
+      position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
+      margin: 0; padding: 0; list-style: none; max-height: 220px; overflow: auto;
+      background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+    }
+    .client-results button {
+      display: block; width: 100%; text-align: left; padding: .45rem .65rem;
+      border: 0; background: #fff; cursor: pointer; font: inherit; color: #0f172a;
+    }
+    .client-results button:hover { background: #e2e8f0; }
+    .client-empty { padding: .45rem .65rem; color: #64748b; font-size: .82rem; }
   `,
   ],
 })
@@ -181,6 +224,7 @@ export class ContractsScreen implements OnInit {
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly expiring = signal<Contract[]>([]);
   readonly editingId = signal<string | null>(null);
+  readonly clients = signal<{ name: string; nit: string | null }[]>([]);
 
   model = {
     contractType: '',
@@ -195,12 +239,48 @@ export class ContractsScreen implements OnInit {
     voxelsera: '',
   };
   query = '';
+  clientFilter = '';
+  clientOpen = false;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  visibleClients(): { name: string; nit: string | null }[] {
+    const q = this.clientFilter.trim().toLowerCase();
+    if (!q) return [];
+    return this.clients()
+      .filter((c) => c.name.toLowerCase().includes(q) || (c.nit || '').toLowerCase().includes(q))
+      .slice(0, 15);
+  }
+
+  onClientInput(value: string): void {
+    this.model.partyB = value.trim();
+    this.clientOpen = true;
+    const exact = this.clients().find((c) => c.name.toLowerCase() === value.trim().toLowerCase());
+    if (exact?.nit) this.model.nit = exact.nit;
+  }
+
+  chooseClient(c: { name: string; nit: string | null }): void {
+    this.clientFilter = c.name;
+    this.model.partyB = c.name;
+    if (c.nit) this.model.nit = c.nit;
+    this.clientOpen = false;
+  }
+
+  onClientEnter(event: Event): void {
+    const matches = this.visibleClients();
+    if (!matches.length) return;
+    event.preventDefault();
+    const typed = this.clientFilter.trim().toLowerCase();
+    this.chooseClient(matches.find((c) => c.name.toLowerCase() === typed) || matches[0]);
+  }
 
   ngOnInit(): void {
     this.queueCount.set(getPrintQueue().length);
     this.load();
     this.api.expiringContracts(30).subscribe({ next: (r) => this.expiring.set(r) });
+    this.api.listContractClients().subscribe({
+      next: (rows) => this.clients.set(rows),
+      error: () => this.clients.set([]),
+    });
   }
 
   toggle(): void {
@@ -231,6 +311,8 @@ export class ContractsScreen implements OnInit {
       contractObject: c.contractObject ?? '',
       voxelsera: c.voxelsera ?? '',
     };
+    this.clientFilter = c.partyB ?? '';
+    this.clientOpen = false;
     this.error.set(null);
     this.showForm.set(true);
   }
@@ -238,18 +320,20 @@ export class ContractsScreen implements OnInit {
   private resetForm(): void {
     this.editingId.set(null);
     this.nextCode.set(null);
+    this.clientOpen = false;
     this.model = {
-      contractType: '',
+      contractType: localStorage.getItem('doc-contract-type') || '',
       contractNumber: '',
-      partyA: '',
+      partyA: localStorage.getItem('doc-contract-party-a') || 'CORAZA SEGURIDAD C.T.A.',
       partyB: '',
       nit: '',
       contractValue: '',
       startDate: '',
       endDate: '',
       contractObject: '',
-      voxelsera: '',
+      voxelsera: localStorage.getItem('doc-contract-voxel') || '',
     };
+    this.clientFilter = '';
     this.error.set(null);
   }
 
@@ -269,7 +353,7 @@ export class ContractsScreen implements OnInit {
     });
   }
 
-  save(): void {
+  save(andAnother = false): void {
     if (
       !this.model.contractType ||
       !this.model.partyB?.trim() ||
@@ -293,8 +377,14 @@ export class ContractsScreen implements OnInit {
     req.subscribe({
       next: (saved) => {
         this.saving.set(false);
-        this.showForm.set(false);
         if (!editId) {
+          localStorage.setItem('doc-contract-type', this.model.contractType);
+          localStorage.setItem('doc-contract-party-a', this.model.partyA);
+          localStorage.setItem('doc-contract-voxel', this.model.voxelsera);
+          const name = this.model.partyB.trim();
+          if (name && !this.clients().some((c) => c.name.toLowerCase() === name.toLowerCase())) {
+            this.clients.update((list) => [...list, { name, nit: this.model.nit || null }]);
+          }
           addToPrintQueue({
             id: saved.id,
             modulo: 'CONTRATOS',
@@ -308,7 +398,22 @@ export class ContractsScreen implements OnInit {
           this.queueCount.set(getPrintQueue().length);
           this.lastSaved.set(saved);
         }
-        this.resetForm();
+        if (andAnother && !editId) {
+          this.model.contractNumber = '';
+          this.model.partyB = '';
+          this.model.nit = '';
+          this.model.contractValue = '';
+          this.model.startDate = '';
+          this.model.endDate = '';
+          this.model.contractObject = '';
+          this.clientFilter = '';
+          this.clientOpen = false;
+          this.showForm.set(true);
+          this.api.nextContractCode().subscribe({ next: (r) => this.nextCode.set(r.numeric) });
+        } else {
+          this.showForm.set(false);
+          this.resetForm();
+        }
         this.load();
       },
       error: () => {
