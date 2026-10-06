@@ -81,7 +81,9 @@ export function campaignLetterHtml(opts: {
         </tr>
       </table>
     </td></tr>`;
-  const hero = '';
+  const hero = `<tr><td align="center" bgcolor="#ffffff" style="background-color:#ffffff;padding:0;font-size:0;line-height:0;">
+        <img src="https://portalcoraza-web.onrender.com/brand/campana/archivo.jpg" width="600" alt="Archivo central Coraza" style="border:0;display:block;outline:none;text-decoration:none;width:100%;max-width:600px;height:auto;">
+      </td></tr>`;
   const rows = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:8px 36px 28px;">
         <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">ARCHIVO CENTRAL</div>
         <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:8px 0 18px;">Tres piezas del día</div>
