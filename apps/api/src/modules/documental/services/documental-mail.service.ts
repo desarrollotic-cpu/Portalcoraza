@@ -130,7 +130,7 @@ export class DocumentalMailService {
    * Gmail documental@ → Recibidos del destinatario y carpeta Enviados de archivo.
    */
   /** Carta ya armada en HTML. `bccArchive` en falso evita copiar a documental@ en cada envío masivo. */
-  sendHtml(
+  async sendHtml(
     to: string,
     subject: string,
     htmlBody: string,
