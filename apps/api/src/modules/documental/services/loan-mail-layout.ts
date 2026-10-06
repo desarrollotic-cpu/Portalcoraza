@@ -56,71 +56,105 @@ export function campaignLetterHtml(opts: {
   imageUrl?: string;
 }): string {
   const name = displayName(opts.name) || 'señora / señor';
-  const head = `Georgia,"Times New Roman",serif`;
-  const body = `Arial,Helvetica,sans-serif`;
+  const font = `'Helvetica Neue',Arial,sans-serif`;
   const paragraphs = opts.body
     .split(/\n{2,}/)
     .map((block) => esc(block).replace(/\n/g, '<br>'))
     .filter((block) => block.trim())
     .map(
       (block) =>
-        `<p style="margin:0 0 16px;font-family:${body};font-size:16px;line-height:1.7;color:#3d4a5c;">${block}</p>`,
+        `<div style="font-family:${font};font-size:16px;line-height:22px;text-align:left;color:#555555;">${block}</div>`,
     )
-    .join('');
+    .join(
+      `<div style="font-size:0;line-height:0;height:16px;">&nbsp;</div>`,
+    );
   const image = opts.imageUrl
-    ? `<img src="${esc(opts.imageUrl)}" width="280" alt="" style="display:block;width:280px;max-width:86%;height:auto;border:0;margin:0 auto 18px;">`
+    ? `<tr><td align="center" style="font-size:0;padding:10px 25px 0;word-break:break-word;">
+        <img src="${esc(opts.imageUrl)}" width="220" height="auto" alt="Marcación de minuta" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:220px;margin:0 auto;">
+      </td></tr>`
     : '';
-  return `<!DOCTYPE html>
-<html lang="es">
+  return `<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Campaña · Gestión Documental</title>
+<!--[if !mso]><!-->
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<!--<![endif]-->
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style type="text/css">
+#outlook a { padding:0; }
+.ReadMsgBody { width:100%; }
+.ExternalClass { width:100%; }
+.ExternalClass * { line-height:100%; }
+body { margin:0; padding:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+table, td { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
+img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+</style>
+<!--[if mso]>
+<xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
+<![endif]-->
+<!--[if lte mso 11]>
+<style type="text/css">.outlook-group-fix { width:100% !important; }</style>
+<![endif]-->
 </head>
-<body style="margin:0;padding:0;background:#e8eef6;">
-<div style="display:none;max-height:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e8eef6;">
-<tr><td align="center" style="padding:28px 12px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;">
+<body style="background-color:#f9f9f9;margin:0;padding:0;">
+<div style="display:none;font-size:1px;color:#f9f9f9;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f9f9f9;" bgcolor="#f9f9f9">
+<tr><td align="center" style="padding:20px 12px;">
+<!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="width:600px;" width="600"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
+<table align="center" role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#ffffff;border:1px solid #dddddd;" bgcolor="#ffffff">
+  <tr><td height="5" bgcolor="#1d4e89" style="background-color:#1d4e89;font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr>
-    <td align="center" bgcolor="#ffffff" style="padding:28px 24px 18px;background:#ffffff;">
-      <img src="${LOGO_URL}" width="52" alt="Coraza Seguridad C.T.A." style="display:block;border:0;margin:0 auto 10px;">
-      <p style="margin:0;font-family:${head};font-size:28px;line-height:1;font-style:italic;color:#16315c;">Coraza</p>
-      <p style="margin:8px 0 0;font-family:${body};font-size:11px;letter-spacing:.28em;font-weight:700;color:#6d7c90;">CAMPAÑA · GESTIÓN DOCUMENTAL</p>
+    <td align="center" style="padding:28px 25px 8px;">
+      <img src="${LOGO_URL}" width="64" alt="Coraza Seguridad C.T.A." style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:64px;margin:0 auto;">
     </td>
   </tr>
   <tr>
-    <td align="center" bgcolor="#1d4e89" style="padding:36px 32px 40px;background:#1d4e89;">
-      ${image}
-      <p style="margin:0;font-family:${head};font-size:36px;line-height:1.15;font-weight:700;color:#ffffff;">${esc(opts.title)}</p>
-      <p style="margin:14px 0 0;font-family:${body};font-size:16px;line-height:1.5;color:#d5e4f5;">${esc(formatCityDate())}</p>
+    <td align="center" style="padding:8px 25px 0;word-break:break-word;">
+      <div style="font-family:${font};font-size:13px;font-weight:bold;letter-spacing:2px;line-height:16px;text-align:center;color:#1d4e89;">CAMPAÑA · GESTIÓN DOCUMENTAL</div>
+    </td>
+  </tr>
+  ${image}
+  <tr>
+    <td align="center" class="outlook-group-fix" style="padding:18px 25px 8px;word-break:break-word;">
+      <div style="font-family:${font};font-size:28px;font-weight:bold;line-height:34px;text-align:center;color:#333957;">${esc(opts.title)}</div>
     </td>
   </tr>
   <tr>
-    <td bgcolor="#ffffff" style="padding:32px 36px 8px;background:#ffffff;">
-      <p style="margin:0 0 8px;font-family:${head};font-size:26px;line-height:1.25;color:#16315c;">Estimado(a) ${esc(name)},</p>
-      <p style="margin:0 0 18px;font-family:${body};font-size:15px;line-height:1.6;color:#5c6b7c;">Un mensaje del archivo central de Coraza Seguridad C.T.A.</p>
+    <td align="center" style="padding:0 25px 22px;word-break:break-word;">
+      <div style="font-family:${font};font-size:14px;line-height:20px;text-align:center;color:#888888;">${esc(formatCityDate())}</div>
+    </td>
+  </tr>
+  <tr>
+    <td align="left" style="padding:6px 25px 10px;word-break:break-word;">
+      <div style="font-family:${font};font-size:16px;font-weight:bold;line-height:22px;text-align:left;color:#555555;">Estimado(a) ${esc(name)},</div>
+    </td>
+  </tr>
+  <tr>
+    <td align="left" style="padding:0 25px 24px;word-break:break-word;">
       ${paragraphs}
     </td>
   </tr>
   <tr>
-    <td bgcolor="#ffffff" style="padding:8px 36px 28px;background:#ffffff;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f7fb;">
+    <td style="padding:0 25px 28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f7fb;" bgcolor="#f4f7fb">
         <tr>
-          <td style="padding:18px 20px;">
-            <p style="margin:0;font-family:${body};font-size:15px;font-weight:700;color:#16315c;">Gestión Documental</p>
-            <p style="margin:6px 0 0;font-family:${body};font-size:14px;line-height:1.5;color:#3d4a5c;">Archivo Central · Medellín · PBX (604) 444 7929</p>
+          <td style="padding:16px 18px;word-break:break-word;">
+            <div style="font-family:${font};font-size:15px;font-weight:bold;line-height:20px;color:#333957;">Gestión Documental</div>
+            <div style="font-family:${font};font-size:14px;line-height:20px;color:#525252;padding-top:6px;">Archivo Central, Medellín. PBX (604) 444 7929</div>
           </td>
         </tr>
       </table>
     </td>
   </tr>
   <tr>
-    <td align="center" bgcolor="#ffffff" style="padding:4px 24px 28px;background:#ffffff;">
-      <p style="margin:0;font-family:${body};font-size:12px;line-height:1.5;color:#8a97a8;">Mensaje informativo. No responda a este correo.</p>
+    <td align="center" style="padding:4px 25px 24px;border-top:1px solid #dddddd;word-break:break-word;">
+      <div style="font-family:${font};font-size:12px;line-height:18px;text-align:center;color:#888888;padding-top:16px;">Mensaje informativo. No responda a este correo.</div>
     </td>
   </tr>
 </table>
+<!--[if mso | IE]></td></tr></table><![endif]-->
 </td></tr>
 </table>
 </body>
