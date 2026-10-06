@@ -68,27 +68,31 @@ export function campaignLetterHtml(opts: {
     )
     .join(`<div style="font-size:0;line-height:0;height:18px;">&nbsp;</div>`);
   const art = 'https://portalcoraza-web.onrender.com/brand/campana';
-  const row = (file: string, title: string, text: string) => `<tr>
-      <td width="156" valign="middle" style="width:156px;padding:0 18px 0 0;font-size:0;line-height:0;">
-        <img src="${art}/${file}" width="156" alt="${esc(title)}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:156px;">
-      </td>
-      <td valign="middle" style="word-break:break-word;">
-        <div style="font-family:${serif};font-size:22px;line-height:26px;color:#12182b;">${title}</div>
-        <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-top:6px;">${text}</div>
-      </td>
-    </tr>`;
+  const row = (file: string, title: string, text: string) => `<tr><td style="padding:0 0 12px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;">
+        <tr>
+          <td width="148" valign="middle" style="width:148px;padding:12px 0 12px 12px;font-size:0;line-height:0;">
+            <img src="${art}/${file}" width="148" alt="${esc(title)}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:148px;">
+          </td>
+          <td valign="middle" style="padding:16px 18px;word-break:break-word;">
+            <div style="font-family:${serif};font-size:22px;line-height:26px;color:#12182b;">${title}</div>
+            <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-top:6px;">${text}</div>
+          </td>
+        </tr>
+      </table>
+    </td></tr>`;
   const hero = opts.imageUrl
     ? `<tr><td align="center" bgcolor="#ffffff" style="background-color:#ffffff;padding:0;font-size:0;line-height:0;">
         <img src="${art}/archivo.jpg" width="600" alt="Archivo central Coraza" style="border:0;display:block;outline:none;text-decoration:none;width:100%;max-width:600px;height:auto;">
       </td></tr>`
     : '';
   const rows = opts.imageUrl
-    ? `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:4px 32px 36px;">
+    ? `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:6px 28px 32px;">
+        <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">ARCHIVO CENTRAL</div>
+        <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 16px;">Tres piezas del día a día</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
           ${row('minuta.jpg', 'La minuta', 'El puesto queda escrito, claro, en el registro.')}
-          <tr><td colspan="2" height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr>
           ${row('contrato.jpg', 'El contrato', 'Vigencia, lugar y archivo quedan en una sola pieza.')}
-          <tr><td colspan="2" height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr>
           ${row('control.jpg', 'El control', 'Cada documento se revisa antes de guardarse.')}
         </table>
       </td></tr>`
@@ -163,12 +167,21 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
   </tr>
   ${rows}
   <tr>
-    <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 40px 20px;word-break:break-word;">
-      <div style="font-family:${serif};font-size:22px;line-height:28px;color:#ffffff;">Gestión Documental</div>
-      <div style="font-family:${sans};font-size:12px;line-height:16px;letter-spacing:1px;color:#d5e2f2;padding-top:4px;">CORAZA SEGURIDAD C.T.A.</div>
-      <div style="font-family:${sans};font-size:14px;line-height:22px;color:#d5e2f2;padding-top:14px;">NIT 811.026.837-1<br>Carrera 81 No. 49-24, Medellín, Antioquia<br>PBX (604) 444 7929 · Tel. 234 7929</div>
-      <div style="font-family:${sans};font-size:14px;line-height:22px;padding-top:10px;"><a href="mailto:documental@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">documental@corazaseguridadcta.com</a><br><a href="mailto:info@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">info@corazaseguridadcta.com</a><br><a href="https://www.corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">www.corazaseguridadcta.com</a></div>
-      <div style="font-family:${sans};font-size:12px;line-height:18px;color:#b7c6da;padding-top:12px;">Vigilado Supervigilancia. Resolución 6889 del 29 de septiembre de 2011.</div>
+    <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 32px 22px;word-break:break-word;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td valign="top" width="48%" style="width:48%;padding:0 16px 0 0;">
+            <div style="font-family:${serif};font-size:22px;line-height:28px;color:#ffffff;">Gestión Documental</div>
+            <div style="font-family:${sans};font-size:12px;line-height:16px;letter-spacing:1px;color:#d5e2f2;padding-top:6px;">CORAZA SEGURIDAD C.T.A.</div>
+            <div style="font-family:${sans};font-size:13px;line-height:20px;color:#d5e2f2;padding-top:12px;">NIT 811.026.837-1</div>
+            <div style="font-family:${sans};font-size:12px;line-height:18px;color:#b7c6da;padding-top:10px;">Vigilado Supervigilancia. Resolución 6889 del 29 de septiembre de 2011.</div>
+          </td>
+          <td valign="top" width="52%" style="width:52%;">
+            <div style="font-family:${sans};font-size:14px;line-height:22px;color:#d5e2f2;">Carrera 81 No. 49-24<br>Medellín, Antioquia<br>PBX (604) 444 7929<br>Tel. 234 7929</div>
+            <div style="font-family:${sans};font-size:14px;line-height:22px;padding-top:10px;"><a href="mailto:documental@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">documental@corazaseguridadcta.com</a><br><a href="mailto:info@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">info@corazaseguridadcta.com</a><br><a href="https://www.corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">www.corazaseguridadcta.com</a></div>
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
   <tr>
