@@ -49,19 +49,4 @@ export class RadioControlController {
   fill(@CurrentUser() user: JwtPayload, @Body() body: UpsertManyDto) {
     return this.svc.upsertMany(user, body);
   }
-
-  @Get('minuta')
-  @RequireAnyPermissions('radio_control.view', 'operations.view')
-  minuta(@CurrentUser() user: JwtPayload) {
-    return this.svc.minutaHoy(user);
-  }
-
-  @Post('minuta')
-  @RequireAnyPermissions('radio_control.edit', 'radio_control.view', 'operations.view')
-  saveMinuta(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { registradoPor?: string; anotaciones?: string; novedades?: string },
-  ) {
-    return this.svc.saveMinuta(user, body);
-  }
 }

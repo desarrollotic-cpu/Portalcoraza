@@ -31,6 +31,5 @@ import { MinutaService } from './minuta.service';
   ],
   controllers: [MinutaController],
   providers: [MinutaService, MinutaSchemaBootstrap],
-  exports: [MinutaService],
 })
 export class MinutaModule {}

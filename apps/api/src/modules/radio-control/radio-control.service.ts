@@ -4,7 +4,6 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { MinutaService } from '../minuta/minuta.service';
 import {
   RADIO_CONTROL_SLOTS,
   isRadioControlSlot,
@@ -27,15 +26,9 @@ export type UpsertManyDto = {
   rosterIds?: string[];
 };
 
-const CONTROL_POST_CODE = 'CONTROL-CORAZA';
-const CONTROL_POST_NAME = 'CONTROL CORAZA';
-
 @Injectable()
 export class RadioControlService {
-  constructor(
-    private readonly ds: DataSource,
-    private readonly minuta: MinutaService,
-  ) {}
+  constructor(private readonly ds: DataSource) {}
 
   private q<T = Record<string, unknown>>(sql: string, params: unknown[] = []) {
     return this.ds.query(sql, params) as Promise<T[]>;
@@ -184,61 +177,6 @@ export class RadioControlService {
       [user.tenantId, d],
     );
     return { date: d, slots: RADIO_CONTROL_SLOTS, counts: rows };
-  }
-
-  async minutaHoy(user: JwtPayload) {
-    const postId = await this.controlPostId(user.tenantId);
-    const fecha = this.bogotaStamp().fecha;
-    const rows = await this.q<{
-      hora: string;
-      registradoPor: string | null;
-      anotaciones: string;
-      novedades: string | null;
-    }>(
-      `SELECT hora, registrado_por AS "registradoPor", anotaciones, novedades
-       FROM minuta_servicio
-       WHERE tenant_id = $1 AND post_id = $2 AND fecha = $3
-       ORDER BY created_at DESC
-       LIMIT 30`,
-      [user.tenantId, postId, fecha],
-    );
-    return { postName: CONTROL_POST_NAME, fecha, rows };
-  }
-
-  async saveMinuta(
-    user: JwtPayload,
-    body: { registradoPor?: string; anotaciones?: string; novedades?: string },
-  ) {
-    const registradoPor = String(body.registradoPor || '').trim();
-    const anotaciones = String(body.anotaciones || '').trim();
-    if (registradoPor.length < 2) throw new BadRequestException('Escriba quién registra');
-    if (anotaciones.length < 3) throw new BadRequestException('Escriba la anotación de la minuta');
-    const postId = await this.controlPostId(user.tenantId);
-    await this.minuta.crearServicio(user, {
-      registradoPor,
-      anotaciones,
-      novedades: String(body.novedades || '').trim() || undefined,
-      postId,
-    });
-    return this.minutaHoy(user);
-  }
-
-  private async controlPostId(tenantId: string): Promise<string> {
-    const [row] = await this.q<{ id: string }>(
-      `INSERT INTO posts (id, tenant_id, code, name, type, status, client_name)
-       VALUES (gen_random_uuid(), $1, $2, $3, 'SERVICIO_ESPECIAL', 'ACTIVO', 'Coraza Seguridad C.T.A.')
-       ON CONFLICT (tenant_id, code) DO UPDATE SET name = EXCLUDED.name
-       RETURNING id`,
-      [tenantId, CONTROL_POST_CODE, CONTROL_POST_NAME],
-    );
-    return row.id;
-  }
-
-  private bogotaStamp(): { fecha: string } {
-    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Bogota' }));
-    const dd = String(d.getDate()).padStart(2, '0');
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    return { fecha: `${dd}/${mm}/${d.getFullYear()}` };
   }
 
   private async assertRoster(tenantId: string, rosterId: string) {
