@@ -19,7 +19,9 @@ describe('campaignLetterHtml', () => {
     expect(html).toContain('Carrera 81 No. 49-24');
     expect(html).toContain('brand/campana/archivo.jpg');
     expect(html).toContain('brand/campana/minuta.jpg');
-    expect(html).toContain('La minuta');
+    expect(html).toContain('El nombre');
+    expect(html).toContain('campana/recibido.html?q=1&amp;a=b');
+    expect(html).toContain('Falta la hora exacta');
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });

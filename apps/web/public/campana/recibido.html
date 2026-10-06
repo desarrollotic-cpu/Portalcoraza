@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recibido de correspondencia · Coraza</title>
+<style>
+  body { margin:0; background:#e6ebf2; color:#12182b; font-family:Arial,Helvetica,sans-serif; }
+  main { max-width:640px; margin:0 auto; background:#f7f6f2; min-height:100vh; }
+  header { background:#16325c; color:#fff; padding:28px 24px 32px; }
+  .kicker { letter-spacing:2px; font-size:12px; font-weight:700; color:#d5e2f2; }
+  h1 { font-family:Georgia,"Times New Roman",serif; font-size:32px; line-height:1.2; margin:10px 0 0; }
+  .q { padding:22px 24px 6px; }
+  h2 { font-family:Georgia,"Times New Roman",serif; font-size:20px; margin:0 0 8px; }
+  .ask { margin:0 0 12px; line-height:1.45; color:#2c3344; }
+  button.opt { display:block; width:100%; text-align:left; background:#fff; border:1px solid #d5deea; padding:14px 16px; margin:0 0 8px; font-size:16px; line-height:1.4; cursor:pointer; color:#16325c; }
+  button.opt.good { background:#e7f6ec; border-color:#1f7a3a; }
+  button.opt.bad { background:#fdecee; border-color:#c8102e; }
+  .verdict { font-family:Georgia,"Times New Roman",serif; font-size:36px; margin:6px 0 4px; }
+  .verdict.good { color:#1f7a3a; }
+  .verdict.bad { color:#c8102e; }
+  .why { color:#3d4a5c; line-height:1.5; margin:0 0 8px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="kicker">CAMPAÑA · GESTIÓN DOCUMENTAL</div>
+    <h1>Al recibir correspondencia, deje todo claro</h1>
+  </header>
+  <div id="app"></div>
+</main>
+<script>
+var questions = [
+  {
+    id: '1',
+    text: '¿Qué debe llevar un recibido de correspondencia para que sea válido?',
+    options: [
+      ['a', 'Solo la firma'],
+      ['b', 'Nombre completo, fecha, hora y firma legible'],
+      ['c', 'Solo el sello de la empresa']
+    ],
+    ok: 'b',
+    why: 'Con los cuatro datos, el documento queda probado: quién lo recibió y cuándo.'
+  },
+  {
+    id: '2',
+    text: 'Recibió un sobre a las 3:40 p. m., pero escribe "en la tarde". ¿Qué está mal?',
+    options: [
+      ['a', 'Nada, la tarde es suficiente'],
+      ['b', 'Falta la hora exacta'],
+      ['c', 'Hay que esperar al día siguiente para anotarlo']
+    ],
+    ok: 'b',
+    why: 'Se anota la hora real (3:40 p. m.), porque "en la tarde" no sirve como prueba.'
+  }
+];
+var params = new URLSearchParams(location.search);
+var picked = { '1': null, '2': null };
+if (params.get('q') === '1' || params.get('q') === '2') picked[params.get('q')] = params.get('a');
+var app = document.getElementById('app');
+
+function draw() {
+  app.innerHTML = questions.map(function (q) {
+    var choice = picked[q.id];
+    var right = choice && choice === q.ok;
+    var verdict = '';
+    if (choice) {
+      verdict = '<p class="verdict ' + (right ? 'good' : 'bad') + '">' + (right ? 'Bien' : 'Mal') + '</p><p class="why">' + q.why + '</p>';
+    }
+    var opts = q.options.map(function (pair) {
+      var cls = 'opt';
+      if (choice && pair[0] === q.ok) cls += ' good';
+      else if (choice === pair[0]) cls += ' bad';
+      return '<button type="button" class="' + cls + '" data-q="' + q.id + '" data-a="' + pair[0] + '"><strong>' + pair[0] + ')</strong> ' + pair[1] + '</button>';
+    }).join('');
+    return '<section class="q" id="q' + q.id + '"><h2>Pregunta ' + q.id + '</h2><p class="ask">' + q.text + '</p>' + opts + verdict + '</section>';
+  }).join('');
+  var focus = params.get('q');
+  if (focus && document.getElementById('q' + focus)) document.getElementById('q' + focus).scrollIntoView();
+}
+
+app.addEventListener('click', function (e) {
+  var btn = e.target.closest('button');
+  if (!btn) return;
+  picked[btn.getAttribute('data-q')] = btn.getAttribute('data-a');
+  params = new URLSearchParams();
+  draw();
+});
+draw();
+</script>
+</body>
+</html>

@@ -19,6 +19,11 @@ class CampaignBodyDto {
   @IsOptional()
   @IsBoolean()
   includeImage?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(140)
+  banner?: string;
 }
 
 class CampaignPreviewDto extends CampaignBodyDto {
@@ -44,11 +49,11 @@ export class DocumentalCampaignController {
 
   @Post('preview')
   preview(@Body() dto: CampaignPreviewDto) {
-    return this.campaign.sendPreview(dto.to, dto.subject, dto.body, dto.includeImage !== false);
+    return this.campaign.sendPreview(dto.to, dto.subject, dto.body, dto.includeImage !== false, dto.banner);
   }
 
   @Post('send')
   send(@Body() dto: CampaignBodyDto) {
-    return this.campaign.start(dto.subject, dto.body, dto.includeImage !== false);
+    return this.campaign.start(dto.subject, dto.body, dto.includeImage !== false, dto.banner);
   }
 }

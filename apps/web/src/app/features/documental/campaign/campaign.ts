@@ -21,6 +21,9 @@ import { DOC_STYLES } from '../documental.styles';
       <label class="full">Asunto
         <input [(ngModel)]="subject" name="subject" maxlength="140" required />
       </label>
+      <label class="full">Título del cartel
+        <input [(ngModel)]="banner" name="banner" maxlength="140" required />
+      </label>
       <label class="full">Mensaje
         <textarea [(ngModel)]="body" name="body" rows="8" maxlength="4000" required placeholder="Escriba el comunicado. Un renglón en blanco separa párrafos."></textarea>
       </label>
@@ -60,9 +63,10 @@ export class CampaignScreen implements OnInit, OnDestroy {
   private readonly api = inject(DocumentalApiService);
   private timer: ReturnType<typeof setInterval> | null = null;
 
-  subject = 'Marque la minuta con el puesto, de forma clara';
+  subject = 'Escriba bien cuando reciba correspondencia';
+  banner = 'Al recibir correspondencia, deje todo claro';
   body =
-    'La minuta de cada puesto es el registro del servicio. Para que Gestión Documental pueda archivarla donde corresponde, el nombre del puesto tiene que verse claro y completo.\n\nSi la minuta no queda bien legible, perdemos el documento: no se puede saber a qué puesto corresponde.\n\nEn cada hoja debe leerse el nombre del puesto completo, la sede o el cliente, la fecha del servicio y una letra clara, sin tachar el puesto.';
+    'Cada documento que llega a la empresa tiene dueño, fecha y hora.\n\nSi usted lo recibe, su registro es la prueba de que llegó.';
   includeImage = true;
   testTo = '';
   readonly audience = signal<{ active: number; withEmail: number; withoutEmail: number } | null>(null);
@@ -95,7 +99,7 @@ export class CampaignScreen implements OnInit, OnDestroy {
       return;
     }
     this.busy.set(true);
-    this.api.campaignPreview({ to: this.testTo.trim(), subject: this.subject, body: this.body, includeImage: this.includeImage }).subscribe({
+    this.api.campaignPreview({ to: this.testTo.trim(), subject: this.subject, body: this.body, includeImage: this.includeImage, banner: this.banner }).subscribe({
       next: (res) => {
         this.busy.set(false);
         this.notice.set(res.ok ? 'Prueba enviada. Revise la bandeja.' : res.error || 'No se pudo enviar la prueba');
@@ -111,7 +115,7 @@ export class CampaignScreen implements OnInit, OnDestroy {
     const n = this.audience()?.withEmail ?? 0;
     if (!confirm(`Se enviará el comunicado a ${n} asociados activos. ¿Continuar?`)) return;
     this.busy.set(true);
-    this.api.campaignSend({ subject: this.subject, body: this.body, includeImage: this.includeImage }).subscribe({
+    this.api.campaignSend({ subject: this.subject, body: this.body, includeImage: this.includeImage, banner: this.banner }).subscribe({
       next: (row) => {
         this.busy.set(false);
         this.notice.set(`Campaña iniciada para ${row.total} personas`);

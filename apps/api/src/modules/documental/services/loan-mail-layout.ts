@@ -49,11 +49,15 @@ function fact(label: string, value: string): string {
   </td></tr>`;
 }
 
+const QUIZ_PAGE = 'https://portalcoraza-web.onrender.com/campana/recibido.html';
+
 export function campaignLetterHtml(opts: {
   name: string;
   title: string;
   body: string;
   imageUrl?: string;
+  /** Cartel del banner. Si falta, se usa el asunto. */
+  banner?: string;
 }): string {
   const name = displayName(opts.name) || 'señora / señor';
   const serif = `Georgia,'Times New Roman',serif`;
@@ -86,17 +90,49 @@ export function campaignLetterHtml(opts: {
         <img src="${art}/archivo.jpg" width="600" alt="Archivo central Coraza" style="border:0;display:block;outline:none;text-decoration:none;width:100%;max-width:600px;height:auto;">
       </td></tr>`
     : '';
-  const rows = opts.imageUrl
-    ? `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:6px 28px 32px;">
+  const rows = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:6px 28px 32px;">
         <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">ARCHIVO CENTRAL</div>
-        <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 16px;">Tres piezas del día a día</div>
+        <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 16px;">Tres piezas del día</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          ${row('minuta.jpg', 'La minuta', 'El puesto queda escrito, claro, en el registro.')}
-          ${row('contrato.jpg', 'El contrato', 'Vigencia, lugar y archivo quedan en una sola pieza.')}
-          ${row('control.jpg', 'El control', 'Cada documento se revisa antes de guardarse.')}
+          ${row('minuta.jpg', '1. El nombre', 'Escriba su nombre completo, en letra clara. Sin apodos ni iniciales sueltas.')}
+          ${row('control.jpg', '2. La fecha y la hora', 'Anote el día y la hora exacta en que lo recibió, no la aproximada.')}
+          ${row('contrato.jpg', '3. La firma', 'Firme de forma legible. Un recibido sin firma no cuenta.')}
         </table>
-      </td></tr>`
-    : '';
+      </td></tr>`;
+  const headline = opts.banner?.trim() || opts.title;
+  const option = (q: number, key: string, label: string) =>
+    `<tr><td style="padding:0 0 8px;">
+      <a href="${QUIZ_PAGE}?q=${q}&amp;a=${key}" style="display:block;background-color:#ffffff;border:1px solid #d5deea;color:#16325c;font-family:${sans};font-size:15px;line-height:22px;text-decoration:none;padding:12px 16px;"><strong>${key})</strong> ${esc(label)}</a>
+    </td></tr>`;
+  const quiz = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:0 28px 28px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#16325c" style="background-color:#16325c;">
+        <tr><td style="padding:18px 20px;">
+          <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:2px;color:#ffb4be;">MINI-RETO DE LA SEMANA</div>
+          <div style="font-family:${sans};font-size:16px;line-height:24px;color:#ffffff;padding-top:8px;">Hoy, antes de firmar un recibido, lea en voz baja: nombre, fecha, hora, firma.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px 28px 8px;">
+      <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">CIERRE</div>
+      <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 8px;">Dos preguntas</div>
+      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-bottom:8px;">Elija una. Al tocarla se abre el resultado: bien o mal.</div>
+    </td></tr>
+    <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 12px;">
+      <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">1. ¿Qué debe llevar un recibido de correspondencia para que sea válido?</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${option(1, 'a', 'Solo la firma')}
+        ${option(1, 'b', 'Nombre completo, fecha, hora y firma legible')}
+        ${option(1, 'c', 'Solo el sello de la empresa')}
+      </table>
+    </td></tr>
+    <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 28px;">
+      <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">2. Recibió un sobre a las 3:40 p. m., pero escribe "en la tarde". ¿Qué está mal?</div>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        ${option(2, 'a', 'Nada, la tarde es suficiente')}
+        ${option(2, 'b', 'Falta la hora exacta')}
+        ${option(2, 'c', 'Hay que esperar al día siguiente para anotarlo')}
+      </table>
+    </td></tr>`;
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="es">
 <head>
@@ -142,7 +178,7 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
   ${hero}
   <tr>
     <td align="center" bgcolor="#16325c" class="outlook-group-fix" style="background-color:#16325c;padding:22px 36px 8px;word-break:break-word;">
-      <div class="hero-title" style="font-family:${serif};font-size:40px;line-height:46px;text-align:center;color:#ffffff;">${esc(opts.title)}</div>
+      <div class="hero-title" style="font-family:${serif};font-size:40px;line-height:46px;text-align:center;color:#ffffff;">${esc(headline)}</div>
     </td>
   </tr>
   <tr>
@@ -166,6 +202,7 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
     </td>
   </tr>
   ${rows}
+  ${quiz}
   <tr>
     <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 32px 22px;word-break:break-word;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">

@@ -46,12 +46,12 @@ export class DocumentalCampaignService {
     return { active: rows.length, withEmail, withoutEmail: rows.length - withEmail };
   }
 
-  async sendPreview(to: string, subject: string, body: string, includeImage = true) {
-    const html = this.letter('Equipo de archivo', subject, body, includeImage);
+  async sendPreview(to: string, subject: string, body: string, includeImage = true, banner?: string) {
+    const html = this.letter('Equipo de archivo', subject, body, includeImage, banner);
     return this.mail.sendHtml(to, subject, html, { bccArchive: false, noReply: true });
   }
 
-  async start(subject: string, body: string, includeImage = true): Promise<CampaignStatus> {
+  async start(subject: string, body: string, includeImage = true, banner?: string): Promise<CampaignStatus> {
     if (this.state.running) {
       throw new ConflictException('Ya hay una campaña enviándose');
     }
@@ -70,7 +70,7 @@ export class DocumentalCampaignService {
       skipped: 0,
       lastError: null,
     };
-    void this.run(people, title, text, includeImage);
+    void this.run(people, title, text, includeImage, banner);
     return this.status();
   }
 
@@ -79,10 +79,11 @@ export class DocumentalCampaignService {
     subject: string,
     body: string,
     includeImage: boolean,
+    banner?: string,
   ) {
     for (const person of people) {
       const name = [person.firstName, person.firstLastName].filter(Boolean).join(' ').trim();
-      const html = this.letter(name || 'asociado', subject, body, includeImage);
+      const html = this.letter(name || 'asociado', subject, body, includeImage, banner);
       try {
         const result = await this.mail.sendHtml(String(person.email), subject, html, { bccArchive: false, noReply: true });
         if (result.ok) this.state.sent += 1;
@@ -100,10 +101,11 @@ export class DocumentalCampaignService {
     this.logger.log(`Campaña "${subject}": ${this.state.sent} enviados, ${this.state.failed} fallidos`);
   }
 
-  private letter(name: string, subject: string, body: string, includeImage: boolean) {
+  private letter(name: string, subject: string, body: string, includeImage: boolean, banner?: string) {
     return campaignLetterHtml({
       name,
       title: subject,
+      banner,
       body,
       imageUrl: includeImage ? CAMPAIGN_IMAGE : undefined,
     });
