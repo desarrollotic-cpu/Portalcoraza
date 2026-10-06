@@ -15,7 +15,9 @@ describe('campaignLetterHtml', () => {
     expect(html).toContain('Gestión Documental');
     expect(html).toContain('No responda a este correo');
     expect(html).not.toContain('documental@');
-    expect(html).toContain('minuta-marcacion.png');
+    expect(html).toContain('brand/campana/archivo.jpg');
+    expect(html).toContain('brand/campana/minuta.jpg');
+    expect(html).toContain('La minuta');
     expect(html).not.toContain('<script>');
     expect(html).toContain('&lt;script&gt;');
   });

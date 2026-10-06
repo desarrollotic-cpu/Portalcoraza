@@ -67,9 +67,30 @@ export function campaignLetterHtml(opts: {
         `<div style="font-family:${sans};font-size:17px;line-height:28px;text-align:left;color:#2c3344;">${block}</div>`,
     )
     .join(`<div style="font-size:0;line-height:0;height:18px;">&nbsp;</div>`);
-  const image = opts.imageUrl
-    ? `<tr><td align="center" bgcolor="#16325c" style="background-color:#16325c;font-size:0;padding:8px 32px 6px;">
-        <img src="${esc(opts.imageUrl)}" width="260" alt="Marcación de minuta" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:260px;margin:0 auto;">
+  const art = 'https://portalcoraza-web.onrender.com/brand/campana';
+  const row = (file: string, title: string, text: string) => `<tr>
+      <td width="156" valign="middle" style="width:156px;padding:0 18px 0 0;font-size:0;line-height:0;">
+        <img src="${art}/${file}" width="156" alt="${esc(title)}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:156px;">
+      </td>
+      <td valign="middle" style="word-break:break-word;">
+        <div style="font-family:${serif};font-size:22px;line-height:26px;color:#12182b;">${title}</div>
+        <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-top:6px;">${text}</div>
+      </td>
+    </tr>`;
+  const hero = opts.imageUrl
+    ? `<tr><td align="center" bgcolor="#ffffff" style="background-color:#ffffff;padding:0;font-size:0;line-height:0;">
+        <img src="${art}/archivo.jpg" width="600" alt="Archivo central Coraza" style="border:0;display:block;outline:none;text-decoration:none;width:100%;max-width:600px;height:auto;">
+      </td></tr>`
+    : '';
+  const rows = opts.imageUrl
+    ? `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:4px 32px 36px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+          ${row('minuta.jpg', 'La minuta', 'El puesto queda escrito, claro, en el registro.')}
+          <tr><td colspan="2" height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+          ${row('contrato.jpg', 'El contrato', 'Vigencia, lugar y archivo quedan en una sola pieza.')}
+          <tr><td colspan="2" height="20" style="font-size:0;line-height:0;">&nbsp;</td></tr>
+          ${row('control.jpg', 'El control', 'Cada documento se revisa antes de guardarse.')}
+        </table>
       </td></tr>`
     : '';
   return `<!doctype html>
@@ -114,7 +135,7 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
     </td>
   </tr>
   <tr><td height="6" bgcolor="#c8102e" style="background-color:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr>
-  ${image}
+  ${hero}
   <tr>
     <td align="center" bgcolor="#16325c" class="outlook-group-fix" style="background-color:#16325c;padding:22px 36px 8px;word-break:break-word;">
       <div class="hero-title" style="font-family:${serif};font-size:40px;line-height:46px;text-align:center;color:#ffffff;">${esc(opts.title)}</div>
@@ -136,10 +157,11 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
     </td>
   </tr>
   <tr>
-    <td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:14px 40px 32px;word-break:break-word;">
+    <td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:14px 40px 28px;word-break:break-word;">
       ${paragraphs}
     </td>
   </tr>
+  ${rows}
   <tr>
     <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 40px 22px;word-break:break-word;">
       <div style="font-family:${serif};font-size:22px;line-height:28px;color:#ffffff;">Gestión Documental</div>
