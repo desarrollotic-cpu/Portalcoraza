@@ -18,6 +18,12 @@ interface BoardRow {
   notes: string | null;
 }
 
+interface MinutaHoy {
+  postName: string;
+  fecha: string;
+  rows: Array<{ hora: string; registradoPor: string | null; anotaciones: string; novedades: string | null }>;
+}
+
 interface BoardPayload {
   date: string;
   slot: string;
@@ -94,6 +100,43 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           Guardar y siguiente franja
         </button>
       </div>
+
+      <section class="rc-minuta">
+        <h4>Minuta virtual · Control Coraza</h4>
+        <p class="hr-muted">La anotación queda en la minuta de este puesto.</p>
+        <div class="rc-minuta-form">
+          <label>
+            Quién registra
+            <input type="text" [(ngModel)]="registradoPor" maxlength="80" />
+          </label>
+          <label class="rc-grow">
+            Anotación
+            <textarea [(ngModel)]="anotaciones" rows="2" maxlength="2000"></textarea>
+          </label>
+          <label class="rc-grow">
+            Novedad
+            <textarea [(ngModel)]="novedades" rows="2" maxlength="2000" placeholder="Opcional"></textarea>
+          </label>
+          <button type="button" class="hr-btn hr-btn-primary" [disabled]="minutaBusy() || !canEdit()" (click)="saveMinuta()">
+            Guardar minuta
+          </button>
+        </div>
+        @if (minuta(); as m) {
+          @if (m.rows.length) {
+            <ul class="rc-minuta-list">
+              @for (row of m.rows; track $index) {
+                <li>
+                  <strong>{{ row.hora }}</strong>
+                  {{ row.registradoPor || '—' }} — {{ row.anotaciones }}
+                  @if (row.novedades) {
+                    <span class="hr-muted"> · {{ row.novedades }}</span>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        }
+      </section>
 
       @if (loading()) {
         <p class="hr-muted">Cargando…</p>
@@ -216,6 +259,42 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     .rc-done td {
       background: #f8fafc;
     }
+    .rc-minuta {
+      margin: 0 0 1rem;
+      padding: 0.9rem 1rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      background: #fff;
+    }
+    .rc-minuta h4 {
+      margin: 0 0 0.2rem;
+    }
+    .rc-minuta-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: end;
+      margin-top: 0.6rem;
+    }
+    .rc-minuta-form label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+      min-width: 160px;
+    }
+    .rc-minuta-form textarea,
+    .rc-minuta-form input {
+      font: inherit;
+      padding: 0.4rem 0.5rem;
+    }
+    .rc-minuta-list {
+      margin: 0.75rem 0 0;
+      padding-left: 1.1rem;
+    }
+    .rc-minuta-list li {
+      margin: 0.25rem 0;
+    }
   `,
 })
 export class RadioControlPage implements OnInit {
@@ -229,11 +308,16 @@ export class RadioControlPage implements OnInit {
   date = new Date().toISOString().slice(0, 10);
   slot = this.nearestSlot();
   q = '';
+  registradoPor = '';
+  anotaciones = '';
+  novedades = '';
 
   readonly board = signal<BoardPayload | null>(null);
   readonly loading = signal(false);
   readonly busy = signal(false);
   readonly savingId = signal<string | null>(null);
+  readonly minutaBusy = signal(false);
+  readonly minuta = signal<MinutaHoy | null>(null);
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -247,6 +331,7 @@ export class RadioControlPage implements OnInit {
 
   ngOnInit(): void {
     this.reload();
+    this.loadMinuta();
   }
 
   onSearch(): void {
@@ -373,6 +458,39 @@ export class RadioControlPage implements OnInit {
           this.busy.set(false);
           this.toast.error(e?.error?.message || 'No se pudo guardar la franja');
         },
+      });
+  }
+
+  saveMinuta(): void {
+    if (!this.canEdit()) return;
+    this.minutaBusy.set(true);
+    this.http
+      .post<MinutaHoy>(`${environment.apiUrl}/radio-control/minuta`, {
+        registradoPor: this.registradoPor,
+        anotaciones: this.anotaciones,
+        novedades: this.novedades,
+      })
+      .subscribe({
+        next: (m) => {
+          this.minuta.set(m);
+          this.anotaciones = '';
+          this.novedades = '';
+          this.minutaBusy.set(false);
+          this.toast.success('Minuta guardada');
+        },
+        error: (e) => {
+          this.minutaBusy.set(false);
+          this.toast.error(e?.error?.message || 'No se pudo guardar la minuta');
+        },
+      });
+  }
+
+  private loadMinuta(): void {
+    this.http
+      .get<MinutaHoy>(`${environment.apiUrl}/radio-control/minuta`)
+      .subscribe({
+        next: (m) => this.minuta.set(m),
+        error: () => undefined,
       });
   }
 
