@@ -48,10 +48,28 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
   template: `
     <div class="hr-page">
       <app-hr-page-header
-        title="Control"
-        subtitle="Reporte de radio (orden Excel) · independiente de puestos del portal"
+        title="Control Coraza"
+        subtitle="Puesto de vigilancia. Minuta virtual y reporte de radio."
       />
 
+      <nav class="hr-tabs rc-tabs">
+        <button type="button" class="hr-tab" [class.active]="panel() === 'minuta'" (click)="panel.set('minuta')">
+          Minuta virtual
+        </button>
+        <button type="button" class="hr-tab" [class.active]="panel() === 'radio'" (click)="panel.set('radio')">
+          Control de radio
+        </button>
+      </nav>
+
+      <section class="rc-pane" [class.active]="panel() === 'minuta'">
+        <iframe
+          class="rc-minuta-frame"
+          title="Minuta virtual Control Coraza"
+          src="https://portalcoraza-minuta.onrender.com/?embed=1"
+        ></iframe>
+      </section>
+
+      <section class="rc-pane" [class.active]="panel() === 'radio'">
       <div class="hr-filters rc-filters">
         <label>
           Fecha
@@ -94,16 +112,6 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           Guardar y siguiente franja
         </button>
       </div>
-
-      <section class="rc-minuta">
-        <h4>Minuta virtual · Control Coraza</h4>
-        <p class="hr-muted">La misma minuta de los vigilantes, con la sesión de Control.</p>
-        <iframe
-          class="rc-minuta-frame"
-          title="Minuta virtual Control Coraza"
-          src="https://portalcoraza-minuta.onrender.com/?embed=1"
-        ></iframe>
-      </section>
 
       @if (loading()) {
         <p class="hr-muted">Cargando…</p>
@@ -148,9 +156,19 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           </table>
         </div>
       }
+      </section>
     </div>
   `,
   styles: `
+    .rc-tabs {
+      margin-bottom: 1rem;
+    }
+    .rc-pane {
+      display: none;
+    }
+    .rc-pane.active {
+      display: block;
+    }
     .rc-filters {
       display: flex;
       flex-wrap: wrap;
@@ -226,23 +244,13 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     .rc-done td {
       background: #f8fafc;
     }
-    .rc-minuta {
-      margin: 0 0 1rem;
-      padding: 0.9rem 1rem 1rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      background: #fff;
-    }
-    .rc-minuta h4 {
-      margin: 0 0 0.2rem;
-    }
     .rc-minuta-frame {
       display: block;
       width: 100%;
-      height: 720px;
-      margin-top: 0.6rem;
+      height: calc(100vh - 210px);
+      min-height: 560px;
       border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border-radius: 10px;
       background: #fff;
     }
   `,
@@ -252,6 +260,7 @@ export class RadioControlPage implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
+  readonly panel = signal<'minuta' | 'radio'>('minuta');
   readonly slots = SLOTS;
   readonly statuses = STATUSES;
 
