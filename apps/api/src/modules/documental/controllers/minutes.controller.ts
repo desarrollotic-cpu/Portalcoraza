@@ -13,6 +13,12 @@ import { MinutesService } from '../services/minutes.service';
 export class MinutesController {
   constructor(private readonly service: MinutesService) {}
 
+  @Get('puestos')
+  @RequirePermissions('documental.view')
+  puestos(@CurrentUser() user: JwtPayload) {
+    return this.service.postNames(user.tenantId);
+  }
+
   @Get()
   @RequirePermissions('documental.view')
   list(@Query('q') q?: string) {

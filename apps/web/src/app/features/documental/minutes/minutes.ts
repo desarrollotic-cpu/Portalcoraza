@@ -48,7 +48,18 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
             <option value="CORRESPONDENCIA"> CORRESPONDENCIA — Paquetería y Sobres</option>
           </select>
         </label>
-        <label>Nombre del Puesto de Vigilancia *<input [(ngModel)]="model.postName" name="postName" required placeholder="Ej: Puesto Central, Torre Norte, Shangrila..." /></label>
+        <label>Nombre del Puesto de Vigilancia *
+          @if (posts().length) {
+            <select [(ngModel)]="model.postName" name="postName" required>
+              <option value="">Seleccione el puesto</option>
+              @for (name of posts(); track name) {
+                <option [value]="name">{{ name }}</option>
+              }
+            </select>
+          } @else {
+            <input [(ngModel)]="model.postName" name="postName" required placeholder="Nombre del puesto" />
+          }
+        </label>
         <label>Fecha Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
         <label>Fecha Cierre *<input type="date" [(ngModel)]="model.closeDate" name="closeDate" required /></label>
         <label>
@@ -69,8 +80,13 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
         <label class="full">Observaciones (Opcional)<textarea [(ngModel)]="model.observations" name="observations" rows="2" placeholder="Novedades de cierre, estado del libro físico..."></textarea></label>
         <div class="actions">
           <button type="submit" class="btn-primary" [disabled]="saving()">
-            {{ editingId() ? 'Guardar cambios' : 'Guardar Minuta' }}
+            {{ editingId() ? 'Guardar cambios' : 'Guardar minuta' }}
           </button>
+          @if (!editingId()) {
+            <button type="button" class="btn-ghost" [disabled]="saving()" (click)="save(true)">
+              Guardar y otra
+            </button>
+          }
           @if (error()) { <span class="error">{{ error() }}</span> }
         </div>
       </form>
@@ -141,6 +157,7 @@ export class MinutesScreen implements OnInit {
   readonly canCreate = computed(() => this.auth.hasPermission('documental.create'));
   readonly editingId = signal<string | null>(null);
   readonly editingCode = signal('');
+  readonly posts = signal<string[]>([]);
 
   model = {
     minuteType: 'SERVICIO',
@@ -156,6 +173,13 @@ export class MinutesScreen implements OnInit {
   ngOnInit(): void {
     this.refreshQueue();
     this.load();
+    this.api.listMinutePosts().subscribe({
+      next: (names) => {
+        const current = localStorage.getItem('doc-minute-post');
+        this.posts.set(current && !names.includes(current) ? [current, ...names] : names);
+      },
+      error: () => this.posts.set([]),
+    });
   }
 
   toggle(): void {
@@ -179,6 +203,8 @@ export class MinutesScreen implements OnInit {
       voxelsera: m.voxelsera ?? '',
       observations: m.observations ?? '',
     };
+    const name = m.postName ?? '';
+    if (name && !this.posts().includes(name)) this.posts.update((list) => [name, ...list]);
     this.error.set(null);
     this.showForm.set(true);
   }
@@ -187,11 +213,11 @@ export class MinutesScreen implements OnInit {
     this.editingId.set(null);
     this.editingCode.set('');
     this.model = {
-      minuteType: 'SERVICIO',
-      postName: '',
+      minuteType: localStorage.getItem('doc-minute-type') || 'SERVICIO',
+      postName: localStorage.getItem('doc-minute-post') || '',
       startDate: '',
       closeDate: '',
-      voxelsera: '',
+      voxelsera: localStorage.getItem('doc-minute-voxel') || '',
       observations: '',
     };
     this.error.set(null);
@@ -217,7 +243,7 @@ export class MinutesScreen implements OnInit {
     });
   }
 
-  save(): void {
+  save(andAnother = false): void {
     if (
       !this.model.minuteType ||
       !this.model.postName?.trim() ||
@@ -237,8 +263,10 @@ export class MinutesScreen implements OnInit {
     req.subscribe({
       next: (saved) => {
         this.saving.set(false);
-        this.showForm.set(false);
         if (!editId) {
+          localStorage.setItem('doc-minute-type', this.model.minuteType);
+          localStorage.setItem('doc-minute-post', this.model.postName);
+          localStorage.setItem('doc-minute-voxel', this.model.voxelsera);
           const slot = saved.voxelsera || this.model.voxelsera || 'Estante A';
           addToPrintQueue({
             id: saved.id,
@@ -251,7 +279,15 @@ export class MinutesScreen implements OnInit {
           this.refreshQueue();
           this.lastSaved.set(saved);
         }
-        this.resetForm();
+        if (andAnother && !editId) {
+          this.model.startDate = '';
+          this.model.closeDate = '';
+          this.model.observations = '';
+          this.showForm.set(true);
+        } else {
+          this.showForm.set(false);
+          this.resetForm();
+        }
         this.load();
       },
       error: () => {

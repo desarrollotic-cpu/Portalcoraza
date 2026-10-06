@@ -23,6 +23,20 @@ export class MinutesService {
     private readonly audit: AuditService,
   ) {}
 
+  async postNames(tenantId: string): Promise<string[]> {
+    const rows = await this.repo.manager.query(
+      `SELECT name FROM (
+         SELECT name FROM posts WHERE status = 'ACTIVO' AND tenant_id = $1
+         UNION
+         SELECT post_name AS name FROM doc_minutes
+         WHERE post_name IS NOT NULL AND btrim(post_name) <> '' AND tenant_id = $1
+       ) puestos
+       ORDER BY name`,
+      [tenantId],
+    );
+    return rows.map((row: { name: string }) => row.name);
+  }
+
   list(q?: string) {
     const clean = (q || '').replace(/^#/, '').trim().replace(/[%_]/g, '');
     const qb = this.repo.createQueryBuilder('m');

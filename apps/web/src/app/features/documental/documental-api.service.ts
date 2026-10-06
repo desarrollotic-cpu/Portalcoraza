@@ -269,6 +269,9 @@ export class DocumentalApiService {
   }
 
   // Minutas
+  listMinutePosts(): Observable<string[]> {
+    return this.http.get<string[]>(`${this.baseUrl}/minutes/puestos`);
+  }
   listMinutes(q?: string): Observable<Minute[]> {
     const query = (q || '').trim();
     return this.http.get<Minute[]>(`${this.baseUrl}/minutes`, {
