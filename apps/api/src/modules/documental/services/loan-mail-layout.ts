@@ -62,12 +62,16 @@ export function campaignLetterHtml(opts: {
     .filter((block) => block.trim())
     .map(
       (block) =>
-        `<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#243044;">${block}</p>`,
+        `<p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#14162c;">${block}</p>`,
     )
     .join('');
   const image = opts.imageUrl
-    ? `<tr><td align="center" style="padding:28px 36px 0;background:#ffffff;">
-        <img src="${esc(opts.imageUrl)}" width="280" alt="" style="display:block;width:280px;max-width:100%;height:auto;border:0;">
+    ? `<tr><td align="center" style="padding:8px 40px 0;background:#f3f4f8;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #d5d8e4;">
+          <tr><td style="padding:12px;background:#eef0f6;">
+            <img src="${esc(opts.imageUrl)}" width="260" alt="" style="display:block;width:260px;max-width:100%;height:auto;border:0;">
+          </td></tr>
+        </table>
       </td></tr>`
     : '';
   return `<!DOCTYPE html>
@@ -77,46 +81,50 @@ export function campaignLetterHtml(opts: {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Campaña · Gestión Documental</title>
 </head>
-<body style="margin:0;padding:0;background:#e7edf3;">
+<body style="margin:0;padding:0;background:#0c1020;">
 <div style="display:none;max-height:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#e7edf3;">
-<tr><td align="center" style="padding:28px 12px;">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#ffffff;border:1px solid #d5dee8;font-family:${FONT};">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#0c1020;">
+<tr><td align="center" style="padding:32px 12px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background:#f3f4f8;font-family:${FONT};">
   <tr>
-    <td align="center" style="padding:26px 32px 18px;background:#ffffff;">
-      <img src="${LOGO_URL}" width="56" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
+    <td bgcolor="#2a2a6e" style="padding:22px 28px;background:#2a2a6e;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td bgcolor="#ffffff" style="background:#ffffff;padding:8px;">
+            <img src="${LOGO_URL}" width="52" alt="Coraza Seguridad C.T.A." style="display:block;border:0;">
+          </td>
+          <td style="padding-left:16px;font-family:Georgia,'Times New Roman',serif;">
+            <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:.22em;color:#f3f4f8;">CAMPAÑA</p>
+            <p style="margin:6px 0 0;font-size:22px;line-height:1.15;font-weight:700;color:#ffffff;">Gestión Documental</p>
+          </td>
+        </tr>
+      </table>
     </td>
   </tr>
+  <tr><td height="4" bgcolor="#c8102e" style="background:#c8102e;font-size:0;line-height:0;">&nbsp;</td></tr>
   <tr>
-    <td align="center" bgcolor="#0b1f3a" style="padding:20px 28px 18px;background:#0b1f3a;">
-      <p style="margin:0;font-size:11px;letter-spacing:.28em;font-weight:700;color:#d4bc74;">CAMPAÑA</p>
-      <p style="margin:8px 0 0;font-size:22px;line-height:1.2;font-weight:700;color:#ffffff;">Gestión Documental</p>
+    <td style="padding:28px 40px 0;background:#f3f4f8;">
+      <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:12px;letter-spacing:.04em;color:#414099;">${esc(formatCityDate())}</p>
+      <p style="margin:14px 0 0;font-family:Georgia,'Times New Roman',serif;font-size:28px;line-height:1.25;font-weight:700;color:#14162c;">${esc(opts.title)}</p>
     </td>
   </tr>
-  <tr><td height="3" bgcolor="#b8952c" style="background:#b8952c;font-size:0;line-height:0;">&nbsp;</td></tr>
   ${image}
   <tr>
-    <td style="padding:28px 36px 0;">
-      <p style="margin:0;font-size:12px;letter-spacing:.04em;color:#8a6a1f;">${esc(formatCityDate())}</p>
-      <p style="margin:12px 0 0;font-size:24px;line-height:1.3;font-weight:700;color:#0b1f3a;">${esc(opts.title)}</p>
-    </td>
-  </tr>
-  <tr>
-    <td style="padding:22px 36px 0;">
-      <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#0b1f3a;">Estimado(a) ${esc(name)},</p>
+    <td style="padding:24px 40px 0;background:#f3f4f8;">
+      <p style="margin:0 0 16px;font-size:16px;line-height:1.7;color:#14162c;">Estimado(a) ${esc(name)},</p>
       ${paragraphs}
     </td>
   </tr>
   <tr>
-    <td style="padding:8px 36px 32px;">
-      <p style="margin:0;padding-top:16px;border-top:1px solid #e4dcc8;font-size:14px;font-weight:700;color:#0b1f3a;">Gestión Documental</p>
-      <p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#5c6b7a;">Archivo Central · PBX (604) 444 7929</p>
-      <p style="margin:10px 0 0;font-size:12px;line-height:1.5;color:#8a6a1f;">Mensaje informativo. No responda a este correo.</p>
+    <td style="padding:8px 40px 28px;background:#f3f4f8;">
+      <p style="margin:0;padding-top:16px;border-top:1px solid #d5d8e4;font-size:14px;font-weight:700;color:#14162c;">Gestión Documental</p>
+      <p style="margin:4px 0 0;font-size:13px;line-height:1.5;color:#414099;">Archivo Central · PBX (604) 444 7929</p>
+      <p style="margin:10px 0 0;font-size:12px;line-height:1.5;color:#5c6178;">Mensaje informativo. No responda a este correo.</p>
     </td>
   </tr>
   <tr>
-    <td align="center" bgcolor="#0b1f3a" style="padding:14px 24px;background:#0b1f3a;">
-      <p style="margin:0;font-size:11px;letter-spacing:.16em;color:#d4bc74;">CAMPAÑA · GESTIÓN DOCUMENTAL</p>
+    <td align="center" bgcolor="#0c1020" style="padding:16px 24px;background:#0c1020;">
+      <p style="margin:0;font-family:'Courier New',Courier,monospace;font-size:11px;letter-spacing:.18em;color:#f3f4f8;">CAMPAÑA · GESTIÓN DOCUMENTAL</p>
     </td>
   </tr>
 </table>
