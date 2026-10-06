@@ -155,7 +155,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
   {
     label: 'Operación',
     items: [
-      { label: 'Control', route: '/control', icon: LucideRadio, match: 'exact', permission: 'radio_control.view' },
+      { label: 'Control', route: '/control', icon: LucideRadio, match: 'exact', permissions: ['radio_control.view', 'operations.view'] },
       { label: 'Operaciones', route: '/operaciones', icon: LucideBriefcaseBusiness, permission: 'operations.view', children: OPERACIONES_NAV },
       { label: 'Recursos Humanos', route: '/rrhh', icon: LucideUsersRound, permissions: ['associates.view', 'hr_dashboard.view'], children: RRHH_NAV },
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },

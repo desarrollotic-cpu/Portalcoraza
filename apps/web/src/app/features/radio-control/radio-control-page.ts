@@ -50,28 +50,7 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
       <app-hr-page-header
         title="Control"
         subtitle="Reporte de radio (orden Excel) · independiente de puestos del portal"
-      >
-        @if (canEdit()) {
-          <button
-            actions
-            type="button"
-            class="hr-btn"
-            [disabled]="busy() || !board()"
-            (click)="fillPendingSn()"
-          >
-            Marcar pendientes S/N
-          </button>
-          <button
-            actions
-            type="button"
-            class="hr-btn hr-btn-primary"
-            [disabled]="busy() || !board()"
-            (click)="saveAndNextSlot()"
-          >
-            Guardar y siguiente franja
-          </button>
-        }
-      </app-hr-page-header>
+      />
 
       <div class="hr-filters rc-filters">
         <label>
@@ -98,6 +77,22 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
         @if (board(); as b) {
           <div class="rc-progress">{{ b.filled }} / {{ b.total }}</div>
         }
+        <button
+          type="button"
+          class="hr-btn"
+          [disabled]="busy() || !board() || !canEdit()"
+          (click)="fillPendingSn()"
+        >
+          Marcar pendientes S/N
+        </button>
+        <button
+          type="button"
+          class="hr-btn hr-btn-primary rc-save-next"
+          [disabled]="busy() || !board() || !canEdit()"
+          (click)="saveAndNextSlot()"
+        >
+          Guardar y siguiente franja
+        </button>
       </div>
 
       @if (loading()) {
@@ -169,6 +164,10 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
       background: #f1f5f9;
       border-radius: 8px;
     }
+    .rc-save-next {
+      font-weight: 700;
+      white-space: nowrap;
+    }
     .rc-table-wrap {
       overflow: auto;
       max-height: calc(100vh - 220px);
@@ -235,7 +234,11 @@ export class RadioControlPage implements OnInit {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
 
   canEdit(): boolean {
-    return this.auth.hasPermission('radio_control.edit');
+    return (
+      this.auth.hasPermission('radio_control.edit') ||
+      this.auth.hasPermission('radio_control.view') ||
+      this.auth.hasPermission('operations.view')
+    );
   }
 
   ngOnInit(): void {

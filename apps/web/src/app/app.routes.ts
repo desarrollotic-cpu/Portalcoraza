@@ -72,7 +72,10 @@ export const routes: Routes = [
       {
         path: 'control',
         canActivate: [permissionGuard],
-        data: { permission: 'radio_control.view' },
+        data: {
+          permissions: ['radio_control.view', 'operations.view'],
+          permissionMode: 'any',
+        },
         loadComponent: () =>
           import('./features/radio-control/radio-control-page').then(
             (m) => m.RadioControlPage,

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { RequirePermissions } from '../../common/decorators/permissions.decorator';
+import { RequireAnyPermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
@@ -16,13 +16,13 @@ export class RadioControlController {
   constructor(private readonly svc: RadioControlService) {}
 
   @Get('slots')
-  @RequirePermissions('radio_control.view')
+  @RequireAnyPermissions('radio_control.view', 'operations.view')
   slots() {
     return this.svc.slots();
   }
 
   @Get('board')
-  @RequirePermissions('radio_control.view')
+  @RequireAnyPermissions('radio_control.view', 'operations.view')
   board(
     @CurrentUser() user: JwtPayload,
     @Query('date') date: string,
@@ -33,19 +33,19 @@ export class RadioControlController {
   }
 
   @Get('day-summary')
-  @RequirePermissions('radio_control.view')
+  @RequireAnyPermissions('radio_control.view', 'operations.view')
   daySummary(@CurrentUser() user: JwtPayload, @Query('date') date: string) {
     return this.svc.daySummary(user, date);
   }
 
   @Put('check')
-  @RequirePermissions('radio_control.edit')
+  @RequireAnyPermissions('radio_control.edit', 'operations.view')
   upsert(@CurrentUser() user: JwtPayload, @Body() body: UpsertRadioCheckDto) {
     return this.svc.upsert(user, body);
   }
 
   @Post('fill')
-  @RequirePermissions('radio_control.edit')
+  @RequireAnyPermissions('radio_control.edit', 'operations.view')
   fill(@CurrentUser() user: JwtPayload, @Body() body: UpsertManyDto) {
     return this.svc.upsertMany(user, body);
   }
