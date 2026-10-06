@@ -163,9 +163,12 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
   </tr>
   ${rows}
   <tr>
-    <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 40px 22px;word-break:break-word;">
+    <td bgcolor="#16325c" style="background-color:#16325c;padding:28px 40px 20px;word-break:break-word;">
       <div style="font-family:${serif};font-size:22px;line-height:28px;color:#ffffff;">Gestión Documental</div>
-      <div style="font-family:${sans};font-size:14px;line-height:22px;color:#d5e2f2;padding-top:8px;">Archivo Central. Medellín. PBX (604) 444 7929</div>
+      <div style="font-family:${sans};font-size:12px;line-height:16px;letter-spacing:1px;color:#d5e2f2;padding-top:4px;">CORAZA SEGURIDAD C.T.A.</div>
+      <div style="font-family:${sans};font-size:14px;line-height:22px;color:#d5e2f2;padding-top:14px;">NIT 811.026.837-1<br>Carrera 81 No. 49-24, Medellín, Antioquia<br>PBX (604) 444 7929 · Tel. 234 7929</div>
+      <div style="font-family:${sans};font-size:14px;line-height:22px;padding-top:10px;"><a href="mailto:documental@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">documental@corazaseguridadcta.com</a><br><a href="mailto:info@corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">info@corazaseguridadcta.com</a><br><a href="https://www.corazaseguridadcta.com" style="color:#ffffff;text-decoration:underline;">www.corazaseguridadcta.com</a></div>
+      <div style="font-family:${sans};font-size:12px;line-height:18px;color:#b7c6da;padding-top:12px;">Vigilado Supervigilancia. Resolución 6889 del 29 de septiembre de 2011.</div>
     </td>
   </tr>
   <tr>

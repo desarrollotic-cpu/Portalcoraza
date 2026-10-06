@@ -14,7 +14,9 @@ describe('campaignLetterHtml', () => {
     expect(html).toContain('Campaña');
     expect(html).toContain('Gestión Documental');
     expect(html).toContain('No responda a este correo');
-    expect(html).not.toContain('documental@');
+    expect(html).toContain('documental@corazaseguridadcta.com');
+    expect(html).toContain('NIT 811.026.837-1');
+    expect(html).toContain('Carrera 81 No. 49-24');
     expect(html).toContain('brand/campana/archivo.jpg');
     expect(html).toContain('brand/campana/minuta.jpg');
     expect(html).toContain('La minuta');
