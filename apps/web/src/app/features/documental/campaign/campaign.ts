@@ -27,10 +27,6 @@ import { DOC_STYLES } from '../documental.styles';
       <label class="full">Mensaje
         <textarea [(ngModel)]="body" name="body" rows="8" maxlength="4000" required placeholder="Escriba el comunicado. Un renglón en blanco separa párrafos."></textarea>
       </label>
-      <label class="check">
-        <input type="checkbox" [(ngModel)]="includeImage" name="includeImage" />
-        Incluir la ilustración
-      </label>
       <label>Correo de prueba
         <input type="email" [(ngModel)]="testTo" name="testTo" placeholder="su correo" />
       </label>
@@ -67,7 +63,7 @@ export class CampaignScreen implements OnInit, OnDestroy {
   banner = 'Al recibir correspondencia, deje todo claro';
   body =
     'Cada documento que llega a la empresa tiene dueño, fecha y hora.\n\nSi usted lo recibe, su registro es la prueba de que llegó.';
-  includeImage = true;
+  includeImage = false;
   testTo = '';
   readonly audience = signal<{ active: number; withEmail: number; withoutEmail: number } | null>(null);
   readonly status = signal<{

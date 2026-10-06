@@ -71,32 +71,24 @@ export function campaignLetterHtml(opts: {
         `<div style="font-family:${sans};font-size:17px;line-height:28px;text-align:left;color:#2c3344;">${block}</div>`,
     )
     .join(`<div style="font-size:0;line-height:0;height:18px;">&nbsp;</div>`);
-  const art = 'https://portalcoraza-web.onrender.com/brand/campana';
-  const row = (file: string, title: string, text: string) => `<tr><td style="padding:0 0 12px;">
+  const row = (title: string, text: string) => `<tr><td style="padding:0 0 14px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background-color:#ffffff;">
         <tr>
-          <td width="148" valign="middle" style="width:148px;padding:12px 0 12px 12px;font-size:0;line-height:0;">
-            <img src="${art}/${file}" width="148" alt="${esc(title)}" style="border:0;display:block;outline:none;text-decoration:none;height:auto;width:148px;">
-          </td>
-          <td valign="middle" style="padding:16px 18px;word-break:break-word;">
-            <div style="font-family:${serif};font-size:22px;line-height:26px;color:#12182b;">${title}</div>
-            <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-top:6px;">${text}</div>
+          <td style="padding:22px 24px;word-break:break-word;">
+            <div style="font-family:${serif};font-size:22px;line-height:28px;color:#12182b;">${title}</div>
+            <div style="font-family:${sans};font-size:16px;line-height:26px;color:#3d4a5c;padding-top:8px;">${text}</div>
           </td>
         </tr>
       </table>
     </td></tr>`;
-  const hero = opts.imageUrl
-    ? `<tr><td align="center" bgcolor="#ffffff" style="background-color:#ffffff;padding:0;font-size:0;line-height:0;">
-        <img src="${art}/archivo.jpg" width="600" alt="Archivo central Coraza" style="border:0;display:block;outline:none;text-decoration:none;width:100%;max-width:600px;height:auto;">
-      </td></tr>`
-    : '';
-  const rows = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:6px 28px 32px;">
+  const hero = '';
+  const rows = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:8px 36px 28px;">
         <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">ARCHIVO CENTRAL</div>
-        <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 16px;">Tres piezas del día</div>
+        <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:8px 0 18px;">Tres piezas del día</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-          ${row('minuta.jpg', '1. El nombre', 'Escriba su nombre completo, en letra clara. Sin apodos ni iniciales sueltas.')}
-          ${row('control.jpg', '2. La fecha y la hora', 'Anote el día y la hora exacta en que lo recibió, no la aproximada.')}
-          ${row('contrato.jpg', '3. La firma', 'Firme de forma legible. Un recibido sin firma no cuenta.')}
+          ${row('1. El nombre', 'Escriba su nombre completo, en letra clara. Sin apodos ni iniciales sueltas.')}
+          ${row('2. La fecha y la hora', 'Anote el día y la hora exacta en que lo recibió, no la aproximada.')}
+          ${row('3. La firma', 'Firme de forma legible. Un recibido sin firma no cuenta.')}
         </table>
       </td></tr>`;
   const headline = opts.banner?.trim() || opts.title;
