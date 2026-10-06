@@ -10,15 +10,10 @@ import { ToastService } from '../../shared/services/toast.service';
 type Status = 'S/N' | 'N/C' | 'N/A' | 'C/N';
 
 interface BoardRow {
+  rosterId: string;
   sortOrder: number;
   callsign: string | null;
   label: string;
-  postId: string | null;
-  code: string | null;
-  name: string;
-  zone: string | null;
-  phone: string | null;
-  linked: boolean;
   status: Status | null;
   notes: string | null;
 }
@@ -54,7 +49,7 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     <div class="hr-page">
       <app-hr-page-header
         title="Control"
-        subtitle="Orden de llamada como en el Excel · estados S/N · N/C · N/A · C/N"
+        subtitle="Reporte de radio (orden Excel) · independiente de puestos del portal"
       >
         @if (canEdit()) {
           <button
@@ -95,7 +90,7 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
           Buscar
           <input
             type="search"
-            placeholder="Indicativo, puesto o zona"
+            placeholder="Indicativo o nombre"
             [(ngModel)]="q"
             (ngModelChange)="onSearch()"
           />
@@ -119,38 +114,28 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
               </tr>
             </thead>
             <tbody>
-              @for (row of b.rows; track row.sortOrder + (row.postId || row.label)) {
-                <tr [class.rc-done]="!!row.status" [class.rc-unlinked]="!row.linked">
+              @for (row of b.rows; track row.rosterId) {
+                <tr [class.rc-done]="!!row.status">
                   <td>{{ row.sortOrder }}</td>
                   <td>{{ row.callsign || '—' }}</td>
                   <td>
                     <strong>{{ row.label }}</strong>
-                    @if (row.linked && row.name && row.name !== row.label) {
-                      <div class="hr-muted">{{ row.name }}</div>
-                    }
-                    @if (!row.linked) {
-                      <div class="hr-muted">Sin vincular a puesto del portal</div>
-                    }
                   </td>
                   <td>
-                    @if (row.linked && row.postId) {
-                      <div class="rc-status">
-                        @for (st of statuses; track st) {
-                          <button
-                            type="button"
-                            class="rc-chip"
-                            [class.active]="row.status === st"
-                            [attr.data-st]="st"
-                            [disabled]="!canEdit() || savingId() === row.postId"
-                            (click)="setStatus(row, st)"
-                          >
-                            {{ st }}
-                          </button>
-                        }
-                      </div>
-                    } @else {
-                      <span class="hr-muted">—</span>
-                    }
+                    <div class="rc-status">
+                      @for (st of statuses; track st) {
+                        <button
+                          type="button"
+                          class="rc-chip"
+                          [class.active]="row.status === st"
+                          [attr.data-st]="st"
+                          [disabled]="!canEdit() || savingId() === row.rosterId"
+                          (click)="setStatus(row, st)"
+                        >
+                          {{ st }}
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
@@ -228,9 +213,6 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
     .rc-done td {
       background: #f8fafc;
     }
-    .rc-unlinked td {
-      opacity: 0.65;
-    }
   `,
 })
 export class RadioControlPage implements OnInit {
@@ -284,11 +266,11 @@ export class RadioControlPage implements OnInit {
   }
 
   setStatus(row: BoardRow, status: Status): void {
-    if (!this.canEdit() || !row.postId) return;
-    this.savingId.set(row.postId);
+    if (!this.canEdit()) return;
+    this.savingId.set(row.rosterId);
     this.http
       .put(`${environment.apiUrl}/radio-control/check`, {
-        postId: row.postId,
+        rosterId: row.rosterId,
         date: this.date,
         slot: this.slot,
         status,
@@ -300,7 +282,7 @@ export class RadioControlPage implements OnInit {
           if (b) {
             this.board.set({
               ...b,
-              filled: b.rows.filter((r) => r.linked && r.status).length,
+              filled: b.rows.filter((r) => r.status).length,
             });
           }
           this.savingId.set(null);
@@ -315,9 +297,7 @@ export class RadioControlPage implements OnInit {
   fillPendingSn(): void {
     const b = this.board();
     if (!b || !this.canEdit()) return;
-    const pending = b.rows
-      .filter((r) => r.linked && r.postId && !r.status)
-      .map((r) => r.postId!);
+    const pending = b.rows.filter((r) => !r.status).map((r) => r.rosterId);
     if (pending.length === 0) {
       this.toast.info('No hay pendientes en esta franja');
       return;
@@ -328,12 +308,12 @@ export class RadioControlPage implements OnInit {
         date: this.date,
         slot: this.slot,
         status: 'S/N',
-        postIds: pending,
+        rosterIds: pending,
       })
       .subscribe({
         next: () => {
           this.busy.set(false);
-          this.toast.success(`${pending.length} puestos marcados S/N`);
+          this.toast.success(`${pending.length} radios marcados S/N`);
           this.reload();
         },
         error: (e) => {
@@ -343,19 +323,15 @@ export class RadioControlPage implements OnInit {
       });
   }
 
-  /** Confirma la franja actual (marca pendientes S/N) y pasa a la siguiente. */
   saveAndNextSlot(): void {
     const b = this.board();
     if (!b || !this.canEdit()) return;
     const fromSlot = this.slot;
-    const pending = b.rows
-      .filter((r) => r.linked && r.postId && !r.status)
-      .map((r) => r.postId!);
+    const pending = b.rows.filter((r) => !r.status).map((r) => r.rosterId);
 
     const advance = () => {
       const idx = SLOTS.indexOf(this.slot as (typeof SLOTS)[number]);
       if (idx < 0 || idx >= SLOTS.length - 1) {
-        // Última franja del día → día siguiente 01:00
         const d = new Date(this.date + 'T12:00:00');
         d.setDate(d.getDate() + 1);
         this.date = d.toISOString().slice(0, 10);
@@ -379,7 +355,7 @@ export class RadioControlPage implements OnInit {
         date: this.date,
         slot: this.slot,
         status: 'S/N',
-        postIds: pending,
+        rosterIds: pending,
       })
       .subscribe({
         next: () => {
