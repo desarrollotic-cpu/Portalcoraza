@@ -49,15 +49,20 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
           </select>
         </label>
         <label>Nombre del Puesto de Vigilancia *
-          @if (posts().length) {
+          @if (posts().length && !manualPost) {
+            <input class="post-filter" [(ngModel)]="postFilter" name="postFilter" placeholder="Filtrar puesto" autocomplete="off" />
             <select [(ngModel)]="model.postName" name="postName" required>
               <option value="">Seleccione el puesto</option>
-              @for (name of posts(); track name) {
+              @for (name of visiblePosts(); track name) {
                 <option [value]="name">{{ name }}</option>
               }
             </select>
+            <button type="button" class="linkish" (click)="writePost()">No está en la lista — escribirlo</button>
           } @else {
-            <input [(ngModel)]="model.postName" name="postName" required placeholder="Nombre del puesto" />
+            <input [(ngModel)]="model.postName" name="postName" required placeholder="Escriba el nombre del puesto" />
+            @if (posts().length) {
+              <button type="button" class="linkish" (click)="pickFromList()">Elegir de la lista</button>
+            }
           }
         </label>
         <label>Fecha Inicio *<input type="date" [(ngModel)]="model.startDate" name="startDate" required /></label>
@@ -140,6 +145,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       font-size: .9rem;
     }
     .code-preview { grid-column:1/-1; font-weight:700; margin:0; }
+    .post-filter { margin-bottom: .35rem; }
+    .linkish {
+      display: block; margin-top: .35rem; padding: 0;
+      background: none; border: 0; color: #1d4ed8; cursor: pointer;
+      font-size: .82rem; text-decoration: underline; text-align: left;
+    } }
   `,
   ],
 })
@@ -168,7 +179,28 @@ export class MinutesScreen implements OnInit {
     observations: '',
   };
   query = '';
+  postFilter = '';
+  manualPost = false;
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  visiblePosts(): string[] {
+    const q = this.postFilter.trim().toLowerCase();
+    const all = this.posts();
+    if (!q) return all;
+    return all.filter((name) => name.toLowerCase().includes(q));
+  }
+
+  writePost(): void {
+    this.manualPost = true;
+    this.model.postName = '';
+    this.postFilter = '';
+  }
+
+  pickFromList(): void {
+    this.manualPost = false;
+    this.model.postName = '';
+    this.postFilter = '';
+  }
 
   ngOnInit(): void {
     this.refreshQueue();
@@ -205,6 +237,8 @@ export class MinutesScreen implements OnInit {
     };
     const name = m.postName ?? '';
     if (name && !this.posts().includes(name)) this.posts.update((list) => [name, ...list]);
+    this.postFilter = '';
+    this.manualPost = false;
     this.error.set(null);
     this.showForm.set(true);
   }
@@ -212,6 +246,8 @@ export class MinutesScreen implements OnInit {
   private resetForm(): void {
     this.editingId.set(null);
     this.editingCode.set('');
+    this.postFilter = '';
+    this.manualPost = false;
     this.model = {
       minuteType: localStorage.getItem('doc-minute-type') || 'SERVICIO',
       postName: localStorage.getItem('doc-minute-post') || '',
