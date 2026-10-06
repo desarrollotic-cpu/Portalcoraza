@@ -193,21 +193,25 @@ const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
       font-size: 0.75rem;
       cursor: pointer;
     }
+    .rc-chip.active {
+      color: #fff;
+      font-weight: 700;
+    }
     .rc-chip.active[data-st='S/N'] {
-      background: #dcfce7;
-      border-color: #86efac;
+      background: #15803d;
+      border-color: #14532d;
     }
     .rc-chip.active[data-st='N/C'] {
-      background: #fee2e2;
-      border-color: #fca5a5;
+      background: #dc2626;
+      border-color: #991b1b;
     }
     .rc-chip.active[data-st='N/A'] {
-      background: #e2e8f0;
-      border-color: #94a3b8;
+      background: #334155;
+      border-color: #0f172a;
     }
     .rc-chip.active[data-st='C/N'] {
-      background: #ffedd5;
-      border-color: #fdba74;
+      background: #ea580c;
+      border-color: #9a3412;
     }
     .rc-done td {
       background: #f8fafc;
