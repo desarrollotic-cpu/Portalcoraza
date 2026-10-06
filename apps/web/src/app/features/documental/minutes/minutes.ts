@@ -150,7 +150,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       display: block; margin-top: .35rem; padding: 0;
       background: none; border: 0; color: #1d4ed8; cursor: pointer;
       font-size: .82rem; text-decoration: underline; text-align: left;
-    } }
+    }
   `,
   ],
 })
