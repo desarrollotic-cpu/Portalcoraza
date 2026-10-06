@@ -92,15 +92,9 @@ export function campaignLetterHtml(opts: {
         </table>
       </td></tr>`;
   const headline = opts.banner?.trim() || opts.title;
-  const option = (key: string, label: string, ok: boolean) =>
-    `<tr><td style="padding:0 0 8px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${ok ? '#e7f6ec' : '#ffffff'}" style="background-color:${ok ? '#e7f6ec' : '#ffffff'};border:1px solid ${ok ? '#1f7a3a' : '#e2e8f0'};">
-        <tr>
-          <td style="padding:12px 14px;font-family:${sans};font-size:15px;line-height:22px;color:#16325c;"><strong>${key})</strong> ${esc(label)}</td>
-          <td width="64" align="right" style="padding:12px 14px;font-family:${sans};font-size:14px;font-weight:bold;color:${ok ? '#1f7a3a' : '#c8102e'};">${ok ? 'Bien' : 'Mal'}</td>
-        </tr>
-      </table>
-    </td></tr>`;
+  const choice = (q: number, key: string, label: string, ok: boolean, why: string) =>
+    `<label for="q${q}${key}" class="pick-q${q}${key}" style="display:block;background-color:#ffffff;border:1px solid #d5deea;color:#16325c;font-family:${sans};font-size:15px;line-height:22px;padding:12px 16px;margin:0 0 8px;"><strong>${key})</strong> ${esc(label)}</label>
+     <div class="result r${q}${key}" style="display:none;font-family:${sans};font-size:16px;line-height:24px;color:${ok ? '#1f7a3a' : '#c8102e'};padding:2px 4px 14px;"><strong>${ok ? 'Bien' : 'Mal'}.</strong> ${why}</div>`;
   const quiz = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:0 28px 28px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#16325c" style="background-color:#16325c;">
         <tr><td style="padding:18px 20px;">
@@ -112,25 +106,19 @@ export function campaignLetterHtml(opts: {
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px 28px 8px;">
       <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">CIERRE</div>
       <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 8px;">Dos preguntas</div>
-      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-bottom:8px;">La respuesta va en este mismo correo.</div>
+      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-bottom:8px;">Toque una opción. El bien o el mal aparece debajo, en este mismo correo.</div>
     </td></tr>
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 12px;">
       <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">1. ¿Qué debe llevar un recibido de correspondencia para que sea válido?</div>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        ${option('a', 'Solo la firma', false)}
-        ${option('b', 'Nombre completo, fecha, hora y firma legible', true)}
-        ${option('c', 'Solo el sello de la empresa', false)}
-      </table>
-      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#1f7a3a;padding-top:6px;">Bien. Con los cuatro datos, el documento queda probado: quién lo recibió y cuándo.</div>
+      ${choice(1, 'a', 'Solo la firma', false, 'Faltan datos. Hace falta el nombre completo, la fecha, la hora y la firma.')}
+      ${choice(1, 'b', 'Nombre completo, fecha, hora y firma legible', true, 'Con los cuatro datos, el documento queda probado: quién lo recibió y cuándo.')}
+      ${choice(1, 'c', 'Solo el sello de la empresa', false, 'El sello no reemplaza el nombre, la fecha, la hora ni la firma.')}
     </td></tr>
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 28px;">
       <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">2. Recibió un sobre a las 3:40 p. m., pero escribe "en la tarde". ¿Qué está mal?</div>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        ${option('a', 'Nada, la tarde es suficiente', false)}
-        ${option('b', 'Falta la hora exacta', true)}
-        ${option('c', 'Hay que esperar al día siguiente para anotarlo', false)}
-      </table>
-      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#1f7a3a;padding-top:6px;">Bien. Se anota la hora real (3:40 p. m.), porque "en la tarde" no sirve como prueba.</div>
+      ${choice(2, 'a', 'Nada, la tarde es suficiente', false, 'La tarde no alcanza como prueba.')}
+      ${choice(2, 'b', 'Falta la hora exacta', true, 'Se anota la hora real (3:40 p. m.), porque "en la tarde" no sirve como prueba.')}
+      ${choice(2, 'c', 'Hay que esperar al día siguiente para anotarlo', false, 'Se anota en el momento, con la hora real.')}
     </td></tr>`;
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="es">
@@ -152,6 +140,14 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
 @media only screen and (max-width:480px) {
   .hero-title { font-size:30px !important; line-height:36px !important; }
 }
+.cbox { opacity:0; width:0; height:0; position:absolute; left:-9999px; margin:0; float:left; -webkit-appearance:none; }
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  #q1a:checked ~ * .r1a, #q1b:checked ~ * .r1b, #q1c:checked ~ * .r1c,
+  #q2a:checked ~ * .r2a, #q2b:checked ~ * .r2b, #q2c:checked ~ * .r2c { display:block !important; }
+  #q1a:checked ~ * .pick-q1a, #q1c:checked ~ * .pick-q1c,
+  #q2a:checked ~ * .pick-q2a, #q2c:checked ~ * .pick-q2c { background:#fdecee !important; border-color:#c8102e !important; }
+  #q1b:checked ~ * .pick-q1b, #q2b:checked ~ * .pick-q2b { background:#e7f6ec !important; border-color:#1f7a3a !important; }
+}
 </style>
 <!--[if mso]>
 <xml><o:OfficeDocumentSettings><o:AllowPNG/><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml>
@@ -162,6 +158,10 @@ img { border:0; height:auto; line-height:100%; outline:none; text-decoration:non
 </head>
 <body style="background-color:#e6ebf2;margin:0;padding:0;">
 <div style="display:none;font-size:1px;color:#e6ebf2;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">Campaña · Gestión Documental. ${esc(opts.title)}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
+<!--[if !mso]><!-->
+<input class="cbox" type="radio" name="q1" id="q1a"><input class="cbox" type="radio" name="q1" id="q1b"><input class="cbox" type="radio" name="q1" id="q1c">
+<input class="cbox" type="radio" name="q2" id="q2a"><input class="cbox" type="radio" name="q2" id="q2b"><input class="cbox" type="radio" name="q2" id="q2c">
+<!--<![endif]-->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#e6ebf2;" bgcolor="#e6ebf2">
 <tr><td align="center" style="padding:28px 12px;">
 <!--[if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" style="width:600px;" width="600"><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
