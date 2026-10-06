@@ -49,8 +49,6 @@ function fact(label: string, value: string): string {
   </td></tr>`;
 }
 
-const QUIZ_PAGE = 'https://portalcoraza-web.onrender.com/campana/recibido.html';
-
 export function campaignLetterHtml(opts: {
   name: string;
   title: string;
@@ -94,9 +92,14 @@ export function campaignLetterHtml(opts: {
         </table>
       </td></tr>`;
   const headline = opts.banner?.trim() || opts.title;
-  const option = (q: number, key: string, label: string) =>
+  const option = (key: string, label: string, ok: boolean) =>
     `<tr><td style="padding:0 0 8px;">
-      <a href="${QUIZ_PAGE}?q=${q}&amp;a=${key}" style="display:block;background-color:#ffffff;border:1px solid #d5deea;color:#16325c;font-family:${sans};font-size:15px;line-height:22px;text-decoration:none;padding:12px 16px;"><strong>${key})</strong> ${esc(label)}</a>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${ok ? '#e7f6ec' : '#ffffff'}" style="background-color:${ok ? '#e7f6ec' : '#ffffff'};border:1px solid ${ok ? '#1f7a3a' : '#e2e8f0'};">
+        <tr>
+          <td style="padding:12px 14px;font-family:${sans};font-size:15px;line-height:22px;color:#16325c;"><strong>${key})</strong> ${esc(label)}</td>
+          <td width="64" align="right" style="padding:12px 14px;font-family:${sans};font-size:14px;font-weight:bold;color:${ok ? '#1f7a3a' : '#c8102e'};">${ok ? 'Bien' : 'Mal'}</td>
+        </tr>
+      </table>
     </td></tr>`;
   const quiz = `<tr><td bgcolor="#f7f6f2" style="background-color:#f7f6f2;padding:0 28px 28px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#16325c" style="background-color:#16325c;">
@@ -109,23 +112,25 @@ export function campaignLetterHtml(opts: {
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px 28px 8px;">
       <div style="font-family:${sans};font-size:11px;line-height:16px;font-weight:bold;letter-spacing:3px;color:#c8102e;">CIERRE</div>
       <div style="font-family:${serif};font-size:26px;line-height:32px;color:#12182b;padding:6px 0 8px;">Dos preguntas</div>
-      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-bottom:8px;">Elija una. Al tocarla se abre el resultado: bien o mal.</div>
+      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#3d4a5c;padding-bottom:8px;">La respuesta va en este mismo correo.</div>
     </td></tr>
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 12px;">
       <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">1. ¿Qué debe llevar un recibido de correspondencia para que sea válido?</div>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        ${option(1, 'a', 'Solo la firma')}
-        ${option(1, 'b', 'Nombre completo, fecha, hora y firma legible')}
-        ${option(1, 'c', 'Solo el sello de la empresa')}
+        ${option('a', 'Solo la firma', false)}
+        ${option('b', 'Nombre completo, fecha, hora y firma legible', true)}
+        ${option('c', 'Solo el sello de la empresa', false)}
       </table>
+      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#1f7a3a;padding-top:6px;">Bien. Con los cuatro datos, el documento queda probado: quién lo recibió y cuándo.</div>
     </td></tr>
     <tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:8px 28px 28px;">
       <div style="font-family:${serif};font-size:18px;line-height:24px;color:#12182b;padding-bottom:10px;">2. Recibió un sobre a las 3:40 p. m., pero escribe "en la tarde". ¿Qué está mal?</div>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        ${option(2, 'a', 'Nada, la tarde es suficiente')}
-        ${option(2, 'b', 'Falta la hora exacta')}
-        ${option(2, 'c', 'Hay que esperar al día siguiente para anotarlo')}
+        ${option('a', 'Nada, la tarde es suficiente', false)}
+        ${option('b', 'Falta la hora exacta', true)}
+        ${option('c', 'Hay que esperar al día siguiente para anotarlo', false)}
       </table>
+      <div style="font-family:${sans};font-size:15px;line-height:22px;color:#1f7a3a;padding-top:6px;">Bien. Se anota la hora real (3:40 p. m.), porque "en la tarde" no sirve como prueba.</div>
     </td></tr>`;
   return `<!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="es">
