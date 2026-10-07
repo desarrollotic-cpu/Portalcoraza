@@ -94,6 +94,15 @@ export const routes: Routes = [
           import('./features/payroll/payroll-periods').then((m) => m.PayrollPeriodsComponent),
       },
       {
+        path: 'nomina/conversion',
+        canActivate: [permissionGuard],
+        data: { permission: 'payroll.convert' },
+        loadComponent: () =>
+          import('./features/payroll/conversion/payroll-conversion').then(
+            (m) => m.PayrollConversionComponent,
+          ),
+      },
+      {
         // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],
