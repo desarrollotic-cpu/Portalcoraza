@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, In, Repository } from 'typeorm';
+import { TenantContext } from '../../common/tenant/tenant.context';
+import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import { AssociateHistory } from '../associates/entities/associate-history.entity';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
@@ -99,6 +101,8 @@ type NamedActor = { name: string; count: number; lastAt: Date };
 
 @Injectable()
 export class ActivityControlService {
+  private readonly logger = new Logger(ActivityControlService.name);
+
   constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
@@ -110,6 +114,23 @@ export class ActivityControlService {
     private readonly associatesRepo: Repository<Associate>,
     private readonly ds: DataSource,
   ) {}
+
+  /**
+   * Raw SQL en la misma conexión de la request (SET app.tenant_id + RLS).
+   * `this.ds.query` usa otro pool → RLS en minuta_* devuelve 0 filas.
+   */
+  private rawQuery<T = Record<string, unknown>>(
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<T[]> {
+    const qr = TenantQueryRunnerContext.getOptional();
+    if (qr) return qr.query(sql, params) as Promise<T[]>;
+    const tenantId = TenantContext.getOptional();
+    this.logger.warn(
+      `activity-control rawQuery sin QueryRunner tenant=${tenantId ?? 'none'}`,
+    );
+    return this.ds.query(sql, params) as Promise<T[]>;
+  }
 
   async build(days: ActivityControlDays = 1) {
     const todayStart = this.bogotaStartOfToday();
@@ -198,14 +219,14 @@ export class ActivityControlService {
     let radioActorsAgg: Array<{ userId: string; count: number; lastAt: Date }> = [];
     let radioActorsToday: Array<{ userId: string; count: number; lastAt: Date }> = [];
     try {
-      const dayRows = (await this.ds.query(
+      const dayRows = await this.rawQuery<{ day: string; n: number }>(
         `SELECT to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
                 COUNT(*)::int AS n
          FROM radio_control_checks c
          WHERE c.checked_at >= $1
          GROUP BY 1`,
         [since.toISOString()],
-      )) as Array<{ day: string; n: number }>;
+      );
       radioDayCounts = new Map(dayRows.map((r) => [r.day, Number(r.n) || 0]));
 
       const mapActor = (r: {
@@ -219,7 +240,7 @@ export class ActivityControlService {
       });
 
       radioActorsAgg = (
-        (await this.ds.query(
+        await this.rawQuery<{ user_id: string; n: number; last_at: string | Date }>(
           `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
            FROM radio_control_checks c
            WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
@@ -227,11 +248,11 @@ export class ActivityControlService {
            ORDER BY last_at DESC
            LIMIT 16`,
           [since.toISOString()],
-        )) as Array<{ user_id: string; n: number; last_at: string | Date }>
+        )
       ).map(mapActor);
 
       radioActorsToday = (
-        (await this.ds.query(
+        await this.rawQuery<{ user_id: string; n: number; last_at: string | Date }>(
           `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
            FROM radio_control_checks c
            WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
@@ -239,10 +260,19 @@ export class ActivityControlService {
            ORDER BY last_at DESC
            LIMIT 16`,
           [todayStart.toISOString()],
-        )) as Array<{ user_id: string; n: number; last_at: string | Date }>
+        )
       ).map(mapActor);
 
-      const radioRecent = (await this.ds.query(
+      const radioRecent = await this.rawQuery<{
+        id: string;
+        checked_by: string | null;
+        status: string;
+        notes: string | null;
+        checked_at: string | Date;
+        label: string;
+        callsign: string | null;
+        pass_number: number | null;
+      }>(
         `SELECT c.id, c.checked_by, c.status, c.notes, c.checked_at,
                 r.label, r.callsign, p.pass_number
          FROM radio_control_checks c
@@ -252,16 +282,7 @@ export class ActivityControlService {
          ORDER BY c.checked_at DESC
          LIMIT 40`,
         [since.toISOString()],
-      )) as Array<{
-        id: string;
-        checked_by: string | null;
-        status: string;
-        notes: string | null;
-        checked_at: string | Date;
-        label: string;
-        callsign: string | null;
-        pass_number: number | null;
-      }>;
+      );
       for (const c of radioRecent) {
         if (radioAuditCover.has(c.id)) continue;
         const at =
@@ -284,8 +305,8 @@ export class ActivityControlService {
           entityId: c.id,
         });
       }
-    } catch {
-      // Tabla aún no migrada en algún entorno: el área queda solo con audit_logs.
+    } catch (err) {
+      this.logger.warn(`activity-control radio: ${(err as Error).message}`);
     }
 
     // Minuta Virtual: fuente de verdad = tablas minuta_* (no audit_logs).
@@ -293,13 +314,13 @@ export class ActivityControlService {
     let minutaActorsWeek: NamedActor[] = [];
     let minutaActorsToday: NamedActor[] = [];
     try {
-      const dayRows = (await this.ds.query(
+      const dayRows = await this.rawQuery<{ day: string; n: number }>(
         `SELECT to_char(fecha_registro AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
                 COUNT(*)::int AS n
          FROM (${MINUTA_FECHA_UNION}) m
          GROUP BY 1`,
         [since.toISOString()],
-      )) as Array<{ day: string; n: number }>;
+      );
       minutaDayCounts = new Map(dayRows.map((r) => [r.day, Number(r.n) || 0]));
 
       const mapNamed = (r: {
@@ -313,7 +334,7 @@ export class ActivityControlService {
       });
 
       minutaActorsWeek = (
-        (await this.ds.query(
+        await this.rawQuery<{ actor: string; n: number; last_at: string | Date }>(
           `SELECT COALESCE(NULLIF(trim(registrado_por), ''), NULLIF(trim(usuario), ''), 'Usuario') AS actor,
                   COUNT(*)::int AS n, MAX(fecha_registro) AS last_at
            FROM (${MINUTA_FECHA_UNION}) m
@@ -321,11 +342,11 @@ export class ActivityControlService {
            ORDER BY last_at DESC
            LIMIT 16`,
           [since.toISOString()],
-        )) as Array<{ actor: string; n: number; last_at: string | Date }>
+        )
       ).map(mapNamed);
 
       minutaActorsToday = (
-        (await this.ds.query(
+        await this.rawQuery<{ actor: string; n: number; last_at: string | Date }>(
           `SELECT COALESCE(NULLIF(trim(registrado_por), ''), NULLIF(trim(usuario), ''), 'Usuario') AS actor,
                   COUNT(*)::int AS n, MAX(fecha_registro) AS last_at
            FROM (${MINUTA_FECHA_UNION}) m
@@ -333,23 +354,23 @@ export class ActivityControlService {
            ORDER BY last_at DESC
            LIMIT 16`,
           [todayStart.toISOString()],
-        )) as Array<{ actor: string; n: number; last_at: string | Date }>
+        )
       ).map(mapNamed);
 
-      const minutaRecent = (await this.ds.query(
-        `SELECT id, tipo, detalle, registrado_por, usuario, fecha_registro
-         FROM (${MINUTA_FECHA_UNION}) m
-         ORDER BY fecha_registro DESC
-         LIMIT 40`,
-        [since.toISOString()],
-      )) as Array<{
+      const minutaRecent = await this.rawQuery<{
         id: string;
         tipo: string;
         detalle: string;
         registrado_por: string | null;
         usuario: string | null;
         fecha_registro: string | Date;
-      }>;
+      }>(
+        `SELECT id, tipo, detalle, registrado_por, usuario, fecha_registro
+         FROM (${MINUTA_FECHA_UNION}) m
+         ORDER BY fecha_registro DESC
+         LIMIT 40`,
+        [since.toISOString()],
+      );
       for (const row of minutaRecent) {
         const at =
           row.fecha_registro instanceof Date
@@ -372,8 +393,8 @@ export class ActivityControlService {
           entityId: row.id,
         });
       }
-    } catch {
-      // Tablas minuta no disponibles.
+    } catch (err) {
+      this.logger.warn(`activity-control minuta: ${(err as Error).message}`);
     }
 
     events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
