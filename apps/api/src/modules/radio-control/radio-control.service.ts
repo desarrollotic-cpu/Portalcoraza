@@ -5,24 +5,25 @@ import {
 import { DataSource } from 'typeorm';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
-  RADIO_CONTROL_SLOTS,
-  isRadioControlSlot,
   isRadioControlStatus,
+  parseClientCheckedAt,
   type RadioControlStatus,
 } from './radio-control.constants';
 
 export type UpsertRadioCheckDto = {
   rosterId: string;
+  /** Fecha del tablero (día operativo). */
   date: string;
-  slot: string;
   status: string;
+  /** ISO datetime del equipo del operador. */
+  checkedAt?: string;
   notes?: string | null;
 };
 
 export type UpsertManyDto = {
   date: string;
-  slot: string;
   status: string;
+  checkedAt?: string;
   rosterIds?: string[];
 };
 
@@ -34,13 +35,8 @@ export class RadioControlService {
     return this.ds.query(sql, params) as Promise<T[]>;
   }
 
-  slots() {
-    return [...RADIO_CONTROL_SLOTS];
-  }
-
-  async board(user: JwtPayload, date: string, slot: string, q?: string) {
+  async board(user: JwtPayload, date: string, q?: string) {
     const d = this.requireDate(date);
-    const s = this.requireSlot(slot);
     const like = q?.trim() ? `%${q.trim()}%` : null;
 
     const roster = await this.q<{
@@ -62,18 +58,36 @@ export class RadioControlService {
       [user.tenantId, like],
     );
 
+    // Último marcado del día por radio (hora real del equipo).
     const checks = await this.q<{
       roster_id: string;
       status: string;
       notes: string | null;
-      updated_at: string;
+      checked_at: string;
+      slot_hm: string | null;
+      checks_today: string;
     }>(
-      `SELECT roster_id, status, notes, updated_at
-       FROM radio_control_checks
-       WHERE tenant_id = $1
-         AND check_date = $2::date
-         AND slot_time = $3::time`,
-      [user.tenantId, d, s],
+      `SELECT c.roster_id,
+              c.status,
+              c.notes,
+              c.checked_at,
+              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm,
+              cnt.n::text AS checks_today
+       FROM radio_control_checks c
+       INNER JOIN (
+         SELECT roster_id, MAX(checked_at) AS mx
+         FROM radio_control_checks
+         WHERE tenant_id = $1 AND check_date = $2::date
+         GROUP BY roster_id
+       ) latest ON latest.roster_id = c.roster_id AND latest.mx = c.checked_at
+       INNER JOIN (
+         SELECT roster_id, COUNT(*)::int AS n
+         FROM radio_control_checks
+         WHERE tenant_id = $1 AND check_date = $2::date
+         GROUP BY roster_id
+       ) cnt ON cnt.roster_id = c.roster_id
+       WHERE c.tenant_id = $1 AND c.check_date = $2::date`,
+      [user.tenantId, d],
     );
     const byRoster = new Map(checks.map((c) => [c.roster_id, c]));
 
@@ -86,14 +100,15 @@ export class RadioControlService {
         label: r.label,
         status: (c?.status as RadioControlStatus | null) ?? null,
         notes: c?.notes ?? null,
-        updatedAt: c?.updated_at ?? null,
+        checkedAt: c?.checked_at ?? null,
+        checkedTime: c?.slot_hm ?? null,
+        checksToday: c ? Number(c.checks_today) : 0,
       };
     });
 
     const filled = rows.filter((r) => r.status).length;
     return {
       date: d,
-      slot: s,
       total: rows.length,
       filled,
       rows,
@@ -102,7 +117,6 @@ export class RadioControlService {
 
   async upsert(user: JwtPayload, dto: UpsertRadioCheckDto) {
     const d = this.requireDate(dto.date);
-    const s = this.requireSlot(dto.slot);
     const status = this.requireStatus(dto.status);
     const rosterId = String(dto.rosterId || '').trim();
     if (!rosterId) throw new BadRequestException('rosterId requerido');
@@ -110,28 +124,40 @@ export class RadioControlService {
     await this.assertRoster(user.tenantId, rosterId);
     const notes = dto.notes?.trim() ? dto.notes.trim().slice(0, 2000) : null;
 
+    let at: Date;
+    try {
+      at = parseClientCheckedAt(dto.checkedAt);
+    } catch {
+      throw new BadRequestException('Hora del equipo inválida');
+    }
+
     const [row] = await this.q(
       `INSERT INTO radio_control_checks (
-         tenant_id, roster_id, check_date, slot_time, status, notes, checked_by, updated_at
-       ) VALUES ($1,$2,$3::date,$4::time,$5,$6,$7,NOW())
-       ON CONFLICT (tenant_id, roster_id, check_date, slot_time)
-       DO UPDATE SET
-         status = EXCLUDED.status,
-         notes = EXCLUDED.notes,
-         checked_by = EXCLUDED.checked_by,
-         updated_at = NOW()
+         tenant_id, roster_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
+       ) VALUES (
+         $1, $2, $3::date,
+         (($4::timestamptz AT TIME ZONE 'America/Bogota')::time),
+         $4::timestamptz,
+         $5, $6, $7, NOW()
+       )
        RETURNING id, roster_id AS "rosterId", status, notes,
                  to_char(check_date,'YYYY-MM-DD') AS date,
-                 to_char(slot_time,'HH24:MI') AS slot`,
-      [user.tenantId, rosterId, d, s, status, notes, user.sub],
+                 to_char(checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS "checkedTime",
+                 checked_at AS "checkedAt"`,
+      [user.tenantId, rosterId, d, at.toISOString(), status, notes, user.sub],
     );
     return row;
   }
 
   async upsertMany(user: JwtPayload, dto: UpsertManyDto) {
     const d = this.requireDate(dto.date);
-    const s = this.requireSlot(dto.slot);
     const status = this.requireStatus(dto.status);
+    let at: Date;
+    try {
+      at = parseClientCheckedAt(dto.checkedAt);
+    } catch {
+      throw new BadRequestException('Hora del equipo inválida');
+    }
 
     let rosterIds = (dto.rosterIds || []).filter(Boolean);
     if (rosterIds.length === 0) {
@@ -148,35 +174,36 @@ export class RadioControlService {
     for (const rosterId of rosterIds) {
       await this.q(
         `INSERT INTO radio_control_checks (
-           tenant_id, roster_id, check_date, slot_time, status, notes, checked_by, updated_at
-         ) VALUES ($1,$2,$3::date,$4::time,$5,NULL,$6,NOW())
-         ON CONFLICT (tenant_id, roster_id, check_date, slot_time)
-         DO UPDATE SET
-           status = EXCLUDED.status,
-           checked_by = EXCLUDED.checked_by,
-           updated_at = NOW()`,
-        [user.tenantId, rosterId, d, s, status, user.sub],
+           tenant_id, roster_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
+         ) VALUES (
+           $1, $2, $3::date,
+           (($4::timestamptz AT TIME ZONE 'America/Bogota')::time),
+           $4::timestamptz,
+           $5, NULL, $6, NOW()
+         )`,
+        [user.tenantId, rosterId, d, at.toISOString(), status, user.sub],
       );
       n += 1;
     }
-    return { updated: n, date: d, slot: s, status };
+    return { updated: n, date: d, status, checkedAt: at.toISOString() };
   }
 
   async daySummary(user: JwtPayload, date: string) {
     const d = this.requireDate(date);
     const rows = await this.q<{
-      slot: string;
+      hour: string;
       status: string;
       n: string;
     }>(
-      `SELECT to_char(slot_time,'HH24:MI') AS slot, status, COUNT(*)::text AS n
+      `SELECT to_char(checked_at AT TIME ZONE 'America/Bogota', 'HH24:00') AS hour,
+              status, COUNT(*)::text AS n
        FROM radio_control_checks
        WHERE tenant_id = $1 AND check_date = $2::date
-       GROUP BY slot_time, status
-       ORDER BY slot_time, status`,
+       GROUP BY 1, status
+       ORDER BY 1, status`,
       [user.tenantId, d],
     );
-    return { date: d, slots: RADIO_CONTROL_SLOTS, counts: rows };
+    return { date: d, counts: rows };
   }
 
   private async assertRoster(tenantId: string, rosterId: string) {
@@ -194,14 +221,6 @@ export class RadioControlService {
       throw new BadRequestException('Fecha inválida (YYYY-MM-DD)');
     }
     return d;
-  }
-
-  private requireSlot(raw: string): string {
-    const s = String(raw || '').trim();
-    if (!isRadioControlSlot(s)) {
-      throw new BadRequestException(`Franja inválida. Use: ${RADIO_CONTROL_SLOTS.join(', ')}`);
-    }
-    return s;
   }
 
   private requireStatus(raw: string): RadioControlStatus {

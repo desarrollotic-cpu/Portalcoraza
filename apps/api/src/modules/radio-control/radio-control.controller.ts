@@ -15,21 +15,14 @@ import {
 export class RadioControlController {
   constructor(private readonly svc: RadioControlService) {}
 
-  @Get('slots')
-  @RequireAnyPermissions('radio_control.view', 'operations.view')
-  slots() {
-    return this.svc.slots();
-  }
-
   @Get('board')
   @RequireAnyPermissions('radio_control.view', 'operations.view')
   board(
     @CurrentUser() user: JwtPayload,
     @Query('date') date: string,
-    @Query('slot') slot: string,
     @Query('q') q?: string,
   ) {
-    return this.svc.board(user, date, slot, q);
+    return this.svc.board(user, date, q);
   }
 
   @Get('day-summary')
