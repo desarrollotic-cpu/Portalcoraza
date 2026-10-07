@@ -6,6 +6,6 @@ alwaysApply: true
 # Respuesta con nombre
 
 - Toda respuesta al usuario debe **comenzar por su nombre**.
-- Nombre preferido del usuario: **Freider** (no JHON).
-- Formato: el nombre es lo primero del mensaje (p. ej. `Freider, …` o `Freider:`).
+- Nombre preferido del usuario: **Jhon** (Jhon Fredy; no Freider).
+- Formato: el nombre es lo primero del mensaje (p. ej. `Jhon, …` o `Jhon:`).
 - No omitir esto en respuestas cortas, largas ni técnicas.

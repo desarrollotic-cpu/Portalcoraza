@@ -1,6 +1,6 @@
 # Módulo Operaciones
 
-**Fecha:** 2026-10-05 (antes 2026-09-11)
+**Fecha:** 2026-10-07 (antes 2026-10-05)
 
 ## Alcance
 
@@ -21,6 +21,8 @@ Operaciones gestiona el **catálogo de puestos** (`posts`), la **supervisión de
 | `/operaciones/minutas` | `operations.view` | Historial / PDF por puesto + mes; enlace Minuta Web |
 | `/operaciones/rondas` | `rondas.view` / `operations.view` | Cumplimiento de rondas GPS |
 | `/operaciones/patineta` | `scooter.view` / `operations.view` | Inspecciones preoperacionales de patineta (solo lectura) |
+| `/operaciones/control-radio` | `radio_control.view` / `operations.view` | Historial de pasadas del Control de radio (solo lectura) |
+| `/control` | `radio_control.view` / `operations.view` | Pantalla de trabajo de Control (marcar radios) |
 
 Crear / editar puestos: `posts.create` / `posts.edit`.
 
@@ -34,6 +36,27 @@ Crear / editar puestos: `posts.create` / `posts.edit`.
 - API: `GET/POST /api/v1/scooter-inspections` (permisos `scooter.view` / `scooter.create` o `operations.view` / `minuta.create`).
 - Migración: `079_scooter_inspections.sql`.
 - Spec: [`superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`](superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md).
+
+## Rondas de campo (acceso público)
+
+`GET campo/puestos`, `GET campo/asociados` y `POST campo/entrar` son públicos (app de campo) y llevan `AuthRateLimitGuard` (10 intentos/min por IP, en memoria por instancia). Pendiente conocido: `campo/asociados` aún lista nombres sin sesión; cerrarlo exige cambiar el login de campo a puesto + cédula.
+
+## Control de radio
+
+- Operador (rol Control) marca cada radio del roster con estado (`S/N`, `N/C`, `N/A`, …), hora del equipo y **Observaciones** opcionales por radio.
+- Cada ciclo es una **pasada** (`radio_control_passes`); `next-pass` cierra la abierta y abre la siguiente.
+- API (`/api/v1/radio-control`): `GET board`, `GET history`, `GET passes/:id`, `PUT check`, `POST fill`, `POST next-pass`.
+- Cada acción se audita (`radio_control.check|fill|next_pass`) → aparece en **Historial de movimientos** (pestaña Control) y en **Control de Actividades** (tarjeta Control).
+- La hora de la marca es editable y puede quedar adelantada; para medir *uso* del portal, Control de Actividades usa `radio_control_checks.updated_at` (momento real de registro), no `checked_at`.
+- Migraciones: `081`–`085` (`radio_control*`).
+
+## Retención de historial (30 días)
+
+- `AUDIT_RETENTION_DAYS = 30` (`audit.service.ts`). Cron `audit-retention-daily` (4:00 AM, `audit-retention.cron.ts`) borra por lotes: `audit_logs`, `associate_history`, `radio_control_checks` y `radio_control_passes` cerradas con más de 30 días.
+- `listMovements` (Historial de movimientos) no devuelve nada anterior a 30 días.
+- **No** se purgan las tablas operativas `minuta_*` (son registro de negocio, no historial de uso).
+- Índices de apoyo: `086_audit_retention_indexes.sql`.
+- Control de Actividades lee los agregados desde SQL y las tablas `minuta_*` / `radio_control_*` con el QueryRunner de la request (RLS por tenant); un `DataSource.query` directo devolvería 0 filas.
 
 ## API
 
