@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { AssociateHistory } from '../associates/entities/associate-history.entity';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditLog } from '../audit/entities/audit-log.entity';
@@ -75,6 +75,7 @@ export class ActivityControlService {
     private readonly historyRepo: Repository<AssociateHistory>,
     @InjectRepository(Associate)
     private readonly associatesRepo: Repository<Associate>,
+    private readonly ds: DataSource,
   ) {}
 
   async build(days: ActivityControlDays = 1) {
@@ -146,6 +147,65 @@ export class ActivityControlService {
         entityType: 'associate',
         entityId: h.associateId,
       });
+    }
+
+    // Control de radio: las marcas viven en radio_control_checks (fuente de verdad).
+    // Si ya hay audit_logs del mismo check, no duplicar.
+    const radioAuditCover = new Set(
+      events
+        .filter(
+          (e) =>
+            e.module === 'radio_control' &&
+            e.action === 'radio_control.check' &&
+            e.entityId,
+        )
+        .map((e) => e.entityId as string),
+    );
+    try {
+      const radioChecks = await this.ds.query(
+        `SELECT c.id, c.checked_by, c.status, c.notes, c.checked_at,
+                r.label, r.callsign, p.pass_number
+         FROM radio_control_checks c
+         JOIN radio_control_roster r ON r.id = c.roster_id
+         LEFT JOIN radio_control_passes p ON p.id = c.pass_id
+         WHERE c.checked_at >= $1
+         ORDER BY c.checked_at DESC
+         LIMIT 8000`,
+        [since.toISOString()],
+      ) as Array<{
+        id: string;
+        checked_by: string | null;
+        status: string;
+        notes: string | null;
+        checked_at: string | Date;
+        label: string;
+        callsign: string | null;
+        pass_number: number | null;
+      }>;
+      for (const c of radioChecks) {
+        if (radioAuditCover.has(c.id)) continue;
+        const at =
+          c.checked_at instanceof Date ? c.checked_at : new Date(c.checked_at);
+        events.push({
+          id: `rc:${c.id}`,
+          userId: c.checked_by,
+          module: 'radio_control',
+          action: 'radio_control.check',
+          createdAt: at,
+          newValue: {
+            label: c.label,
+            callsign: c.callsign,
+            status: c.status,
+            notes: c.notes,
+            passNumber: c.pass_number,
+          },
+          oldValue: null,
+          entityType: 'radio_control_check',
+          entityId: c.id,
+        });
+      }
+    } catch {
+      // Tabla aún no migrada en algún entorno: el área queda solo con audit_logs.
     }
 
     events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
@@ -399,6 +459,9 @@ export class ActivityControlService {
       'absence.delete': 'Ausencia eliminada',
       'item.create': 'Ítem inventario',
       'variant.create': 'Variante',
+      'radio_control.check': 'Radio marcado',
+      'radio_control.fill': 'Pendientes marcados',
+      'radio_control.next_pass': 'Pasada cerrada',
     };
     if (areaKey === 'hr' && action === 'create') return 'Asociado registrado';
     if (areaKey === 'hr' && action === 'edit') return 'Ficha editada';
@@ -406,6 +469,9 @@ export class ActivityControlService {
     if (areaKey === 'hr' && action === 'readmit') return 'Asociado reingresado';
     if (areaKey === 'posts' && action === 'create') return 'Puesto creado';
     if (areaKey === 'posts' && action === 'update') return 'Puesto actualizado';
+    if (areaKey === 'radio_control' && action === 'radio_control.check') {
+      return 'Radio marcado';
+    }
     return map[action] ?? action.replace(/[._]/g, ' ');
   }
 
@@ -451,6 +517,21 @@ export class ActivityControlService {
     if (e.module === 'reception') {
       const name = [v['firstName'], v['firstSurname']].filter((x) => typeof x === 'string').join(' ');
       return name || null;
+    }
+    if (e.module === 'radio_control') {
+      const label = typeof v['label'] === 'string' ? v['label'] : '';
+      const callsign = typeof v['callsign'] === 'string' ? v['callsign'] : '';
+      const status = typeof v['status'] === 'string' ? v['status'] : '';
+      const pass =
+        v['passNumber'] != null && String(v['passNumber']).trim()
+          ? `Pasada #${v['passNumber']}`
+          : '';
+      const parts = [
+        callsign && label ? `${callsign} · ${label}` : label || callsign,
+        status ? `Estado: ${status}` : '',
+        pass,
+      ].filter(Boolean);
+      return parts.length ? parts.join(' · ') : null;
     }
     return null;
   }
