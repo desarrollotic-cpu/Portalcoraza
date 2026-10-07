@@ -47,7 +47,6 @@ async function main() {
     console.log(`  ${t.codigo}  filas=${fmt(t.filas).padStart(6)}  suma=${fmt(t.suma, t.codigo === '011' ? 2 : 0)}`);
   }
   console.log(`Bonificaciones (manual): ${a.bonificaciones.length} asociados, total ${fmt(a.totalBonificaciones)}`);
-  console.log(`Incapacitados (manual): ${a.incapacitados.length} asociados`);
   if (a.advertencias.length) {
     console.log('Advertencias:');
     a.advertencias.forEach((w) => console.log(`  - ${w}`));

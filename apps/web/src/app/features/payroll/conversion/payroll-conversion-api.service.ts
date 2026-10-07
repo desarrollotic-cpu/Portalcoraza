@@ -5,7 +5,7 @@ import { environment } from '../../../../environments/environment';
 
 export interface ConversionZona {
   nombre: string;
-  numero: number;
+  numero: number | null;
   asociados: number;
 }
 
@@ -35,7 +35,6 @@ export interface ConversionPreview {
   totales: ConversionTotal[];
   bonificaciones: ConversionPersona[];
   totalBonificaciones: number;
-  incapacitados: ConversionPersona[];
   advertencias: string[];
 }
 
