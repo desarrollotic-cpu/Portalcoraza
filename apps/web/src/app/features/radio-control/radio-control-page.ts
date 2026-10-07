@@ -9,6 +9,18 @@ import { ToastService } from '../../shared/services/toast.service';
 
 type Status = 'S/N' | 'N/C' | 'N/A' | 'C/N';
 
+interface PassInfo {
+  id: string;
+  passNumber: number;
+  openedAt: string;
+  closedAt: string | null;
+  open: boolean;
+  openedTime: string;
+  closedTime: string | null;
+  marked?: number;
+  total?: number;
+}
+
 interface BoardRow {
   rosterId: string;
   sortOrder: number;
@@ -18,14 +30,31 @@ interface BoardRow {
   notes: string | null;
   checkedAt: string | null;
   checkedTime: string | null;
-  checksToday: number;
 }
 
 interface BoardPayload {
   date: string;
+  pass: PassInfo;
   total: number;
   filled: number;
   rows: BoardRow[];
+}
+
+interface HistoryPayload {
+  date: string;
+  passes: PassInfo[];
+}
+
+interface PassDetailPayload {
+  pass: PassInfo & { date: string };
+  rows: Array<{
+    sortOrder: number;
+    callsign: string | null;
+    label: string;
+    status: string;
+    checkedTime: string;
+    checkedAt: string;
+  }>;
 }
 
 const STATUSES: Status[] = ['S/N', 'N/C', 'N/A', 'C/N'];
@@ -38,15 +67,18 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
     <div class="hr-page">
       <app-hr-page-header
         title="Control Coraza"
-        subtitle="Minuta virtual y reporte de radio · la hora se toma del equipo al marcar"
+        subtitle="Marca cada radio con la hora del equipo · al terminar guarda y abre la siguiente pasada"
       />
 
       <nav class="hr-tabs rc-tabs">
         <button type="button" class="hr-tab" [class.active]="panel() === 'minuta'" (click)="panel.set('minuta')">
           Minuta virtual
         </button>
-        <button type="button" class="hr-tab" [class.active]="panel() === 'radio'" (click)="panel.set('radio')">
+        <button type="button" class="hr-tab" [class.active]="panel() === 'radio'" (click)="goRadio()">
           Control de radio
+        </button>
+        <button type="button" class="hr-tab" [class.active]="panel() === 'historial'" (click)="goHistory()">
+          Historial
         </button>
       </nav>
 
@@ -62,7 +94,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
         <div class="hr-filters rc-filters">
           <label>
             Fecha
-            <input type="date" [(ngModel)]="date" (ngModelChange)="reload()" />
+            <input type="date" [(ngModel)]="date" (ngModelChange)="onDateChange()" />
           </label>
           <label class="rc-grow">
             Buscar
@@ -74,16 +106,27 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
             />
           </label>
           @if (board(); as b) {
+            <div class="rc-pass">
+              Pasada #{{ b.pass.passNumber }} · abierta {{ b.pass.openedTime }}
+            </div>
             <div class="rc-progress">{{ b.filled }} / {{ b.total }}</div>
           }
-          <div class="rc-clock" title="Hora del equipo">Ahora: {{ clock() }}</div>
+          <div class="rc-clock">Ahora: {{ clock() }}</div>
           <button
             type="button"
-            class="hr-btn hr-btn-primary"
+            class="hr-btn"
             [disabled]="busy() || !board() || !canEdit()"
             (click)="fillPendingSn()"
           >
-            Marcar pendientes S/N (hora actual)
+            Marcar pendientes S/N
+          </button>
+          <button
+            type="button"
+            class="hr-btn hr-btn-primary rc-save-next"
+            [disabled]="busy() || !board() || !canEdit()"
+            (click)="saveAndNextPass()"
+          >
+            Guardar y siguiente pasada
           </button>
         </div>
 
@@ -97,7 +140,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                   <th>#</th>
                   <th>Indicativo</th>
                   <th>Puesto (radio)</th>
-                  <th>Última hora</th>
+                  <th>Hora marcada</th>
                   <th>Estado</th>
                 </tr>
               </thead>
@@ -106,12 +149,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                   <tr [class.rc-done]="!!row.status">
                     <td>{{ row.sortOrder }}</td>
                     <td>{{ row.callsign || '—' }}</td>
-                    <td>
-                      <strong>{{ row.label }}</strong>
-                      @if (row.checksToday > 1) {
-                        <div class="hr-muted">{{ row.checksToday }} marcajes hoy</div>
-                      }
-                    </td>
+                    <td><strong>{{ row.label }}</strong></td>
                     <td>
                       @if (row.checkedTime) {
                         <strong>{{ row.checkedTime }}</strong>
@@ -142,105 +180,132 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
           </div>
         }
       </section>
+
+      <section class="rc-pane" [class.active]="panel() === 'historial'">
+        <div class="hr-filters rc-filters">
+          <label>
+            Fecha
+            <input type="date" [(ngModel)]="date" (ngModelChange)="loadHistory()" />
+          </label>
+        </div>
+
+        @if (historyLoading()) {
+          <p class="hr-muted">Cargando historial…</p>
+        } @else if (history(); as h) {
+          @if (h.passes.length === 0) {
+            <p class="hr-muted">No hay pasadas registradas en esta fecha.</p>
+          } @else {
+            <div class="rc-history-list">
+              @for (p of h.passes; track p.id) {
+                <button type="button" class="rc-history-card" (click)="openPass(p.id)">
+                  <div class="rc-history-card__title">
+                    Pasada #{{ p.passNumber }}
+                    @if (p.open) {
+                      <span class="rc-badge open">Abierta</span>
+                    } @else {
+                      <span class="rc-badge">Cerrada</span>
+                    }
+                  </div>
+                  <div class="hr-muted">
+                    {{ p.openedTime }}
+                    @if (p.closedTime) {
+                      → {{ p.closedTime }}
+                    }
+                    · {{ p.marked ?? 0 }}/{{ p.total ?? '—' }} radios
+                  </div>
+                </button>
+              }
+            </div>
+          }
+        }
+
+        @if (passDetail(); as detail) {
+          <div class="rc-pass-detail">
+            <h3>
+              Detalle pasada #{{ detail.pass.passNumber }}
+              <button type="button" class="hr-btn" (click)="passDetail.set(null)">Cerrar</button>
+            </h3>
+            <div class="rc-table-wrap rc-table-wrap--short">
+              <table class="hr-table rc-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Indicativo</th>
+                    <th>Puesto</th>
+                    <th>Hora</th>
+                    <th>Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of detail.rows; track row.sortOrder + row.label) {
+                    <tr>
+                      <td>{{ row.sortOrder }}</td>
+                      <td>{{ row.callsign || '—' }}</td>
+                      <td>{{ row.label }}</td>
+                      <td><strong>{{ row.checkedTime }}</strong></td>
+                      <td>{{ row.status }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      </section>
     </div>
   `,
   styles: `
-    .rc-tabs {
-      margin-bottom: 1rem;
-    }
-    .rc-pane {
-      display: none;
-    }
-    .rc-pane.active {
-      display: block;
-    }
+    .rc-tabs { margin-bottom: 1rem; }
+    .rc-pane { display: none; }
+    .rc-pane.active { display: block; }
     .rc-filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: end;
-      margin-bottom: 1rem;
+      display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1rem;
     }
-    .rc-filters label {
-      display: flex;
-      flex-direction: column;
-      gap: 0.25rem;
-      font-size: 0.8rem;
+    .rc-filters label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; }
+    .rc-grow { flex: 1; min-width: 160px; }
+    .rc-progress, .rc-pass, .rc-clock {
+      font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 8px; background: #f1f5f9;
     }
-    .rc-grow {
-      flex: 1;
-      min-width: 180px;
-    }
-    .rc-progress {
-      font-weight: 600;
-      padding: 0.5rem 0.75rem;
-      background: #f1f5f9;
-      border-radius: 8px;
-    }
-    .rc-clock {
-      font-variant-numeric: tabular-nums;
-      font-weight: 600;
-      padding: 0.5rem 0.75rem;
-      background: #ecfeff;
-      border: 1px solid #a5f3fc;
-      border-radius: 8px;
-    }
+    .rc-clock { background: #ecfeff; border: 1px solid #a5f3fc; }
+    .rc-pass { background: #eef2ff; border: 1px solid #c7d2fe; }
+    .rc-save-next { font-weight: 700; white-space: nowrap; }
     .rc-table-wrap {
-      overflow: auto;
-      max-height: calc(100vh - 260px);
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      overflow: auto; max-height: calc(100vh - 280px);
+      border: 1px solid #e2e8f0; border-radius: 10px;
     }
-    .rc-table th {
-      position: sticky;
-      top: 0;
-      background: #fff;
-      z-index: 1;
-    }
-    .rc-status {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.35rem;
-    }
+    .rc-table-wrap--short { max-height: 420px; margin-top: 0.75rem; }
+    .rc-table th { position: sticky; top: 0; background: #fff; z-index: 1; }
+    .rc-status { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .rc-chip {
-      border: 1px solid #cbd5e1;
-      background: #fff;
-      border-radius: 6px;
-      padding: 0.2rem 0.45rem;
-      font-size: 0.75rem;
-      cursor: pointer;
+      border: 1px solid #cbd5e1; background: #fff; border-radius: 6px;
+      padding: 0.2rem 0.45rem; font-size: 0.75rem; cursor: pointer;
     }
-    .rc-chip.active {
-      color: #fff;
-      font-weight: 700;
-    }
-    .rc-chip.active[data-st='S/N'] {
-      background: #15803d;
-      border-color: #14532d;
-    }
-    .rc-chip.active[data-st='N/C'] {
-      background: #dc2626;
-      border-color: #991b1b;
-    }
-    .rc-chip.active[data-st='N/A'] {
-      background: #334155;
-      border-color: #0f172a;
-    }
-    .rc-chip.active[data-st='C/N'] {
-      background: #ea580c;
-      border-color: #9a3412;
-    }
-    .rc-done td {
-      background: #f8fafc;
-    }
+    .rc-chip.active { color: #fff; font-weight: 700; }
+    .rc-chip.active[data-st='S/N'] { background: #15803d; border-color: #14532d; }
+    .rc-chip.active[data-st='N/C'] { background: #dc2626; border-color: #991b1b; }
+    .rc-chip.active[data-st='N/A'] { background: #334155; border-color: #0f172a; }
+    .rc-chip.active[data-st='C/N'] { background: #ea580c; border-color: #9a3412; }
+    .rc-done td { background: #f8fafc; }
     .rc-minuta-frame {
-      display: block;
-      width: 100%;
-      height: calc(100vh - 210px);
-      min-height: 560px;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      background: #fff;
+      display: block; width: 100%; height: calc(100vh - 210px); min-height: 560px;
+      border: 1px solid #e2e8f0; border-radius: 10px; background: #fff;
+    }
+    .rc-history-list { display: grid; gap: 0.5rem; }
+    .rc-history-card {
+      text-align: left; border: 1px solid #e2e8f0; border-radius: 10px;
+      padding: 0.75rem 1rem; background: #fff; cursor: pointer;
+    }
+    .rc-history-card:hover { border-color: #94a3b8; }
+    .rc-history-card__title { display: flex; gap: 0.5rem; align-items: center; font-weight: 700; }
+    .rc-badge {
+      font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px;
+      background: #e2e8f0; font-weight: 600;
+    }
+    .rc-badge.open { background: #dcfce7; color: #166534; }
+    .rc-pass-detail { margin-top: 1.25rem; }
+    .rc-pass-detail h3 {
+      display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+      font-size: 1rem; margin: 0;
     }
   `,
 })
@@ -249,14 +314,17 @@ export class RadioControlPage implements OnInit, OnDestroy {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
 
-  readonly panel = signal<'minuta' | 'radio'>('minuta');
+  readonly panel = signal<'minuta' | 'radio' | 'historial'>('minuta');
   readonly statuses = STATUSES;
 
   date = this.localDateYmd();
   q = '';
 
   readonly board = signal<BoardPayload | null>(null);
+  readonly history = signal<HistoryPayload | null>(null);
+  readonly passDetail = signal<PassDetailPayload | null>(null);
   readonly loading = signal(false);
+  readonly historyLoading = signal(false);
   readonly busy = signal(false);
   readonly savingId = signal<string | null>(null);
   readonly clock = signal(this.localHm());
@@ -284,6 +352,22 @@ export class RadioControlPage implements OnInit, OnDestroy {
     if (this.clockTimer) clearInterval(this.clockTimer);
   }
 
+  goRadio(): void {
+    this.panel.set('radio');
+    this.reload();
+  }
+
+  goHistory(): void {
+    this.panel.set('historial');
+    this.loadHistory();
+  }
+
+  onDateChange(): void {
+    this.passDetail.set(null);
+    if (this.panel() === 'historial') this.loadHistory();
+    else this.reload();
+  }
+
   onSearch(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.reload(), 250);
@@ -307,6 +391,34 @@ export class RadioControlPage implements OnInit, OnDestroy {
       });
   }
 
+  loadHistory(): void {
+    this.historyLoading.set(true);
+    this.passDetail.set(null);
+    this.http
+      .get<HistoryPayload>(`${environment.apiUrl}/radio-control/history`, {
+        params: { date: this.date },
+      })
+      .subscribe({
+        next: (h) => {
+          this.history.set(h);
+          this.historyLoading.set(false);
+        },
+        error: (e) => {
+          this.historyLoading.set(false);
+          this.toast.error(e?.error?.message || 'No se pudo cargar el historial');
+        },
+      });
+  }
+
+  openPass(id: string): void {
+    this.http
+      .get<PassDetailPayload>(`${environment.apiUrl}/radio-control/passes/${id}`)
+      .subscribe({
+        next: (d) => this.passDetail.set(d),
+        error: (e) => this.toast.error(e?.error?.message || 'No se pudo abrir la pasada'),
+      });
+  }
+
   setStatus(row: BoardRow, status: Status): void {
     if (!this.canEdit()) return;
     this.savingId.set(row.rosterId);
@@ -326,7 +438,6 @@ export class RadioControlPage implements OnInit, OnDestroy {
           row.status = status;
           row.checkedTime = res.checkedTime || this.localHm();
           row.checkedAt = res.checkedAt || new Date().toISOString();
-          row.checksToday = (row.checksToday || 0) + 1;
           const b = this.board();
           if (b) {
             this.board.set({
@@ -348,7 +459,7 @@ export class RadioControlPage implements OnInit, OnDestroy {
     if (!b || !this.canEdit()) return;
     const pending = b.rows.filter((r) => !r.status).map((r) => r.rosterId);
     if (pending.length === 0) {
-      this.toast.info('No hay pendientes sin marcar hoy');
+      this.toast.info('No hay pendientes en esta pasada');
       return;
     }
     this.busy.set(true);
@@ -362,7 +473,7 @@ export class RadioControlPage implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.busy.set(false);
-          this.toast.success(`${pending.length} radios marcados S/N a las ${this.localHm()}`);
+          this.toast.success(`${pending.length} radios S/N a las ${this.localHm()}`);
           this.reload();
         },
         error: (e) => {
@@ -372,12 +483,34 @@ export class RadioControlPage implements OnInit, OnDestroy {
       });
   }
 
+  /** Cierra la pasada actual (completa pendientes S/N) y abre tabla limpia. */
+  saveAndNextPass(): void {
+    if (!this.canEdit()) return;
+    this.busy.set(true);
+    this.http
+      .post<{ closed: PassInfo; open: PassInfo }>(`${environment.apiUrl}/radio-control/next-pass`, {
+        date: this.date,
+        checkedAt: new Date().toISOString(),
+        fillPendingSn: true,
+      })
+      .subscribe({
+        next: (res) => {
+          this.busy.set(false);
+          this.toast.success(
+            `Pasada #${res.closed.passNumber} guardada · abierta pasada #${res.open.passNumber}`,
+          );
+          this.reload();
+        },
+        error: (e) => {
+          this.busy.set(false);
+          this.toast.error(e?.error?.message || 'No se pudo cerrar la pasada');
+        },
+      });
+  }
+
   private localDateYmd(): string {
     const n = new Date();
-    const y = n.getFullYear();
-    const m = String(n.getMonth() + 1).padStart(2, '0');
-    const d = String(n.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
   }
 
   private localHm(): string {

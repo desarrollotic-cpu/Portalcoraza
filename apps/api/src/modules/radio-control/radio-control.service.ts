@@ -12,10 +12,8 @@ import {
 
 export type UpsertRadioCheckDto = {
   rosterId: string;
-  /** Fecha del tablero (día operativo). */
   date: string;
   status: string;
-  /** ISO datetime del equipo del operador. */
   checkedAt?: string;
   notes?: string | null;
 };
@@ -25,6 +23,13 @@ export type UpsertManyDto = {
   status: string;
   checkedAt?: string;
   rosterIds?: string[];
+};
+
+export type NextPassDto = {
+  date: string;
+  checkedAt?: string;
+  /** Si true, marca pendientes de la pasada abierta como S/N antes de cerrar. */
+  fillPendingSn?: boolean;
 };
 
 @Injectable()
@@ -38,6 +43,7 @@ export class RadioControlService {
   async board(user: JwtPayload, date: string, q?: string) {
     const d = this.requireDate(date);
     const like = q?.trim() ? `%${q.trim()}%` : null;
+    const pass = await this.getOrCreateOpenPass(user.tenantId, d);
 
     const roster = await this.q<{
       id: string;
@@ -58,36 +64,24 @@ export class RadioControlService {
       [user.tenantId, like],
     );
 
-    // Último marcado del día por radio (hora real del equipo).
     const checks = await this.q<{
       roster_id: string;
       status: string;
       notes: string | null;
       checked_at: string;
       slot_hm: string | null;
-      checks_today: string;
     }>(
-      `SELECT c.roster_id,
-              c.status,
-              c.notes,
-              c.checked_at,
-              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm,
-              cnt.n::text AS checks_today
+      `SELECT c.roster_id, c.status, c.notes, c.checked_at,
+              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm
        FROM radio_control_checks c
        INNER JOIN (
          SELECT roster_id, MAX(checked_at) AS mx
          FROM radio_control_checks
-         WHERE tenant_id = $1 AND check_date = $2::date
+         WHERE tenant_id = $1 AND pass_id = $2
          GROUP BY roster_id
        ) latest ON latest.roster_id = c.roster_id AND latest.mx = c.checked_at
-       INNER JOIN (
-         SELECT roster_id, COUNT(*)::int AS n
-         FROM radio_control_checks
-         WHERE tenant_id = $1 AND check_date = $2::date
-         GROUP BY roster_id
-       ) cnt ON cnt.roster_id = c.roster_id
-       WHERE c.tenant_id = $1 AND c.check_date = $2::date`,
-      [user.tenantId, d],
+       WHERE c.tenant_id = $1 AND c.pass_id = $2`,
+      [user.tenantId, pass.id],
     );
     const byRoster = new Map(checks.map((c) => [c.roster_id, c]));
 
@@ -102,16 +96,162 @@ export class RadioControlService {
         notes: c?.notes ?? null,
         checkedAt: c?.checked_at ?? null,
         checkedTime: c?.slot_hm ?? null,
-        checksToday: c ? Number(c.checks_today) : 0,
       };
     });
 
     const filled = rows.filter((r) => r.status).length;
     return {
       date: d,
+      pass: this.mapPass(pass),
       total: rows.length,
       filled,
       rows,
+    };
+  }
+
+  async history(user: JwtPayload, date: string) {
+    const d = this.requireDate(date);
+    const passes = await this.q<{
+      id: string;
+      pass_number: number;
+      opened_at: string;
+      closed_at: string | null;
+      marked: string;
+      total_roster: string;
+    }>(
+      `SELECT p.id, p.pass_number, p.opened_at, p.closed_at,
+              COALESCE(cnt.marked, 0)::text AS marked,
+              (SELECT COUNT(*)::text FROM radio_control_roster r
+               WHERE r.tenant_id = p.tenant_id AND r.active = true) AS total_roster
+       FROM radio_control_passes p
+       LEFT JOIN (
+         SELECT pass_id, COUNT(DISTINCT roster_id)::int AS marked
+         FROM radio_control_checks
+         WHERE tenant_id = $1
+         GROUP BY pass_id
+       ) cnt ON cnt.pass_id = p.id
+       WHERE p.tenant_id = $1 AND p.pass_date = $2::date
+       ORDER BY p.pass_number DESC`,
+      [user.tenantId, d],
+    );
+
+    return {
+      date: d,
+      passes: passes.map((p) => ({
+        id: p.id,
+        passNumber: Number(p.pass_number),
+        openedAt: p.opened_at,
+        closedAt: p.closed_at,
+        open: !p.closed_at,
+        marked: Number(p.marked),
+        total: Number(p.total_roster),
+        openedTime: this.hmBogota(p.opened_at),
+        closedTime: p.closed_at ? this.hmBogota(p.closed_at) : null,
+      })),
+    };
+  }
+
+  async passDetail(user: JwtPayload, passId: string) {
+    const [pass] = await this.q<{
+      id: string;
+      pass_date: string;
+      pass_number: number;
+      opened_at: string;
+      closed_at: string | null;
+    }>(
+      `SELECT id, to_char(pass_date,'YYYY-MM-DD') AS pass_date, pass_number, opened_at, closed_at
+       FROM radio_control_passes
+       WHERE id = $1 AND tenant_id = $2`,
+      [passId, user.tenantId],
+    );
+    if (!pass) throw new BadRequestException('Pasada no encontrada');
+
+    const rows = await this.q<{
+      sort_order: number;
+      callsign: string | null;
+      label: string;
+      status: string;
+      checked_at: string;
+      slot_hm: string;
+    }>(
+      `SELECT r.sort_order, r.callsign, r.label, c.status, c.checked_at,
+              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm
+       FROM radio_control_checks c
+       JOIN radio_control_roster r ON r.id = c.roster_id
+       INNER JOIN (
+         SELECT roster_id, MAX(checked_at) AS mx
+         FROM radio_control_checks
+         WHERE tenant_id = $1 AND pass_id = $2
+         GROUP BY roster_id
+       ) latest ON latest.roster_id = c.roster_id AND latest.mx = c.checked_at
+       WHERE c.tenant_id = $1 AND c.pass_id = $2
+       ORDER BY r.sort_order`,
+      [user.tenantId, passId],
+    );
+
+    return {
+      pass: {
+        id: pass.id,
+        date: pass.pass_date,
+        passNumber: Number(pass.pass_number),
+        openedAt: pass.opened_at,
+        closedAt: pass.closed_at,
+        open: !pass.closed_at,
+        openedTime: this.hmBogota(pass.opened_at),
+        closedTime: pass.closed_at ? this.hmBogota(pass.closed_at) : null,
+      },
+      rows: rows.map((r) => ({
+        sortOrder: Number(r.sort_order),
+        callsign: r.callsign,
+        label: r.label,
+        status: r.status,
+        checkedTime: r.slot_hm,
+        checkedAt: r.checked_at,
+      })),
+    };
+  }
+
+  /**
+   * Cierra la pasada abierta (opcionalmente marca pendientes S/N) y abre una nueva vacía.
+   */
+  async nextPass(user: JwtPayload, dto: NextPassDto) {
+    const d = this.requireDate(dto.date);
+    const open = await this.getOrCreateOpenPass(user.tenantId, d);
+    let at: Date;
+    try {
+      at = parseClientCheckedAt(dto.checkedAt);
+    } catch {
+      throw new BadRequestException('Hora del equipo inválida');
+    }
+
+    if (dto.fillPendingSn !== false) {
+      const pending = await this.q<{ id: string }>(
+        `SELECT r.id
+         FROM radio_control_roster r
+         WHERE r.tenant_id = $1 AND r.active = true
+           AND NOT EXISTS (
+             SELECT 1 FROM radio_control_checks c
+             WHERE c.tenant_id = $1 AND c.pass_id = $2 AND c.roster_id = r.id
+           )
+         ORDER BY r.sort_order`,
+        [user.tenantId, open.id],
+      );
+      for (const row of pending) {
+        await this.insertCheck(user, open.id, row.id, d, at, 'S/N', null);
+      }
+    }
+
+    await this.q(
+      `UPDATE radio_control_passes
+       SET closed_at = $1::timestamptz, closed_by = $2
+       WHERE id = $3 AND closed_at IS NULL`,
+      [at.toISOString(), user.sub, open.id],
+    );
+
+    const next = await this.createPass(user.tenantId, d);
+    return {
+      closed: this.mapPass({ ...open, closed_at: at.toISOString() }),
+      open: this.mapPass(next),
     };
   }
 
@@ -120,38 +260,23 @@ export class RadioControlService {
     const status = this.requireStatus(dto.status);
     const rosterId = String(dto.rosterId || '').trim();
     if (!rosterId) throw new BadRequestException('rosterId requerido');
-
     await this.assertRoster(user.tenantId, rosterId);
-    const notes = dto.notes?.trim() ? dto.notes.trim().slice(0, 2000) : null;
 
+    const pass = await this.getOrCreateOpenPass(user.tenantId, d);
     let at: Date;
     try {
       at = parseClientCheckedAt(dto.checkedAt);
     } catch {
       throw new BadRequestException('Hora del equipo inválida');
     }
-
-    const [row] = await this.q(
-      `INSERT INTO radio_control_checks (
-         tenant_id, roster_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
-       ) VALUES (
-         $1, $2, $3::date,
-         (($4::timestamptz AT TIME ZONE 'America/Bogota')::time),
-         $4::timestamptz,
-         $5, $6, $7, NOW()
-       )
-       RETURNING id, roster_id AS "rosterId", status, notes,
-                 to_char(check_date,'YYYY-MM-DD') AS date,
-                 to_char(checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS "checkedTime",
-                 checked_at AS "checkedAt"`,
-      [user.tenantId, rosterId, d, at.toISOString(), status, notes, user.sub],
-    );
-    return row;
+    const notes = dto.notes?.trim() ? dto.notes.trim().slice(0, 2000) : null;
+    return this.insertCheck(user, pass.id, rosterId, d, at, status, notes);
   }
 
   async upsertMany(user: JwtPayload, dto: UpsertManyDto) {
     const d = this.requireDate(dto.date);
     const status = this.requireStatus(dto.status);
+    const pass = await this.getOrCreateOpenPass(user.tenantId, d);
     let at: Date;
     try {
       at = parseClientCheckedAt(dto.checkedAt);
@@ -163,8 +288,7 @@ export class RadioControlService {
     if (rosterIds.length === 0) {
       const all = await this.q<{ id: string }>(
         `SELECT id FROM radio_control_roster
-         WHERE tenant_id = $1 AND active = true
-         ORDER BY sort_order`,
+         WHERE tenant_id = $1 AND active = true ORDER BY sort_order`,
         [user.tenantId],
       );
       rosterIds = all.map((r) => r.id);
@@ -172,38 +296,105 @@ export class RadioControlService {
 
     let n = 0;
     for (const rosterId of rosterIds) {
-      await this.q(
-        `INSERT INTO radio_control_checks (
-           tenant_id, roster_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
-         ) VALUES (
-           $1, $2, $3::date,
-           (($4::timestamptz AT TIME ZONE 'America/Bogota')::time),
-           $4::timestamptz,
-           $5, NULL, $6, NOW()
-         )`,
-        [user.tenantId, rosterId, d, at.toISOString(), status, user.sub],
-      );
+      await this.insertCheck(user, pass.id, rosterId, d, at, status, null);
       n += 1;
     }
-    return { updated: n, date: d, status, checkedAt: at.toISOString() };
+    return { updated: n, date: d, status, passId: pass.id };
   }
 
-  async daySummary(user: JwtPayload, date: string) {
-    const d = this.requireDate(date);
-    const rows = await this.q<{
-      hour: string;
-      status: string;
-      n: string;
-    }>(
-      `SELECT to_char(checked_at AT TIME ZONE 'America/Bogota', 'HH24:00') AS hour,
-              status, COUNT(*)::text AS n
-       FROM radio_control_checks
-       WHERE tenant_id = $1 AND check_date = $2::date
-       GROUP BY 1, status
-       ORDER BY 1, status`,
-      [user.tenantId, d],
+  private async insertCheck(
+    user: JwtPayload,
+    passId: string,
+    rosterId: string,
+    date: string,
+    at: Date,
+    status: RadioControlStatus,
+    notes: string | null,
+  ) {
+    const [row] = await this.q(
+      `INSERT INTO radio_control_checks (
+         tenant_id, roster_id, pass_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
+       ) VALUES (
+         $1, $2, $3, $4::date,
+         (($5::timestamptz AT TIME ZONE 'America/Bogota')::time),
+         $5::timestamptz, $6, $7, $8, NOW()
+       )
+       RETURNING id, roster_id AS "rosterId", status, notes,
+                 to_char(check_date,'YYYY-MM-DD') AS date,
+                 to_char(checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS "checkedTime",
+                 checked_at AS "checkedAt"`,
+      [user.tenantId, rosterId, passId, date, at.toISOString(), status, notes, user.sub],
     );
-    return { date: d, counts: rows };
+    return row;
+  }
+
+  private async getOrCreateOpenPass(tenantId: string, date: string) {
+    const [open] = await this.q<{
+      id: string;
+      pass_number: number;
+      opened_at: string;
+      closed_at: string | null;
+    }>(
+      `SELECT id, pass_number, opened_at, closed_at
+       FROM radio_control_passes
+       WHERE tenant_id = $1 AND pass_date = $2::date AND closed_at IS NULL
+       ORDER BY pass_number DESC
+       LIMIT 1`,
+      [tenantId, date],
+    );
+    if (open) return open;
+    return this.createPass(tenantId, date);
+  }
+
+  private async createPass(tenantId: string, date: string) {
+    const [row] = await this.q<{
+      id: string;
+      pass_number: number;
+      opened_at: string;
+      closed_at: string | null;
+    }>(
+      `INSERT INTO radio_control_passes (tenant_id, pass_date, pass_number)
+       VALUES (
+         $1, $2::date,
+         COALESCE((
+           SELECT MAX(pass_number) FROM radio_control_passes
+           WHERE tenant_id = $1 AND pass_date = $2::date
+         ), 0) + 1
+       )
+       RETURNING id, pass_number, opened_at, closed_at`,
+      [tenantId, date],
+    );
+    return row;
+  }
+
+  private mapPass(p: {
+    id: string;
+    pass_number: number;
+    opened_at: string;
+    closed_at?: string | null;
+  }) {
+    return {
+      id: p.id,
+      passNumber: Number(p.pass_number),
+      openedAt: p.opened_at,
+      closedAt: p.closed_at ?? null,
+      open: !p.closed_at,
+      openedTime: this.hmBogota(p.opened_at),
+      closedTime: p.closed_at ? this.hmBogota(p.closed_at) : null,
+    };
+  }
+
+  private hmBogota(iso: string): string {
+    try {
+      return new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'America/Bogota',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).format(new Date(iso));
+    } catch {
+      return '';
+    }
   }
 
   private async assertRoster(tenantId: string, rosterId: string) {
