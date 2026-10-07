@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface PayrollPeriod {
   id: string;
@@ -47,7 +48,7 @@ export interface PayrollSlip {
 @Injectable({ providedIn: 'root' })
 export class PayrollService {
   private http = inject(HttpClient);
-  private baseUrl = '/api/v1/payroll';
+  private baseUrl = `${environment.apiUrl}/payroll`;
 
   getPeriods(): Observable<PayrollPeriod[]> {
     return this.http.get<PayrollPeriod[]>(`${this.baseUrl}/periods`);

@@ -791,6 +791,7 @@ export class Dashboard implements OnInit {
       minuta: 'Minuta',
       sig: 'SIG',
       sst: 'SST',
+      radio_control: 'Control',
     };
     return map[module] ?? module;
   }

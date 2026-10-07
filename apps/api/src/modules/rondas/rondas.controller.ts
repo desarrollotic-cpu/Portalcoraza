@@ -16,6 +16,7 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
+import { AuthRateLimitGuard } from '../auth/auth-rate-limit.guard';
 import { RondasService } from './rondas.service';
 
 @Controller('rondas')
@@ -24,18 +25,21 @@ export class RondasController {
   constructor(private readonly rondas: RondasService) {}
 
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Get('campo/puestos')
   puestosCampo() {
     return this.rondas.puestosCampo();
   }
 
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Get('campo/asociados')
   asociados(@Query('postId') postId: string) {
     return this.rondas.asociadosCampo(postId);
   }
 
   @Public()
+  @UseGuards(AuthRateLimitGuard)
   @Post('campo/entrar')
   entrar(
     @Body() body: { postId: string; associateId: string; documentNumber: string },

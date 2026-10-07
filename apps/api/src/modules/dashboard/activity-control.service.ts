@@ -220,10 +220,10 @@ export class ActivityControlService {
     let radioActorsToday: Array<{ userId: string; count: number; lastAt: Date }> = [];
     try {
       const dayRows = await this.rawQuery<{ day: string; n: number }>(
-        `SELECT to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
+        `SELECT to_char(c.updated_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
                 COUNT(*)::int AS n
          FROM radio_control_checks c
-         WHERE c.checked_at >= $1
+         WHERE c.updated_at >= $1
          GROUP BY 1`,
         [since.toISOString()],
       );
@@ -241,9 +241,9 @@ export class ActivityControlService {
 
       radioActorsAgg = (
         await this.rawQuery<{ user_id: string; n: number; last_at: string | Date }>(
-          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
+          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.updated_at) AS last_at
            FROM radio_control_checks c
-           WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
+           WHERE c.updated_at >= $1 AND c.checked_by IS NOT NULL
            GROUP BY c.checked_by
            ORDER BY last_at DESC
            LIMIT 16`,
@@ -253,9 +253,9 @@ export class ActivityControlService {
 
       radioActorsToday = (
         await this.rawQuery<{ user_id: string; n: number; last_at: string | Date }>(
-          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
+          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.updated_at) AS last_at
            FROM radio_control_checks c
-           WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
+           WHERE c.updated_at >= $1 AND c.checked_by IS NOT NULL
            GROUP BY c.checked_by
            ORDER BY last_at DESC
            LIMIT 16`,
@@ -273,13 +273,13 @@ export class ActivityControlService {
         callsign: string | null;
         pass_number: number | null;
       }>(
-        `SELECT c.id, c.checked_by, c.status, c.notes, c.checked_at,
+        `SELECT c.id, c.checked_by, c.status, c.notes, c.updated_at AS checked_at,
                 r.label, r.callsign, p.pass_number
          FROM radio_control_checks c
          JOIN radio_control_roster r ON r.id = c.roster_id
          LEFT JOIN radio_control_passes p ON p.id = c.pass_id
-         WHERE c.checked_at >= $1
-         ORDER BY c.checked_at DESC
+         WHERE c.updated_at >= $1
+         ORDER BY c.updated_at DESC
          LIMIT 40`,
         [since.toISOString()],
       );

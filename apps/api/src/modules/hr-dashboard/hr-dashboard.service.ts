@@ -226,7 +226,9 @@ export class HrDashboardService {
     );
 
     const today = new Date().toISOString().slice(0, 10);
-    const isFuture = (d: string | null) => !!d && d.slice(0, 10) >= today;
+    // pg devuelve DATE como Date; el tipado dice string → normalizar a ISO.
+    const isFuture = (d: string | Date | null) =>
+      !!d && (d instanceof Date ? d.toISOString() : String(d)).slice(0, 10) >= today;
 
     return rows.map((r) => {
       const courseValid = isFuture(r.course_expires_at);

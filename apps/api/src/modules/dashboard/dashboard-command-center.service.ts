@@ -615,6 +615,7 @@ export class DashboardCommandCenterService {
       minuta: 'Minuta',
       sig: 'SIG',
       sst: 'SST',
+      radio_control: 'Control',
     };
     const act: Record<string, string> = {
       login: 'Inicio de sesión',
@@ -648,6 +649,9 @@ export class DashboardCommandCenterService {
       'absence.create': 'Ausencia registrada',
       'absence.update': 'Ausencia actualizada',
       'absence.delete': 'Ausencia eliminada',
+      'radio_control.check': 'Radio marcada',
+      'radio_control.fill': 'Pasada completada',
+      'radio_control.next_pass': 'Nueva pasada iniciada',
     };
 
     const m = mod[row.module] ?? row.module;
