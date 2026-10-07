@@ -69,6 +69,13 @@ export const OPERACIONES_NAV: ModuleNavItem[] = [
     icon: LucideClipboardCheck,
     exact: true,
   },
+  {
+    label: 'Historial control de radio',
+    route: '/operaciones/control-radio',
+    permissions: ['radio_control.view', 'operations.view'],
+    icon: LucideRadio,
+    exact: true,
+  },
 ];
 
 export const RRHH_NAV: ModuleNavItem[] = [

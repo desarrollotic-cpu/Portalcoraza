@@ -3,6 +3,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   isRadioControlStatus,
@@ -34,7 +35,10 @@ export type NextPassDto = {
 
 @Injectable()
 export class RadioControlService {
-  constructor(private readonly ds: DataSource) {}
+  constructor(
+    private readonly ds: DataSource,
+    private readonly audit: AuditService,
+  ) {}
 
   private q<T = Record<string, unknown>>(sql: string, params: unknown[] = []) {
     return this.ds.query(sql, params) as Promise<T[]>;
@@ -251,10 +255,22 @@ export class RadioControlService {
     );
 
     const next = await this.createPass(user.tenantId, d);
-    return {
-      closed: this.mapPass({ ...open, closed_at: at.toISOString() }),
-      open: this.mapPass(next),
-    };
+    const closed = this.mapPass({ ...open, closed_at: at.toISOString() });
+    const opened = this.mapPass(next);
+    await this.audit.log({
+      userId: user.sub,
+      module: 'radio_control',
+      action: 'radio_control.next_pass',
+      entityType: 'radio_control_pass',
+      entityId: open.id,
+      newValue: {
+        date: d,
+        passNumber: closed.passNumber,
+        closedTime: closed.closedTime,
+        nextPassNumber: opened.passNumber,
+      },
+    });
+    return { closed, open: opened };
   }
 
   async upsert(user: JwtPayload, dto: UpsertRadioCheckDto) {
@@ -262,7 +278,7 @@ export class RadioControlService {
     const status = this.requireStatus(dto.status);
     const rosterId = String(dto.rosterId || '').trim();
     if (!rosterId) throw new BadRequestException('rosterId requerido');
-    await this.assertRoster(user.tenantId, rosterId);
+    const roster = await this.assertRoster(user.tenantId, rosterId);
 
     const pass = await this.getOrCreateOpenPass(user.tenantId, d);
     let at: Date;
@@ -272,7 +288,40 @@ export class RadioControlService {
       throw new BadRequestException('Hora del equipo inválida');
     }
     const notes = dto.notes?.trim() ? dto.notes.trim().slice(0, 2000) : null;
-    return this.insertCheck(user, pass.id, rosterId, d, at, status, notes);
+    const row = (await this.insertCheck(
+      user,
+      pass.id,
+      rosterId,
+      d,
+      at,
+      status,
+      notes,
+    )) as {
+      id: string;
+      rosterId: string;
+      status: string;
+      notes: string | null;
+      date: string;
+      checkedTime: string;
+      checkedAt: string;
+    };
+    await this.audit.log({
+      userId: user.sub,
+      module: 'radio_control',
+      action: 'radio_control.check',
+      entityType: 'radio_control_check',
+      entityId: row.id,
+      newValue: {
+        date: d,
+        status,
+        notes,
+        label: roster.label,
+        callsign: roster.callsign,
+        passNumber: pass.pass_number,
+        checkedTime: row.checkedTime,
+      },
+    });
+    return row;
   }
 
   async upsertMany(user: JwtPayload, dto: UpsertManyDto) {
@@ -301,6 +350,19 @@ export class RadioControlService {
       await this.insertCheck(user, pass.id, rosterId, d, at, status, null);
       n += 1;
     }
+    await this.audit.log({
+      userId: user.sub,
+      module: 'radio_control',
+      action: 'radio_control.fill',
+      entityType: 'radio_control_pass',
+      entityId: pass.id,
+      newValue: {
+        date: d,
+        status,
+        updated: n,
+        passNumber: pass.pass_number,
+      },
+    });
     return { updated: n, date: d, status, passId: pass.id };
   }
 
@@ -400,12 +462,17 @@ export class RadioControlService {
   }
 
   private async assertRoster(tenantId: string, rosterId: string) {
-    const [r] = await this.q(
-      `SELECT id FROM radio_control_roster
+    const [r] = await this.q<{
+      id: string;
+      label: string;
+      callsign: string | null;
+    }>(
+      `SELECT id, label, callsign FROM radio_control_roster
        WHERE id = $1 AND tenant_id = $2 AND active = true`,
       [rosterId, tenantId],
     );
     if (!r) throw new BadRequestException('Radio no encontrado en el roster');
+    return r;
   }
 
   private requireDate(raw: string): string {

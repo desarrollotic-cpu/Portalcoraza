@@ -598,6 +598,18 @@ export const routes: Routes = [
                 './features/operaciones/scooter-inspections-panel/scooter-inspections-panel'
               ).then((m) => m.ScooterInspectionsPanel),
           },
+          {
+            path: 'control-radio',
+            canActivate: [permissionGuard],
+            data: {
+              permissions: ['radio_control.view', 'operations.view'],
+              permissionMode: 'any',
+            },
+            loadComponent: () =>
+              import(
+                './features/operaciones/radio-control-historial/radio-control-historial'
+              ).then((m) => m.RadioControlHistorial),
+          },
         ],
       },
       {

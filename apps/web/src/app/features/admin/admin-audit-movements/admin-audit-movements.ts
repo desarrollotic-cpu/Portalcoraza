@@ -45,6 +45,7 @@ const MODULE_LABELS: Record<string, string> = {
   post_equipment: 'Equipos de puesto',
   posts: 'Puestos de trabajo',
   scheduling: 'Programación',
+  radio_control: 'Control',
   documental: 'Gestión documental',
   audit: 'Auditoría',
 };
@@ -63,6 +64,7 @@ const MODULE_TABS: ModuleTab[] = [
   { id: 'users', label: 'Usuarios', modules: ['users'] },
   { id: 'posts', label: 'Puestos', modules: ['posts'] },
   { id: 'scheduling', label: 'Programación', modules: ['scheduling'] },
+  { id: 'radio_control', label: 'Control', modules: ['radio_control'] },
   { id: 'documental', label: 'Documental', modules: ['documental'] },
 ];
 
@@ -112,6 +114,9 @@ const ACTION_LABELS: Record<string, string> = {
   'monthly_schedule.motor': 'Ejecutó motor de programación',
   'monthly_schedule.motor_global': 'Ejecutó motor global',
   'schedule_template.create': 'Creó plantilla de turnos',
+  'radio_control.check': 'Marcó un radio en control',
+  'radio_control.fill': 'Marcó radios pendientes en control',
+  'radio_control.next_pass': 'Cerró pasada y abrió la siguiente',
   'loan.create': 'Solicitó préstamo documental',
   'loan.approve': 'Aprobó préstamo documental',
   'loan.reject': 'Rechazó préstamo documental',
@@ -150,6 +155,8 @@ const ENTITY_LABELS: Record<string, string> = {
   inventory_variant: 'Variante / talla',
   inventory_movement: 'Movimiento de stock',
   post: 'Puesto',
+  radio_control_check: 'Marca de radio',
+  radio_control_pass: 'Pasada de control',
   monthly_schedule: 'Programación mensual',
   schedule: 'Turno',
   loan: 'Préstamo documental',

@@ -36,6 +36,8 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
         <a routerLink="/operaciones/minutas">Minutas</a>.
         Cumplimiento de recorrido GPS en
         <a routerLink="/operaciones/rondas">Rondas</a>.
+        Historial de pasadas de radio en
+        <a routerLink="/operaciones/control-radio">Historial control de radio</a>.
       </p>
     </section>
   `,

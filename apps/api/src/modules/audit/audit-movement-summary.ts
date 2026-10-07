@@ -218,6 +218,28 @@ export function buildMovementSummary(row: AuditLike, ctx: AuditSummaryCtx): stri
     );
   }
 
+  // —— Control de radio ——
+  if (row.module === 'radio_control') {
+    const label = pick(data, ['label', 'callsign', 'rosterLabel']);
+    const status = pick(data, ['status', 'estado']);
+    const pass = pick(data, ['passNumber', 'pass_number']);
+    const date = pick(data, ['date', 'checkDate']);
+    const notes = pick(data, ['notes', 'observacion']);
+    const count = pick(data, ['updated', 'count', 'filled']);
+    return (
+      [
+        label,
+        status ? `Estado: ${status}` : null,
+        pass ? `Pasada #${pass}` : null,
+        date,
+        count ? `${count} radio(s)` : null,
+        notes,
+      ]
+        .filter(Boolean)
+        .join(' · ') || 'Control de radio'
+    );
+  }
+
   // —— Documental ——
   if (row.module === 'documental') {
     const code = pick(data, ['code', 'radicado', 'number', 'folio']);

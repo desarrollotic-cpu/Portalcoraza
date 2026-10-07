@@ -40,6 +40,12 @@ const AREAS: AreaDef[] = [
     accent: '#F59E0B',
   },
   { key: 'posts', label: 'Puestos / Operaciones', modules: ['posts'], accent: '#10B981' },
+  {
+    key: 'radio_control',
+    label: 'Control',
+    modules: ['radio_control'],
+    accent: '#0EA5E9',
+  },
   { key: 'documental', label: 'Documental', modules: ['documental'], accent: '#EC4899' },
   { key: 'sst', label: 'SST', modules: ['sst'], accent: '#EF4444' },
   { key: 'minuta', label: 'Minuta', modules: ['minuta'], accent: '#14B8A6' },
