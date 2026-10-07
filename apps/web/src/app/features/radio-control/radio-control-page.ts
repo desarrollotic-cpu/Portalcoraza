@@ -52,6 +52,7 @@ interface PassDetailPayload {
     callsign: string | null;
     label: string;
     status: string;
+    notes: string | null;
     checkedTime: string;
     checkedAt: string;
   }>;
@@ -142,6 +143,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                   <th>Puesto (radio)</th>
                   <th>Hora marcada</th>
                   <th>Estado</th>
+                  <th>Observaciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -172,6 +174,18 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                           </button>
                         }
                       </div>
+                    </td>
+                    <td>
+                      <input
+                        class="rc-notes"
+                        type="text"
+                        maxlength="500"
+                        placeholder="Novedad (opcional)"
+                        [(ngModel)]="row.notes"
+                        [disabled]="!canEdit() || savingId() === row.rosterId"
+                        (blur)="saveNotes(row)"
+                        (keydown.enter)="$any($event.target).blur()"
+                      />
                     </td>
                   </tr>
                 }
@@ -234,6 +248,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                     <th>Puesto</th>
                     <th>Hora</th>
                     <th>Estado</th>
+                    <th>Observaciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -244,6 +259,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                       <td>{{ row.label }}</td>
                       <td><strong>{{ row.checkedTime }}</strong></td>
                       <td>{{ row.status }}</td>
+                      <td>{{ row.notes || '—' }}</td>
                     </tr>
                   }
                 </tbody>
@@ -286,6 +302,12 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
     .rc-chip.active[data-st='N/A'] { background: #334155; border-color: #0f172a; }
     .rc-chip.active[data-st='C/N'] { background: #ea580c; border-color: #9a3412; }
     .rc-done td { background: #f8fafc; }
+    .rc-notes {
+      width: 100%; min-width: 160px; max-width: 280px;
+      border: 1px solid #cbd5e1; border-radius: 6px;
+      padding: 0.35rem 0.5rem; font-size: 0.8rem;
+    }
+    .rc-notes:disabled { background: #f8fafc; }
     .rc-minuta-frame {
       display: block; width: 100%; height: calc(100vh - 210px); min-height: 560px;
       border: 1px solid #e2e8f0; border-radius: 10px; background: #fff;
@@ -332,6 +354,8 @@ export class RadioControlPage implements OnInit, OnDestroy {
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
   private clockTimer: ReturnType<typeof setInterval> | null = null;
   private minutaSession: Promise<void> | null = null;
+  /** Última observación persistida por radio (evita re-guardar al blur). */
+  private notesSaved = new Map<string, string | null>();
 
   canEdit(): boolean {
     return (
@@ -381,6 +405,8 @@ export class RadioControlPage implements OnInit, OnDestroy {
       .get<BoardPayload>(`${environment.apiUrl}/radio-control/board`, { params })
       .subscribe({
         next: (b) => {
+          this.notesSaved.clear();
+          for (const r of b.rows) this.notesSaved.set(r.rosterId, r.notes ?? null);
           this.board.set(b);
           this.loading.set(false);
         },
@@ -421,23 +447,40 @@ export class RadioControlPage implements OnInit, OnDestroy {
 
   setStatus(row: BoardRow, status: Status): void {
     if (!this.canEdit()) return;
+    this.persistCheck(row, status, new Date().toISOString());
+  }
+
+  /** Guarda observación sin cambiar la hora ya marcada (si aún no hay estado, viaja al marcar). */
+  saveNotes(row: BoardRow): void {
+    if (!this.canEdit() || !row.status) return;
+    const notes = (row.notes || '').trim() || null;
+    row.notes = notes;
+    if (notes === (this.notesSaved.get(row.rosterId) ?? null)) return;
+    this.persistCheck(row, row.status, row.checkedAt || new Date().toISOString());
+  }
+
+  private persistCheck(row: BoardRow, status: Status, checkedAt: string): void {
     this.savingId.set(row.rosterId);
+    const notes = (row.notes || '').trim() || null;
     this.http
-      .put<{ checkedTime?: string; checkedAt?: string }>(
+      .put<{ checkedTime?: string; checkedAt?: string; notes?: string | null }>(
         `${environment.apiUrl}/radio-control/check`,
         {
           rosterId: row.rosterId,
           date: this.date,
           status,
-          checkedAt: new Date().toISOString(),
+          notes,
+          checkedAt,
         },
       )
       .subscribe({
         next: (res) => {
           const wasEmpty = !row.status;
           row.status = status;
+          row.notes = notes;
+          this.notesSaved.set(row.rosterId, notes);
           row.checkedTime = res.checkedTime || this.localHm();
-          row.checkedAt = res.checkedAt || new Date().toISOString();
+          row.checkedAt = res.checkedAt || checkedAt;
           const b = this.board();
           if (b) {
             this.board.set({

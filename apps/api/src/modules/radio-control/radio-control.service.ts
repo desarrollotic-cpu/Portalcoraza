@@ -171,10 +171,11 @@ export class RadioControlService {
       callsign: string | null;
       label: string;
       status: string;
+      notes: string | null;
       checked_at: string;
       slot_hm: string;
     }>(
-      `SELECT r.sort_order, r.callsign, r.label, c.status, c.checked_at,
+      `SELECT r.sort_order, r.callsign, r.label, c.status, c.notes, c.checked_at,
               to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm
        FROM radio_control_checks c
        JOIN radio_control_roster r ON r.id = c.roster_id
@@ -205,6 +206,7 @@ export class RadioControlService {
         callsign: r.callsign,
         label: r.label,
         status: r.status,
+        notes: r.notes,
         checkedTime: r.slot_hm,
         checkedAt: r.checked_at,
       })),
