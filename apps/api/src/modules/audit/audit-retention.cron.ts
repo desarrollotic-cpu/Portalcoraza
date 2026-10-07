@@ -11,7 +11,7 @@ export class AuditRetentionCron {
   @Cron(CronExpression.EVERY_DAY_AT_4AM, { name: 'audit-retention-daily' })
   async handleDailyPurge() {
     this.logger.log(
-      `Purga historial (>${AUDIT_RETENTION_DAYS}d): movimientos + control actividades (audit, HR, radio)`,
+      `Purga historial (>${AUDIT_RETENTION_DAYS}d): movimientos + actividades (audit, HR, radio)`,
     );
     try {
       const result = await this.audit.purgeOlderThanDays(AUDIT_RETENTION_DAYS);

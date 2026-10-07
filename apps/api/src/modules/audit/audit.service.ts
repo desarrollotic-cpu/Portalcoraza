@@ -384,6 +384,7 @@ export class AuditService {
       this.logger.warn(`Purga radio_control_passes omitida: ${(err as Error).message}`);
     }
 
+    // Minutas operativas (Operaciones → Minutas) NO se borran aquí: son el registro del puesto.
     return { auditLogs, associateHistory, radioChecks, radioPasses };
   }
 }

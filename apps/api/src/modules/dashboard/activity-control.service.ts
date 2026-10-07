@@ -64,6 +64,39 @@ const SKIP_ACTIONS = new Set([
 /** Colombia sin DST: UTC−5 todo el año. */
 const BOGOTA_OFFSET = '-05:00';
 
+/** Registros reales de Minuta Virtual (no pasan por audit_logs). */
+const MINUTA_FECHA_UNION = `
+  SELECT fecha_registro, registrado_por, usuario, id, 'VISITANTE'::text AS tipo,
+         COALESCE(nombre_completo, '') AS detalle
+  FROM minuta_visitantes WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, usuario, id, 'CORRESPONDENCIA',
+         COALESCE(clase, '')
+  FROM minuta_correspondencia WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, usuario, id, 'CONTRATISTA',
+         COALESCE(nombre_completo, '')
+  FROM minuta_contratistas WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, usuario, id, 'DOMICILIARIO',
+         COALESCE(empresa, '')
+  FROM minuta_domiciliarios WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, usuario, id, 'INCIDENTE',
+         COALESCE(tipo, '')
+  FROM minuta_incidentes WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, usuario, id, 'SERVICIO',
+         COALESCE(left(anotaciones, 80), '')
+  FROM minuta_servicio WHERE fecha_registro >= $1
+  UNION ALL
+  SELECT fecha_registro, registrado_por, COALESCE(registrado_por, '') AS usuario, id, 'ENTREGA',
+         COALESCE(nombre_del_puesto, vigilante_entrante, '')
+  FROM minuta_entrega_puesto WHERE fecha_registro >= $1
+`;
+
+type NamedActor = { name: string; count: number; lastAt: Date };
+
 @Injectable()
 export class ActivityControlService {
   constructor(
@@ -255,6 +288,94 @@ export class ActivityControlService {
       // Tabla aún no migrada en algún entorno: el área queda solo con audit_logs.
     }
 
+    // Minuta Virtual: fuente de verdad = tablas minuta_* (no audit_logs).
+    let minutaDayCounts = new Map<string, number>();
+    let minutaActorsWeek: NamedActor[] = [];
+    let minutaActorsToday: NamedActor[] = [];
+    try {
+      const dayRows = (await this.ds.query(
+        `SELECT to_char(fecha_registro AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
+                COUNT(*)::int AS n
+         FROM (${MINUTA_FECHA_UNION}) m
+         GROUP BY 1`,
+        [since.toISOString()],
+      )) as Array<{ day: string; n: number }>;
+      minutaDayCounts = new Map(dayRows.map((r) => [r.day, Number(r.n) || 0]));
+
+      const mapNamed = (r: {
+        actor: string;
+        n: number;
+        last_at: string | Date;
+      }): NamedActor => ({
+        name: (r.actor || 'Usuario').trim() || 'Usuario',
+        count: Number(r.n) || 0,
+        lastAt: r.last_at instanceof Date ? r.last_at : new Date(r.last_at),
+      });
+
+      minutaActorsWeek = (
+        (await this.ds.query(
+          `SELECT COALESCE(NULLIF(trim(registrado_por), ''), NULLIF(trim(usuario), ''), 'Usuario') AS actor,
+                  COUNT(*)::int AS n, MAX(fecha_registro) AS last_at
+           FROM (${MINUTA_FECHA_UNION}) m
+           GROUP BY 1
+           ORDER BY last_at DESC
+           LIMIT 16`,
+          [since.toISOString()],
+        )) as Array<{ actor: string; n: number; last_at: string | Date }>
+      ).map(mapNamed);
+
+      minutaActorsToday = (
+        (await this.ds.query(
+          `SELECT COALESCE(NULLIF(trim(registrado_por), ''), NULLIF(trim(usuario), ''), 'Usuario') AS actor,
+                  COUNT(*)::int AS n, MAX(fecha_registro) AS last_at
+           FROM (${MINUTA_FECHA_UNION}) m
+           GROUP BY 1
+           ORDER BY last_at DESC
+           LIMIT 16`,
+          [todayStart.toISOString()],
+        )) as Array<{ actor: string; n: number; last_at: string | Date }>
+      ).map(mapNamed);
+
+      const minutaRecent = (await this.ds.query(
+        `SELECT id, tipo, detalle, registrado_por, usuario, fecha_registro
+         FROM (${MINUTA_FECHA_UNION}) m
+         ORDER BY fecha_registro DESC
+         LIMIT 40`,
+        [since.toISOString()],
+      )) as Array<{
+        id: string;
+        tipo: string;
+        detalle: string;
+        registrado_por: string | null;
+        usuario: string | null;
+        fecha_registro: string | Date;
+      }>;
+      for (const row of minutaRecent) {
+        const at =
+          row.fecha_registro instanceof Date
+            ? row.fecha_registro
+            : new Date(row.fecha_registro);
+        events.push({
+          id: `minuta:${row.tipo}:${row.id}`,
+          userId: null,
+          module: 'minuta',
+          action: `minuta.${row.tipo.toLowerCase()}`,
+          createdAt: at,
+          newValue: {
+            tipo: row.tipo,
+            detalle: row.detalle,
+            registradoPor: row.registrado_por,
+            usuario: row.usuario,
+          },
+          oldValue: null,
+          entityType: 'minuta',
+          entityId: row.id,
+        });
+      }
+    } catch {
+      // Tablas minuta no disponibles.
+    }
+
     events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const userIds = [
@@ -402,72 +523,29 @@ export class ActivityControlService {
       };
     });
 
-    // Completa KPIs de Control con agregados SQL (sin cargar miles de filas).
-    if (radioDayCounts.size > 0 || radioActorsAgg.length > 0) {
-      const todayKey = this.bogotaDayKey(todayStart);
-      const idx = areas.findIndex((a) => a.key === 'radio_control');
-      if (idx >= 0) {
-        const area = areas[idx];
-        const dayStrip = area.dayStrip.map((d) => {
-          const count = Math.max(d.count, radioDayCounts.get(d.date) ?? 0);
-          return { ...d, count, used: count > 0 };
-        });
-        let idleStreakDays = 0;
-        for (let i = dayStrip.length - 1; i >= 0; i--) {
-          if (dayStrip[i].used) break;
-          idleStreakDays += 1;
-        }
-        const eventCountWeek = dayStrip.reduce((n, d) => n + d.count, 0);
-        const eventCountToday = radioDayCounts.get(todayKey) ?? area.eventCountToday;
-        const periodKeys = new Set(
-          this.lastBogotaDayKeys(days).map((d) => d.key),
-        );
-        const eventCountPeriod = [...radioDayCounts.entries()]
-          .filter(([k]) => periodKeys.has(k))
-          .reduce((n, [, c]) => n + c, 0);
-        const usedToday = eventCountToday > 0;
-        const toActor = (a: { userId: string; count: number; lastAt: Date }) => ({
-          name: nameById.get(a.userId) ?? 'Usuario',
-          count: a.count,
-          lastAt: a.lastAt,
-        });
-        const actorsWeek = radioActorsAgg.map(toActor);
-        const actors = (usedToday && radioActorsToday.length
-          ? radioActorsToday
-          : radioActorsAgg
-        )
-          .slice(0, 8)
-          .map(toActor);
-        let statusLabel = usedToday ? 'Activa hoy' : 'Sin actividad hoy';
-        if (!usedToday && idleStreakDays >= 2) {
-          statusLabel = `Sin uso ${idleStreakDays} días`;
-        }
-        const lastAt =
-          radioActorsToday[0]?.lastAt ??
-          actorsWeek[0]?.lastAt ??
-          area.lastAt ??
-          null;
-        areas[idx] = {
-          ...area,
-          dayStrip,
-          daysUsedInWeek: dayStrip.filter((d) => d.used).length,
-          idleStreakDays,
-          eventCountWeek: Math.max(area.eventCountWeek, eventCountWeek),
-          eventCountToday: Math.max(area.eventCountToday, eventCountToday),
-          eventCountPeriod: Math.max(area.eventCountPeriod, eventCountPeriod),
-          usedToday,
-          status: usedToday ? ('active' as const) : ('idle' as const),
-          statusLabel,
-          uniqueUsersToday: usedToday
-            ? Math.max(area.uniqueUsersToday, radioActorsToday.length)
-            : area.uniqueUsersToday,
-          uniqueUsersPeriod: Math.max(area.uniqueUsersPeriod, radioActorsAgg.length),
-          actors: actors.length ? actors : area.actors,
-          actorsWeek: actorsWeek.length ? actorsWeek : area.actorsWeek,
-          lastAt,
-        };
-      }
-    }
+    // Completa KPIs con agregados SQL (radio + minuta).
+    this.patchAreaFromAgg(areas, 'radio_control', {
+      dayCounts: radioDayCounts,
+      actorsWeek: radioActorsAgg.map((a) => ({
+        name: nameById.get(a.userId) ?? 'Usuario',
+        count: a.count,
+        lastAt: a.lastAt,
+      })),
+      actorsToday: radioActorsToday.map((a) => ({
+        name: nameById.get(a.userId) ?? 'Usuario',
+        count: a.count,
+        lastAt: a.lastAt,
+      })),
+      todayStart,
+      days,
+    });
+    this.patchAreaFromAgg(areas, 'minuta', {
+      dayCounts: minutaDayCounts,
+      actorsWeek: minutaActorsWeek,
+      actorsToday: minutaActorsToday,
+      todayStart,
+      days,
+    });
 
     const activeToday = areas.filter((a) => a.usedToday).length;
 
@@ -484,6 +562,96 @@ export class ActivityControlService {
         eventsToday: areas.reduce((n, a) => n + a.eventCountToday, 0),
       },
       areas,
+    };
+  }
+
+  /** Mezcla conteos SQL en el área (sin inflar memoria con miles de eventos). */
+  private patchAreaFromAgg(
+    areas: Array<{
+      key: string;
+      dayStrip: Array<{
+        date: string;
+        label: string;
+        weekday: string;
+        count: number;
+        used: boolean;
+        isToday: boolean;
+      }>;
+      daysUsedInWeek: number;
+      idleStreakDays: number;
+      eventCountWeek: number;
+      eventCountToday: number;
+      eventCountPeriod: number;
+      usedToday: boolean;
+      status: 'active' | 'idle';
+      statusLabel: string;
+      uniqueUsersToday: number;
+      uniqueUsersPeriod: number;
+      actors: NamedActor[];
+      actorsWeek: NamedActor[];
+      lastAt: Date | null;
+      [k: string]: unknown;
+    }>,
+    key: string,
+    src: {
+      dayCounts: Map<string, number>;
+      actorsWeek: NamedActor[];
+      actorsToday: NamedActor[];
+      todayStart: Date;
+      days: number;
+    },
+  ): void {
+    if (src.dayCounts.size === 0 && src.actorsWeek.length === 0) return;
+    const idx = areas.findIndex((a) => a.key === key);
+    if (idx < 0) return;
+    const area = areas[idx];
+    const todayKey = this.bogotaDayKey(src.todayStart);
+    const dayStrip = area.dayStrip.map((d) => {
+      const count = Math.max(d.count, src.dayCounts.get(d.date) ?? 0);
+      return { ...d, count, used: count > 0 };
+    });
+    let idleStreakDays = 0;
+    for (let i = dayStrip.length - 1; i >= 0; i--) {
+      if (dayStrip[i].used) break;
+      idleStreakDays += 1;
+    }
+    const eventCountWeek = dayStrip.reduce((n, d) => n + d.count, 0);
+    const eventCountToday = src.dayCounts.get(todayKey) ?? area.eventCountToday;
+    const periodKeys = new Set(this.lastBogotaDayKeys(src.days).map((d) => d.key));
+    const eventCountPeriod = [...src.dayCounts.entries()]
+      .filter(([k]) => periodKeys.has(k))
+      .reduce((n, [, c]) => n + c, 0);
+    const usedToday = eventCountToday > 0;
+    const actors =
+      usedToday && src.actorsToday.length
+        ? src.actorsToday.slice(0, 8)
+        : src.actorsWeek.slice(0, 8);
+    let statusLabel = usedToday ? 'Activa hoy' : 'Sin actividad hoy';
+    if (!usedToday && idleStreakDays >= 2) {
+      statusLabel = `Sin uso ${idleStreakDays} días`;
+    }
+    areas[idx] = {
+      ...area,
+      dayStrip,
+      daysUsedInWeek: dayStrip.filter((d) => d.used).length,
+      idleStreakDays,
+      eventCountWeek: Math.max(area.eventCountWeek, eventCountWeek),
+      eventCountToday: Math.max(area.eventCountToday, eventCountToday),
+      eventCountPeriod: Math.max(area.eventCountPeriod, eventCountPeriod),
+      usedToday,
+      status: usedToday ? ('active' as const) : ('idle' as const),
+      statusLabel,
+      uniqueUsersToday: usedToday
+        ? Math.max(area.uniqueUsersToday, src.actorsToday.length)
+        : area.uniqueUsersToday,
+      uniqueUsersPeriod: Math.max(area.uniqueUsersPeriod, src.actorsWeek.length),
+      actors: actors.length ? actors : area.actors,
+      actorsWeek: src.actorsWeek.length ? src.actorsWeek : area.actorsWeek,
+      lastAt:
+        src.actorsToday[0]?.lastAt ??
+        src.actorsWeek[0]?.lastAt ??
+        area.lastAt ??
+        null,
     };
   }
 
@@ -580,6 +748,13 @@ export class ActivityControlService {
       'radio_control.check': 'Radio marcado',
       'radio_control.fill': 'Pendientes marcados',
       'radio_control.next_pass': 'Pasada cerrada',
+      'minuta.visitante': 'Visitante',
+      'minuta.correspondencia': 'Correspondencia',
+      'minuta.contratista': 'Contratista',
+      'minuta.domiciliario': 'Domiciliario',
+      'minuta.incidente': 'Incidente',
+      'minuta.servicio': 'Novedad de servicio',
+      'minuta.entrega': 'Entrega de puesto',
     };
     if (areaKey === 'hr' && action === 'create') return 'Asociado registrado';
     if (areaKey === 'hr' && action === 'edit') return 'Ficha editada';
@@ -649,6 +824,16 @@ export class ActivityControlService {
         status ? `Estado: ${status}` : '',
         pass,
       ].filter(Boolean);
+      return parts.length ? parts.join(' · ') : null;
+    }
+    if (e.module === 'minuta') {
+      const tipo = typeof v['tipo'] === 'string' ? v['tipo'] : '';
+      const detalle = typeof v['detalle'] === 'string' ? v['detalle'] : '';
+      const who =
+        (typeof v['registradoPor'] === 'string' && v['registradoPor']) ||
+        (typeof v['usuario'] === 'string' && v['usuario']) ||
+        '';
+      const parts = [tipo, detalle, who].filter(Boolean);
       return parts.length ? parts.join(' · ') : null;
     }
     return null;
