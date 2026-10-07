@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
 import { TenantContext } from '../../common/tenant/tenant.context';
 import { Associate } from '../associates/entities/associate.entity';
@@ -12,6 +12,9 @@ import {
   type AuditSummaryCtx,
 } from './audit-movement-summary';
 import { AuditLog } from './entities/audit-log.entity';
+
+/** Historial de movimientos / control de actividades: no se conserva más de 30 días. */
+export const AUDIT_RETENTION_DAYS = 30;
 
 export interface AuditEntry {
   userId?: string;
@@ -45,6 +48,8 @@ export type DashboardAuditRow = AuditLog & {
 
 @Injectable()
 export class AuditService {
+  private readonly logger = new Logger(AuditService.name);
+
   constructor(
     @InjectRepository(AuditLog)
     private readonly auditRepo: Repository<AuditLog>,
@@ -54,6 +59,7 @@ export class AuditService {
     private readonly associatesRepo: Repository<Associate>,
     @InjectRepository(Post)
     private readonly postsRepo: Repository<Post>,
+    private readonly ds: DataSource,
   ) {}
 
   async log(entry: AuditEntry): Promise<void> {
@@ -115,9 +121,20 @@ export class AuditService {
     if (query.userId?.trim()) {
       qb.andWhere('a.user_id = :userId', { userId: query.userId.trim() });
     }
-    if (query.from?.trim()) {
-      qb.andWhere('a.created_at >= :from', { from: query.from.trim() });
+    // No servir historial más viejo que la retención (aunque aún no se haya purgado).
+    const retentionFloor = new Date(
+      Date.now() - AUDIT_RETENTION_DAYS * 86_400_000,
+    );
+    let from = query.from?.trim() || '';
+    if (from) {
+      const fromDate = new Date(from.length <= 10 ? `${from}T00:00:00.000Z` : from);
+      if (Number.isNaN(fromDate.getTime()) || fromDate < retentionFloor) {
+        from = retentionFloor.toISOString();
+      }
+    } else {
+      from = retentionFloor.toISOString();
     }
+    qb.andWhere('a.created_at >= :from', { from });
     if (query.to?.trim()) {
       // inclusive end-of-day if date-only
       const to = query.to.trim();
@@ -265,5 +282,91 @@ export class AuditService {
       ...r,
       userName: r.userId ? (names.get(r.userId) ?? null) : null,
     }));
+  }
+
+  /**
+   * Borra historial con más de `days` días:
+   * - audit_logs (Historial de movimientos / Control de Actividades)
+   * - marcas y pasadas cerradas de control de radio
+   */
+  async purgeOlderThanDays(days = AUDIT_RETENTION_DAYS): Promise<{
+    auditLogs: number;
+    radioChecks: number;
+    radioPasses: number;
+  }> {
+    const cutoff = new Date(Date.now() - Math.max(1, days) * 86_400_000);
+    const iso = cutoff.toISOString();
+    const batch = 2000;
+
+    let auditLogs = 0;
+    for (;;) {
+      const res = await this.ds.query(
+        `WITH doomed AS (
+           SELECT id FROM audit_logs
+           WHERE created_at < $1::timestamptz
+           ORDER BY created_at
+           LIMIT $2
+         )
+         DELETE FROM audit_logs a
+         USING doomed d
+         WHERE a.id = d.id
+         RETURNING a.id`,
+        [iso, batch],
+      );
+      const n = Array.isArray(res) ? res.length : 0;
+      auditLogs += n;
+      if (n < batch) break;
+    }
+
+    let radioChecks = 0;
+    try {
+      for (;;) {
+        const res = await this.ds.query(
+          `WITH doomed AS (
+             SELECT id FROM radio_control_checks
+             WHERE checked_at < $1::timestamptz
+             ORDER BY checked_at
+             LIMIT $2
+           )
+           DELETE FROM radio_control_checks c
+           USING doomed d
+           WHERE c.id = d.id
+           RETURNING c.id`,
+          [iso, batch],
+        );
+        const n = Array.isArray(res) ? res.length : 0;
+        radioChecks += n;
+        if (n < batch) break;
+      }
+    } catch (err) {
+      this.logger.warn(`Purga radio_control_checks omitida: ${(err as Error).message}`);
+    }
+
+    let radioPasses = 0;
+    try {
+      for (;;) {
+        const res = await this.ds.query(
+          `WITH doomed AS (
+             SELECT id FROM radio_control_passes
+             WHERE closed_at IS NOT NULL
+               AND closed_at < $1::timestamptz
+             ORDER BY closed_at
+             LIMIT $2
+           )
+           DELETE FROM radio_control_passes p
+           USING doomed d
+           WHERE p.id = d.id
+           RETURNING p.id`,
+          [iso, batch],
+        );
+        const n = Array.isArray(res) ? res.length : 0;
+        radioPasses += n;
+        if (n < batch) break;
+      }
+    } catch (err) {
+      this.logger.warn(`Purga radio_control_passes omitida: ${(err as Error).message}`);
+    }
+
+    return { auditLogs, radioChecks, radioPasses };
   }
 }
