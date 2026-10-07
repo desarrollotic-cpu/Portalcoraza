@@ -17,6 +17,7 @@
     "seed:inventory-categories": "ts-node scripts/seed-inventory-categories.ts",
     "seed:rrhh": "ts-node scripts/seed-rrhh.ts",
     "seed:nomina": "ts-node scripts/seed-nomina.ts",
+    "convertir": "ts-node scripts/convertir.ts",
     "seed:auditor": "ts-node scripts/seed-auditor.ts",
     "seed:sig": "ts-node scripts/seed-sig-role.ts",
     "seed:puesto-amisi": "ts-node scripts/seed-puesto-amisi.ts",

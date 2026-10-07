@@ -102,6 +102,16 @@ Prefijo: `http://localhost:3000/api/v1`
 
 **Regla de negocio:** solo usuarios con `associates.create` (rol RRHH) pueden crear asociados.
 
+## Conversión de nómina
+
+Portal → **Nómina → Conversión de nómina** (permiso `payroll.convert`, migración `087`). Sube el CONSOLIDADO `.xlsx` (hojas `ZONA ##`) y descarga `BASE_{1Q|2Q}_{MES}_{AÑO}.xlsx` y `RESUMEN_...xlsx`. Copia los valores tal cual (sin validar ni recalcular) y no guarda nada en la base de datos. Período y fecha son editables antes de generar.
+
+Por línea de comandos (escribe en `./salida/`):
+
+```bash
+npm run convertir -- "<ruta>/CONSOLIDADO.xlsx" [MM/DD/AAAA] [MM]
+```
+
 ## Roadmap (system-coraza-v2)
 
 Estado detallado en `openspec/changes/system-coraza-v2/tasks.md`.

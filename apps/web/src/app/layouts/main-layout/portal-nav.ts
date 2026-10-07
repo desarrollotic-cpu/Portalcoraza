@@ -110,6 +110,11 @@ export const PROGRAMACION_NAV: ModuleNavItem[] = [
   { label: 'Liquidación y Recargos', route: '/programacion/recargos', permission: 'scheduling.edit', icon: LucideCalculator },
 ];
 
+export const NOMINA_NAV: ModuleNavItem[] = [
+  { label: 'Periodos y colillas', route: '/nomina', permission: 'payroll.view', exact: true, icon: LucideBriefcaseBusiness },
+  { label: 'Conversión de nómina', route: '/nomina/conversion', permission: 'payroll.convert', exact: true, icon: LucideFileSpreadsheet },
+];
+
 export const DOCUMENTAL_NAV: ModuleNavItem[] = [
   { label: 'Panel', route: '/documental', exact: true, permission: 'documental.view', icon: LucideLayoutGrid },
   { label: 'Correspondencia', route: '/documental/correspondencia', permission: 'documental.view', icon: LucideFileText },
@@ -167,7 +172,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Recursos Humanos', route: '/rrhh', icon: LucideUsersRound, permissions: ['associates.view', 'hr_dashboard.view'], children: RRHH_NAV },
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },
       { label: 'Programación', route: '/programacion', icon: LucideCalendarClock, permission: 'scheduling.view', children: PROGRAMACION_NAV },
-      { label: 'Nómina', route: '/nomina', icon: LucideBriefcaseBusiness, permission: 'payroll.view' },
+      { label: 'Nómina', route: '/nomina', icon: LucideBriefcaseBusiness, permissions: ['payroll.view', 'payroll.convert'], children: NOMINA_NAV },
       { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
       { label: 'Recepción', route: '/recepcion', icon: LucideDoorOpen, permission: 'reception.view', children: RECEPCION_NAV },
       { label: 'SST / Salud y Seguridad', route: '/sst', icon: LucideShieldCheck, permission: 'sst.view', children: SST_NAV },

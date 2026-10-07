@@ -17,3 +17,6 @@ graphify-out/
 MENBRETE/
 *.zip
 *.docx
+
+# Salida del script convertir (conversion de nomina)
+salida/
