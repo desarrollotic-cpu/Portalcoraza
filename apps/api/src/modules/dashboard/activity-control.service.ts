@@ -90,7 +90,7 @@ export class ActivityControlService {
       .where('a.created_at >= :since', { since })
       .andWhere('a.action NOT IN (:...skip)', { skip: [...SKIP_ACTIONS] })
       .orderBy('a.created_at', 'DESC')
-      .take(8000)
+      .take(3000)
       .getMany();
 
     const events: ActivityEvent[] = auditRows.map((a) => ({
@@ -112,7 +112,7 @@ export class ActivityControlService {
       .where('h.created_at >= :since', { since })
       .andWhere("h.action NOT IN ('ALERTA')")
       .orderBy('h.created_at', 'DESC')
-      .take(8000)
+      .take(3000)
       .getMany();
 
     const histSeen = new Set<string>();
@@ -149,8 +149,8 @@ export class ActivityControlService {
       });
     }
 
-    // Control de radio: las marcas viven en radio_control_checks (fuente de verdad).
-    // Si ya hay audit_logs del mismo check, no duplicar.
+    // Control de radio: solo un sample reciente en memoria (evita OOM en Render).
+    // KPIs del área se completan abajo con agregados SQL.
     const radioAuditCover = new Set(
       events
         .filter(
@@ -161,8 +161,55 @@ export class ActivityControlService {
         )
         .map((e) => e.entityId as string),
     );
+    let radioDayCounts = new Map<string, number>();
+    let radioActorsAgg: Array<{ userId: string; count: number; lastAt: Date }> = [];
+    let radioActorsToday: Array<{ userId: string; count: number; lastAt: Date }> = [];
     try {
-      const radioChecks = await this.ds.query(
+      const dayRows = (await this.ds.query(
+        `SELECT to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD') AS day,
+                COUNT(*)::int AS n
+         FROM radio_control_checks c
+         WHERE c.checked_at >= $1
+         GROUP BY 1`,
+        [since.toISOString()],
+      )) as Array<{ day: string; n: number }>;
+      radioDayCounts = new Map(dayRows.map((r) => [r.day, Number(r.n) || 0]));
+
+      const mapActor = (r: {
+        user_id: string;
+        n: number;
+        last_at: string | Date;
+      }) => ({
+        userId: r.user_id,
+        count: Number(r.n) || 0,
+        lastAt: r.last_at instanceof Date ? r.last_at : new Date(r.last_at),
+      });
+
+      radioActorsAgg = (
+        (await this.ds.query(
+          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
+           FROM radio_control_checks c
+           WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
+           GROUP BY c.checked_by
+           ORDER BY last_at DESC
+           LIMIT 16`,
+          [since.toISOString()],
+        )) as Array<{ user_id: string; n: number; last_at: string | Date }>
+      ).map(mapActor);
+
+      radioActorsToday = (
+        (await this.ds.query(
+          `SELECT c.checked_by AS user_id, COUNT(*)::int AS n, MAX(c.checked_at) AS last_at
+           FROM radio_control_checks c
+           WHERE c.checked_at >= $1 AND c.checked_by IS NOT NULL
+           GROUP BY c.checked_by
+           ORDER BY last_at DESC
+           LIMIT 16`,
+          [todayStart.toISOString()],
+        )) as Array<{ user_id: string; n: number; last_at: string | Date }>
+      ).map(mapActor);
+
+      const radioRecent = (await this.ds.query(
         `SELECT c.id, c.checked_by, c.status, c.notes, c.checked_at,
                 r.label, r.callsign, p.pass_number
          FROM radio_control_checks c
@@ -170,9 +217,9 @@ export class ActivityControlService {
          LEFT JOIN radio_control_passes p ON p.id = c.pass_id
          WHERE c.checked_at >= $1
          ORDER BY c.checked_at DESC
-         LIMIT 8000`,
+         LIMIT 40`,
         [since.toISOString()],
-      ) as Array<{
+      )) as Array<{
         id: string;
         checked_by: string | null;
         status: string;
@@ -182,7 +229,7 @@ export class ActivityControlService {
         callsign: string | null;
         pass_number: number | null;
       }>;
-      for (const c of radioChecks) {
+      for (const c of radioRecent) {
         if (radioAuditCover.has(c.id)) continue;
         const at =
           c.checked_at instanceof Date ? c.checked_at : new Date(c.checked_at);
@@ -211,7 +258,11 @@ export class ActivityControlService {
     events.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     const userIds = [
-      ...new Set(events.map((r) => r.userId).filter((x): x is string => !!x)),
+      ...new Set([
+        ...events.map((r) => r.userId).filter((x): x is string => !!x),
+        ...radioActorsAgg.map((a) => a.userId),
+        ...radioActorsToday.map((a) => a.userId),
+      ]),
     ];
     const users = userIds.length
       ? await this.usersRepo.find({
@@ -350,6 +401,73 @@ export class ActivityControlService {
         timezone: 'America/Bogota',
       };
     });
+
+    // Completa KPIs de Control con agregados SQL (sin cargar miles de filas).
+    if (radioDayCounts.size > 0 || radioActorsAgg.length > 0) {
+      const todayKey = this.bogotaDayKey(todayStart);
+      const idx = areas.findIndex((a) => a.key === 'radio_control');
+      if (idx >= 0) {
+        const area = areas[idx];
+        const dayStrip = area.dayStrip.map((d) => {
+          const count = Math.max(d.count, radioDayCounts.get(d.date) ?? 0);
+          return { ...d, count, used: count > 0 };
+        });
+        let idleStreakDays = 0;
+        for (let i = dayStrip.length - 1; i >= 0; i--) {
+          if (dayStrip[i].used) break;
+          idleStreakDays += 1;
+        }
+        const eventCountWeek = dayStrip.reduce((n, d) => n + d.count, 0);
+        const eventCountToday = radioDayCounts.get(todayKey) ?? area.eventCountToday;
+        const periodKeys = new Set(
+          this.lastBogotaDayKeys(days).map((d) => d.key),
+        );
+        const eventCountPeriod = [...radioDayCounts.entries()]
+          .filter(([k]) => periodKeys.has(k))
+          .reduce((n, [, c]) => n + c, 0);
+        const usedToday = eventCountToday > 0;
+        const toActor = (a: { userId: string; count: number; lastAt: Date }) => ({
+          name: nameById.get(a.userId) ?? 'Usuario',
+          count: a.count,
+          lastAt: a.lastAt,
+        });
+        const actorsWeek = radioActorsAgg.map(toActor);
+        const actors = (usedToday && radioActorsToday.length
+          ? radioActorsToday
+          : radioActorsAgg
+        )
+          .slice(0, 8)
+          .map(toActor);
+        let statusLabel = usedToday ? 'Activa hoy' : 'Sin actividad hoy';
+        if (!usedToday && idleStreakDays >= 2) {
+          statusLabel = `Sin uso ${idleStreakDays} días`;
+        }
+        const lastAt =
+          radioActorsToday[0]?.lastAt ??
+          actorsWeek[0]?.lastAt ??
+          area.lastAt ??
+          null;
+        areas[idx] = {
+          ...area,
+          dayStrip,
+          daysUsedInWeek: dayStrip.filter((d) => d.used).length,
+          idleStreakDays,
+          eventCountWeek: Math.max(area.eventCountWeek, eventCountWeek),
+          eventCountToday: Math.max(area.eventCountToday, eventCountToday),
+          eventCountPeriod: Math.max(area.eventCountPeriod, eventCountPeriod),
+          usedToday,
+          status: usedToday ? ('active' as const) : ('idle' as const),
+          statusLabel,
+          uniqueUsersToday: usedToday
+            ? Math.max(area.uniqueUsersToday, radioActorsToday.length)
+            : area.uniqueUsersToday,
+          uniqueUsersPeriod: Math.max(area.uniqueUsersPeriod, radioActorsAgg.length),
+          actors: actors.length ? actors : area.actors,
+          actorsWeek: actorsWeek.length ? actorsWeek : area.actorsWeek,
+          lastAt,
+        };
+      }
+    }
 
     const activeToday = areas.filter((a) => a.usedToday).length;
 
