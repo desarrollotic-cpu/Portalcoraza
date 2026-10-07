@@ -2,7 +2,8 @@ export type Quincena = 'Primera' | 'Segunda';
 
 export interface ZonaDetectada {
   nombre: string;
-  numero: number;
+  /** Número de zona; null en la hoja INCAPACITADOS (siempre va al final). */
+  numero: number | null;
   asociados: number;
 }
 
@@ -37,12 +38,6 @@ export interface Bonificacion {
   valor: number;
 }
 
-export interface Incapacitado {
-  cedula: string;
-  nombre: string;
-  valor: number;
-}
-
 /** Resultado de leer un consolidado. No contiene nada calculado ni validado: solo copia ordenada. */
 export interface AnalisisConsolidado {
   periodo: PeriodoDetectado;
@@ -51,7 +46,6 @@ export interface AnalisisConsolidado {
   totales: TotalConcepto[];
   bonificaciones: Bonificacion[];
   totalBonificaciones: number;
-  incapacitados: Incapacitado[];
   advertencias: string[];
 }
 

@@ -24,6 +24,10 @@ describe('redondear (half-up sin errores de coma flotante)', () => {
     expect(redondear(131463.78374999994, 2)).toBe(131463.78);
     expect(redondear(0.004999999, 2)).toBe(0);
   });
+  it('011 redondea como Excel: 151161.46499999985 se ve 151161.465 y sube a 151161.47', () => {
+    expect(redondear(151161.46499999985, 2)).toBe(151161.47);
+    expect(redondear(248044.87499999977, 2)).toBe(248044.88);
+  });
   it('no devuelve -0', () => {
     expect(Object.is(redondear(-0.2), 0)).toBe(true);
   });
@@ -55,6 +59,8 @@ async function consolidadoSintetico(): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.addWorksheet('CONSOLIDADO').getCell('A1').value = 'no se lee';
   wb.addWorksheet('ARRENDAMIENTOS').getCell('A5').value = 999;
+  // INCAPACITADOS está en medio de las pestañas a propósito: igual debe ir al final del BASE
+  hojaZona(wb, 'INCAPACITADOS', ['VALOR A PAGAR', 'SALARIOORDINARIO 001', 'SALUD'], [[555, 'INCAP UNO', 1, 123456.5, 10]]);
   const enc = [
     'VALOR A PAGAR', //          AH ignorado
     'AUXTRANSP 019',
@@ -79,10 +85,6 @@ async function consolidadoSintetico(): Promise<Buffer> {
     [102, 'FORMULA', 1, 0, 0, { formula: 'A1+1', result: 60 }, 0, 0, 0, { formula: 'B1', result: 3000 }, 0, 0, 0, 0],
   ]);
   hojaZona(wb, 'ZONA 05', enc, [[300, 'CINCO UNO', 1, 0, 0, 0, 0, 0, 0, 4000, 0, 0, 0, 0]]);
-  const inc = wb.addWorksheet('INCAPACITADOS');
-  inc.getCell('A5').value = 555;
-  inc.getCell('B5').value = 'INCAP UNO';
-  inc.getCell('AH5').value = 123456.5;
   return Buffer.from(await wb.xlsx.writeBuffer());
 }
 
@@ -92,8 +94,9 @@ describe('PayrollConversionService (consolidado sintético)', () => {
     a = await svc.analizar(await consolidadoSintetico());
   });
 
-  it('solo lee hojas ZONA y pone la ZONA 05 primero', () => {
-    expect(a.zonas.map((z) => z.numero)).toEqual([5, 4, 7]);
+  it('zonas en orden numérico ascendente (sin ZONA 05 primero) e INCAPACITADOS al final', () => {
+    expect(a.zonas.map((z) => z.numero)).toEqual([4, 5, 7, null]);
+    expect(a.zonas[3]).toEqual({ nombre: 'INCAPACITADOS', numero: null, asociados: 1 });
     expect(a.zonas.find((z) => z.numero === 4)?.asociados).toBe(3); // la fila "no-num" no cuenta
   });
 
@@ -123,9 +126,18 @@ describe('PayrollConversionService (consolidado sintético)', () => {
       '568:101',
       '520:101',
     ]);
-    // ZONA 05 primero, luego 04, luego 07
-    expect(a.filas[0]).toEqual({ cedula: '300', codigo: '001', valor: 4000 });
-    expect(a.filas[a.filas.length - 1]).toEqual({ cedula: '200', codigo: '001', valor: 500 });
+    // ZONA 04, 05, 07 y al final INCAPACITADOS (mismas reglas: 001 antes que 628)
+    expect(a.filas[0]).toEqual({ cedula: '100', codigo: '001', valor: 1000 });
+    const iZ5 = a.filas.findIndex((f) => f.cedula === '300');
+    const iZ7 = a.filas.findIndex((f) => f.cedula === '200');
+    const iInc = a.filas.findIndex((f) => f.cedula === '555');
+    expect(iZ5).toBeGreaterThan(Math.max(...a.filas.map((f, i) => (['100', '101', '102'].includes(f.cedula) ? i : -1))));
+    expect(iZ7).toBeGreaterThan(iZ5);
+    expect(iInc).toBeGreaterThan(iZ7);
+    expect(a.filas.slice(iInc)).toEqual([
+      { cedula: '555', codigo: '001', valor: 123457 },
+      { cedula: '555', codigo: '628', valor: 10 },
+    ]);
   });
 
   it('copia directa: el 001 no suma ni resta VALOR AJUSTE JORNADA', () => {
@@ -148,15 +160,14 @@ describe('PayrollConversionService (consolidado sintético)', () => {
   });
 
   it('equivalencias sin código: SALUD→628, APORTES VOLUNTARIOS→568', () => {
-    expect(a.totales.find((t) => t.codigo === '628')).toEqual({ codigo: '628', filas: 1, suma: 20 });
+    expect(a.totales.find((t) => t.codigo === '628')).toEqual({ codigo: '628', filas: 2, suma: 30 }); // 20 de ZONA 04 + 10 de INCAPACITADOS
     expect(a.totales.find((t) => t.codigo === '568')).toEqual({ codigo: '568', filas: 1, suma: 5 });
   });
 
-  it('BONIFICACION e INCAPACITADOS solo van al resumen, no al BASE', () => {
+  it('BONIFICACION solo va al resumen, no al BASE', () => {
     expect(a.bonificaciones).toEqual([{ zona: 'ZONA 04', cedula: '100', nombre: 'CUATRO UNO', valor: 50 }]);
     expect(a.totalBonificaciones).toBe(50);
-    expect(a.filas.some((f) => f.cedula === '555')).toBe(false);
-    expect(a.incapacitados).toEqual([{ cedula: '555', nombre: 'INCAP UNO', valor: 123457 }]);
+
   });
   it('avisa de columnas con datos que no se pudieron mapear', async () => {
     const wb = new ExcelJS.Workbook();
@@ -183,8 +194,9 @@ describe('PayrollConversionService (consolidado sintético)', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Archivos reales: definir CONVERSION_PRUEBAS_DIR con la carpeta que tiene el
-// CONSOLIDADO de septiembre y el BASE de agosto. Si no está definida, se omiten.
+// Archivos reales: definir CONVERSION_PRUEBAS_DIR con la carpeta que tiene los
+// consolidados (septiembre y agosto) y los BASE manuales (1Q y 2Q de agosto).
+// Si no está definida, estas pruebas se omiten.
 // ---------------------------------------------------------------------------
 const CARPETA = process.env.CONVERSION_PRUEBAS_DIR;
 const hallar = (re: RegExp) => {
@@ -197,7 +209,10 @@ const hallar = (re: RegExp) => {
   }
 };
 const rutaConsolidado = hallar(/CONSOLIDADO.*SEPTIEMBRE/i);
-const rutaAgosto = hallar(/AGOSTO/i);
+const rutaAgosto = hallar(/^2Q.*AGOSTO/i); // BASE manual 2Q de agosto (modelo de formato)
+const rutaConsAgosto = hallar(/CONSOLIDADO.*AGOSTO/i);
+const rutaManual1Q = hallar(/^1Q.*AGOSTO/i); // BASE manual 1Q de agosto
+
 const conReales = rutaConsolidado && rutaAgosto ? describe : describe.skip;
 
 conReales('consolidado real de septiembre 2026 y formato del BASE manual de agosto', () => {
@@ -210,24 +225,33 @@ conReales('consolidado real de septiembre 2026 y formato del BASE manual de agos
 
   const tot = (c: string) => a.totales.find((t) => t.codigo === c);
 
-  it('valores de referencia', () => {
-    expect(a.zonas).toHaveLength(9);
-    expect(a.zonas[0].numero).toBe(5);
-    expect(a.filas).toHaveLength(7935);
+  it('valores de referencia (ZONA ascendente + INCAPACITADOS al final)', () => {
+    expect(a.zonas).toHaveLength(10); // 9 zonas + INCAPACITADOS
+    expect(a.zonas.map((z) => z.numero)).toEqual([4, 5, 7, 9, 13, 18, 20, 23, 24, null]);
+    expect(a.zonas[9]).toEqual({ nombre: 'INCAPACITADOS', numero: null, asociados: 4 });
+    expect(a.filas).toHaveLength(7956); // 7.935 de las zonas + 21 de INCAPACITADOS
     expect(a.periodo).toMatchObject({ periodo: '09', fecha: '09/30/2026' });
-    expect(a.filas[0]).toEqual({ cedula: '71376710', codigo: '001', valor: 817089 });
-    expect(a.filas[1]).toEqual({ cedula: '14572160', codigo: '001', valor: 700362 });
-    expect(a.filas[2]).toEqual({ cedula: '1037583233', codigo: '001', valor: 758726 });
-    expect(a.filas[a.filas.length - 1]).toEqual({ cedula: '43971498', codigo: '560', valor: 173200 });
-    expect(tot('001')).toEqual({ codigo: '001', filas: 624, suma: 482826672 });
-    expect(tot('011')).toEqual({ codigo: '011', filas: 573, suma: 79144115.32 });
-    expect(tot('628')).toEqual({ codigo: '628', filas: 624, suma: 22478781 });
-    expect(tot('711')).toEqual({ codigo: '711', filas: 599, suma: 21554816 });
+    // la primera fila ahora es de la ZONA 04
+    expect(a.filas[0]).toEqual({ cedula: '1037269695', codigo: '001', valor: 817089 });
+    expect(a.filas[1]).toEqual({ cedula: '1001810043', codigo: '001', valor: 817089 });
+    expect(a.filas[2]).toEqual({ cedula: '73432368', codigo: '001', valor: 817089 });
+    // las últimas 21 filas son de INCAPACITADOS y la última cierra el BASE
+    expect(new Set(a.filas.slice(-21).map((f) => f.cedula))).toEqual(new Set(['3985121', '71701610', '98601485']));
+    expect(a.filas.slice(-21, -18).map((f) => `${f.cedula}|${f.codigo}|${f.valor}`)).toEqual([
+      '3985121|001|875453',
+      '71701610|001|875453',
+      '98601485|001|875453',
+    ]);
+    expect(a.filas[a.filas.length - 1]).toEqual({ cedula: '98601485', codigo: '538', valor: 262636 });
+    expect(tot('001')).toEqual({ codigo: '001', filas: 627, suma: 485453031 });
+    // 011 con redondeo de Excel (15 cifras): 10 celdas x.xx5 con ruido binario suben 1 centavo
+    expect(tot('011')).toEqual({ codigo: '011', filas: 573, suma: 79144115.42 });
+    expect(tot('628')).toEqual({ codigo: '628', filas: 627, suma: 22583835 });
+    expect(tot('711')).toEqual({ codigo: '711', filas: 602, suma: 21659870 });
     expect(tot('560')).toEqual({ codigo: '560', filas: 198, suma: 42836951 });
     expect(tot('568')).toEqual({ codigo: '568', filas: 1, suma: 42300 });
     expect(a.bonificaciones).toHaveLength(59);
     expect(a.totalBonificaciones).toBe(6767877);
-    expect(a.incapacitados).toHaveLength(4);
   });
 
   it('el BASE tiene el mismo formato que 2Q AGOSTO.xlsx y la columna K es texto vacío en todas las filas', async () => {
@@ -240,7 +264,7 @@ conReales('consolidado real de septiembre 2026 y formato del BASE manual de agos
 
     expect(gen.worksheets).toHaveLength(1);
     expect(g.name).toBe('Hoja1');
-    expect(g.rowCount).toBe(7935 + 1);
+    expect(g.rowCount).toBe(7956 + 1);
 
     // encabezados idénticos + estilo
     for (let c = 1; c <= 14; c++) {
@@ -281,13 +305,58 @@ conReales('consolidado real de septiembre 2026 y formato del BASE manual de agos
     expect(r.getRow(2).getCell(11).value).toBe(''); // el modelo manual también la trae como ''
   });
 
-  it('el RESUMEN trae las tres hojas', async () => {
+  it('el RESUMEN trae solo dos hojas (ya no hay "Incapacitados (manual)")', async () => {
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load((await svc.generarResumen(a)) as unknown as ExcelJS.Buffer);
-    expect(wb.worksheets.map((w) => w.name)).toEqual([
-      'Totales por concepto',
-      'Bonificaciones (manual)',
-      'Incapacitados (manual)',
-    ]);
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['Totales por concepto', 'Bonificaciones (manual)']);
+  });
+});
+
+const conAgosto1Q = rutaConsAgosto && rutaManual1Q ? describe : describe.skip;
+
+conAgosto1Q('consolidado 1ª quincena de agosto 2026 contra el BASE manual 1Q AGOSTO', () => {
+  it('8.124 filas, período 08, fecha 08/15/2026 y solo las diferencias manuales conocidas', async () => {
+    const a = await svc.analizar(fs.readFileSync(rutaConsAgosto as string));
+    expect(a.filas).toHaveLength(8124);
+    expect(a.periodo).toMatchObject({ periodo: '08', fecha: '08/15/2026', quincena: 'Primera' });
+    expect(a.zonas.map((z) => z.numero)).toEqual([4, 5, 7, 9, 13, 18, 20, 23, 24, null]);
+    expect(a.advertencias).toEqual([]);
+
+    // manual: cédula + concepto → valor, sin bonificaciones (012, 026, 029 y 07x/08x/09x)
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(rutaManual1Q as string);
+    const ws = wb.worksheets[0];
+    const manual = new Map<string, number>();
+    for (let r = 2; r <= ws.rowCount; r++) {
+      const ced = String(ws.getRow(r).getCell(1).value ?? '').trim();
+      const cod = String(ws.getRow(r).getCell(2).value ?? '').trim();
+      if (!ced || /^(012|026|029|07\d|08\d|09\d)$/.test(cod)) continue;
+      expect(manual.has(`${ced}|${cod}`)).toBe(false); // sin duplicados
+      manual.set(`${ced}|${cod}`, Number(ws.getRow(r).getCell(6).value));
+    }
+    const portal = new Map<string, number>();
+    for (const f of a.filas) {
+      expect(portal.has(`${f.cedula}|${f.codigo}`)).toBe(false);
+      portal.set(`${f.cedula}|${f.codigo}`, f.valor);
+    }
+
+    const dif: string[] = [];
+    for (const [k, v] of portal) {
+      const m = manual.get(k);
+      if (m === undefined) dif.push(`SOLO PORTAL ${k} ${v}`);
+      else if (Math.abs(m - v) > 0.005) dif.push(`VALOR ${k} portal=${v} manual=${m}`);
+    }
+    for (const [k, v] of manual) if (!portal.has(k)) dif.push(`SOLO MANUAL ${k} ${v}`);
+
+    // Únicas diferencias aceptadas (ajustes hechos a mano en el manual)
+    expect(dif.sort()).toEqual(
+      [
+        'VALOR 70108742|001 portal=875453 manual=875400',
+        'VALOR 71701610|001 portal=875453 manual=875400',
+        'VALOR 98601485|001 portal=875453 manual=875400',
+        'VALOR 1062876589|001 portal=802498 manual=875453',
+        'SOLO PORTAL 1037073208|533 353000',
+      ].sort(),
+    );
   });
 });

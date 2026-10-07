@@ -117,8 +117,7 @@ const RE_FECHA = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/(\d{4})$/;
           <h4>Para cargar a mano</h4>
           <p>
             <strong>{{ p.bonificaciones.length }}</strong> asociados con bonificación (total
-            <strong>{{ fmt(p.totalBonificaciones) }}</strong>) e
-            <strong>{{ p.incapacitados.length }}</strong> incapacitados. No van en el BASE; el detalle está en el resumen.
+            <strong>{{ fmt(p.totalBonificaciones) }}</strong>). No van en el BASE; el detalle está en el resumen.
           </p>
         </section>
 

@@ -4,7 +4,6 @@ import {
   AnalisisConsolidado,
   Bonificacion,
   FilaBase,
-  Incapacitado,
   PeriodoDetectado,
   PeriodoElegido,
   Quincena,
@@ -55,8 +54,9 @@ const MESES = [
 /**
  * Redondeo half-up. Pesos (0 decimales): primero a 6 decimales y luego al entero, así el
  * ruido de coma flotante no cuenta (124547.49999999999 → 124548). Con decimales (concepto 011):
- * se redondea directo el valor real; pasar antes por 6 decimales haría doble redondeo
- * (x.xx4999999 → x.xx5 → x.xx+1) y no coincide con el total de referencia.
+ * 15 cifras significativas como Excel (que es quien hizo el BASE manual); pasar antes por
+ * 6 decimales haría doble redondeo (x.xx4999999 → x.xx5 → x.xx+1) y no coincide con el total
+ * de referencia de septiembre.
  */
 export function redondear(valor: number, decimales = 0): number {
   let r: number;
@@ -64,7 +64,10 @@ export function redondear(valor: number, decimales = 0): number {
     const a6 = Math.round(Number((valor * 1e6).toPrecision(15))) / 1e6; // absorbe el ruido binario
     r = Math.round(a6);
   } else {
-    r = Math.round(valor * 10 ** decimales) / 10 ** decimales;
+    // Como Excel: se toman 15 cifras significativas antes de redondear
+    // (151161.46499999985 se ve como 151161.465 y redondea a 151161.47).
+    const n = Number(valor.toPrecision(15));
+    r = Math.round(Number((n * 10 ** decimales).toPrecision(15))) / 10 ** decimales;
   }
   return r === 0 ? 0 : r; // evita -0
 }
@@ -175,20 +178,22 @@ export class PayrollConversionService {
       vistos.add(h.numero);
     }
 
-    const periodo = this.detectarPeriodo(hojasZona[0].ws, hojasZona, advertencias);
+    // Zonas en orden numérico ascendente (sin importar el orden de las pestañas); INCAPACITADOS
+    // se procesa con las mismas reglas pero siempre al final.
+    const ordenadas = [...hojasZona].sort((a, b) => a.numero - b.numero || a.idx - b.idx);
+    const hojaIncap = wb.worksheets.find((s) => normalizar(s.name).startsWith('INCAPACITADOS'));
+    const hojas: Array<{ ws: ExcelJS.Worksheet; numero: number | null }> = [
+      ...ordenadas.map(({ ws, numero }) => ({ ws, numero })),
+      ...(hojaIncap ? [{ ws: hojaIncap, numero: null }] : []),
+    ];
 
-    // ZONA 05 primero y luego las demás en orden numérico, sin importar el orden de las pestañas.
-    const ordenadas = [...hojasZona].sort((a, b) => {
-      const ka = a.numero === 5 ? -1 : a.numero;
-      const kb = b.numero === 5 ? -1 : b.numero;
-      return ka - kb || a.idx - b.idx;
-    });
+    const periodo = this.detectarPeriodo(ordenadas[0].ws, hojas, advertencias);
 
     const zonas: ZonaDetectada[] = [];
     const filas: FilaBase[] = [];
     const bonificaciones: Bonificacion[] = [];
 
-    for (const { ws, numero } of ordenadas) {
+    for (const { ws, numero } of hojas) {
       const asociados = leerAsociados(ws, advertencias);
       zonas.push({ nombre: ws.name.trim(), numero, asociados: asociados.length });
 
@@ -272,7 +277,6 @@ export class PayrollConversionService {
       totales: this.totalizar(filas),
       bonificaciones,
       totalBonificaciones: bonificaciones.reduce((s, b) => s + b.valor, 0),
-      incapacitados: this.leerIncapacitados(wb, advertencias),
       advertencias,
     };
   }
@@ -313,16 +317,6 @@ export class PayrollConversionService {
       periodo: mm,
       fecha: `${mm}/${p.quincena === 'Primera' ? '15' : '30'}/${p.anio}`,
     };
-  }
-
-  private leerIncapacitados(wb: ExcelJS.Workbook, advertencias: string[]): Incapacitado[] {
-    const ws = wb.worksheets.find((s) => normalizar(s.name).startsWith('INCAPACITADOS'));
-    if (!ws) return [];
-    return leerAsociados(ws, advertencias).map((a) => ({
-      cedula: a.cedula,
-      nombre: a.nombre,
-      valor: redondear(aNumero(valorCelda(ws.getRow(a.fila).getCell(COL_INICIO_CONCEPTOS)))),
-    }));
   }
 
   private totalizar(filas: FilaBase[]): TotalConcepto[] {
@@ -433,7 +427,7 @@ export class PayrollConversionService {
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
-  /** RESUMEN de control: totales por concepto, bonificaciones e incapacitados (manuales). */
+  /** RESUMEN de control: totales por concepto y bonificaciones (manuales). */
   async generarResumen(a: AnalisisConsolidado): Promise<Buffer> {
     const wb = new ExcelJS.Workbook();
     const negrita = (ws: ExcelJS.Worksheet, fila: number) => {
@@ -471,19 +465,6 @@ export class PayrollConversionService {
     const totalB = b.addRow(['TOTAL', null, `${a.bonificaciones.length} asociado(s)`, a.totalBonificaciones]);
     totalB.font = { bold: true };
     totalB.getCell(4).numFmt = '#,##0';
-
-    const i = wb.addWorksheet('Incapacitados (manual)');
-    i.columns = [
-      { header: 'Cédula', width: 16 },
-      { header: 'Nombre', width: 44 },
-      { header: 'Valor a pagar', width: 16 },
-    ];
-    negrita(i, 1);
-    a.incapacitados.forEach((x) => {
-      const r = i.addRow([x.cedula, x.nombre, x.valor]);
-      r.getCell(1).numFmt = '@';
-      r.getCell(3).numFmt = '#,##0';
-    });
 
     return Buffer.from(await wb.xlsx.writeBuffer());
   }
