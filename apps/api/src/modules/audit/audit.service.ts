@@ -285,12 +285,12 @@ export class AuditService {
   }
 
   /**
-   * Borra historial con más de `days` días:
-   * - audit_logs (Historial de movimientos / Control de Actividades)
-   * - marcas y pasadas cerradas de control de radio
+   * Borra TODO lo que alimenta Historial de movimientos y Control de Actividades
+   * con más de `days` días (storage + pantallas).
    */
   async purgeOlderThanDays(days = AUDIT_RETENTION_DAYS): Promise<{
     auditLogs: number;
+    associateHistory: number;
     radioChecks: number;
     radioPasses: number;
   }> {
@@ -298,75 +298,92 @@ export class AuditService {
     const iso = cutoff.toISOString();
     const batch = 2000;
 
-    let auditLogs = 0;
-    for (;;) {
-      const res = await this.ds.query(
+    const deleteBatched = async (
+      sql: string,
+      params: unknown[],
+    ): Promise<number> => {
+      let total = 0;
+      for (;;) {
+        const res = await this.ds.query(sql, params);
+        const n = Array.isArray(res) ? res.length : 0;
+        total += n;
+        if (n < batch) break;
+      }
+      return total;
+    };
+
+    const auditLogs = await deleteBatched(
+      `WITH doomed AS (
+         SELECT id FROM audit_logs
+         WHERE created_at < $1::timestamptz
+         ORDER BY created_at
+         LIMIT $2
+       )
+       DELETE FROM audit_logs a
+       USING doomed d
+       WHERE a.id = d.id
+       RETURNING a.id`,
+      [iso, batch],
+    );
+
+    let associateHistory = 0;
+    try {
+      associateHistory = await deleteBatched(
         `WITH doomed AS (
-           SELECT id FROM audit_logs
+           SELECT id FROM associate_history
            WHERE created_at < $1::timestamptz
            ORDER BY created_at
            LIMIT $2
          )
-         DELETE FROM audit_logs a
+         DELETE FROM associate_history h
          USING doomed d
-         WHERE a.id = d.id
-         RETURNING a.id`,
+         WHERE h.id = d.id
+         RETURNING h.id`,
         [iso, batch],
       );
-      const n = Array.isArray(res) ? res.length : 0;
-      auditLogs += n;
-      if (n < batch) break;
+    } catch (err) {
+      this.logger.warn(`Purga associate_history omitida: ${(err as Error).message}`);
     }
 
     let radioChecks = 0;
     try {
-      for (;;) {
-        const res = await this.ds.query(
-          `WITH doomed AS (
-             SELECT id FROM radio_control_checks
-             WHERE checked_at < $1::timestamptz
-             ORDER BY checked_at
-             LIMIT $2
-           )
-           DELETE FROM radio_control_checks c
-           USING doomed d
-           WHERE c.id = d.id
-           RETURNING c.id`,
-          [iso, batch],
-        );
-        const n = Array.isArray(res) ? res.length : 0;
-        radioChecks += n;
-        if (n < batch) break;
-      }
+      radioChecks = await deleteBatched(
+        `WITH doomed AS (
+           SELECT id FROM radio_control_checks
+           WHERE checked_at < $1::timestamptz
+           ORDER BY checked_at
+           LIMIT $2
+         )
+         DELETE FROM radio_control_checks c
+         USING doomed d
+         WHERE c.id = d.id
+         RETURNING c.id`,
+        [iso, batch],
+      );
     } catch (err) {
       this.logger.warn(`Purga radio_control_checks omitida: ${(err as Error).message}`);
     }
 
     let radioPasses = 0;
     try {
-      for (;;) {
-        const res = await this.ds.query(
-          `WITH doomed AS (
-             SELECT id FROM radio_control_passes
-             WHERE closed_at IS NOT NULL
-               AND closed_at < $1::timestamptz
-             ORDER BY closed_at
-             LIMIT $2
-           )
-           DELETE FROM radio_control_passes p
-           USING doomed d
-           WHERE p.id = d.id
-           RETURNING p.id`,
-          [iso, batch],
-        );
-        const n = Array.isArray(res) ? res.length : 0;
-        radioPasses += n;
-        if (n < batch) break;
-      }
+      radioPasses = await deleteBatched(
+        `WITH doomed AS (
+           SELECT id FROM radio_control_passes
+           WHERE closed_at IS NOT NULL
+             AND closed_at < $1::timestamptz
+           ORDER BY closed_at
+           LIMIT $2
+         )
+         DELETE FROM radio_control_passes p
+         USING doomed d
+         WHERE p.id = d.id
+         RETURNING p.id`,
+        [iso, batch],
+      );
     } catch (err) {
       this.logger.warn(`Purga radio_control_passes omitida: ${(err as Error).message}`);
     }
 
-    return { auditLogs, radioChecks, radioPasses };
+    return { auditLogs, associateHistory, radioChecks, radioPasses };
   }
 }

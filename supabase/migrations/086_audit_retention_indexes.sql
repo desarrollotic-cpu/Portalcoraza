@@ -5,6 +5,9 @@ BEGIN;
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at
   ON audit_logs (created_at);
 
+CREATE INDEX IF NOT EXISTS idx_associate_history_created_at
+  ON associate_history (created_at);
+
 CREATE INDEX IF NOT EXISTS idx_radio_control_checks_checked_at
   ON radio_control_checks (checked_at);
 
