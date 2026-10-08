@@ -19,6 +19,11 @@ interface PassInfo {
   closedTime: string | null;
   marked?: number;
   total?: number;
+  /** Radios que quedaron en S/N automático al guardar (no los marcó el operador). */
+  autoFilled?: number;
+  /** Hora de la primera y última marca real del operador. */
+  firstMarkTime?: string | null;
+  lastMarkTime?: string | null;
 }
 
 interface BoardRow {
@@ -55,7 +60,7 @@ interface PassDetailPayload {
     notes: string | null;
     checkedTime: string;
     /** Todas las marcas del radio en la pasada, en orden de hora. */
-    marks?: Array<{ time: string; status: string }>;
+    marks?: Array<{ time: string; status: string; auto?: boolean }>;
     checkedAt: string;
   }>;
 }
@@ -223,11 +228,18 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                     }
                   </div>
                   <div class="hr-muted">
-                    {{ p.openedTime }}
-                    @if (p.closedTime) {
-                      → {{ p.closedTime }}
+                    @if (p.firstMarkTime) {
+                      Marcas {{ p.firstMarkTime }}
+                      @if (p.lastMarkTime && p.lastMarkTime !== p.firstMarkTime) {
+                        → {{ p.lastMarkTime }}
+                      }
+                    } @else {
+                      Sin marcas
                     }
-                    · {{ p.marked ?? 0 }}/{{ p.total ?? '—' }} radios
+                    · {{ p.marked ?? 0 }}/{{ p.total ?? '—' }} radios marcados
+                    @if (p.autoFilled) {
+                      · {{ p.autoFilled }} S/N automáticos al guardar
+                    }
                   </div>
                 </button>
               }
@@ -261,7 +273,14 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                       <td>{{ row.label }}</td>
                       <td>
                         @for (m of row.marks?.length ? row.marks : [{ time: row.checkedTime, status: row.status }]; track $index) {
-                          <div><strong>{{ m.time }}</strong> <span class="hr-muted">{{ m.status }}</span></div>
+                          <div>
+                            @if (m.auto) {
+                              <span class="hr-muted">auto al guardar</span>
+                            } @else {
+                              <strong>{{ m.time }}</strong>
+                            }
+                            <span class="hr-muted">{{ m.status }}</span>
+                          </div>
                         }
                       </td>
                       <td>{{ row.status }}</td>

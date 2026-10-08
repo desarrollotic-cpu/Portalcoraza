@@ -145,18 +145,35 @@ export class RadioControlService {
       opened_at: string;
       closed_at: string | null;
       marked: string;
+      auto_filled: string;
+      first_mark: string | null;
+      last_mark: string | null;
       total_roster: string;
     }>(
       `SELECT p.id, p.pass_number, p.opened_at, p.closed_at,
               COALESCE(cnt.marked, 0)::text AS marked,
+              COALESCE(cnt.auto_filled, 0)::text AS auto_filled,
+              cnt.first_mark, cnt.last_mark,
               (SELECT COUNT(*)::text FROM radio_control_roster r
                WHERE r.tenant_id = p.tenant_id AND r.active = true) AS total_roster
        FROM radio_control_passes p
        LEFT JOIN (
-         SELECT pass_id, COUNT(DISTINCT roster_id)::int AS marked
-         FROM radio_control_checks
-         WHERE tenant_id = $1
-         GROUP BY pass_id
+         -- "Automática" = el S/N que "Guardar y siguiente pasada" pone a los radios sin marcar:
+         -- lleva exactamente la hora de cierre de la pasada. No es una marca del operador.
+         SELECT k.pass_id,
+                COUNT(DISTINCT k.roster_id) FILTER (WHERE NOT k.auto)::int AS marked,
+                COUNT(DISTINCT k.roster_id) FILTER (WHERE k.auto)::int AS auto_filled,
+                MIN(k.checked_at) FILTER (WHERE NOT k.auto) AS first_mark,
+                MAX(k.checked_at) FILTER (WHERE NOT k.auto) AS last_mark
+         FROM (
+           SELECT c.pass_id, c.roster_id, c.checked_at,
+                  (pp.closed_at IS NOT NULL AND c.checked_at = pp.closed_at
+                   AND c.status = 'S/N' AND c.notes IS NULL) AS auto
+           FROM radio_control_checks c
+           JOIN radio_control_passes pp ON pp.id = c.pass_id
+           WHERE c.tenant_id = $1
+         ) k
+         GROUP BY k.pass_id
        ) cnt ON cnt.pass_id = p.id
        WHERE p.tenant_id = $1 AND p.pass_date = $2::date
        ORDER BY p.pass_number DESC`,
@@ -172,6 +189,9 @@ export class RadioControlService {
         closedAt: p.closed_at,
         open: !p.closed_at,
         marked: Number(p.marked),
+        autoFilled: Number(p.auto_filled),
+        firstMarkTime: p.first_mark ? this.hmBogota(p.first_mark) : null,
+        lastMarkTime: p.last_mark ? this.hmBogota(p.last_mark) : null,
         total: Number(p.total_roster),
         openedTime: this.hmBogota(p.opened_at),
         closedTime: p.closed_at ? this.hmBogota(p.closed_at) : null,
@@ -202,13 +222,15 @@ export class RadioControlService {
       notes: string | null;
       checked_at: string;
       slot_hm: string;
-      marks: Array<{ time: string; status: string }> | null;
+      marks: Array<{ time: string; status: string; auto: boolean }> | null;
     }>(
       `SELECT r.sort_order, r.callsign, r.label, c.status, c.notes, c.checked_at,
               to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm,
               (SELECT json_agg(json_build_object(
                         'time', to_char(k.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI'),
-                        'status', k.status) ORDER BY k.checked_at)
+                        'status', k.status,
+                        'auto', (($3::timestamptz) IS NOT NULL AND k.checked_at = $3::timestamptz
+                                 AND k.status = 'S/N' AND k.notes IS NULL)) ORDER BY k.checked_at)
                FROM radio_control_checks k
                WHERE k.tenant_id = $1 AND k.pass_id = $2 AND k.roster_id = c.roster_id) AS marks
        FROM radio_control_checks c
@@ -221,7 +243,7 @@ export class RadioControlService {
        ) latest ON latest.roster_id = c.roster_id AND latest.mx = c.checked_at
        WHERE c.tenant_id = $1 AND c.pass_id = $2
        ORDER BY r.sort_order`,
-      [user.tenantId, passId],
+      [user.tenantId, passId, pass.closed_at],
     );
 
     return {

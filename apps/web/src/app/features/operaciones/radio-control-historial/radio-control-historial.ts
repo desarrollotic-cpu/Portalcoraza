@@ -17,6 +17,11 @@ interface PassInfo {
   closedTime: string | null;
   marked?: number;
   total?: number;
+  /** Radios que quedaron en S/N automático al guardar (no los marcó el operador). */
+  autoFilled?: number;
+  /** Hora de la primera y última marca real del operador. */
+  firstMarkTime?: string | null;
+  lastMarkTime?: string | null;
 }
 
 interface HistoryPayload {
@@ -34,6 +39,8 @@ interface PassDetailPayload {
     notes: string | null;
     checkedTime: string;
     checkedAt: string;
+    /** Todas las marcas del radio en la pasada, en orden de hora. */
+    marks?: Array<{ time: string; status: string; auto?: boolean }>;
   }>;
 }
 
@@ -78,11 +85,18 @@ interface PassDetailPayload {
                   }
                 </div>
                 <div class="hr-muted">
-                  {{ p.openedTime }}
-                  @if (p.closedTime) {
-                    → {{ p.closedTime }}
+                  @if (p.firstMarkTime) {
+                    Marcas {{ p.firstMarkTime }}
+                    @if (p.lastMarkTime && p.lastMarkTime !== p.firstMarkTime) {
+                      → {{ p.lastMarkTime }}
+                    }
+                  } @else {
+                    Sin marcas
                   }
-                  · {{ p.marked ?? 0 }}/{{ p.total ?? '—' }} radios
+                  · {{ p.marked ?? 0 }}/{{ p.total ?? '—' }} radios marcados
+                  @if (p.autoFilled) {
+                    · {{ p.autoFilled }} S/N automáticos al guardar
+                  }
                 </div>
               </button>
             }
@@ -114,7 +128,18 @@ interface PassDetailPayload {
                     <td>{{ row.sortOrder }}</td>
                     <td>{{ row.callsign || '—' }}</td>
                     <td>{{ row.label }}</td>
-                    <td><strong>{{ row.checkedTime }}</strong></td>
+                    <td>
+                      @for (m of row.marks?.length ? row.marks : [{ time: row.checkedTime, status: row.status, auto: false }]; track $index) {
+                        <div>
+                          @if (m.auto) {
+                            <span class="hr-muted">auto al guardar</span>
+                          } @else {
+                            <strong>{{ m.time }}</strong>
+                          }
+                          <span class="hr-muted">{{ m.status }}</span>
+                        </div>
+                      }
+                    </td>
                     <td>{{ row.status }}</td>
                     <td>{{ row.notes || '—' }}</td>
                   </tr>
@@ -192,7 +217,13 @@ export class RadioControlHistorial implements OnInit {
     this.http
       .get<PassDetailPayload>(`${environment.apiUrl}/radio-control/passes/${id}`)
       .subscribe({
-        next: (d) => this.passDetail.set(d),
+        next: (d) => {
+          this.passDetail.set(d);
+          // El detalle sale debajo de la lista: llevarlo a la vista para que se note que abrió.
+          setTimeout(() =>
+            document.querySelector('.rch-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+          );
+        },
         error: (e) => this.toast.error(e?.error?.message || 'No se pudo abrir la pasada'),
       });
   }
