@@ -54,6 +54,8 @@ interface PassDetailPayload {
     status: string;
     notes: string | null;
     checkedTime: string;
+    /** Todas las marcas del radio en la pasada, en orden de hora. */
+    marks?: Array<{ time: string; status: string }>;
     checkedAt: string;
   }>;
 }
@@ -257,7 +259,11 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                       <td>{{ row.sortOrder }}</td>
                       <td>{{ row.callsign || '—' }}</td>
                       <td>{{ row.label }}</td>
-                      <td><strong>{{ row.checkedTime }}</strong></td>
+                      <td>
+                        @for (m of row.marks?.length ? row.marks : [{ time: row.checkedTime, status: row.status }]; track $index) {
+                          <div><strong>{{ m.time }}</strong> <span class="hr-muted">{{ m.status }}</span></div>
+                        }
+                      </td>
                       <td>{{ row.status }}</td>
                       <td>{{ row.notes || '—' }}</td>
                     </tr>
@@ -440,7 +446,13 @@ export class RadioControlPage implements OnInit, OnDestroy {
     this.http
       .get<PassDetailPayload>(`${environment.apiUrl}/radio-control/passes/${id}`)
       .subscribe({
-        next: (d) => this.passDetail.set(d),
+        next: (d) => {
+          this.passDetail.set(d);
+          // El detalle sale debajo de la lista: llevarlo a la vista para que se note que abrió.
+          setTimeout(() =>
+            document.querySelector('.rc-pass-detail')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+          );
+        },
         error: (e) => this.toast.error(e?.error?.message || 'No se pudo abrir la pasada'),
       });
   }

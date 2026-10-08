@@ -45,31 +45,31 @@ export class RadioControlService {
   }
 
   /**
-   * Cierra las pasadas que quedaron abiertas en días anteriores (la última del día queda abierta
-   * y vacía porque "Guardar y siguiente pasada" siempre abre otra). Cierre = fin de ese día en Bogotá.
-   * Idempotente: sin pasadas viejas abiertas no toca nada.
+   * Cierra las pasadas abandonadas: abiertas y sin ninguna actividad (apertura o marca) en las
+   * últimas 12 horas. Una pasada que sigue en uso NUNCA se cierra aunque cruce la medianoche
+   * (el turno de noche marca antes y después de las 00:00). Cierre = su última actividad.
+   * Idempotente: sin pasadas abandonadas no toca nada.
    */
   private async closeStalePasses(tenantId: string) {
     await this.q(
-      `UPDATE radio_control_passes
-       SET closed_at = GREATEST(
-         opened_at,
-         ((pass_date + 1)::timestamp AT TIME ZONE 'America/Bogota') - interval '1 second'
-       )
-       WHERE tenant_id = $1
-         AND closed_at IS NULL
-         AND pass_date < (now() AT TIME ZONE 'America/Bogota')::date`,
+      `UPDATE radio_control_passes p
+       SET closed_at = act.last_at
+       FROM (
+         SELECT p2.id,
+                GREATEST(p2.opened_at, COALESCE(MAX(c.checked_at), p2.opened_at)) AS last_at
+         FROM radio_control_passes p2
+         LEFT JOIN radio_control_checks c ON c.pass_id = p2.id
+         WHERE p2.tenant_id = $1 AND p2.closed_at IS NULL
+         GROUP BY p2.id
+       ) act
+       WHERE p.id = act.id
+         AND act.last_at < now() - interval '12 hours'`,
       [tenantId],
     );
   }
-
   async board(user: JwtPayload, date: string, q?: string) {
     const d = this.requireDate(date);
     const like = q?.trim() ? `%${q.trim()}%` : null;
-    // Solo al abrir el tablero de hoy (en una fecha pasada getOrCreateOpenPass volvería a abrir una).
-    if (d >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })) {
-      await this.closeStalePasses(user.tenantId);
-    }
     const pass = await this.getOrCreateOpenPass(user.tenantId, d);
 
     const roster = await this.q<{
@@ -202,9 +202,15 @@ export class RadioControlService {
       notes: string | null;
       checked_at: string;
       slot_hm: string;
+      marks: Array<{ time: string; status: string }> | null;
     }>(
       `SELECT r.sort_order, r.callsign, r.label, c.status, c.notes, c.checked_at,
-              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm
+              to_char(c.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI') AS slot_hm,
+              (SELECT json_agg(json_build_object(
+                        'time', to_char(k.checked_at AT TIME ZONE 'America/Bogota', 'HH24:MI'),
+                        'status', k.status) ORDER BY k.checked_at)
+               FROM radio_control_checks k
+               WHERE k.tenant_id = $1 AND k.pass_id = $2 AND k.roster_id = c.roster_id) AS marks
        FROM radio_control_checks c
        JOIN radio_control_roster r ON r.id = c.roster_id
        INNER JOIN (
@@ -237,6 +243,8 @@ export class RadioControlService {
         notes: r.notes,
         checkedTime: r.slot_hm,
         checkedAt: r.checked_at,
+        /** Todas las marcas del radio en la pasada (hora y estado), en orden. */
+        marks: r.marks ?? [],
       })),
     };
   }
@@ -417,6 +425,7 @@ export class RadioControlService {
   }
 
   private async getOrCreateOpenPass(tenantId: string, date: string) {
+    await this.closeStalePasses(tenantId);
     const [open] = await this.q<{
       id: string;
       pass_number: number;
@@ -431,6 +440,22 @@ export class RadioControlService {
       [tenantId, date],
     );
     if (open) return open;
+    // Turno de noche: tras la medianoche se sigue usando la pasada abierta del día anterior
+    // (si no está abandonada) en vez de abrir una vacía y dejar las marcas "perdidas".
+    const [previa] = await this.q<{
+      id: string;
+      pass_number: number;
+      opened_at: string;
+      closed_at: string | null;
+    }>(
+      `SELECT id, pass_number, opened_at, closed_at
+       FROM radio_control_passes
+       WHERE tenant_id = $1 AND pass_date = $2::date - 1 AND closed_at IS NULL
+       ORDER BY pass_number DESC
+       LIMIT 1`,
+      [tenantId, date],
+    );
+    if (previa) return previa;
     return this.createPass(tenantId, date);
   }
 
