@@ -44,9 +44,32 @@ export class RadioControlService {
     return this.ds.query(sql, params) as Promise<T[]>;
   }
 
+  /**
+   * Cierra las pasadas que quedaron abiertas en días anteriores (la última del día queda abierta
+   * y vacía porque "Guardar y siguiente pasada" siempre abre otra). Cierre = fin de ese día en Bogotá.
+   * Idempotente: sin pasadas viejas abiertas no toca nada.
+   */
+  private async closeStalePasses(tenantId: string) {
+    await this.q(
+      `UPDATE radio_control_passes
+       SET closed_at = GREATEST(
+         opened_at,
+         ((pass_date + 1)::timestamp AT TIME ZONE 'America/Bogota') - interval '1 second'
+       )
+       WHERE tenant_id = $1
+         AND closed_at IS NULL
+         AND pass_date < (now() AT TIME ZONE 'America/Bogota')::date`,
+      [tenantId],
+    );
+  }
+
   async board(user: JwtPayload, date: string, q?: string) {
     const d = this.requireDate(date);
     const like = q?.trim() ? `%${q.trim()}%` : null;
+    // Solo al abrir el tablero de hoy (en una fecha pasada getOrCreateOpenPass volvería a abrir una).
+    if (d >= new Date().toLocaleDateString('en-CA', { timeZone: 'America/Bogota' })) {
+      await this.closeStalePasses(user.tenantId);
+    }
     const pass = await this.getOrCreateOpenPass(user.tenantId, d);
 
     const roster = await this.q<{
@@ -115,6 +138,7 @@ export class RadioControlService {
 
   async history(user: JwtPayload, date: string) {
     const d = this.requireDate(date);
+    await this.closeStalePasses(user.tenantId);
     const passes = await this.q<{
       id: string;
       pass_number: number;
