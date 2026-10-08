@@ -105,6 +105,7 @@ function aTexto(v: unknown): string {
 type Columna =
   | { tipo: 'concepto'; codigo: string }
   | { tipo: 'bonificacion' }
+  | { tipo: 'ajuste' }
   | { tipo: 'ignorar' }
   | { tipo: 'desconocido' };
 
@@ -113,7 +114,9 @@ function clasificarEncabezado(texto: string): Columna {
   const n = normalizar(t);
   if (!n) return { tipo: 'ignorar' };
   if (n.startsWith('BONIFICACION')) return { tipo: 'bonificacion' };
-  if (n.startsWith('VALORAJUSTEJORNADA')) return { tipo: 'ignorar' };
+  // VALOR AJUSTE JORNADA se suma al salario 001; COMPENSACIONEXTRAORDINARIA 011 no se convierte (el 011 sale solo de RECARGO 011).
+  if (n.startsWith('VALORAJUSTEJORNADA')) return { tipo: 'ajuste' };
+  if (n.startsWith('COMPENSACIONEXTRAORDINARIA')) return { tipo: 'ignorar' };
   const m = /(?<!\d)(\d{3})$/.exec(t);
   if (m) return { tipo: 'concepto', codigo: m[1] };
   const eq = EQUIVALENCIAS[n];
@@ -200,6 +203,7 @@ export class PayrollConversionService {
       // Columnas por código, en el orden de aparición de izquierda a derecha.
       const porCodigo = new Map<string, number[]>();
       const colsBonif: number[] = [];
+      const colsAjuste: number[] = [];
       const desconocidas: Array<{ col: number; texto: string }> = [];
       for (let c = COL_INICIO_CONCEPTOS; c <= ws.columnCount; c++) {
         const texto = aTexto(valorCelda(ws.getRow(FILA_ENCABEZADOS).getCell(c)));
@@ -209,6 +213,7 @@ export class PayrollConversionService {
           lista.push(c);
           porCodigo.set(k.codigo, lista);
         } else if (k.tipo === 'bonificacion') colsBonif.push(c);
+        else if (k.tipo === 'ajuste') colsAjuste.push(c);
         else if (k.tipo === 'desconocido') desconocidas.push({ col: c, texto });
       }
       if (porCodigo.size === 0) {
@@ -241,7 +246,8 @@ export class PayrollConversionService {
       ];
 
       for (const codigo of codigos) {
-        const cols = porCodigo.get(codigo) as number[];
+        // 001 = SALARIOORDINARIO 001 + VALOR AJUSTE JORNADA (vacío o 0 no cambia nada)
+        const cols = [...(porCodigo.get(codigo) as number[]), ...(codigo === '001' ? colsAjuste : [])];
         const dec = codigo === CODIGO_DECIMALES ? 2 : 0;
         for (const a of asociados) {
           let suma = 0;
