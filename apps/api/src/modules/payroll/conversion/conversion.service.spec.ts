@@ -60,7 +60,7 @@ async function consolidadoSintetico(): Promise<Buffer> {
   wb.addWorksheet('CONSOLIDADO').getCell('A1').value = 'no se lee';
   wb.addWorksheet('ARRENDAMIENTOS').getCell('A5').value = 999;
   // INCAPACITADOS está en medio de las pestañas a propósito: igual debe ir al final del BASE
-  hojaZona(wb, 'INCAPACITADOS', ['VALOR A PAGAR', 'SALARIOORDINARIO 001', 'SALUD'], [[555, 'INCAP UNO', 1, 123456.5, 10]]);
+  hojaZona(wb, 'INCAPACITADOS', ['VALOR A PAGAR', 'SALARIOORDINARIO 001', 'SALUD', 'VALOR AJUSTE JORNADA'], [[555, 'INCAP UNO', 1, 123456.2, 10, 0.4]]);
   const enc = [
     'VALOR A PAGAR', //          AH ignorado
     'AUXTRANSP 019',
@@ -68,10 +68,10 @@ async function consolidadoSintetico(): Promise<Buffer> {
     'PENSIÓN 711',
     'APORTES VOLUNTARIOS', //    equivalencia → 568
     'BONIFICACION', //           manual
-    'COMPENSACIONEXTRAORDINARIA 011',
+    'COMPENSACIONEXTRAORDINARIA 011', //  ignorada: el 011 sale solo de RECARGO 011
     'SALARIOORDINARIO 001',
     'RECARGO 011', //            mismo código 011 → se suman
-    'VALOR AJUSTE JORNADA', //   nunca se convierte
+    'VALOR AJUSTE JORNADA', //   se suma al 001
     'Deducción n+3', //          ignorado
     'ODONTOLOGIA520', //         código pegado al texto
   ];
@@ -127,7 +127,7 @@ describe('PayrollConversionService (consolidado sintético)', () => {
       '520:101',
     ]);
     // ZONA 04, 05, 07 y al final INCAPACITADOS (mismas reglas: 001 antes que 628)
-    expect(a.filas[0]).toEqual({ cedula: '100', codigo: '001', valor: 1000 });
+    expect(a.filas[0]).toEqual({ cedula: '100', codigo: '001', valor: 1077 });
     const iZ5 = a.filas.findIndex((f) => f.cedula === '300');
     const iZ7 = a.filas.findIndex((f) => f.cedula === '200');
     const iInc = a.filas.findIndex((f) => f.cedula === '555');
@@ -135,18 +135,34 @@ describe('PayrollConversionService (consolidado sintético)', () => {
     expect(iZ7).toBeGreaterThan(iZ5);
     expect(iInc).toBeGreaterThan(iZ7);
     expect(a.filas.slice(iInc)).toEqual([
-      { cedula: '555', codigo: '001', valor: 123457 },
+      { cedula: '555', codigo: '001', valor: 123457 }, // 123456.2 + 0.4 = 123456.6 → 123457
       { cedula: '555', codigo: '628', valor: 10 },
     ]);
   });
 
-  it('copia directa: el 001 no suma ni resta VALOR AJUSTE JORNADA', () => {
-    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '001')?.valor).toBe(1000);
-    expect(a.filas.find((f) => f.cedula === '101' && f.codigo === '001')?.valor).toBe(2000);
+  it('001 = SALARIOORDINARIO 001 + VALOR AJUSTE JORNADA (en todas las hojas, también INCAPACITADOS)', () => {
+    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '001')?.valor).toBe(1077); // 1000 + 77
+    expect(a.filas.find((f) => f.cedula === '101' && f.codigo === '001')?.valor).toBe(2002); // 2000 + 2
+    expect(a.filas.find((f) => f.cedula === '102' && f.codigo === '001')?.valor).toBe(3000); // ajuste en 0
+    expect(a.filas.find((f) => f.cedula === '200' && f.codigo === '001')?.valor).toBe(509); // ZONA 07: 500 + 9
+    expect(a.filas.find((f) => f.cedula === '300' && f.codigo === '001')?.valor).toBe(4000); // ajuste vacío
   });
 
-  it('011 suma las dos columnas y conserva 2 decimales; el resto se redondea al peso', () => {
-    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '011')?.valor).toBe(50.35); // 40.25 + 10.1
+  it('011 sale solo de RECARGO 011; COMPENSACIONEXTRAORDINARIA 011 se ignora', async () => {
+    const wb = new ExcelJS.Workbook();
+    hojaZona(
+      wb,
+      'ZONA 01',
+      ['SALARIOORDINARIO 001', 'COMPENSACIONEXTRAORDINARIA 011', 'VALOR AJUSTE JORNADA'],
+      [[1, 'X', 100, 999, 0.5]],
+    );
+    const r = await svc.analizar(Buffer.from(await wb.xlsx.writeBuffer()));
+    expect(r.filas).toEqual([{ cedula: '1', codigo: '001', valor: 101 }]); // 100 + 0.5 → 101 (half-up), sin 011
+    expect(r.advertencias).toEqual([]);
+  });
+
+  it('011 conserva 2 decimales (solo RECARGO); el resto se redondea al peso', () => {
+    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '011')?.valor).toBe(10.1); // solo RECARGO (la compensación 40.25 se ignora)
     expect(a.filas.find((f) => f.cedula === '101' && f.codigo === '011')?.valor).toBe(0.1);
     expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '019')?.valor).toBe(11); // 10.5 sube
   });
@@ -212,6 +228,7 @@ const rutaConsolidado = hallar(/CONSOLIDADO.*SEPTIEMBRE/i);
 const rutaAgosto = hallar(/^2Q.*AGOSTO/i); // BASE manual 2Q de agosto (modelo de formato)
 const rutaConsAgosto = hallar(/CONSOLIDADO.*AGOSTO/i);
 const rutaManual1Q = hallar(/^1Q.*AGOSTO/i); // BASE manual 1Q de agosto
+const rutaJulio = hallar(/CONSOLIDADO.*JULIO/i);
 
 const conReales = rutaConsolidado && rutaAgosto ? describe : describe.skip;
 
@@ -243,8 +260,8 @@ conReales('consolidado real de septiembre 2026 y formato del BASE manual de agos
       '98601485|001|875453',
     ]);
     expect(a.filas[a.filas.length - 1]).toEqual({ cedula: '98601485', codigo: '538', valor: 262636 });
-    expect(tot('001')).toEqual({ codigo: '001', filas: 627, suma: 485453031 });
-    // 011 con redondeo de Excel (15 cifras): 10 celdas x.xx5 con ruido binario suben 1 centavo
+    expect(tot('001')).toEqual({ codigo: '001', filas: 627, suma: 495739661 }); // incluye VALOR AJUSTE JORNADA
+    // 011 solo de RECARGO, con redondeo de Excel (15 cifras): 10 celdas x.xx5 con ruido binario suben 1 centavo
     expect(tot('011')).toEqual({ codigo: '011', filas: 573, suma: 79144115.42 });
     expect(tot('628')).toEqual({ codigo: '628', filas: 627, suma: 22583835 });
     expect(tot('711')).toEqual({ codigo: '711', filas: 602, suma: 21659870 });
@@ -348,15 +365,32 @@ conAgosto1Q('consolidado 1ª quincena de agosto 2026 contra el BASE manual 1Q AG
     }
     for (const [k, v] of manual) if (!portal.has(k)) dif.push(`SOLO MANUAL ${k} ${v}`);
 
-    // Únicas diferencias aceptadas (ajustes hechos a mano en el manual)
+    // Únicas diferencias aceptadas (ajustes hechos a mano en el manual). La de 1062876589 (001)
+    // desapareció: con VALOR AJUSTE JORNADA sumado el portal da 875453, igual que el manual.
     expect(dif.sort()).toEqual(
       [
         'VALOR 70108742|001 portal=875453 manual=875400',
         'VALOR 71701610|001 portal=875453 manual=875400',
         'VALOR 98601485|001 portal=875453 manual=875400',
-        'VALOR 1062876589|001 portal=802498 manual=875453',
         'SOLO PORTAL 1037073208|533 353000',
       ].sort(),
     );
+  });
+});
+
+const conJulio = rutaJulio ? describe : describe.skip;
+
+conJulio('consolidado 1ª quincena de julio 2026 (001 con VALOR AJUSTE JORNADA, 011 solo RECARGO)', () => {
+  it('valores de referencia', async () => {
+    const a = await svc.analizar(fs.readFileSync(rutaJulio as string));
+    const tot = (c: string) => a.totales.find((t) => t.codigo === c);
+    expect(a.filas).toHaveLength(8234);
+    expect(a.periodo).toMatchObject({ periodo: '07', fecha: '07/15/2026' });
+    expect(tot('001')).toEqual({ codigo: '001', filas: 644, suma: 503093489 });
+    expect(tot('011')).toEqual({ codigo: '011', filas: 602, suma: 109049694.82 });
+    const v = (ced: string, cod: string) => a.filas.find((f) => f.cedula === ced && f.codigo === cod)?.valor;
+    expect(v('98456475', '001')).toBe(350181);
+    expect(v('98456475', '011')).toBe(70036.2);
+    expect(v('1003735970', '001')).toBe(875453);
   });
 });
