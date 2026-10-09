@@ -378,6 +378,39 @@ export class RadioControlService {
     return row;
   }
 
+  /** Quita la marcación de la pasada abierta. Un segundo clic en el mismo estado. */
+  async clearCheck(user: JwtPayload, date: string, rosterId: string) {
+    const d = this.requireDate(date);
+    const id = String(rosterId || '').trim();
+    if (!id) throw new BadRequestException('rosterId requerido');
+    const roster = await this.assertRoster(user.tenantId, id);
+    const [open] = await this.q<{ id: string; pass_number: number }>(
+      `SELECT id, pass_number FROM radio_control_passes
+       WHERE tenant_id = $1 AND pass_date = $2::date AND closed_at IS NULL
+       ORDER BY pass_number DESC
+       LIMIT 1`,
+      [user.tenantId, d],
+    );
+    if (!open) return { cleared: false };
+    const deleted = await this.q<{ id: string }>(
+      `DELETE FROM radio_control_checks
+       WHERE tenant_id = $1 AND pass_id = $2 AND roster_id = $3
+       RETURNING id`,
+      [user.tenantId, open.id, id],
+    );
+    if (deleted.length) {
+      await this.audit.log({
+        userId: user.sub,
+        module: 'radio_control',
+        action: 'radio_control.uncheck',
+        entityType: 'radio_control_check',
+        entityId: deleted[0].id,
+        newValue: { date: d, label: roster.label, callsign: roster.callsign, passNumber: open.pass_number },
+      });
+    }
+    return { cleared: deleted.length > 0 };
+  }
+
   async upsertMany(user: JwtPayload, dto: UpsertManyDto) {
     const d = this.requireDate(dto.date);
     const status = this.requireStatus(dto.status);

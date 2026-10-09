@@ -175,6 +175,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
                             [class.active]="row.status === st"
                             [attr.data-st]="st"
                             [disabled]="!canEdit() || savingId() === row.rosterId"
+                            [attr.title]="row.status === st ? 'Clic de nuevo para quitar' : st"
                             (click)="setStatus(row, st)"
                           >
                             {{ st }}
@@ -478,7 +479,34 @@ export class RadioControlPage implements OnInit, OnDestroy {
 
   setStatus(row: BoardRow, status: Status): void {
     if (!this.canEdit()) return;
+    if (row.status === status) {
+      this.clearCheck(row);
+      return;
+    }
     this.persistCheck(row, status, new Date().toISOString());
+  }
+
+  private clearCheck(row: BoardRow): void {
+    this.savingId.set(row.rosterId);
+    this.http
+      .delete<{ cleared: boolean }>(`${environment.apiUrl}/radio-control/check`, {
+        params: { date: this.date, rosterId: row.rosterId },
+      })
+      .subscribe({
+        next: () => {
+          const had = !!row.status;
+          row.status = null;
+          row.checkedAt = null;
+          row.checkedTime = null;
+          const b = this.board();
+          if (b && had) this.board.set({ ...b, filled: Math.max(0, b.filled - 1) });
+          this.savingId.set(null);
+        },
+        error: (e) => {
+          this.savingId.set(null);
+          this.toast.error(e?.error?.message || 'No se pudo quitar la marcación');
+        },
+      });
   }
 
   /** Guarda observación sin cambiar la hora ya marcada (si aún no hay estado, viaja al marcar). */

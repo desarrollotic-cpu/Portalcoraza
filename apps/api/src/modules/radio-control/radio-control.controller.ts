@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequireAnyPermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -42,6 +42,16 @@ export class RadioControlController {
   @RequireAnyPermissions('radio_control.edit', 'operations.view')
   upsert(@CurrentUser() user: JwtPayload, @Body() body: UpsertRadioCheckDto) {
     return this.svc.upsert(user, body);
+  }
+
+  @Delete('check')
+  @RequireAnyPermissions('radio_control.edit', 'operations.view')
+  clear(
+    @CurrentUser() user: JwtPayload,
+    @Query('date') date: string,
+    @Query('rosterId') rosterId: string,
+  ) {
+    return this.svc.clearCheck(user, date, rosterId);
   }
 
   @Post('fill')
