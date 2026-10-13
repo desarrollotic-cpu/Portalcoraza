@@ -284,7 +284,7 @@ export class RadioControlService {
       throw new BadRequestException('Hora del equipo inválida');
     }
 
-    if (dto.fillPendingSn !== false) {
+    if (dto.fillPendingSn === true) {
       const pending = await this.q<{ id: string }>(
         `SELECT r.id
          FROM radio_control_roster r

@@ -585,7 +585,7 @@ export class RadioControlPage implements OnInit, OnDestroy {
       });
   }
 
-  /** Cierra la pasada actual (completa pendientes S/N) y abre tabla limpia. */
+  /** Cierra la pasada actual (sin llenar pendientes) y abre tabla limpia. */
   saveAndNextPass(): void {
     if (!this.canEdit()) return;
     this.busy.set(true);
@@ -593,7 +593,7 @@ export class RadioControlPage implements OnInit, OnDestroy {
       .post<{ closed: PassInfo; open: PassInfo }>(`${environment.apiUrl}/radio-control/next-pass`, {
         date: this.date,
         checkedAt: new Date().toISOString(),
-        fillPendingSn: true,
+        fillPendingSn: false,
       })
       .subscribe({
         next: (res) => {
