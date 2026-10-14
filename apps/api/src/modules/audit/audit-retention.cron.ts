@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { APP_TIMEZONE } from '../../common/constants/app-timezone';
 import { AUDIT_RETENTION_DAYS, AuditService } from './audit.service';
 
 @Injectable()
@@ -8,7 +9,10 @@ export class AuditRetentionCron {
 
   constructor(private readonly audit: AuditService) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_4AM, { name: 'audit-retention-daily' })
+  @Cron(CronExpression.EVERY_DAY_AT_4AM, {
+    name: 'audit-retention-daily',
+    timeZone: APP_TIMEZONE,
+  })
   async handleDailyPurge() {
     this.logger.log(
       `Purga historial (>${AUDIT_RETENTION_DAYS}d): movimientos + actividades (audit, HR, radio)`,

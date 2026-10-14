@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { APP_TIMEZONE } from '../../common/constants/app-timezone';
 import { runWithTenantContext } from '../../common/tenant/run-with-tenant';
 import { Organization } from '../organizations/entities/organization.entity';
 import { HrAlertsService } from './hr-alerts.service';
@@ -9,7 +10,7 @@ import { HrAlertsService } from './hr-alerts.service';
 /**
  * Cron diario del módulo Gestión Humana.
  *
- * Se ejecuta todos los días a las 03:00 (hora del servidor).
+ * Se ejecuta todos los días a las 03:00 hora Colombia (America/Bogota).
  *   1) Marca como resueltas las alertas de asociados que ya no están ACTIVOS.
  *   2) Regenera todas las alertas de vencimiento (60/30/7 días) y de
  *      documentos faltantes en cargos críticos.
@@ -25,7 +26,10 @@ export class HrAlertsCron {
     private readonly orgsRepo: Repository<Organization>,
   ) {}
 
-  @Cron(CronExpression.EVERY_DAY_AT_3AM, { name: 'hr-alerts-daily' })
+  @Cron(CronExpression.EVERY_DAY_AT_3AM, {
+    name: 'hr-alerts-daily',
+    timeZone: APP_TIMEZONE,
+  })
   async handleDailyAlerts() {
     this.logger.log('Ejecutando motor de alertas HRM (diario, por tenant)');
     const orgs = await this.orgsRepo.find({ where: { activo: true }, select: ['id'] });

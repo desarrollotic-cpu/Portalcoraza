@@ -176,8 +176,23 @@ Ajusta `NODE_HEAP_MB` en Render a **~75-80 % de la RAM de la instancia**:
 
 Si subes de plan y no cambias la variable, el API seguirá limitado a 460 MB.
 
-**Zona horaria:** los crons (`@Cron` en préstamos y alertas) usan la hora del
-servidor, que en Render es **UTC** salvo que definas `TZ=America/Bogota`.
+### Zona horaria de las tareas programadas
+
+El contenedor de Render corre en **UTC**. Un `@Cron` sin `timeZone` usa esa hora,
+así que `0 8 * * *` se disparaba a las **3:00 a.m. hora Colombia**, no a las 8:00
+como decía el código.
+
+Los tres crons declaran ahora `timeZone: APP_TIMEZONE` (`America/Bogota`), que
+vive en `apps/api/src/common/constants/app-timezone.ts`. Quedan así:
+
+| Tarea | Hora Colombia |
+|-------|---------------|
+| Recordatorios de préstamos vencidos | 8:00 a.m. y 2:00 p.m. |
+| Motor de alertas de Gestión Humana | 3:00 a.m. |
+| Purga de historial de auditoría | 4:00 a.m. |
+
+No hace falta definir `TZ` en Render: la zona va explícita en el código. Si aun
+así la defines, no entra en conflicto.
 
 ---
 

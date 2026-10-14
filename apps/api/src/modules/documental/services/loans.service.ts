@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { APP_TIMEZONE } from '../../../common/constants/app-timezone';
 import { AuditService } from '../../audit/audit.service';
 import { CreateLoanDto } from '../dto/create-loan.dto';
 import { PublicLoanRequestDto } from '../dto/public-loan-request.dto';
@@ -91,7 +92,10 @@ export class LoansService {
    * y envía correos de recordatorio recurrentes de forma automática
    * hasta que el funcionario realice la devolución física.
    */
-  @Cron('0 8,14 * * *')
+  @Cron('0 8,14 * * *', {
+    name: 'loans-overdue-reminders',
+    timeZone: APP_TIMEZONE,
+  })
   async handleRecurringOverdueCheck(): Promise<void> {
     this.logger.log('⏰ [CRON GESTIÓN DOCUMENTAL] Verificación automática de préstamos vencidos...');
     await this.checkAndSendOverdueReminders();
