@@ -118,7 +118,11 @@ INSERT INTO sig_indicadores (id, codigo, nombre, objetivo_id, subsistema, propos
   ('c3000000-0000-4000-8000-000000000026', 'T10', 'CIERRE NO CONFORMIDADES', 'b2000000-0000-4000-8000-000000000003', 'CALIDAD', 'NC cerradas a tiempo', '(Cerradas a tiempo / Total) * 100', 'MENSUAL', 'ASCENDENTE', 'ADMIN', 'SIG'),
   ('c3000000-0000-4000-8000-000000000027', 'T11', 'ENTREGA INFORMES SIG', 'b2000000-0000-4000-8000-000000000003', 'SIG', 'Informes entregados a tiempo', '(A tiempo / Programados) * 100', 'MENSUAL', 'ASCENDENTE', 'ADMIN', 'SIG'),
   ('c3000000-0000-4000-8000-000000000028', 'T12', 'CUMPLIMIENTO LEGAL SST', 'b2000000-0000-4000-8000-000000000005', 'SST', 'Requisitos legales SST', '(Cumplidos / Aplicables) * 100', 'TRIMESTRAL', 'ASCENDENTE', 'SST', 'SST')
-ON CONFLICT (codigo) DO NOTHING;
+-- Sin columnas: la migración 042 (multi-tenant) reemplazó el UNIQUE de
+-- `codigo` por uno de (tenant_id, codigo), y nombrar aquí la columna suelta
+-- rompía el script entero con "no unique or exclusion constraint matching".
+-- Para una siembra idempotente basta con ignorar cualquier conflicto.
+ON CONFLICT DO NOTHING;
 
 INSERT INTO sig_resultados (indicador_id, anio, periodo, meta_snapshot, valor_resultado, observaciones, color_semaforo, seguimiento, capturado_por)
 SELECT i.id, 2026, x.periodo, x.meta, x.resultado, 'Dato de arranque MVP', x.color, 'ABIERTO', 'seed'

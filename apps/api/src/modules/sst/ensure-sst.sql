@@ -171,7 +171,10 @@ INSERT INTO sst_checklist_items (codigo, categoria, pregunta, sort_order) VALUES
   (32, 'Psicosocial', '¿Los vigilantes hacen uso de la dotación suministrada por la cooperativa, y según las condiciones del entorno y/o la actividad a realizar y se encuentran en buen estado? (Botas de seguridad, carpa, botas pantaneras, goliana, linterna y sombrilla, entre otros)', 32),
   (33, 'Psicosocial', '¿Los empleados conocen el procedimiento para el reporte de accidentes e incidentes, condiciones y actos inseguros?', 33),
   (34, 'Otros', 'OTROS (incorpore otros riesgos que pueda observar)', 34)
-ON CONFLICT (codigo) DO NOTHING;
+-- Mismo caso que en ensure-sig.sql: la migración 042 cambió el UNIQUE de
+-- `codigo` por (tenant_id, codigo). Hoy no salta porque este script solo corre
+-- cuando faltan las tablas, pero dejarlo con la columna nombrada es una trampa.
+ON CONFLICT DO NOTHING;
 
 INSERT INTO permissions (code, name, module) VALUES
   ('sst.view', 'Ver módulo SST / IPT', 'sst'),
