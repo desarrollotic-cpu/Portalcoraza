@@ -178,19 +178,36 @@ Si subes de plan y no cambias la variable, el API seguirá limitado a 460 MB.
 
 ### Comando de arranque
 
-El tope de heap vive en el script `start:prod`, así que el **Start Command** del
-servicio en Render debe ser:
+El servicio `portalcoraza` tiene **Root Directory** `apps/api`, así que sus
+comandos se ejecutan ya dentro de esa carpeta:
 
-```
-npm run start:prod -w @coraza/api
-```
+| Campo | Valor |
+|-------|-------|
+| Build Command | `npm install --include=dev && npm run build` |
+| Start Command | `npm run start:prod` |
 
-Si está puesto `node dist/main` directamente, el tope **no se aplica** y la
-instancia vuelve a quedarse sin memoria aunque el código esté corregido.
+El tope de heap vive en el script `start:prod`. Si el Start Command es
+`node dist/main.js` directamente —como estuvo hasta ahora— el tope **no se
+aplica**, por mucho que esté en el `package.json`.
 
 > `--max-old-space-size` limita el heap de V8, pero **no** la memoria externa:
 > los `Buffer` (Excel, PDF) viven fuera del heap. Por eso las exportaciones se
-> escriben en streaming en vez de armarse completas en memoria.
+> escriben en streaming en vez de armarse completas en memoria, y por eso el
+> tope de heap es una red de seguridad, no la solución.
+
+### Historial de caídas por memoria (para referencia)
+
+| Fecha | Hora (Colombia) |
+|-------|-----------------|
+| 8 oct 2026 | 16:40 |
+| 9 oct 2026 | 07:33 y 10:26 |
+| 13 oct 2026 | 08:07 |
+| 14 oct 2026 | 16:28 |
+
+Todas en horario laboral y con la memoria **plana en ~190 MB (38 %) el resto
+del tiempo**: no era una fuga que creciera poco a poco, sino un pico puntual de
+una sola operación. Esa es la firma de una exportación o un PDF armado entero
+en memoria, no la de un cron ni la de un acumulador.
 
 ### Qué mirar cuando vuelva a pasar
 
