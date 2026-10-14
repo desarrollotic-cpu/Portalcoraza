@@ -176,6 +176,55 @@ Ajusta `NODE_HEAP_MB` en Render a **~75-80 % de la RAM de la instancia**:
 
 Si subes de plan y no cambias la variable, el API seguirá limitado a 460 MB.
 
+### Comando de arranque
+
+El tope de heap vive en el script `start:prod`, así que el **Start Command** del
+servicio en Render debe ser:
+
+```
+npm run start:prod -w @coraza/api
+```
+
+Si está puesto `node dist/main` directamente, el tope **no se aplica** y la
+instancia vuelve a quedarse sin memoria aunque el código esté corregido.
+
+> `--max-old-space-size` limita el heap de V8, pero **no** la memoria externa:
+> los `Buffer` (Excel, PDF) viven fuera del heap. Por eso las exportaciones se
+> escriben en streaming en vez de armarse completas en memoria.
+
+### Qué mirar cuando vuelva a pasar
+
+El API deja una muestra por minuto en los logs:
+
+```
+[Memoria] rss=312.4MB (61% de 512MB) heap=180.2/220.0MB ext=94.1MB buffers=88.3MB pico=355.0MB
+```
+
+Cómo leerla:
+
+- **`ext` / `buffers` creciendo** → el consumo viene de Buffers: una exportación,
+  un PDF o una subida.
+- **`heap` creciendo y sin bajar** → fuga de objetos en la aplicación.
+- A partir del 80 % la línea sale como `warn`, para localizarla rápido.
+
+Además, toda petición que haga crecer la memoria más de 25 MB se registra con su
+ruta:
+
+```
+[MemoriaPeticion] GET /api/v1/associates/export +180.3MB en 4200ms (rss=420.1MB)
+```
+
+Esa línea es la que señala al culpable sin tener que deducirlo por la hora.
+
+Variables para ajustarlo (todas opcionales):
+
+| Variable | Por defecto | Para qué |
+|----------|-------------|----------|
+| `MEMORY_SAMPLE_INTERVAL_MS` | `60000` | Cada cuánto se muestrea |
+| `MEMORY_REQUEST_DELTA_MB` | `25` | Umbral para registrar una petición |
+| `MEMORY_LIMIT_MB` | `512` | RAM de la instancia, para el porcentaje |
+| `MEMORY_MONITOR` | *(vacío)* | `off` desactiva la instrumentación |
+
 ### Zona horaria de las tareas programadas
 
 El contenedor de Render corre en **UTC**. Un `@Cron` sin `timeZone` usa esa hora,
