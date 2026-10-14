@@ -8,6 +8,7 @@ import PDFDocument = require('pdfkit');
 import { IsNull, Repository } from 'typeorm';
 import { Associate, AssociateStatus } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
+import { esDiaValido } from '../../common/fechas';
 import { ExitReceptionVisitorDto } from './dto/exit-visitor.dto';
 import { RegisterReceptionVisitorDto } from './dto/register-visitor.dto';
 import { ReceptionVisitor } from './entities/reception-visitor.entity';
@@ -341,7 +342,7 @@ export class ReceptionService {
   /** Día calendario Bogotá YYYY-MM-DD → medianoche -05:00 */
   private parseBogotaDay(value?: string): Date | null {
     const raw = (value ?? '').trim();
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+    if (!esDiaValido(raw)) return null;
     return new Date(`${raw}T00:00:00-05:00`);
   }
 
@@ -428,8 +429,10 @@ export class ReceptionService {
   }
 
   async buildHistoryPdf(fromDate: string, toDate: string): Promise<Buffer> {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fromDate) || !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
-      throw new BadRequestException('Usa fechas en formato YYYY-MM-DD');
+    // esDiaValido y no solo la forma: un 2026-02-31 llegaba tal cual al ::date
+    // de la consulta y Postgres respondía con un 500 en vez de un 400 claro.
+    if (!esDiaValido(fromDate) || !esDiaValido(toDate)) {
+      throw new BadRequestException('Usa fechas reales en formato YYYY-MM-DD');
     }
     if (fromDate > toDate) {
       throw new BadRequestException('La fecha "desde" no puede ser posterior a "hasta"');

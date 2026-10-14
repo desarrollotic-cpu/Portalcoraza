@@ -4,6 +4,7 @@ import {
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
+import { esDiaValido } from '../../common/fechas';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
   isRadioControlStatus,
@@ -586,13 +587,7 @@ export class RadioControlService {
     }
     // La forma no basta: un 2026-02-31 pasaba el filtro y reventaba después
     // en Postgres como error 500 en vez de como un 400 con mensaje.
-    const [y, m, day] = d.split('-').map(Number);
-    const dt = new Date(Date.UTC(y, m - 1, day));
-    if (
-      dt.getUTCFullYear() !== y ||
-      dt.getUTCMonth() !== m - 1 ||
-      dt.getUTCDate() !== day
-    ) {
+    if (!esDiaValido(d)) {
       throw new BadRequestException(`La fecha ${d} no existe en el calendario`);
     }
     return d;
