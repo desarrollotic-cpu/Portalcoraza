@@ -145,6 +145,11 @@ export class HrExcelService {
       existingAssociates.map((a) => String(a.documentNumber).trim()),
     );
 
+    // executeImport omite los documentos repetidos dentro del mismo archivo
+    // (`seenInFile`). Si aquí no se señalan, el resumen promete más altas de
+    // las que acaban entrando y nadie se entera.
+    const filaPorDocumento = new Map<string, number>();
+
     const rows = rawRows.map((raw, idx) => {
       const parsed: Record<string, unknown> = {};
       const errors: string[] = [];
@@ -201,6 +206,17 @@ export class HrExcelService {
       parsed.status = AssociateStatus.ACTIVO;
 
       const doc = parsed.documentNumber ? String(parsed.documentNumber).trim() : '';
+      if (doc) {
+        const primera = filaPorDocumento.get(doc);
+        if (primera !== undefined) {
+          errors.push(
+            `Documento ${doc} repetido: ya viene en la fila ${primera}. Solo se importaría una vez.`,
+          );
+        } else {
+          filaPorDocumento.set(doc, idx + 2);
+        }
+      }
+
       const importAction: 'CREATE' | 'UPDATE' | null = doc
         ? existingDocs.has(doc)
           ? 'UPDATE'

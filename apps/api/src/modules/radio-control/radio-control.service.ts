@@ -584,6 +584,17 @@ export class RadioControlService {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) {
       throw new BadRequestException('Fecha inválida (YYYY-MM-DD)');
     }
+    // La forma no basta: un 2026-02-31 pasaba el filtro y reventaba después
+    // en Postgres como error 500 en vez de como un 400 con mensaje.
+    const [y, m, day] = d.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, day));
+    if (
+      dt.getUTCFullYear() !== y ||
+      dt.getUTCMonth() !== m - 1 ||
+      dt.getUTCDate() !== day
+    ) {
+      throw new BadRequestException(`La fecha ${d} no existe en el calendario`);
+    }
     return d;
   }
 
