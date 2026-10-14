@@ -12,6 +12,29 @@ export class AuthRateLimitGuard implements CanActivate {
   private static readonly hits = new Map<string, { count: number; resetAt: number }>();
   private static readonly WINDOW_MS = 60_000;
   private static readonly MAX_ATTEMPTS = 10;
+  /**
+   * El endpoint de login es público: cualquiera en internet crea una entrada
+   * con su IP. Sin barrido, el Map crece para siempre aunque las ventanas
+   * hayan vencido hace días.
+   */
+  private static readonly MAX_ENTRIES = 5_000;
+
+  /** Elimina las ventanas ya vencidas. */
+  private static purge(now: number): void {
+    for (const [key, entry] of AuthRateLimitGuard.hits) {
+      if (entry.resetAt <= now) AuthRateLimitGuard.hits.delete(key);
+    }
+  }
+
+  /** Solo para pruebas: deja el contador a cero. */
+  static reset(): void {
+    AuthRateLimitGuard.hits.clear();
+  }
+
+  /** Solo para pruebas: cuántas IPs se están recordando. */
+  static size(): number {
+    return AuthRateLimitGuard.hits.size;
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<{
@@ -29,6 +52,9 @@ export class AuthRateLimitGuard implements CanActivate {
     const entry = AuthRateLimitGuard.hits.get(key);
 
     if (!entry || entry.resetAt <= now) {
+      if (AuthRateLimitGuard.hits.size >= AuthRateLimitGuard.MAX_ENTRIES) {
+        AuthRateLimitGuard.purge(now);
+      }
       AuthRateLimitGuard.hits.set(key, {
         count: 1,
         resetAt: now + AuthRateLimitGuard.WINDOW_MS,
