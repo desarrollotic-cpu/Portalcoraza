@@ -369,7 +369,10 @@ interface NavGroup {
   styles: `
     .layout {
       display: grid;
-      grid-template-columns: 260px 1fr;
+      /* 252px y no 260: los 8px salen del margen interno del menú, no del
+         espacio del texto, así que las opciones siguen cabiendo en una línea
+         exactamente igual que antes (medido sobre las 74 del menú real). */
+      grid-template-columns: 252px 1fr;
       min-height: 100vh;
     }
 
@@ -397,7 +400,9 @@ interface NavGroup {
       height: 100vh;
       display: flex;
       flex-direction: column;
-      padding: 1.5rem 1rem 1.25rem;
+      /* Laterales de 1rem a 0.75rem: compensa exactamente los 8px que pierde
+         la barra, de modo que el ancho útil de cada opción no cambia. */
+      padding: 1.5rem 0.75rem 1.25rem;
       overflow-y: auto;
     }
 
@@ -681,7 +686,10 @@ interface NavGroup {
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
-      padding: 1rem 1.75rem;
+      /* La barra superior medía 88px de alto en una ventana de 585: un 15% de
+         la pantalla para un título y cuatro botones. Bajando el relleno a
+         0.65rem queda en 76px sin tocar el tamaño de letra ni de los botones. */
+      padding: 0.65rem 1.25rem;
       background: var(--glass-bg);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -978,7 +986,9 @@ interface NavGroup {
     }
 
     .content {
-      padding: 1.75rem 1.75rem 2.5rem;
+      /* Menos aire alrededor del panel de trabajo, que es donde se trabaja.
+         El inferior era de 2.5rem: 40px de nada al final de cada pantalla. */
+      padding: 1.15rem 1.25rem 1.5rem;
       flex: 1;
       min-width: 0;
       color: var(--text-primary);
