@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 import { AuditService } from '../audit/audit.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { User } from '../users/entities/user.entity';
@@ -83,42 +83,73 @@ export class InventoryService {
     return row?.quantity ?? 0;
   }
 
-  async changeStock(variantId: string, warehouseId: string, delta: number): Promise<number> {
-    const next = await this.stockRepo.manager.transaction(async (em) => {
-      const stockRepo = em.getRepository(InventoryStock);
-      let row = await stockRepo.findOne({ where: { variantId, warehouseId } });
-      if (!row) {
-        row = await stockRepo.save(
-          stockRepo.create({ variantId, warehouseId, quantity: 0 }),
-        );
-      }
-      const quantity = row.quantity + delta;
-      if (quantity < 0) {
-        throw new ConflictException('Stock insuficiente');
-      }
-      row.quantity = quantity;
-      await stockRepo.save(row);
-
-      const total = await stockRepo
-        .createQueryBuilder('s')
-        .select('COALESCE(SUM(s.quantity), 0)', 'total')
-        .where('s.variant_id = :variantId', { variantId })
-        .getRawOne<{ total: string }>();
-      await em.getRepository(InventoryVariant).update(
-        { id: variantId },
-        { stockCurrent: Number(total?.total ?? 0) },
-      );
-      return quantity;
+  /**
+   * Aplica un movimiento sobre una fila de existencias, dentro de la
+   * transacción que se le pase.
+   *
+   * El bloqueo pesimista no es un lujo: sin él, dos entregas simultáneas de la
+   * misma variante leen 5, restan 3 cada una y guardan 2 las dos. Una de las
+   * salidas se pierde y el inventario queda cuadrado de más.
+   */
+  private async applyStockDelta(
+    em: EntityManager,
+    variantId: string,
+    warehouseId: string,
+    delta: number,
+  ): Promise<number> {
+    const stockRepo = em.getRepository(InventoryStock);
+    let row = await stockRepo.findOne({
+      where: { variantId, warehouseId },
+      lock: { mode: 'pessimistic_write' },
     });
-    return next;
+    if (!row) {
+      row = await stockRepo.save(
+        stockRepo.create({ variantId, warehouseId, quantity: 0 }),
+      );
+    }
+    const quantity = row.quantity + delta;
+    if (quantity < 0) {
+      throw new ConflictException('Stock insuficiente');
+    }
+    row.quantity = quantity;
+    await stockRepo.save(row);
+
+    const total = await stockRepo
+      .createQueryBuilder('s')
+      .select('COALESCE(SUM(s.quantity), 0)', 'total')
+      .where('s.variant_id = :variantId', { variantId })
+      .getRawOne<{ total: string }>();
+    await em.getRepository(InventoryVariant).update(
+      { id: variantId },
+      { stockCurrent: Number(total?.total ?? 0) },
+    );
+    return quantity;
   }
 
+  async changeStock(variantId: string, warehouseId: string, delta: number): Promise<number> {
+    return this.stockRepo.manager.transaction((em) =>
+      this.applyStockDelta(em, variantId, warehouseId, delta),
+    );
+  }
+
+  /**
+   * Varios movimientos, todos o ninguno.
+   *
+   * Antes cada renglón abría su propia transacción: si el tercero no tenía
+   * existencias, los dos primeros ya estaban descontados y la entrega ni
+   * siquiera llegaba a firmarse. El traslado entre almacenes era peor todavía,
+   * porque restaba del origen y sumaba al destino por separado: si fallaba la
+   * segunda mitad, el material desaparecía del inventario.
+   */
   async changeStocks(
     items: Array<{ variantId: string; warehouseId: string; delta: number }>,
   ): Promise<void> {
-    for (const item of items) {
-      await this.changeStock(item.variantId, item.warehouseId, item.delta);
-    }
+    if (!items.length) return;
+    await this.stockRepo.manager.transaction(async (em) => {
+      for (const item of items) {
+        await this.applyStockDelta(em, item.variantId, item.warehouseId, item.delta);
+      }
+    });
   }
 
   private warehouseQty(variant: InventoryVariant, warehouseId?: string | null): number {
@@ -604,8 +635,12 @@ export class InventoryService {
       throw new ConflictException('Stock insuficiente en tu almacén para el traslado');
     }
 
-    await this.changeStock(dto.variantId, source.id, -dto.quantity);
-    await this.changeStock(dto.variantId, dest.id, dto.quantity);
+    // Las dos mitades del traslado, en una sola transacción: o se mueve el
+    // material o no se mueve, nunca a medias.
+    await this.changeStocks([
+      { variantId: dto.variantId, warehouseId: source.id, delta: -dto.quantity },
+      { variantId: dto.variantId, warehouseId: dest.id, delta: dto.quantity },
+    ]);
 
     const observations = dto.observations?.trim() || null;
     const reason = `Traslado ${source.name} → ${dest.name}`;
