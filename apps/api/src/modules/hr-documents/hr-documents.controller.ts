@@ -11,6 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { MAX_DOCUMENT_UPLOAD_BYTES } from '../../common/constants/upload-limits';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -42,7 +43,9 @@ export class HrDocumentsController {
 
   @Post('associate/:associateId')
   @RequirePermissions('hr_documents.upload')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_DOCUMENT_UPLOAD_BYTES } }),
+  )
   upload(
     @Param('associateId') associateId: string,
     @UploadedFile() file: Express.Multer.File,

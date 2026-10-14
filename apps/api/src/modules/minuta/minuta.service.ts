@@ -30,6 +30,9 @@ import {
   MinutaVisitante,
 } from './entities/minuta.entities';
 
+/** Tope de registros por PDF de operaciones (ver buildOperacionesPdf). */
+const MAX_PDF_ROWS = 5000;
+
 export type MinutaPostScope =
   | { restricted: false }
   | { restricted: true; postIds: string[] };
@@ -664,6 +667,16 @@ export class MinutaService {
     month: string | undefined,
   ): Promise<Buffer> {
     const data = await this.operacionesHistorial(user, postId, month);
+
+    // El PDF se arma entero en RAM (bufferPages + chunks + concat ≈ 3 copias).
+    // Sin tope, un periodo con demasiados registros tumba la instancia por
+    // memoria y deja el API caído para todos: mejor rechazar esta petición.
+    if (data.historial.length > MAX_PDF_ROWS) {
+      throw new BadRequestException(
+        `El periodo tiene ${data.historial.length} registros y supera el máximo de ${MAX_PDF_ROWS} por PDF. Genera el reporte por quincena.`,
+      );
+    }
+
     // Orden cronológico: desde el primer registro hasta el último del periodo
     const rows = [...data.historial].sort(
       (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime(),

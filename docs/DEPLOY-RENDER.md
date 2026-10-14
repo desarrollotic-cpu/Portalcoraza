@@ -153,6 +153,34 @@ SUPABASE_SERVICE_ROLE_KEY=<service role key>
 
 ---
 
+## Memoria del API (`exceeded its memory limit`)
+
+Render manda ese correo cuando la instancia supera su RAM y la reinicia. La causa
+de fondo es que Node calcula el tamaño de su heap mirando la memoria **del host**,
+no el límite del contenedor: cree que tiene de sobra, el recolector no actúa a
+tiempo y el proceso cruza el tope.
+
+Por eso `start:prod` arranca con un tope explícito:
+
+```
+node --max-old-space-size=${NODE_HEAP_MB:-460} dist/main
+```
+
+Ajusta `NODE_HEAP_MB` en Render a **~75-80 % de la RAM de la instancia**:
+
+| Instancia | RAM | `NODE_HEAP_MB` |
+|-----------|-----|----------------|
+| Free / Starter | 512 MB | `460` (valor por defecto) |
+| Standard | 2 GB | `1536` |
+| Pro | 4 GB | `3072` |
+
+Si subes de plan y no cambias la variable, el API seguirá limitado a 460 MB.
+
+**Zona horaria:** los crons (`@Cron` en préstamos y alertas) usan la hora del
+servidor, que en Render es **UTC** salvo que definas `TZ=America/Bogota`.
+
+---
+
 ## Error: `tenant/user postgres.<ref> not found`
 
 Si el proyecto está **pausado** (plan free inactivo), el pooler también responde `tenant/user not found`.  

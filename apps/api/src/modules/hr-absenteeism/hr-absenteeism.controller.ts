@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { MAX_EXCEL_UPLOAD_BYTES } from '../../common/constants/upload-limits';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import {
   RequireAnyPermissions,
@@ -85,7 +86,9 @@ export class HrAbsenteeismController {
 
   @Post('import/excel')
   @RequirePermissions('absences.import')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_EXCEL_UPLOAD_BYTES } }),
+  )
   importExcel(
     @UploadedFile() file: Express.Multer.File | undefined,
     @CurrentUser() user: JwtPayload,

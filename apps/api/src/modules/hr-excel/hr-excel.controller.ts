@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
+import { MAX_EXCEL_UPLOAD_BYTES } from '../../common/constants/upload-limits';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -25,7 +26,9 @@ export class HrExcelController {
 
   @Post('import/preview')
   @RequirePermissions('hr_import.execute')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', { limits: { fileSize: MAX_EXCEL_UPLOAD_BYTES } }),
+  )
   preview(@UploadedFile() file: Express.Multer.File) {
     return this.service.parsePreview(file.buffer);
   }
