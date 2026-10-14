@@ -1,6 +1,10 @@
 name: CI
 
-# Valida que API y Web compilan en cada cambio antes de que Render despliegue a producción.
+# Valida que API y Web compilan y que las pruebas pasan, en cada cambio, antes
+# de que Render despliegue a producción.
+#
+# Ojo: Render despliega por su cuenta al recibir el commit, sin esperar a este
+# workflow. Que CI falle NO detiene el despliegue; avisa, que no es lo mismo.
 on:
   push:
     branches: [main]
@@ -9,7 +13,7 @@ on:
 
 jobs:
   build:
-    name: Build API + Web
+    name: Build + pruebas (API + Web)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -24,8 +28,18 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Typecheck API
+        run: npm run typecheck -w @coraza/api
+
       - name: Build API (NestJS)
         run: npm run api:build
+
+      - name: Pruebas unitarias API
+        run: npm test -w @coraza/api
+
+      # pg-mem corre dentro del propio proceso: no hace falta levantar Postgres.
+      - name: Pruebas de integración API
+        run: npm run test:int -w @coraza/api
 
       - name: Build Web (Angular)
         run: npm run web:build

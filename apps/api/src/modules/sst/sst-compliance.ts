@@ -29,7 +29,11 @@ export function computeCompliance(valoraciones: Array<SstValoracion | null | und
   return { seguro, riesgoso, na, evaluated, percent, nivel };
 }
 
-/** Self-check: fails if formula breaks. */
+/**
+ * Autocomprobación de la fórmula. La cubre sst-compliance.spec.ts; ya no se
+ * ejecuta al importar el módulo, porque un fallo ahí tiraba el arranque entero
+ * del API en vez de quedarse en un rojo de CI.
+ */
 export function assertComplianceSelfCheck(): void {
   const a = computeCompliance([
     SstValoracion.SEGURO,
@@ -45,5 +49,3 @@ export function assertComplianceSelfCheck(): void {
     throw new Error('sst-compliance self-check failed (100%)');
   }
 }
-
-assertComplianceSelfCheck();
