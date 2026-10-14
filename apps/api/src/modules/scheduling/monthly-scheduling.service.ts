@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
-import ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs';
 import { AuditService } from '../audit/audit.service';
 import {
   Associate,

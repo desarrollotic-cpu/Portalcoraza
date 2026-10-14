@@ -1,4 +1,4 @@
-import ExcelJS from 'exceljs';
+import * as ExcelJS from 'exceljs';
 import { getColombiaHolidays } from './utils/colombia-holidays';
 
 /** exceljs llega distinto en Nest (ESM) vs Jest (CJS). */

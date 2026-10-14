@@ -11,6 +11,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
 import { MAX_EXCEL_UPLOAD_BYTES } from '../../common/constants/upload-limits';
+import { abortarSiFalla } from '../../common/http/abortar-si-falla';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -58,24 +59,24 @@ export class HrExcelController {
   @Get('export/associates')
   @RequirePermissions('hr_export.excel')
   async exportAssociates(@Res() res: Response) {
-    const buffer = await this.service.exportAssociates();
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', 'attachment; filename="asociados.xlsx"');
-    res.send(buffer);
+    // Se escribe por lotes directamente en la respuesta: el archivo nunca
+    // existe entero en memoria.
+    await abortarSiFalla(res, () => this.service.streamAssociates(res));
   }
 
   @Get('export/compliance')
   @RequirePermissions('hr_export.excel')
   async exportCompliance(@Res() res: Response) {
-    const buffer = await this.service.exportComplianceMatrix();
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
     res.setHeader('Content-Disposition', 'attachment; filename="matriz-sst.xlsx"');
-    res.send(buffer);
+    await abortarSiFalla(res, () => this.service.streamComplianceMatrix(res));
   }
 }

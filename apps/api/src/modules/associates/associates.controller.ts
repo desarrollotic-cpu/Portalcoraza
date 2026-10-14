@@ -16,7 +16,11 @@ import { RequirePermissions } from '../../common/decorators/permissions.decorato
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
-import { HrExcelService } from '../hr-excel/hr-excel.service';
+import { abortarSiFalla } from '../../common/http/abortar-si-falla';
+import {
+  AssociateExportRef,
+  HrExcelService,
+} from '../hr-excel/hr-excel.service';
 import { AssociatesService } from './associates.service';
 import { AssociatesQueryDto } from './dto/associates-query.dto';
 import { CreateAssociateDto } from './dto/create-associate.dto';
@@ -63,12 +67,20 @@ export class AssociatesController {
     @Res() res: Response,
   ) {
     const bulkQuery: AssociatesQueryDto = { ...query, page: '1', limit: '10000' };
-    const result = await this.service.list(bulkQuery, user);
-    const buffer = await this.excel.exportAssociates(result.items as any);
+    // Solo id y fecha de retiro: así las 10.000 entidades del listado quedan
+    // libres antes de empezar a exportar, en vez de convivir con las filas
+    // hidratadas del propio exportador.
+    const refs: AssociateExportRef[] = (
+      await this.service.list(bulkQuery, user)
+    ).items.map((a) => ({
+      id: a.id,
+      retirementDate:
+        (a as { retirementDate?: string | null }).retirementDate ?? null,
+    }));
     const stamp = new Date().toISOString().slice(0, 10);
     res.setHeader('Content-Type', 'application/vnd.ms-excel;charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="asociados-${stamp}.xls"`);
-    res.send(buffer);
+    await abortarSiFalla(res, () => this.excel.streamAssociates(res, refs));
   }
 
   @Get(':id')

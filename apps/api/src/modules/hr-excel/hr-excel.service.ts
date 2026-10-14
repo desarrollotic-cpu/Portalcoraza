@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import ExcelJS from 'exceljs';
+import { once } from 'events';
+import * as ExcelJS from 'exceljs';
+import { Writable } from 'stream';
 import { Repository } from 'typeorm';
 import * as XLSX from 'xlsx';
 import {
@@ -71,6 +73,40 @@ export interface ImportPreview {
  *   • Directorio de asociados (todos los campos).
  *   • Matriz de cumplimiento SST (vista `v_hr_compliance_matrix`).
  */
+/** Filas por lote al exportar: acota cuanta memoria vive a la vez. */
+const EXPORT_BATCH_SIZE = 500;
+
+/**
+ * Referencia ligera de un asociado ya filtrado por el listado.
+ *
+ * El controlador pasa esto en vez de las entidades completas: así el array
+ * grande del listado queda libre antes de empezar a exportar.
+ */
+export type AssociateExportRef = { id: string; retirementDate?: string | null };
+
+type RetirementRow = { retirement_date: string; reason: string | null };
+
+type ComplianceMatrixRow = {
+  document_number: string;
+  full_name: string;
+  position_name: string | null;
+  work_center_code: string | null;
+  psychophysical_valid: boolean;
+  psychosensometric_valid: boolean;
+  has_sura_policy: boolean;
+  psychophysical_expires_at: string | null;
+  psychosensometric_expires_at: string | null;
+  course_expires_at: string | null;
+  sura_policy_expires_at: string | null;
+};
+
+/** Escribe respetando backpressure; sin esto el buffer del socket crece sin control. */
+async function writeChunk(out: Writable, chunk: string): Promise<void> {
+  if (!out.write(chunk)) {
+    await once(out, 'drain');
+  }
+}
+
 @Injectable()
 export class HrExcelService {
   constructor(
@@ -380,7 +416,8 @@ export class HrExcelService {
    * si no, exporta la lista completa. Reutilizado por /associates/export
    * para respetar los filtros del directorio.
    */
-  async exportAssociates(preloadedRows?: Associate[]): Promise<Buffer> {
+  /** Relaciones que el directorio exportado necesita resolver. */
+  private associateExportQuery() {
     const relations = [
       'jobPosition',
       'workCenter',
@@ -397,65 +434,82 @@ export class HrExcelService {
       'transportMean',
       'commuteTime',
     ];
+    const qb = this.associatesRepo.createQueryBuilder('a');
+    for (const rel of relations) {
+      qb.leftJoinAndSelect(`a.${rel}`, rel);
+    }
+    return qb;
+  }
 
-    let rows: Associate[];
-    if (preloadedRows) {
-      const idsOrdered = preloadedRows.map((a) => a.id).filter(Boolean);
-      if (!idsOrdered.length) {
-        rows = [];
-      } else {
-        const qb = this.associatesRepo.createQueryBuilder('a');
-        for (const rel of relations) {
-          qb.leftJoinAndSelect(`a.${rel}`, rel);
-        }
-        qb.whereInIds(idsOrdered);
-        const full = await qb.getMany();
-        const byId = new Map(full.map((a) => [a.id, a]));
-        const bajaById = new Map(
-          preloadedRows.map((p) => [
-            p.id,
-            (p as Associate & { retirementDate?: string | null }).retirementDate,
-          ]),
-        );
-        rows = idsOrdered
-          .map((id) => {
-            const row = byId.get(id);
-            if (!row) return undefined;
-            const baja = bajaById.get(id);
-            if (baja) {
-              (row as Associate & { retirementDate?: string | null }).retirementDate = baja;
-            }
-            return row;
-          })
+  /** Último retiro de cada asociado del lote. */
+  private async retirementsByAssociate(
+    ids: string[],
+  ): Promise<Map<string, RetirementRow>> {
+    if (!ids.length) return new Map();
+    const rows = await this.associatesRepo.query<
+      { associate_id: string; retirement_date: string; reason: string | null }[]
+    >(
+      `SELECT DISTINCT ON (ar.associate_id)
+         ar.associate_id,
+         ar.retirement_date::text AS retirement_date,
+         cv.value AS reason
+       FROM associate_retirements ar
+       LEFT JOIN catalog_values cv ON cv.id = ar.reason_id
+       WHERE ar.associate_id = ANY($1)
+       ORDER BY ar.associate_id, ar.retirement_date DESC, ar.created_at DESC`,
+      [ids],
+    );
+    return new Map(rows.map((r) => [r.associate_id, r]));
+  }
+
+  /**
+   * Recorre los asociados a exportar en lotes.
+   *
+   * Cada lote se descarta al pasar al siguiente, así que la memoria viva no
+   * depende del total de asociados.
+   */
+  private async *associateExportBatches(
+    preloaded?: AssociateExportRef[],
+  ): AsyncGenerator<Associate[]> {
+    if (preloaded) {
+      const ids = preloaded.map((p) => p.id).filter(Boolean);
+      for (let i = 0; i < ids.length; i += EXPORT_BATCH_SIZE) {
+        const slice = ids.slice(i, i + EXPORT_BATCH_SIZE);
+        const rows = await this.associateExportQuery()
+          .whereInIds(slice)
+          .getMany();
+        const byId = new Map(rows.map((a) => [a.id, a]));
+        // Respeta el orden que traía el listado filtrado.
+        yield slice
+          .map((id) => byId.get(id))
           .filter((a): a is Associate => !!a);
       }
-    } else {
-      const qb = this.associatesRepo.createQueryBuilder('a');
-      for (const rel of relations) {
-        qb.leftJoinAndSelect(`a.${rel}`, rel);
-      }
-      qb.orderBy('a.firstLastName', 'ASC').addOrderBy('a.firstName', 'ASC');
-      rows = await qb.getMany();
+      return;
     }
 
-    const ids = rows.map((a) => a.id);
-    const retirements = ids.length
-      ? await this.associatesRepo.query<
-          { associate_id: string; retirement_date: string; reason: string | null }[]
-        >(
-          `SELECT DISTINCT ON (ar.associate_id)
-             ar.associate_id,
-             ar.retirement_date::text AS retirement_date,
-             cv.value AS reason
-           FROM associate_retirements ar
-           LEFT JOIN catalog_values cv ON cv.id = ar.reason_id
-           WHERE ar.associate_id = ANY($1)
-           ORDER BY ar.associate_id, ar.retirement_date DESC, ar.created_at DESC`,
-          [ids],
-        )
-      : [];
-    const retirementById = new Map(retirements.map((r) => [r.associate_id, r]));
+    for (let skip = 0; ; skip += EXPORT_BATCH_SIZE) {
+      const rows = await this.associateExportQuery()
+        .orderBy('a.firstLastName', 'ASC')
+        .addOrderBy('a.firstName', 'ASC')
+        // Desempate estable: sin él, dos asociados homónimos pueden repetirse
+        // o perderse al cambiar de página.
+        .addOrderBy('a.id', 'ASC')
+        .skip(skip)
+        .take(EXPORT_BATCH_SIZE)
+        .getMany();
+      if (!rows.length) return;
+      yield rows;
+      if (rows.length < EXPORT_BATCH_SIZE) return;
+    }
+  }
 
+  /** Una fila `<tr>` del directorio. */
+  private associateRowHtml(
+    a: Associate,
+    i: number,
+    columns: number,
+    retirementById: Map<string, RetirementRow>,
+  ): string {
     const esc = (v: unknown) =>
       String(v ?? '')
         .replace(/&/g, '&amp;')
@@ -465,23 +519,114 @@ export class HrExcelService {
       const s = String(v ?? '').slice(0, 10);
       return s && s !== 'null' ? s : '';
     };
-    const bajaDate = (a: Associate) => {
-      const survey = date(retirementById.get(a.id)?.retirement_date);
+    const bajaDate = (row: Associate) => {
+      const survey = date(retirementById.get(row.id)?.retirement_date);
       if (survey) return survey;
-      const enriched = date((a as Associate & { retirementDate?: string | null }).retirementDate);
+      const enriched = date(
+        (row as Associate & { retirementDate?: string | null }).retirementDate,
+      );
       if (enriched) return enriched;
       const inactive =
-        a.status === AssociateStatus.RETIRADO || a.status === AssociateStatus.INACTIVO;
-      if (!inactive || !a.updatedAt) return '';
-      const dt = a.updatedAt instanceof Date ? a.updatedAt : new Date(a.updatedAt);
+        row.status === AssociateStatus.RETIRADO ||
+        row.status === AssociateStatus.INACTIVO;
+      if (!inactive || !row.updatedAt) return '';
+      const dt =
+        row.updatedAt instanceof Date ? row.updatedAt : new Date(row.updatedAt);
       return Number.isNaN(dt.getTime())
         ? ''
         : dt.toLocaleDateString('en-CA', { timeZone: 'America/Bogota' });
     };
-
     const cat = (c: { value?: string } | null | undefined) => c?.value ?? '';
     const yn = (v: boolean) => (v ? 'Sí' : 'No');
 
+    const nombre = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
+      .filter(Boolean)
+      .join(' ');
+    const zebra = i % 2 === 1 ? ' even' : '';
+    const vals: Array<{ v: unknown; kind: 'text' | 'center' | 'id' }> = [
+      { v: a.folderNumber ?? '', kind: 'id' },
+      { v: nombre, kind: 'text' },
+      { v: a.jobPosition?.name, kind: 'text' },
+      { v: a.workCenter?.clientName, kind: 'text' },
+      { v: a.status, kind: 'center' },
+      { v: date(a.hireDate), kind: 'center' },
+      { v: a.mobile, kind: 'id' },
+      { v: bajaDate(a), kind: 'center' },
+      { v: retirementById.get(a.id)?.reason, kind: 'text' },
+      { v: a.documentType, kind: 'center' },
+      { v: a.documentNumber, kind: 'id' },
+      { v: date(a.documentExpeditionDate), kind: 'center' },
+      { v: a.firstName, kind: 'text' },
+      { v: a.secondName, kind: 'text' },
+      { v: a.firstLastName, kind: 'text' },
+      { v: a.secondLastName, kind: 'text' },
+      { v: date(a.birthDate), kind: 'center' },
+      { v: a.sexAtBirth, kind: 'center' },
+      { v: a.maritalStatus, kind: 'center' },
+      { v: a.actReference, kind: 'text' },
+      { v: a.landline, kind: 'id' },
+      { v: a.email, kind: 'text' },
+      { v: a.address, kind: 'text' },
+      { v: a.emergencyContactName, kind: 'text' },
+      { v: a.emergencyContactRelationship, kind: 'text' },
+      { v: a.emergencyContactPhone, kind: 'id' },
+      { v: a.workCenter?.code, kind: 'center' },
+      { v: a.ordinaryCompensation || '', kind: 'center' },
+      { v: a.averageMonthlySalary || '', kind: 'center' },
+      { v: a.bankAccount, kind: 'id' },
+      { v: yn(!!a.psychophysicalValid), kind: 'center' },
+      { v: yn(!!a.psychosensometricValid), kind: 'center' },
+      { v: a.courseCode, kind: 'text' },
+      { v: a.schoolNit, kind: 'id' },
+      { v: a.courseCertificateNumber, kind: 'id' },
+      { v: yn(!!a.hasSuraPolicy), kind: 'center' },
+      { v: a.policyLevel ?? '', kind: 'center' },
+      { v: a.funeralService, kind: 'text' },
+      { v: cat(a.eps), kind: 'text' },
+      { v: cat(a.pensionFund), kind: 'text' },
+      { v: cat(a.bloodType), kind: 'center' },
+      { v: cat(a.gender), kind: 'text' },
+      { v: cat(a.educationLevel), kind: 'text' },
+      { v: cat(a.incomeRange), kind: 'text' },
+      { v: cat(a.housingType), kind: 'text' },
+      { v: a.estrato ?? '', kind: 'center' },
+      { v: cat(a.transportMean), kind: 'text' },
+      { v: cat(a.commuteTime), kind: 'text' },
+      { v: a.childrenCount ?? 0, kind: 'center' },
+      { v: a.dependentsCount ?? 0, kind: 'center' },
+      { v: cat(a.race), kind: 'text' },
+      { v: cat(a.religion), kind: 'text' },
+      { v: cat(a.sexualOrientation), kind: 'text' },
+      { v: a.lifePlan, kind: 'text' },
+    ];
+    if (vals.length !== columns) {
+      throw new Error(`Excel GH: ${vals.length} celdas vs ${columns} columnas`);
+    }
+    const tds = vals
+      .map((c) => {
+        const cls = c.kind === 'text' ? 'td-text' : 'td-center';
+        const mso = c.kind === 'id' ? ` style="mso-number-format:'\\@';"` : '';
+        return `<td class="${cls}"${mso}>${esc(c.v)}</td>`;
+      })
+      .join('');
+    return `<tr class="${zebra}">${tds}</tr>`;
+  }
+
+  /**
+   * Escribe el directorio de asociados en `out`, por lotes.
+   *
+   * Antes se hidrataban todas las filas con sus quince relaciones, se armaba el
+   * HTML completo en un string, se le concatenaba el BOM (otra copia entera en
+   * UTF-16) y se pasaba a Buffer: cuatro representaciones del mismo contenido
+   * vivas a la vez, suficiente para que Render reiniciara la instancia por
+   * memoria. Ahora cada lote se escribe y se descarta.
+   *
+   * Cierra `out` al terminar.
+   */
+  async streamAssociates(
+    out: Writable,
+    preloaded?: AssociateExportRef[],
+  ): Promise<void> {
     const headers = [
       'Carpeta',
       'Nombre completo',
@@ -539,86 +684,24 @@ export class HrExcelService {
       'Plan de vida',
     ];
 
-    const body = rows
-      .map((a, i) => {
-        const nombre = [a.firstName, a.secondName, a.firstLastName, a.secondLastName]
-          .filter(Boolean)
-          .join(' ');
-        const zebra = i % 2 === 1 ? ' even' : '';
-        const vals: Array<{ v: unknown; kind: 'text' | 'center' | 'id' }> = [
-          { v: a.folderNumber ?? '', kind: 'id' },
-          { v: nombre, kind: 'text' },
-          { v: a.jobPosition?.name, kind: 'text' },
-          { v: a.workCenter?.clientName, kind: 'text' },
-          { v: a.status, kind: 'center' },
-          { v: date(a.hireDate), kind: 'center' },
-          { v: a.mobile, kind: 'id' },
-          { v: bajaDate(a), kind: 'center' },
-          { v: retirementById.get(a.id)?.reason, kind: 'text' },
-          { v: a.documentType, kind: 'center' },
-          { v: a.documentNumber, kind: 'id' },
-          { v: date(a.documentExpeditionDate), kind: 'center' },
-          { v: a.firstName, kind: 'text' },
-          { v: a.secondName, kind: 'text' },
-          { v: a.firstLastName, kind: 'text' },
-          { v: a.secondLastName, kind: 'text' },
-          { v: date(a.birthDate), kind: 'center' },
-          { v: a.sexAtBirth, kind: 'center' },
-          { v: a.maritalStatus, kind: 'center' },
-          { v: a.actReference, kind: 'text' },
-          { v: a.landline, kind: 'id' },
-          { v: a.email, kind: 'text' },
-          { v: a.address, kind: 'text' },
-          { v: a.emergencyContactName, kind: 'text' },
-          { v: a.emergencyContactRelationship, kind: 'text' },
-          { v: a.emergencyContactPhone, kind: 'id' },
-          { v: a.workCenter?.code, kind: 'center' },
-          { v: a.ordinaryCompensation || '', kind: 'center' },
-          { v: a.averageMonthlySalary || '', kind: 'center' },
-          { v: a.bankAccount, kind: 'id' },
-          { v: yn(!!a.psychophysicalValid), kind: 'center' },
-          { v: yn(!!a.psychosensometricValid), kind: 'center' },
-          { v: a.courseCode, kind: 'text' },
-          { v: a.schoolNit, kind: 'id' },
-          { v: a.courseCertificateNumber, kind: 'id' },
-          { v: yn(!!a.hasSuraPolicy), kind: 'center' },
-          { v: a.policyLevel ?? '', kind: 'center' },
-          { v: a.funeralService, kind: 'text' },
-          { v: cat(a.eps), kind: 'text' },
-          { v: cat(a.pensionFund), kind: 'text' },
-          { v: cat(a.bloodType), kind: 'center' },
-          { v: cat(a.gender), kind: 'text' },
-          { v: cat(a.educationLevel), kind: 'text' },
-          { v: cat(a.incomeRange), kind: 'text' },
-          { v: cat(a.housingType), kind: 'text' },
-          { v: a.estrato ?? '', kind: 'center' },
-          { v: cat(a.transportMean), kind: 'text' },
-          { v: cat(a.commuteTime), kind: 'text' },
-          { v: a.childrenCount ?? 0, kind: 'center' },
-          { v: a.dependentsCount ?? 0, kind: 'center' },
-          { v: cat(a.race), kind: 'text' },
-          { v: cat(a.religion), kind: 'text' },
-          { v: cat(a.sexualOrientation), kind: 'text' },
-          { v: a.lifePlan, kind: 'text' },
-        ];
-        const tds = vals
-          .map((c) => {
-            const cls = c.kind === 'text' ? 'td-text' : 'td-center';
-            const mso = c.kind === 'id' ? ` style="mso-number-format:'\\@';"` : '';
-            return `<td class="${cls}"${mso}>${esc(c.v)}</td>`;
-          })
-          .join('');
-        if (vals.length !== headers.length) {
-          throw new Error(`Excel GH: ${vals.length} celdas vs ${headers.length} columnas`);
-        }
-        return `<tr class="${zebra}">${tds}</tr>`;
-      })
-      .join('');
-
+    const total = preloaded
+      ? preloaded.length
+      : await this.associatesRepo.count();
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
     const stamp = new Date().toLocaleString('es-CO');
     const colN = String(headers.length);
-    const headRow = headers.map((h) => `<th class="th">${esc(h)}</th>`).join('');
-    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+    const headRow = headers
+      .map((h) => `<th class="th">${esc(h)}</th>`)
+      .join('');
+
+    // El BOM va una sola vez, al principio del stream.
+    await writeChunk(
+      out,
+      `\uFEFF<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
       <head><meta charset="utf-8" />
       <style>
         body { font-family: Calibri, sans-serif; }
@@ -632,31 +715,49 @@ export class HrExcelService {
       <body>
         <table border="0" cellspacing="0" cellpadding="4">
           <tr><td colspan="${colN}" class="title">CORAZA SEGURIDAD C.T.A. — DIRECTORIO DE ASOCIADOS</td></tr>
-          <tr><td colspan="${colN}" class="sub">${rows.length} registros · Generado ${esc(stamp)}</td></tr>
+          <tr><td colspan="${colN}" class="sub">${total} registros · Generado ${esc(stamp)}</td></tr>
           <tr>${headRow}</tr>
-          ${body}
-        </table>
-      </body></html>`;
+          `,
+    );
 
-    return Buffer.from('\uFEFF' + html, 'utf8');
+    // Fecha de retiro que el listado ya había resuelto para las filas filtradas.
+    const bajaById = new Map(
+      (preloaded ?? []).map((p) => [p.id, p.retirementDate ?? null]),
+    );
+
+    let i = 0;
+    for await (const batch of this.associateExportBatches(preloaded)) {
+      const retirementById = await this.retirementsByAssociate(
+        batch.map((a) => a.id),
+      );
+      let chunk = '';
+      for (const a of batch) {
+        const baja = bajaById.get(a.id);
+        if (baja) {
+          (a as Associate & { retirementDate?: string | null }).retirementDate =
+            baja;
+        }
+        chunk += this.associateRowHtml(a, i, headers.length, retirementById);
+        i += 1;
+      }
+      await writeChunk(out, chunk);
+    }
+
+    await writeChunk(
+      out,
+      `
+        </table>
+      </body></html>`,
+    );
+    out.end();
   }
 
-  async exportComplianceMatrix(): Promise<Buffer> {
-    const data = await this.associatesRepo.query<
-      {
-        document_number: string;
-        full_name: string;
-        position_name: string | null;
-        work_center_code: string | null;
-        psychophysical_valid: boolean;
-        psychosensometric_valid: boolean;
-        has_sura_policy: boolean;
-        psychophysical_expires_at: string | null;
-        psychosensometric_expires_at: string | null;
-        course_expires_at: string | null;
-        sura_policy_expires_at: string | null;
-      }[]
-    >(
+  /** Un lote de la matriz SST, ordenado igual que el reporte completo. */
+  private complianceMatrixPage(
+    limit: number,
+    offset: number,
+  ): Promise<ComplianceMatrixRow[]> {
+    return this.associatesRepo.query<ComplianceMatrixRow[]>(
       `SELECT
          v.document_number,
          v.full_name,
@@ -673,13 +774,29 @@ export class HrExcelService {
        LEFT JOIN associates a ON a.id = v.associate_id
        LEFT JOIN work_centers wc ON wc.id = a.work_center_id
        WHERE v.is_critical = true
-       ORDER BY v.position_name NULLS LAST, v.full_name`,
+       ORDER BY v.position_name NULLS LAST, v.full_name
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
     );
+  }
 
+  /**
+   * Escribe la matriz SST en `out`, por lotes.
+   *
+   * Antes armaba el libro completo con ExcelJS en memoria y luego lo copiaba
+   * dos veces más (`writeBuffer` + `Buffer.from`). El escritor en streaming
+   * vuelca cada fila conforme se genera.
+   *
+   * Cierra `out` al terminar.
+   */
+  async streamComplianceMatrix(out: Writable): Promise<void> {
     const today = new Date().toISOString().slice(0, 10);
     const isFuture = (d: string | null) => !!d && d.slice(0, 10) >= today;
 
-    const workbook = new ExcelJS.Workbook();
+    const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
+      stream: out,
+      useStyles: true,
+    });
     const sheet = workbook.addWorksheet('Matriz SST');
     sheet.columns = [
       { header: 'Documento', key: 'documentNumber', width: 15 },
@@ -690,36 +807,48 @@ export class HrExcelService {
       { header: 'Psicofísico vigente', key: 'psychophysical', width: 18 },
       { header: 'Examen médico ocupacional', key: 'psychosensometric', width: 28 },
     ];
-    sheet.getRow(1).font = { bold: true };
+    const headerRow = sheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.commit();
 
-    for (const a of data) {
-      const courseValid = isFuture(a.course_expires_at);
-      const psychophysicalValid =
-        a.psychophysical_valid || isFuture(a.psychophysical_expires_at);
-      const psychosensometricValid =
-        a.psychosensometric_valid || isFuture(a.psychosensometric_expires_at);
-      const complete = courseValid && psychophysicalValid && psychosensometricValid;
+    for (let offset = 0; ; offset += EXPORT_BATCH_SIZE) {
+      const page = await this.complianceMatrixPage(EXPORT_BATCH_SIZE, offset);
+      if (!page.length) break;
 
-      const row = sheet.addRow({
-        documentNumber: a.document_number,
-        fullName: a.full_name,
-        position: a.position_name ?? '',
-        workCenter: a.work_center_code ?? '',
-        course: courseValid ? '✓' : '✗',
-        psychophysical: psychophysicalValid ? '✓' : '✗',
-        psychosensometric: psychosensometricValid ? '✓' : '✗',
-      });
-      row.eachCell((cell) => {
-        cell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: complete ? 'FFDCFCE7' : 'FFFEE2E2' },
-        };
-      });
+      for (const a of page) {
+        const courseValid = isFuture(a.course_expires_at);
+        const psychophysicalValid =
+          a.psychophysical_valid || isFuture(a.psychophysical_expires_at);
+        const psychosensometricValid =
+          a.psychosensometric_valid || isFuture(a.psychosensometric_expires_at);
+        const complete =
+          courseValid && psychophysicalValid && psychosensometricValid;
+
+        const row = sheet.addRow({
+          documentNumber: a.document_number,
+          fullName: a.full_name,
+          position: a.position_name ?? '',
+          workCenter: a.work_center_code ?? '',
+          course: courseValid ? '✓' : '✗',
+          psychophysical: psychophysicalValid ? '✓' : '✗',
+          psychosensometric: psychosensometricValid ? '✓' : '✗',
+        });
+        row.eachCell((cell) => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: complete ? 'FFDCFCE7' : 'FFFEE2E2' },
+          };
+        });
+        // Una vez volcada, la fila deja de ocupar memoria.
+        row.commit();
+      }
+
+      if (page.length < EXPORT_BATCH_SIZE) break;
     }
 
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
+    sheet.commit();
+    await workbook.commit();
   }
 
   private normalizeDate(v: unknown): string | null {
