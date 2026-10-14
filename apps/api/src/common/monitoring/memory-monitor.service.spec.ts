@@ -27,6 +27,8 @@ describe('MemoryMonitorService', () => {
     svc.onModuleInit();
     svc.onModuleDestroy();
 
+    expect(logged.some((l) => l.includes('Límite de heap de V8'))).toBe(true);
+
     const line = [...logged, ...warned].find((l) => l.includes('rss='));
     expect(line).toBeDefined();
     // Las cuatro magnitudes deben estar: heap y memoria externa por separado.

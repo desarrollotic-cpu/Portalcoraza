@@ -4,6 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
+import { getHeapStatistics } from 'v8';
 import {
   MEMORY_LIMIT_MB,
   MEMORY_SAMPLE_INTERVAL_MS,
@@ -30,6 +31,13 @@ export class MemoryMonitorService implements OnModuleInit, OnModuleDestroy {
       this.logger.log('Instrumentación de memoria desactivada (MEMORY_MONITOR=off)');
       return;
     }
+    // Deja constancia del tope real que aplicó V8. Si el Start Command no pasa
+    // por `npm run start:prod`, --max-old-space-size no llega y aquí se ve:
+    // en vez de ~460 MB aparece el valor que Node deduce de la RAM del host.
+    this.logger.log(
+      `Límite de heap de V8: ${toMb(getHeapStatistics().heap_size_limit)}MB`,
+    );
+
     this.timer = setInterval(() => this.sample(), MEMORY_SAMPLE_INTERVAL_MS);
     // No debe mantener vivo el proceso al apagarse.
     this.timer.unref();
