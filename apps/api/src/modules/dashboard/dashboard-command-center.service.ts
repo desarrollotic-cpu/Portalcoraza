@@ -8,6 +8,8 @@ import { ReceptionService } from '../reception/reception.service';
 import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
 import { PostsService } from '../posts/posts.service';
 import { UsersService } from '../users/users.service';
+import { CENTRAL_ORGANIZATION_ID } from '../../common/tenant/tenant.constants';
+import { TenantContext } from '../../common/tenant/tenant.context';
 
 export type AlertTone = 'critical' | 'warning' | 'info';
 
@@ -65,6 +67,32 @@ function periodToDays(period: CommandPeriod): number {
 export class DashboardCommandCenterService {
   private dashboardCache = new Map<string, { data: any; expires: number }>();
 
+  /** Tope de entradas vivas; por encima se barren las caducadas. */
+  private static readonly CACHE_MAX_ENTRIES = 200;
+
+  /**
+   * Clave de caché. Incluye la organización a propósito: sin ella, dos
+   * usuarios de organizaciones distintas con el mismo juego de permisos
+   * compartirían el tablero durante los 20 segundos de vigencia, y uno vería
+   * los indicadores del otro.
+   */
+  private cacheKey(permissions: string[], period: CommandPeriod): string {
+    const tenant = TenantContext.getOptional() ?? CENTRAL_ORGANIZATION_ID;
+    return `${tenant}|${[...permissions].sort().join(',')}|${period}`;
+  }
+
+  /** Las entradas caducadas no se borraban nunca y cada una guarda un tablero entero. */
+  private purgeCache(now: number): void {
+    for (const [key, entry] of this.dashboardCache) {
+      if (entry.expires <= now) this.dashboardCache.delete(key);
+    }
+  }
+
+  /** Solo para pruebas. */
+  cacheSize(): number {
+    return this.dashboardCache.size;
+  }
+
   constructor(
     private readonly hr: HrDashboardService,
     private readonly deliveries: DeliveriesService,
@@ -78,12 +106,13 @@ export class DashboardCommandCenterService {
   ) {}
 
   async build(permissions: string[], period: CommandPeriod = '7d') {
-    const cacheKey = `${[...permissions].sort().join(',')}_${period}`;
+    const cacheKey = this.cacheKey(permissions, period);
     const nowTs = Date.now();
     const cached = this.dashboardCache.get(cacheKey);
     if (cached && cached.expires > nowTs) {
       return cached.data;
     }
+    this.dashboardCache.delete(cacheKey);
 
     const has = (code: string) => permissions.includes(code);
     const now = new Date();
@@ -511,6 +540,12 @@ export class DashboardCommandCenterService {
       activity,
     };
 
+    if (
+      this.dashboardCache.size >=
+      DashboardCommandCenterService.CACHE_MAX_ENTRIES
+    ) {
+      this.purgeCache(Date.now());
+    }
     this.dashboardCache.set(cacheKey, { data: result, expires: Date.now() + 20000 });
     return result;
   }
