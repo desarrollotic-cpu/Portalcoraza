@@ -45,7 +45,7 @@ import { Icon } from '../icon/icon';
       letter-spacing: 0.01em;
       cursor: pointer;
       line-height: 1.2;
-      box-shadow: var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0369a1 35%, transparent));
+      box-shadow: var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0d429c 35%, transparent));
       transition:
         filter 160ms ease,
         transform 160ms ease,
@@ -53,7 +53,7 @@ import { Icon } from '../icon/icon';
     }
     .back-nav:hover {
       filter: brightness(1.08);
-      box-shadow: 0 6px 18px color-mix(in srgb, #0369a1 42%, transparent);
+      box-shadow: 0 6px 18px color-mix(in srgb, #0d429c 42%, transparent);
     }
     .back-nav:active {
       transform: scale(0.97);
@@ -64,7 +64,7 @@ import { Icon } from '../icon/icon';
       outline-offset: 3px;
       box-shadow:
         0 0 0 4px var(--primary-500),
-        var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0369a1 35%, transparent));
+        var(--shadow-primary, 0 4px 14px color-mix(in srgb, #0d429c 35%, transparent));
     }
   `,
 })

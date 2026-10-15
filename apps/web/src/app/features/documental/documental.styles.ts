@@ -17,7 +17,7 @@ export const DOC_STYLES = `
   .badge.ok { background:color-mix(in srgb, var(--success-500) 14%, var(--surface)); color:var(--success-600,#166534); }
   .badge.warn { background:#f8fafc; color:#57534e; border:1px solid #e2e8f0; }
   .badge.crit { background:color-mix(in srgb, var(--error-500) 12%, var(--surface)); color:var(--error-600,#991b1b); }
-  .badge.info { background:var(--primary-50,#f0f9ff); color:var(--primary-700,#075985); }
+  .badge.info { background:var(--primary-50,#f0f9ff); color:var(--primary-700,#043383); }
   .error { color:var(--error-600,#dc2626); }
   .muted { color:var(--text-muted,#64748b); }
   .search-bar { display:flex; flex-wrap:wrap; align-items:center; gap:.75rem; margin-bottom:1rem; }

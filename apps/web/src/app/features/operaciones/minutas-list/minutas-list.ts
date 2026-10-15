@@ -328,7 +328,7 @@ import {
       display: inline-flex; align-items: center; justify-content: center;
       width: 2.1rem; height: 2.1rem; padding: 0;
       border: 1px solid var(--border, #cbd5e1); background: transparent;
-      border-radius: 8px; color: #0c4a6e;
+      border-radius: 8px; color: #032868;
     }
     .cards { display: none; flex-direction: column; gap: 0.65rem; }
     .card {

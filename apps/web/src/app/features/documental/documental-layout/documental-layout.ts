@@ -217,7 +217,7 @@ import {
       align-items: center;
       gap: 0.5rem;
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       border: 1px solid #bfdbfe;
       border-radius: 0.65rem;
       padding: 0.45rem 0.85rem;
@@ -244,7 +244,7 @@ import {
       text-align: center;
     }
     .queue-badge.has-items {
-      background: #0369a1;
+      background: #0d429c;
       box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
     }
 
@@ -289,7 +289,7 @@ import {
       height: 40px;
       border-radius: 10px;
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -332,8 +332,8 @@ import {
     }
     .tab-btn:hover { color: #0f172a; }
     .tab-btn.active {
-      color: #0369a1;
-      border-bottom-color: #0369a1;
+      color: #0d429c;
+      border-bottom-color: #0d429c;
       background: #ffffff;
     }
 
@@ -363,7 +363,7 @@ import {
       gap: 0.4rem;
       background: #ffffff;
       border: 1px solid #bfdbfe;
-      color: #0369a1;
+      color: #0d429c;
       padding: 0.45rem 0.85rem;
       border-radius: 0.5rem;
       font-size: 0.8rem;
@@ -418,8 +418,8 @@ import {
     .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
     .item-badge[data-mod='CONTRATOS'] { background: #e0e7ff; color: #3730a3; }
     .item-badge[data-mod='PERSONAL'] { background: #fef3c7; color: #92400e; }
-    .item-badge[data-mod='CORRESPONDENCIA'] { background: #e0f2fe; color: #0369a1; }
-    .item-code { color: #0369a1; font-size: 0.92rem; }
+    .item-badge[data-mod='CORRESPONDENCIA'] { background: #e0f2fe; color: #0d429c; }
+    .item-code { color: #0d429c; font-size: 0.92rem; }
     .item-title { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
     .item-slot { font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
     
@@ -457,7 +457,7 @@ import {
     .history-card-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
     .history-badge { font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #334155; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
     .history-date { font-size: 0.78rem; color: #64748b; font-weight: 600; }
-    .history-count { font-size: 0.78rem; font-weight: 700; color: #0369a1; }
+    .history-count { font-size: 0.78rem; font-weight: 700; color: #0d429c; }
     .history-actions { display: flex; align-items: center; gap: 0.4rem; }
     .btn-reprint {
       display: inline-flex;
@@ -472,7 +472,7 @@ import {
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-reprint:hover { background: var(--primary-700, #075985); }
+    .btn-reprint:hover { background: var(--primary-700, #043383); }
     .btn-restore {
       display: inline-flex;
       align-items: center;
@@ -496,7 +496,7 @@ import {
       border-radius: 0.35rem;
       color: #334155;
     }
-    .history-chip strong { color: #0369a1; }
+    .history-chip strong { color: #0d429c; }
 
     .modal-footer {
       display: flex;
@@ -520,7 +520,7 @@ import {
     
     .btn-print-all {
       border: none;
-      background: var(--primary-600, #0369a1);
+      background: var(--primary-600, #0d429c);
       color: #ffffff;
       border-radius: 0.55rem;
       padding: 0.55rem 1.25rem;
@@ -532,7 +532,7 @@ import {
       gap: 0.45rem;
       transition: background 0.2s;
     }
-    .btn-print-all:hover { background: var(--primary-700, #075985); }
+    .btn-print-all:hover { background: var(--primary-700, #043383); }
     .btn-print-all:disabled { background: #94a3b8; cursor: not-allowed; }
   `,
 })

@@ -264,7 +264,7 @@ function paintBigCode(copy: LabelCopy, logo: HTMLImageElement | null, header: st
   const logoSize = 40;
   if (logo) drawThermalLogo(ctx, logo, pad, pad, logoSize);
 
-  ctx.fillStyle = '#0c4a6e';
+  ctx.fillStyle = '#032868';
   ctx.font = '800 12px Arial, Helvetica, sans-serif';
   ctx.fillText(header, pad + (logo ? logoSize + 8 : 0), pad + 26);
 
@@ -309,27 +309,27 @@ function paintLabel(copy: LabelCopy, logo: HTMLImageElement | null): HTMLCanvasE
   ctx.fillStyle = '#0f172a';
   ctx.font = '900 16px Arial, Helvetica, sans-serif';
   ctx.fillText('CORAZA C.T.A.', textX, pad + 28);
-  ctx.fillStyle = '#0c4a6e';
+  ctx.fillStyle = '#032868';
   ctx.font = '800 13px Arial, Helvetica, sans-serif';
   ctx.fillText(copy.kind, textX, pad + 50);
 
   const slot = copy.slot.slice(0, 16);
   ctx.font = '800 10px Arial, Helvetica, sans-serif';
   const sw = Math.min(ctx.measureText(slot).width + 10, 120);
-  ctx.fillStyle = '#0c4a6e';
+  ctx.fillStyle = '#032868';
   ctx.fillRect(CANVAS_W - pad - sw, pad + 6, sw, 18);
   ctx.fillStyle = '#ffffff';
   ctx.fillText(slot, CANVAS_W - pad - sw + 5, pad + 19, sw - 10);
 
   const dividerY = pad + logoSize + 6;
-  ctx.strokeStyle = '#0c4a6e';
+  ctx.strokeStyle = '#032868';
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(pad, dividerY);
   ctx.lineTo(CANVAS_W - pad, dividerY);
   ctx.stroke();
 
-  ctx.fillStyle = '#0c4a6e';
+  ctx.fillStyle = '#032868';
   ctx.font = '900 26px Arial, Helvetica, sans-serif';
   ctx.fillText(copy.code, pad, dividerY + 32, CANVAS_W - pad * 2);
 

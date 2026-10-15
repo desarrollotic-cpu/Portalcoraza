@@ -391,7 +391,7 @@ export interface GuardAvailabilityItem {
       gap: 0.5rem;
     }
     .btn-primary {
-      background: #0369a1;
+      background: #0d429c;
       color: #fff;
       padding: 0.5rem 0.95rem;
       border-radius: 0.5rem;
@@ -436,10 +436,10 @@ export interface GuardAvailabilityItem {
       border-radius: 0.5rem 0.5rem 0 0;
       transition: all 0.15s;
     }
-    .tab-btn:hover { color: #0369a1; background: #f8fafc; }
+    .tab-btn:hover { color: #0d429c; background: #f8fafc; }
     .tab-btn.active {
-      color: #0369a1;
-      border-bottom: 3px solid #0369a1;
+      color: #0d429c;
+      border-bottom: 3px solid #0d429c;
       background: #f0f9ff;
     }
 
@@ -489,7 +489,7 @@ export interface GuardAvailabilityItem {
     .avail-sub { margin: 0.15rem 0 0; font-size: 0.82rem; color: #64748b; }
     .today-date-badge {
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       font-size: 0.75rem;
       font-weight: 800;
       padding: 0.15rem 0.5rem;
@@ -554,7 +554,7 @@ export interface GuardAvailabilityItem {
       border-bottom: 1px solid #f1f5f9;
       padding-bottom: 0.4rem;
     }
-    .post-code { color: #0369a1; font-size: 0.82rem; margin-right: 0.3rem; }
+    .post-code { color: #0d429c; font-size: 0.82rem; margin-right: 0.3rem; }
     .post-name { font-size: 0.86rem; color: #0f172a; }
     .badge-status {
       font-size: 0.7rem;
@@ -633,12 +633,12 @@ export interface GuardAvailabilityItem {
     .st-descanso { background: #f1f5f9; color: #475569; }
     .st-novedad { background: #fee2e2; color: #991b1b; }
 
-    .puesto-highlight { color: #0369a1; font-size: 0.84rem; }
+    .puesto-highlight { color: #0d429c; font-size: 0.84rem; }
     .free-text { color: #15803d; font-weight: 700; font-size: 0.78rem; }
     .puesto-chip {
       display: inline-block;
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       border: 1px solid #bfdbfe;
       padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
@@ -679,10 +679,10 @@ export interface GuardAvailabilityItem {
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-page:hover:not(:disabled) { background: #f0f9ff; border-color: #0369a1; color: #0369a1; }
+    .btn-page:hover:not(:disabled) { background: #f0f9ff; border-color: #0d429c; color: #0d429c; }
     .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
     .page-current-pill {
-      background: #0369a1;
+      background: #0d429c;
       color: #ffffff;
       font-weight: 800;
       font-size: 0.76rem;
@@ -696,7 +696,7 @@ export interface GuardAvailabilityItem {
       background: #f8fafc;
       border-radius: 0.75rem;
     }
-    .btn-link { color: #0369a1; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
+    .btn-link { color: #0d429c; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
     .loading-text { font-size: 0.85rem; color: #64748b; text-align: center; padding: 1.5rem; }
 
     .prog-panel__chart { max-width: 720px; }

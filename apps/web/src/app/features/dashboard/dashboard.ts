@@ -260,7 +260,7 @@ type PeriodKey = CommandPeriod;
               <div class="chart-box">
                 <svg class="chart bars" viewBox="0 0 320 90" role="img" aria-label="Entradas por día">
                   @for (b of barRects(receptionSeries(rec)); track $index) {
-                    <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="3" fill="#0369a1" opacity="0.85" />
+                    <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h" rx="3" fill="#0d429c" opacity="0.85" />
                   }
                 </svg>
               </div>
@@ -440,7 +440,7 @@ type PeriodKey = CommandPeriod;
 
     .hero {
       position: relative; overflow: hidden; border-radius: 1.25rem;
-      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #032868 55%, #0d429c 100%);
       color: #fff; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
     }
     .hero-mesh {
@@ -502,8 +502,8 @@ type PeriodKey = CommandPeriod;
       gap: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease;
     }
     .core-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -3px rgba(0,0,0,0.08); }
-    .core-card.blue { border-top: 4px solid #0369a1; }
-    .core-card.indigo { border-top: 4px solid #0369a1; }
+    .core-card.blue { border-top: 4px solid #0d429c; }
+    .core-card.indigo { border-top: 4px solid #0d429c; }
     .core-card.amber { border-top: 4px solid #f59e0b; }
     .core-card.teal { border-top: 4px solid #0d9488; }
 
@@ -512,8 +512,8 @@ type PeriodKey = CommandPeriod;
       width: 42px; height: 42px; border-radius: 10px; display: flex;
       align-items: center; justify-content: center;
     }
-    .core-icon.bg-blue { background: #f0f9ff; color: #0369a1; }
-    .core-icon.bg-indigo { background: #e0f2fe; color: #0369a1; }
+    .core-icon.bg-blue { background: #f0f9ff; color: #0d429c; }
+    .core-icon.bg-indigo { background: #e0f2fe; color: #0d429c; }
     .core-icon.bg-amber { background: #fef3c7; color: #b45309; }
     .core-icon.bg-teal { background: #ccfbf1; color: #0f766e; }
 
@@ -521,7 +521,7 @@ type PeriodKey = CommandPeriod;
       font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
     }
     .core-badge.green { background: #dcfce7; color: #166534; }
-    .core-badge.blue { background: #f0f9ff; color: #075985; }
+    .core-badge.blue { background: #f0f9ff; color: #043383; }
     .core-badge.orange { background: #ffedd5; color: #9a3412; }
     .core-badge.teal { background: #ccfbf1; color: #115e59; }
 
@@ -529,7 +529,7 @@ type PeriodKey = CommandPeriod;
     .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: #0f172a; line-height: 1.1; margin: 0.2rem 0; }
     .core-subtext { font-size: 0.78rem; color: #94a3b8; }
     .core-link {
-      font-size: 0.82rem; font-weight: 700; color: #0369a1; text-decoration: none;
+      font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none;
       border-top: 1px solid #f1f5f9; padding-top: 0.6rem; display: block;
     }
     .core-link:hover { text-decoration: underline; }
@@ -551,7 +551,7 @@ type PeriodKey = CommandPeriod;
       display: inline-flex; align-items: center; gap: 0.5rem;
     }
     .muted { color: #64748b; font-size: 0.82rem; }
-    .link-quiet { font-size: 0.82rem; font-weight: 700; color: #0369a1; text-decoration: none; }
+    .link-quiet { font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none; }
     .link-quiet:hover { text-decoration: underline; }
 
     /* ESTADO OPERATIVO */
@@ -593,7 +593,7 @@ type PeriodKey = CommandPeriod;
     }
     .alert-item[data-tone='critical'] .badge { background: #fee2e2; color: #991b1b; }
     .alert-item[data-tone='warning'] .badge { background: #fef3c7; color: #92400e; }
-    .alert-item[data-tone='info'] .badge { background: #f0f9ff; color: #075985; }
+    .alert-item[data-tone='info'] .badge { background: #f0f9ff; color: #043383; }
 
     /* MÓDULOS DE GESTIÓN */
     .modules-grid {
@@ -609,7 +609,7 @@ type PeriodKey = CommandPeriod;
     .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
     .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: #0f172a; }
     .highlight-stat { background: #f0f9ff; border-color: #bae6fd; }
-    .highlight-stat strong { color: #0369a1; }
+    .highlight-stat strong { color: #0d429c; }
 
     .chart-box { background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; padding: 0.5rem; }
     .chart { width: 100%; height: 90px; }
@@ -625,7 +625,7 @@ type PeriodKey = CommandPeriod;
     .coverage { margin-bottom: 0.85rem; }
     .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
     .coverage-track { height: 10px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
-    .coverage-fill { height: 100%; background: linear-gradient(90deg, #0369a1, #0d9488); border-radius: 999px; }
+    .coverage-fill { height: 100%; background: linear-gradient(90deg, #0d429c, #0d9488); border-radius: 999px; }
 
     .prio-box {
       background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.65rem;

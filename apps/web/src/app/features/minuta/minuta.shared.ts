@@ -155,11 +155,11 @@ export const MINUTA_PAGE_STYLES = `
     border-radius: 12px; padding: 0.75rem;
   }
   .stats small { color: var(--text-muted, #64748b); }
-  .stats b { display: block; font-size: 1.25rem; color: #0c4a6e; }
+  .stats b { display: block; font-size: 1.25rem; color: #032868; }
   .quick, .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
   .quick button, .tile {
     border: 0; border-radius: 12px; padding: 0.9rem; background: #f0f9ff;
-    color: #0c4a6e; font-weight: 700; text-align: left; cursor: pointer;
+    color: #032868; font-weight: 700; text-align: left; cursor: pointer;
   }
   .card {
     background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
@@ -177,10 +177,10 @@ export const MINUTA_PAGE_STYLES = `
   .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
   .mini {
     border: 1px solid var(--border, #cbd5e1); background: transparent; border-radius: 8px;
-    padding: 0.35rem 0.55rem; cursor: pointer; color: #0c4a6e; font-weight: 700;
+    padding: 0.35rem 0.55rem; cursor: pointer; color: #032868; font-weight: 700;
   }
   .btn {
-    border: 0; border-radius: 8px; padding: 0.7rem 1rem; background: #0c4a6e; color: #fff;
+    border: 0; border-radius: 8px; padding: 0.7rem 1rem; background: #032868; color: #fff;
     font-weight: 800; cursor: pointer;
   }
   .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -194,7 +194,7 @@ export const MINUTA_PAGE_STYLES = `
     display: flex; flex-direction: column; gap: 0.55rem;
   }
   label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--text-muted, #64748b); font-weight: 600; }
-  h3 { margin: 0.25rem 0; color: #0c4a6e; }
+  h3 { margin: 0.25rem 0; color: #032868; }
   @media (max-width: 800px) {
     .stats { grid-template-columns: 1fr 1fr; }
     .quick, .grid { grid-template-columns: 1fr; }

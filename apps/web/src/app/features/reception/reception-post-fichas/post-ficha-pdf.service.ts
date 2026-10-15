@@ -255,12 +255,12 @@ export class PostFichaPdfService {
       justify-content: space-between;
       gap: 1rem;
       padding-bottom: 0.65rem;
-      border-bottom: 3px solid #0369a1;
+      border-bottom: 3px solid #0d429c;
       margin-bottom: 0.85rem;
     }
     .brand-left { display: flex; align-items: center; gap: 0.75rem; }
     .brand img { height: 42px; width: auto; }
-    .brand-title { margin: 0; font-size: 1.05rem; color: #0c4a6e; font-weight: 800; letter-spacing: 0.01em; }
+    .brand-title { margin: 0; font-size: 1.05rem; color: #032868; font-weight: 800; letter-spacing: 0.01em; }
     .brand-sub { margin: 0.1rem 0 0; font-size: 0.78rem; color: #64748b; }
     .meta {
       text-align: right;
@@ -273,7 +273,7 @@ export class PostFichaPdfService {
       padding: 0.15rem 0.45rem;
       border-radius: 4px;
       background: #e0f2fe;
-      color: #0369a1;
+      color: #0d429c;
       font-weight: 700;
       font-size: 0.72rem;
     }
@@ -292,8 +292,8 @@ export class PostFichaPdfService {
       font-size: 0.82rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: #0369a1;
-      border-left: 3px solid #0369a1;
+      color: #0d429c;
+      border-left: 3px solid #0d429c;
       padding-left: 0.45rem;
     }
     .card {
@@ -334,7 +334,7 @@ export class PostFichaPdfService {
     .foot {
       margin-top: 1.1rem;
       padding-top: 0.5rem;
-      border-top: 2px solid #0369a1;
+      border-top: 2px solid #0d429c;
       display: flex;
       justify-content: space-between;
       font-size: 0.7rem;

@@ -297,7 +297,7 @@ export interface ActivityControlPayload {
       background:
         radial-gradient(900px 280px at 12% -20%, rgba(34, 197, 94, 0.22), transparent 55%),
         radial-gradient(700px 240px at 90% 0%, rgba(59, 130, 246, 0.28), transparent 50%),
-        linear-gradient(145deg, #0f172a 0%, #1e293b 55%, #0c4a6e 100%);
+        linear-gradient(145deg, #0f172a 0%, #1e293b 55%, #032868 100%);
       box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.65);
     }
     .ac-hero__glow {

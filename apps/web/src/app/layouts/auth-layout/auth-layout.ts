@@ -97,7 +97,8 @@ import { Icon } from '../../shared/components/icon/icon';
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #0f172a;
+      /* Fondo del login: el azul casi negro de la escala corporativa. */
+      background: #0e1725;
       padding: 1rem;
       position: relative;
       overflow: hidden;
@@ -111,7 +112,7 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 48vw;
       height: 48vw;
       border-radius: 50%;
-      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      background: linear-gradient(135deg, #032868 0%, #0d429c 100%);
       opacity: 0.45;
       filter: blur(60px);
       pointer-events: none;
@@ -166,7 +167,7 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
       justify-content: space-between;
       color: #ffffff;
-      background: linear-gradient(145deg, #0c4a6e 0%, #0369a1 50%, #0f172a 100%);
+      background: linear-gradient(145deg, #032868 0%, #0d429c 50%, #0f172a 100%);
       overflow: hidden;
     }
 

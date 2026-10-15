@@ -105,7 +105,7 @@ const FIELD_LABELS: Record<string, string> = {
       display: flex; justify-content: space-between; gap: 0.75rem;
       padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border, #e2e8f0);
     }
-    .panel-head h3 { margin: 0; font-size: 1.05rem; color: #0c4a6e; }
+    .panel-head h3 { margin: 0; font-size: 1.05rem; color: #032868; }
     .sub { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted, #64748b); }
     .close {
       border: 0; background: transparent; font-size: 1.5rem; line-height: 1;
@@ -134,7 +134,7 @@ const FIELD_LABELS: Record<string, string> = {
     }
     .btn {
       width: 100%; border: 0; border-radius: 10px; padding: 0.7rem 1rem;
-      background: #0c4a6e; color: #fff; font-weight: 700; cursor: pointer;
+      background: #032868; color: #fff; font-weight: 700; cursor: pointer;
     }
   `,
 })

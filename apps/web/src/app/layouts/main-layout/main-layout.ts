@@ -528,7 +528,7 @@ interface NavGroup {
       width: 4px;
       height: 22px;
       border-radius: 999px;
-      background: linear-gradient(180deg, #38bdf8, #075985);
+      background: linear-gradient(180deg, #38bdf8, #043383);
       opacity: 0;
       transform: scaleY(0.4);
       transition:

@@ -336,12 +336,12 @@ const VERIF_GROUPS: { title: string; items: { key: keyof OperacionesPost; label:
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border, #eee); }
     tr.active { background: color-mix(in srgb, var(--primary, #1d4ed8) 8%, #fff); }
-    button.link { border: none; background: none; color: var(--coraza-primary, #0369a1); cursor: pointer; font: inherit; }
+    button.link { border: none; background: none; color: var(--coraza-primary, #0d429c); cursor: pointer; font: inherit; }
     td.actions { display: flex; gap: 0.55rem; align-items: center; flex-wrap: wrap; }
     .btn-pdf {
       border: 1px solid #7dd3fc;
       background: #e0f2fe;
-      color: #0369a1;
+      color: #0d429c;
       font: inherit;
       font-weight: 700;
       font-size: 0.8rem;

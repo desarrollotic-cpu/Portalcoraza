@@ -242,7 +242,7 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .minuta-hint a {
-      color: var(--primary-800, #0c4a6e);
+      color: var(--primary-800, #032868);
       font-weight: 700;
     }
 

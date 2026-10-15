@@ -96,7 +96,7 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
       align-items: center;
       padding: 0.5rem 0.9rem;
       border-radius: 999px;
-      background: var(--primary, #0369a1);
+      background: var(--primary, #0d429c);
       color: #fff;
       text-decoration: none;
       font-size: 0.85rem;
@@ -127,7 +127,7 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
     .admin-panel__list-head a {
       font-size: 0.85rem;
       font-weight: 600;
-      color: var(--primary, #0369a1);
+      color: var(--primary, #0d429c);
       text-decoration: none;
     }
     .admin-panel__list-head a:hover {

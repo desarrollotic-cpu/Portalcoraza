@@ -694,9 +694,9 @@ const CODES: CodeConfig[] = [
     .read-only-banner { margin-bottom: 0.75rem; padding: 0.7rem 1rem; background: #fef3c7; border: 1px solid #fbbf24; border-radius: 10px; color: #92400e; font-weight: 700; font-size: 0.9rem; }
     .disponibles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 12px; background: #f0f9ff; }
     .disponibles-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-    .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: #0369a1; font-weight: 800; letter-spacing: 0.02em; }
+    .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: #0d429c; font-weight: 800; letter-spacing: 0.02em; }
     .disponibles-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .disponibles-count { background: #0369a1; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 28px; text-align: center; }
+    .disponibles-count { background: #0d429c; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 28px; text-align: center; }
     .disponibles-empty { margin: 0.35rem 0 0; font-size: 0.82rem; color: #475569; }
     .disponibles-list { list-style: none; margin: 0; padding: 0; max-height: 260px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.5rem; }
     .disponible-item { background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0.55rem 0.7rem; display: flex; flex-direction: column; gap: 0.25rem; }
@@ -705,7 +705,7 @@ const CODES: CodeConfig[] = [
     .disponible-cc { font-size: 0.75rem; color: #64748b; }
     .disponible-ultimo { display: flex; flex-direction: column; gap: 0.1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.35rem; }
     .disponible-ultimo.no-ultimo .ultimo-tag { color: #94a3b8; font-style: italic; }
-    .ultimo-tag { font-size: 0.68rem; font-weight: 700; color: #0369a1; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ultimo-tag { font-size: 0.68rem; font-weight: 700; color: #0d429c; text-transform: uppercase; letter-spacing: 0.04em; }
     .ultimo-post { font-size: 0.82rem; font-weight: 700; color: #0f172a; }
     .ultimo-detalle { font-size: 0.72rem; color: #475569; }
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
@@ -740,7 +740,7 @@ const CODES: CodeConfig[] = [
     /* SABADOS (AZUL CELESTE SUAVE) */
     th.col-saturday {
       background: #e0f2fe !important;
-      color: #0369a1 !important;
+      color: #0d429c !important;
       border-color: #bae6fd !important;
     }
     td.col-saturday {
@@ -884,7 +884,7 @@ const CODES: CodeConfig[] = [
       font-size: 0.72rem;
     }
     .sun-bg { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-    .sat-bg { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+    .sat-bg { background: #e0f2fe; color: #0d429c; border: 1px solid #bae6fd; }
     .week-bg { background: #ffffff; color: #475569; border: 1px solid #cbd5e1; }
 
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
@@ -1016,7 +1016,7 @@ const CODES: CodeConfig[] = [
     }
     .diurno-td { color: #854d0e; background: #fefce8; }
     .nocturno-td { color: #166534; background: #f0fdf4; }
-    .hours-td { background: #e0f2fe; color: #0369a1; }
+    .hours-td { background: #e0f2fe; color: #0d429c; }
     .hours-over { background: #fee2e2 !important; color: #991b1b !important; }
 
     /* BOTONERA DE NOVEDADES EN 1 CLIC (MODAL) */
@@ -1061,7 +1061,7 @@ const CODES: CodeConfig[] = [
     .inp-post-combobox {
       width: 100%;
       padding: 0.45rem 2rem 0.45rem 0.75rem;
-      border: 1.5px solid #0369a1;
+      border: 1.5px solid #0d429c;
       border-radius: 6px;
       font-weight: 700;
       font-size: 0.85rem;
@@ -1106,7 +1106,7 @@ const CODES: CodeConfig[] = [
       max-height: 280px;
       overflow-y: auto;
       background: #ffffff;
-      border: 1.5px solid #0369a1;
+      border: 1.5px solid #0d429c;
       border-radius: 8px;
       box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
       z-index: 100;
@@ -1123,11 +1123,11 @@ const CODES: CodeConfig[] = [
     }
     .post-dropdown-item:hover {
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
     }
     .post-dropdown-item.selected {
       background: #e0f2fe;
-      color: #0c4a6e;
+      color: #032868;
       font-weight: 800;
     }
     .post-dropdown-empty {
@@ -1157,7 +1157,7 @@ const CODES: CodeConfig[] = [
       justify-content: space-between;
       background: #f0f9ff;
       border: 1px solid #bfdbfe;
-      color: #0369a1;
+      color: #0d429c;
       padding: 0.35rem 0.6rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -2273,34 +2273,34 @@ export class ScheduleBoard implements OnInit {
           .brand-title { font-size: 15px; font-weight: bold; color: #0f172a; margin: 0; }
           .brand-sub { font-size: 8.5px; color: #475569; margin: 2px 0 0; }
           .meta-box { border: 1px solid #0f172a; padding: 4px 8px; border-radius: 4px; text-align: right; background: #f8fafc; }
-          .meta-box h3 { margin: 0; font-size: 11px; color: #0369a1; }
+          .meta-box h3 { margin: 0; font-size: 11px; color: #0d429c; }
           .meta-box p { margin: 2px 0 0; font-size: 9px; }
           .post-bar { display: flex; justify-content: space-between; background: #0f172a; color: #ffffff; padding: 4px 8px; font-size: 10px; border-radius: 3px; margin-bottom: 6px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
           .convenciones { display: flex; gap: 10px; font-size: 8.5px; margin-bottom: 14px; background: #f1f5f9; padding: 4px 8px; border-radius: 3px; }
           .conv-item { display: flex; align-items: center; gap: 3px; }
           .conv-box { display: inline-block; width: 14px; height: 12px; text-align: center; line-height: 12px; font-weight: bold; border-radius: 2px; font-size: 8px; }
-          .membrete-footer { margin-top: 24px; border-top: 2px solid #0369a1; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
+          .membrete-footer { margin-top: 24px; border-top: 2px solid #0d429c; padding-top: 6px; display: flex; justify-content: space-between; align-items: center; font-size: 8px; color: #475569; }
           .footer-col { display: flex; align-items: center; gap: 4px; }
         </style>
       </head>
       <body>
-        <div class="header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #0369a1; padding-bottom:8px; margin-bottom:8px;">
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:2.5px solid #0d429c; padding-bottom:8px; margin-bottom:8px;">
           <div style="display:flex; align-items:center; gap:12px;">
             <img src="/brand/logo-coraza-cta.png" style="width:48px; height:48px; border-radius:50%;" alt="Logo Coraza" onerror="this.style.display='none'">
             <div>
               <h1 style="font-size:15px; font-weight:800; color:#0f172a; margin:0; letter-spacing:0.5px;">CORAZA SEGURIDAD C.T.A.</h1>
-              <p style="font-size:8.5px; color:#0369a1; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
+              <p style="font-size:8.5px; color:#0d429c; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
               <p style="font-size:7.8px; color:#64748b; margin:0;">NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011</p>
             </div>
           </div>
-          <div class="meta-box" style="border:1.5px solid #0369a1; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
-            <h3 style="margin:0; font-size:11px; color:#0369a1; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
+          <div class="meta-box" style="border:1.5px solid #0d429c; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
+            <h3 style="margin:0; font-size:11px; color:#0d429c; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
             <p style="margin:2px 0 0; font-size:9.5px; font-weight:700; color:#0f172a;">Periodo: ${monthLabel}</p>
           </div>
         </div>
 
-        <div class="post-bar" style="background:#0369a1;">
+        <div class="post-bar" style="background:#0d429c;">
           <span><strong>PUESTO DE SERVICIO:</strong> ${post.name}</span>
           <span><strong>ESTADO:</strong> OFICIAL / CARTELERA</span>
           <span><strong>FECHA EMISIÓN:</strong> ${new Date().toLocaleDateString('es-CO')}</span>
@@ -2328,7 +2328,7 @@ export class ScheduleBoard implements OnInit {
           </tbody>
         </table>
 
-        <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #0369a1; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
+        <div class="membrete-footer" style="display:flex; justify-content:space-between; align-items:center; border-top:2px solid #0d429c; padding-top:6px; margin-top:20px; font-size:8px; color:#475569;">
           <div style="display:flex; gap:12px; align-items:center;">
             <div class="footer-col"><strong> Correo:</strong> info@corazaseguridadcta.com</div>
             <div class="footer-col"><strong> Web:</strong> www.corazaseguridadcta.com</div>

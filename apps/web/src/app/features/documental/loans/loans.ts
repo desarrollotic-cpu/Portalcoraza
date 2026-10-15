@@ -618,7 +618,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       align-items: center;
       gap: 0.45rem;
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
       padding: 0.45rem 0.85rem;
@@ -731,8 +731,8 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .loan-box.crit.active { background: #fef2f2; border-color: #dc2626; }
     .loan-box.reject { border-left: 4px solid #64748b; }
     .loan-box.reject.active { background: #f8fafc; border-color: #64748b; }
-    .loan-box.archive { border-left: 4px solid #0369a1; }
-    .loan-box.archive.active { background: #f0f9ff; border-color: #0369a1; }
+    .loan-box.archive { border-left: 4px solid #0d429c; }
+    .loan-box.archive.active { background: #f0f9ff; border-color: #0d429c; }
     .loan-box-label { font-size: 0.78rem; font-weight: 800; color: #334155; }
     .loan-box-count { font-size: 1.35rem; font-weight: 900; color: #0f172a; line-height: 1.1; }
     .loan-box-hint { font-size: 0.7rem; color: #64748b; font-weight: 600; }
@@ -767,9 +767,9 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
     .row-pending { background: #fffdf5; }
     .row-vencido { background: #fff5f5; }
-    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #0369a1; font-weight: 600; margin-top: 0.15rem; }
+    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #0d429c; font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
-    .doc-code-tag { font-size: 0.72rem; color: #0369a1; font-weight: 700; }
+    .doc-code-tag { font-size: 0.72rem; color: #0d429c; font-weight: 700; }
     .notif-badge { font-size: 0.68rem; color: #b45309; background: #fef3c7; padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
     
     .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
@@ -823,7 +823,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     
     .btn-notify-email {
       background: #f0f9ff;
-      color: #0369a1;
+      color: #0d429c;
       border: 1px solid #bfdbfe;
       border-radius: 0.35rem;
       padding: 0.25rem 0.55rem;
@@ -868,7 +868,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       height: 42px;
       border-radius: 10px;
       background: #e0f2fe;
-      color: #0369a1;
+      color: #0d429c;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -898,7 +898,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       border-radius: 0.65rem;
       padding: 0.85rem 1rem;
     }
-    .doc-name { color: #0369a1; font-size: 1rem; }
+    .doc-name { color: #0d429c; font-size: 1rem; }
     .doc-code-pill { display: inline-block; background: #e0f2fe; color: #0284c7; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; margin-top: 0.35rem; }
 
     .obs-card-box {
@@ -942,7 +942,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     }
     .confirm-modal-header.success { background: #f0fdf4; border-color: #bbf7d0; color: #166534; }
     .confirm-modal-header.danger { background: #fef2f2; border-color: #fecaca; color: #991b1b; }
-    .confirm-modal-header.info { background: #f0f9ff; border-color: #bae6fd; color: #075985; }
+    .confirm-modal-header.info { background: #f0f9ff; border-color: #bae6fd; color: #043383; }
 
     .confirm-icon-box {
       width: 44px;
@@ -1025,9 +1025,9 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .btn-accept-reject { background: #dc2626; }
     .btn-accept-reject:hover { background: #b91c1c; }
     .btn-accept-notify { background: #0284c7; }
-    .btn-accept-notify:hover { background: #0369a1; }
-    .btn-accept-return { background: #0c4a6e; }
-    .btn-accept-return:hover { background: #075985; }
+    .btn-accept-notify:hover { background: #0d429c; }
+    .btn-accept-return { background: #032868; }
+    .btn-accept-return:hover { background: #043383; }
     .btn-gmail-direct {
       display: inline-flex;
       align-items: center;
@@ -1077,7 +1077,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid #f1f5f9;
     }
-    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #0c4a6e; }
+    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #032868; }
     .qr-title-box h4 { margin: 0; font-size: 1rem; font-weight: 800; color: #0f172a; }
     .qr-title-box p { margin: 0.1rem 0 0; font-size: 0.75rem; color: #64748b; }
     .btn-close { background: transparent; border: none; color: #94a3b8; cursor: pointer; }
@@ -1111,13 +1111,13 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .qr-corp-header span { font-size: 0.75rem; color: #64748b; }
     .qr-image-wrap { margin: 1rem 0; padding: 0.5rem; background: #ffffff; border-radius: 0.5rem; }
     .qr-code-img { width: 180px; height: 180px; display: block; }
-    .qr-instructions strong { display: block; font-size: 0.85rem; color: #0c4a6e; margin-bottom: 0.25rem; }
+    .qr-instructions strong { display: block; font-size: 0.85rem; color: #032868; margin-bottom: 0.25rem; }
     .qr-instructions p { margin: 0; font-size: 0.76rem; color: #475569; line-height: 1.35; max-width: 280px; }
 
     .link-copy-box { display: flex; gap: 0.4rem; width: 100%; }
     .link-copy-box input { flex: 1; font-size: 0.78rem; padding: 0.45rem 0.65rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; background: #f8fafc; }
     .btn-copy {
-      background: #0c4a6e;
+      background: #032868;
       color: #ffffff;
       border: none;
       border-radius: 0.4rem;
@@ -1129,7 +1129,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       align-items: center;
       gap: 0.3rem;
     }
-    .btn-copy:hover { background: #075985; }
+    .btn-copy:hover { background: #043383; }
 
     .qr-modal-footer {
       display: flex;
@@ -1141,7 +1141,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     }
     .mail-log-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
     .mail-log-list li { font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; align-items: baseline; }
-    .mail-kind { font-weight: 800; color: #0c4a6e; }
+    .mail-kind { font-weight: 800; color: #032868; }
     .mail-ok { color: #15803d; font-weight: 700; }
     .mail-fail { color: #b91c1c; font-weight: 700; }
     .mail-meta { color: #64748b; }
@@ -1532,16 +1532,16 @@ export class LoansScreen implements OnInit {
             * { box-sizing: border-box; font-family: system-ui, sans-serif; }
             body { padding: 40px; text-align: center; color: #0f172a; }
             .card {
-              max-width: 500px; margin: 0 auto; border: 3px solid #0c4a6e;
+              max-width: 500px; margin: 0 auto; border: 3px solid #032868;
               border-radius: 20px; padding: 30px;
             }
-            h1 { font-size: 22px; color: #0c4a6e; margin: 0; }
+            h1 { font-size: 22px; color: #032868; margin: 0; }
             .print-logo { width: 72px; height: 72px; object-fit: contain; margin: 0 auto 10px; display: block; }
             h2 { font-size: 16px; color: #475569; margin: 5px 0 20px; font-weight: normal; }
             .qr-print { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
-            .inst { font-size: 14px; font-weight: bold; color: #0c4a6e; margin-top: 15px; }
+            .inst { font-size: 14px; font-weight: bold; color: #032868; margin-top: 15px; }
             .desc { font-size: 12px; color: #64748b; margin-top: 5px; }
-            .url { font-size: 11px; color: #0369a1; margin-top: 15px; word-break: break-all; }
+            .url { font-size: 11px; color: #0d429c; margin-top: 15px; word-break: break-all; }
             @media print { body { padding: 0; } }
           </style>
         </head>

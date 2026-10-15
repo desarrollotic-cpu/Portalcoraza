@@ -233,7 +233,7 @@ import {
   styles: `
     .public-page {
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0369a1 100%);
+      background: linear-gradient(135deg, #0f172a 0%, #032868 55%, #0d429c 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -252,7 +252,7 @@ import {
     }
 
     .header {
-      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      background: linear-gradient(135deg, #032868 0%, #0d429c 100%);
       color: #ffffff;
       padding: 1.75rem 2rem;
       display: flex;
@@ -297,7 +297,7 @@ import {
       margin: 0.25rem 0 0;
       font-size: 0.8rem;
       font-weight: 800;
-      color: #0c4a6e;
+      color: #032868;
       letter-spacing: 0.02em;
       border-top: 1px solid #e2e8f0;
       padding-top: 0.85rem;
@@ -335,7 +335,7 @@ import {
       border: 1px solid #bae6fd;
       border-radius: 0.6rem;
       font-size: 0.8rem;
-      color: #0c4a6e;
+      color: #032868;
       font-weight: 600;
       line-height: 1.35;
       cursor: pointer;
@@ -347,7 +347,7 @@ import {
     .form-actions { margin-top: 1.25rem; }
     .btn-submit {
       width: 100%;
-      background: #0c4a6e;
+      background: #032868;
       color: #ffffff;
       border: none;
       border-radius: 0.65rem;
@@ -357,7 +357,7 @@ import {
       cursor: pointer;
       transition: background 0.2s;
     }
-    .btn-submit:hover { background: #075985; }
+    .btn-submit:hover { background: #043383; }
     .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
 
     .error-banner {
@@ -380,7 +380,7 @@ import {
     }
     .check-circle { font-size: 3rem; margin-bottom: 0.5rem; }
     .success-box h4 { margin: 0; font-size: 1.4rem; color: #0f172a; font-weight: 800; }
-    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #0369a1; }
+    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #0d429c; }
     .info-text { font-size: 0.9rem; color: #475569; margin: 0.25rem 0 1.25rem; }
     .badge-pending {
       background: #fef3c7;
@@ -404,7 +404,7 @@ import {
     .steps-box ol { margin: 0; padding-left: 1.25rem; font-size: 0.82rem; color: #475569; display: flex; flex-direction: column; gap: 0.4rem; }
 
     .btn-primary {
-      background: #0c4a6e;
+      background: #032868;
       color: #ffffff;
       border: none;
       border-radius: 0.65rem;
