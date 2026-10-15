@@ -727,7 +727,8 @@ interface DashboardItem {
       border-radius: 0.75rem;
     }
     .gauge-ring {
-      background: var(--success-600);
+      /* Verde fijo y oscuro: el --success-600 del tema deja el blanco en 3.0 */
+      background: #15803d;
       color: #ffffff;
       width: 44px;
       height: 44px;
@@ -740,7 +741,7 @@ interface DashboardItem {
       box-shadow: 0 2px 4px rgba(22, 101, 52, 0.2);
     }
     .gauge-info { display: flex; flex-direction: column; }
-    .gauge-info strong { color: #14532d; font-size: 0.88rem; }
+    .gauge-info strong { color: var(--text-primary); font-size: 0.88rem; }
     .gauge-info small { color: var(--success-600); font-size: 0.75rem; font-weight: 600; }
 
     .kpis {
