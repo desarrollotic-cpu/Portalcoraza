@@ -856,7 +856,7 @@ interface DashboardItem {
     .val-col .val { font-size: 1rem; font-weight: 900; color: var(--neutral-900); }
     .val-col .pct-val[data-c='AZUL'] { color: var(--primary-500); }
     .val-col .pct-val[data-c='VERDE'] { color: var(--success-text); }
-    .val-col .pct-val[data-c='AMARILLO'] { color: #ca8a04; }
+    .val-col .pct-val[data-c='AMARILLO'] { color: var(--warning-text); }
     .val-col .pct-val[data-c='ROJO'] { color: var(--error-text); }
     .val-divider { width: 1px; height: 28px; background: var(--neutral-300); }
 
@@ -1174,7 +1174,7 @@ interface DashboardItem {
     }
     .period-detail-box[data-c='VERDE'] { border-left-color: var(--success-500); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .period-detail-box[data-c='AZUL'] { border-left-color: #3b82f6; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
-    .period-detail-box[data-c='AMARILLO'] { border-left-color: #eab308; background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
+    .period-detail-box[data-c='AMARILLO'] { border-left-color: var(--warning-text); background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
     .period-detail-box[data-c='ROJO'] { border-left-color: var(--error-500); background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); }
 
     .period-detail-top { display: flex; justify-content: space-between; align-items: center; }

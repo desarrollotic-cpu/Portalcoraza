@@ -300,7 +300,7 @@ interface DraftRow {
     }
     .live { margin: 0.35rem 0 0 !important; font-weight: 600; font-size: 0.88rem; }
     .risk[data-nivel='BAJO'] { color: var(--success-text); font-weight: 700; }
-    .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
+    .risk[data-nivel='MEDIO'] { color: var(--warning-text); font-weight: 700; }
     .risk[data-nivel='ALTO'] { color: var(--error-text); font-weight: 700; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; }
     .btn {

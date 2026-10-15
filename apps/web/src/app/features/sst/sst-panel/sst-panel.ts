@@ -151,7 +151,7 @@ import { SstApiService, SstOverview } from '../sst-api.service';
     .error { color: var(--error-text); margin: 0; }
     .link { color: var(--brand, #0f766e); font-weight: 600; text-decoration: none; }
     .risk[data-nivel='BAJO'] { color: var(--success-text); font-weight: 700; }
-    .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
+    .risk[data-nivel='MEDIO'] { color: var(--warning-text); font-weight: 700; }
     .risk[data-nivel='ALTO'] { color: var(--error-text); font-weight: 700; }
   `,
 })

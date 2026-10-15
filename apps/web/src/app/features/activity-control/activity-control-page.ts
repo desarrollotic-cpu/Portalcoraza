@@ -410,7 +410,7 @@ export interface ActivityControlPayload {
     .ac-sum-card strong { font-size: 1.35rem; font-weight: 700; }
     .ac-sum-card__time { font-size: 1.05rem !important; font-variant-numeric: tabular-nums; }
     .ac-sum-card--ok strong { color: #4ade80; }
-    .ac-sum-card--warn strong { color: #fbbf24; }
+    .ac-sum-card--warn strong { color: var(--warning-text); }
     .ac-sum-card--muted strong { color: var(--neutral-200); }
 
     .ac-filter { display: flex; flex-wrap: wrap; gap: 0.45rem; }

@@ -202,7 +202,7 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     .item-pregunta { font-weight: 600; color: var(--neutral-800); font-size: 0.88rem; line-height: 1.35; }
     .reinc-badge {
       display: inline-block; margin-top: 0.35rem; font-size: 0.75rem; font-weight: 600;
-      color: #ca8a04; background: #fef9c3; padding: 0.15rem 0.4rem; border-radius: 0.3rem;
+      color: var(--warning-text); background: #fef9c3; padding: 0.15rem 0.4rem; border-radius: 0.3rem;
     }
     .reinc-badge.alert { color: var(--error-text); background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); }
     .puesto-name { font-weight: 600; color: var(--neutral-900); }
