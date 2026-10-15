@@ -222,12 +222,12 @@ import { SstApiService, SstInspectionType, SstWorkplace } from '../sst-api.servi
     }
     .selected-info { display: flex; flex-direction: column; gap: 0.25rem; }
     .tag-selected {
-      font-size: 0.7rem; font-weight: 800; color: #0f766e; letter-spacing: 0.04em;
+      font-size: 0.7rem; font-weight: 800; color: var(--teal-text); letter-spacing: 0.04em;
     }
     .sel-title { font-size: 1rem; font-weight: 700; color: var(--neutral-900); }
     .sel-meta { font-size: 0.82rem; color: var(--neutral-600); }
     .btn-change {
-      background: var(--surface); border: 1px solid #0f766e; color: #0f766e; border-radius: 0.45rem;
+      background: var(--surface); border: 1px solid #0f766e; color: var(--teal-text); border-radius: 0.45rem;
       padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap;
     }
     .btn-change:hover { background: color-mix(in srgb, #0d9488 10%, var(--surface)); }

@@ -211,7 +211,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 0.5rem;
     }
     .period-card:hover { border-color: var(--neutral-300); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .period-card.active { border-color: #0f766e; background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
+    .period-card.active { border-color: var(--teal-text); background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .status-pill { font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px; }
     .st-liquidado { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
@@ -224,8 +224,8 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       background: var(--surface); font-size: 0.78rem; font-weight: 700; color: var(--neutral-700); cursor: pointer;
     }
     .btn-action:hover { background: var(--neutral-100); }
-    .btn-selected { border-color: #0f766e; color: #0f766e; background: color-mix(in srgb, #11daaf 14%, var(--surface)); }
-    .btn-calc { background: #0f766e; color: #ffffff; border-color: #0f766e; }
+    .btn-selected { border-color: var(--teal-text); color: var(--teal-text); background: color-mix(in srgb, #11daaf 14%, var(--surface)); }
+    .btn-calc { background: #0f766e; color: #ffffff; border-color: var(--teal-text); }
     .btn-calc:hover { background: #0d9488; }
     .card { padding: 1.25rem; background: var(--surface); border-radius: 0.75rem; border: 1px solid var(--neutral-200); }
     .slips-section { display: flex; flex-direction: column; gap: 1rem; }
@@ -244,15 +244,15 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .btn-export-excel:hover { background: #0d9488; }
     .th-center, .td-center { text-align: center !important; }
     .th-num, .td-num { text-align: right !important; }
-    .highlight-rec { color: #0f766e; font-weight: 600; }
+    .highlight-rec { color: var(--teal-text); font-weight: 600; }
     .text-success { color: var(--success-text); font-weight: 700; }
     .text-danger { color: var(--error-text); font-weight: 600; }
     .text-primary { color: var(--primary-500); font-weight: 700; }
     .btn-slip {
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
-      border: 1px solid var(--neutral-300); background: var(--neutral-50); color: #0f766e; cursor: pointer;
+      border: 1px solid var(--neutral-300); background: var(--neutral-50); color: var(--teal-text); cursor: pointer;
     }
-    .btn-slip:hover { background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); border-color: #0f766e; }
+    .btn-slip:hover { background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); border-color: var(--teal-text); }
     .empty-msg { padding: 2rem; color: var(--neutral-500); }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
     .modal-card { background: var(--surface); padding: 1.5rem; border-radius: 0.75rem; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1rem; }
@@ -267,7 +267,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .badge-green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
     .badge-red { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
     .slip-totals-box { display: flex; justify-content: space-between; align-items: center; background: var(--neutral-50); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
-    .net-highlight { font-size: 1.05rem; color: #0f766e; }
+    .net-highlight { font-size: 1.05rem; color: var(--teal-text); }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
     .btn-cancel { padding: 0.45rem 0.9rem; border-radius: 0.4rem; border: 1px solid var(--neutral-300); background: var(--surface); font-weight: 600; cursor: pointer; }
     .btn-save { padding: 0.45rem 0.9rem; border-radius: 0.4rem; border: none; background: #0f766e; color: #fff; font-weight: 700; cursor: pointer; }
@@ -430,7 +430,7 @@ export class PayrollPeriodsComponent implements OnInit {
           <td class="td-num">${s.nightSurcharges || 0}</td>
           <td class="td-num" style="font-weight:bold; color:#16a34a;">${s.totalDevengado || 0}</td>
           <td class="td-num" style="color:#dc2626;">${s.totalDeducido || 0}</td>
-          <td class="td-num" style="font-weight:bold; color:#0f766e;">${s.netPay || 0}</td>
+          <td class="td-num" style="font-weight:bold; color: var(--teal-text);">${s.netPay || 0}</td>
         </tr>
       `;
     });
@@ -444,7 +444,7 @@ export class PayrollPeriodsComponent implements OnInit {
           <td class="td-num">${totRec}</td>
           <td class="td-num" style="color:#16a34a;">${totDev}</td>
           <td class="td-num" style="color:#dc2626;">${totDed}</td>
-          <td class="td-num" style="color:#0f766e;">${totNet}</td>
+          <td class="td-num" style="color: var(--teal-text);">${totNet}</td>
         </tr>
       </table>
       </body>

@@ -674,7 +674,7 @@ const CODES: CodeConfig[] = [
     button.primary { background: var(--primary-dark); color: #fff; border-color: var(--primary-dark); }
     button.success { background: #198754; color: #fff; border-color: #198754; }
     button.danger { background: #dc3545; color: #fff; border-color: #dc3545; }
-    button.btn-print { background: #0f766e; color: #fff; border-color: #0f766e; font-weight: 600; }
+    button.btn-print { background: #0f766e; color: #fff; border-color: var(--teal-text); font-weight: 600; }
     button.btn-print:hover:not(:disabled) { background: #115e59; }
     button.btn-excel { background: var(--success-600); color: #fff; border-color: var(--success-text); font-weight: 600; }
     button.btn-excel:hover:not(:disabled) { background: var(--success-600); }
@@ -989,7 +989,7 @@ const CODES: CodeConfig[] = [
     .hours-badge {
       font-size: 0.75rem;
       font-weight: 700;
-      color: #0f766e;
+      color: var(--teal-text);
       background: color-mix(in srgb, var(--success-500) 10%, var(--surface));
       padding: 0.35rem 0.5rem;
       border-radius: 0.35rem;

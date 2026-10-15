@@ -209,7 +209,7 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     .meta { color: var(--text-muted, var(--neutral-500)); font-size: 0.8rem; margin-top: 0.15rem; }
     .meta-date { font-size: 0.76rem; color: var(--neutral-500); margin-top: 0.2rem; }
     .hallazgo-box { color: var(--error-text); font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
-    .plan-box { color: #0f766e; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.25rem; }
+    .plan-box { color: var(--teal-text); font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.25rem; }
     .plan-photos { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; }
     .plan-thumb {
       width: 44px; height: 44px; border-radius: 0.35rem; object-fit: cover;

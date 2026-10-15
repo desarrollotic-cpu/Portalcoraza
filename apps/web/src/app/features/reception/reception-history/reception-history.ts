@@ -305,7 +305,7 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       border-radius: 999px;
       border: 1px solid color-mix(in srgb, #dc2626 35%, #fecaca);
       background: color-mix(in srgb, #dc2626 8%, var(--surface));
-      color: #b91c1c;
+      color: var(--error-text);
       font-size: 0.75rem;
       font-weight: 700;
       cursor: pointer;

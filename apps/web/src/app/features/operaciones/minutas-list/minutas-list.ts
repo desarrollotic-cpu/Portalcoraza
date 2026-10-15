@@ -228,10 +228,10 @@ import {
       border-radius: 12px;
       background: color-mix(in srgb, #0d9488 10%, var(--surface));
     }
-    .minuta-link-box strong { display: block; font-size: 0.92rem; color: #134e4a; }
-    .minuta-link-box p { margin: 0.2rem 0 0.35rem; font-size: 0.82rem; color: #0f766e; }
+    .minuta-link-box strong { display: block; font-size: 0.92rem; color: var(--teal-text); }
+    .minuta-link-box p { margin: 0.2rem 0 0.35rem; font-size: 0.82rem; color: var(--teal-text); }
     .minuta-link-box a {
-      color: #0f766e;
+      color: var(--teal-text);
       font-weight: 600;
       font-size: 0.9rem;
       word-break: break-all;
@@ -277,7 +277,7 @@ import {
     .minuta-card span { font-size: 0.75rem; color: var(--neutral-500); }
     .minuta-card .email { font-size: 0.72rem; word-break: break-all; }
     .minuta-card:hover:not(:disabled) { border-color: color-mix(in srgb, #0d9488 30%, var(--surface)); background: color-mix(in srgb, #0d9488 10%, var(--surface)); }
-    .minuta-card.active { border-color: #0f766e; background: color-mix(in srgb, #0d9488 16%, var(--surface)); }
+    .minuta-card.active { border-color: var(--teal-text); background: color-mix(in srgb, #0d9488 16%, var(--surface)); }
     .minuta-card.unassigned {
       opacity: 0.85;
       cursor: not-allowed;

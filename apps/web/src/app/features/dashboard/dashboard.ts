@@ -515,7 +515,7 @@ type PeriodKey = CommandPeriod;
     .core-icon.bg-blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-500); }
     .core-icon.bg-indigo { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
     .core-icon.bg-amber { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
-    .core-icon.bg-teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
+    .core-icon.bg-teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: var(--teal-text); }
 
     .core-badge {
       font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
@@ -523,7 +523,7 @@ type PeriodKey = CommandPeriod;
     .core-badge.green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
     .core-badge.blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-600); }
     .core-badge.orange { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-text); }
-    .core-badge.teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
+    .core-badge.teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: var(--teal-text); }
 
     .core-title { font-size: 0.8rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
     .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: var(--neutral-900); line-height: 1.1; margin: 0.2rem 0; }

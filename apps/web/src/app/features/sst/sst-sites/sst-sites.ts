@@ -261,9 +261,9 @@ import {
       padding: 0.65rem 0.85rem; display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
     }
     .sel-c-info { display: flex; flex-direction: column; gap: 0.15rem; }
-    .tag-c { font-size: 0.68rem; font-weight: 800; color: #0f766e; letter-spacing: 0.03em; }
+    .tag-c { font-size: 0.68rem; font-weight: 800; color: var(--teal-text); letter-spacing: 0.03em; }
     .btn-change-c {
-      background: var(--surface); border: 1px solid #0f766e; color: #0f766e; border-radius: 0.4rem;
+      background: var(--surface); border: 1px solid #0f766e; color: var(--teal-text); border-radius: 0.4rem;
       padding: 0.3rem 0.65rem; font-size: 0.78rem; font-weight: 600; cursor: pointer;
     }
   `,
