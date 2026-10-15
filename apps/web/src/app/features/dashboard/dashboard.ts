@@ -281,19 +281,19 @@ type PeriodKey = CommandPeriod;
               <div class="mini-stats">
                 <div class="stat-pill">
                   <span>Sin Entrega</span>
-                  <strong style="color: #ea580c;">{{ dot.withoutDotacionCount }}</strong>
+                  <strong style="color: var(--warning-600);">{{ dot.withoutDotacionCount }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Con Entrega</span>
-                  <strong style="color: #16a34a;">{{ dot.withDotacionCount ?? '—' }}</strong>
+                  <strong style="color: var(--success-600);">{{ dot.withDotacionCount ?? '—' }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Stock Bajo</span>
-                  <strong style="color: #dc2626;">{{ dot.lowStockCount }}</strong>
+                  <strong style="color: var(--error-600);">{{ dot.lowStockCount }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Agotados</span>
-                  <strong style="color: #991b1b;">{{ dot.zeroStockCount ?? 0 }}</strong>
+                  <strong style="color: var(--error-600);">{{ dot.zeroStockCount ?? 0 }}</strong>
                 </div>
               </div>
               @if (dot.statusBreakdown) {
@@ -347,7 +347,7 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Cubiertos</span>
-                  <strong style="color: #16a34a;">{{ prog.kpis.postsCovered }}</strong>
+                  <strong style="color: var(--success-600);">{{ prog.kpis.postsCovered }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Sin cubrir hoy</span>
@@ -386,7 +386,7 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Alertas</span>
-                  <strong style="color: #dc2626;">{{ doc.notifications.totalAlertas }}</strong>
+                  <strong style="color: var(--error-600);">{{ doc.notifications.totalAlertas }}</strong>
                 </div>
               </div>
               @if ((doc.notifications.alertas ?? []).length > 0) {
@@ -470,9 +470,9 @@ type PeriodKey = CommandPeriod;
       font-size: 0.8rem; font-weight: 800; background: rgba(255,255,255,0.18);
       border: 1px solid rgba(255,255,255,0.3);
     }
-    .status-pill[data-code='stable'] { background: rgba(34,197,94,0.25); color: #86efac; }
-    .status-pill[data-code='attention'] { background: rgba(245,158,11,0.3); color: #fde68a; }
-    .status-pill[data-code='critical'] { background: rgba(239,68,68,0.35); color: #fca5a5; }
+    .status-pill[data-code='stable'] { background: rgba(34,197,94,0.25); color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
+    .status-pill[data-code='attention'] { background: rgba(245,158,11,0.3); color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .status-pill[data-code='critical'] { background: rgba(239,68,68,0.35); color: color-mix(in srgb, var(--error-500) 35%, var(--surface)); }
 
     .period-row { display: flex; gap: 0.35rem; }
     .period-btn {
@@ -490,7 +490,7 @@ type PeriodKey = CommandPeriod;
     }
     .bubble-lbl { font-size: 0.72rem; color: rgba(255,255,255,0.8); text-transform: uppercase; font-weight: 700; }
     .bubble-val { font-size: 1.8rem; font-weight: 900; line-height: 1.1; color: #fff; }
-    .bubble-sub { font-size: 0.72rem; color: #86efac; font-weight: 700; }
+    .bubble-sub { font-size: 0.72rem; color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); font-weight: 700; }
 
     /* CORE STRATEGIC CARDS (4 GRANDES) */
     .core-kpis-grid {
@@ -504,7 +504,7 @@ type PeriodKey = CommandPeriod;
     .core-card:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -3px rgba(0,0,0,0.08); }
     .core-card.blue { border-top: 4px solid #0d429c; }
     .core-card.indigo { border-top: 4px solid #0d429c; }
-    .core-card.amber { border-top: 4px solid #f59e0b; }
+    .core-card.amber { border-top: 4px solid var(--warning-500); }
     .core-card.teal { border-top: 4px solid #0d9488; }
 
     .core-card-header { display: flex; justify-content: space-between; align-items: center; }
@@ -512,18 +512,18 @@ type PeriodKey = CommandPeriod;
       width: 42px; height: 42px; border-radius: 10px; display: flex;
       align-items: center; justify-content: center;
     }
-    .core-icon.bg-blue { background: #f0f9ff; color: #0d429c; }
-    .core-icon.bg-indigo { background: #e0f2fe; color: #0d429c; }
-    .core-icon.bg-amber { background: #fef3c7; color: #b45309; }
-    .core-icon.bg-teal { background: #ccfbf1; color: #0f766e; }
+    .core-icon.bg-blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #0d429c; }
+    .core-icon.bg-indigo { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
+    .core-icon.bg-amber { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .core-icon.bg-teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
     .core-badge {
       font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
     }
-    .core-badge.green { background: #dcfce7; color: #166534; }
-    .core-badge.blue { background: #f0f9ff; color: #043383; }
-    .core-badge.orange { background: #ffedd5; color: #9a3412; }
-    .core-badge.teal { background: #ccfbf1; color: #115e59; }
+    .core-badge.green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .core-badge.blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #043383; }
+    .core-badge.orange { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-600); }
+    .core-badge.teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
     .core-title { font-size: 0.8rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
     .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: var(--neutral-900); line-height: 1.1; margin: 0.2rem 0; }
@@ -563,18 +563,18 @@ type PeriodKey = CommandPeriod;
     .score-meta strong { display: block; font-size: 0.9rem; color: var(--neutral-800); }
     .score-meta span { font-size: 0.75rem; color: var(--neutral-500); }
     .score-bar-wrap { height: 8px; background: var(--neutral-100); border-radius: 999px; overflow: hidden; }
-    .score-bar { height: 100%; border-radius: 999px; background: #22c55e; transition: width 0.4s; }
-    .score-bar[data-level='mid'] { background: #f59e0b; }
-    .score-bar[data-level='low'] { background: #ef4444; }
-    .score-pct { font-size: 0.95rem; font-weight: 900; color: #166534; min-width: 42px; text-align: right; }
-    .score-pct[data-level='mid'] { color: #b45309; }
-    .score-pct[data-level='low'] { color: #dc2626; }
+    .score-bar { height: 100%; border-radius: 999px; background: var(--success-500); transition: width 0.4s; }
+    .score-bar[data-level='mid'] { background: var(--warning-500); }
+    .score-bar[data-level='low'] { background: var(--error-500); }
+    .score-pct { font-size: 0.95rem; font-weight: 900; color: var(--success-600); min-width: 42px; text-align: right; }
+    .score-pct[data-level='mid'] { color: var(--warning-600); }
+    .score-pct[data-level='low'] { color: var(--error-600); }
     .score-na { font-size: 0.78rem; color: var(--neutral-400); }
 
     /* ALERTAS */
     .empty-box {
-      background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 0.75rem;
-      padding: 1.25rem; text-align: center; color: #166534; font-size: 0.88rem;
+      background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success-500) 30%, var(--surface)); border-radius: 0.75rem;
+      padding: 1.25rem; text-align: center; color: var(--success-600); font-size: 0.88rem;
     }
     .ok-icon { font-size: 1.5rem; display: block; margin-bottom: 0.25rem; }
     .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -583,7 +583,7 @@ type PeriodKey = CommandPeriod;
       border-radius: 0.75rem; border: 1px solid var(--neutral-200); background: var(--neutral-50);
       text-decoration: none; color: inherit; transition: all 0.2s;
     }
-    .alert-item:hover { background: #f0f9ff; border-color: #bae6fd; transform: translateX(2px); }
+    .alert-item:hover { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); transform: translateX(2px); }
     .alert-content { flex: 1; }
     .alert-content strong { display: block; font-size: 0.88rem; color: var(--neutral-900); }
     .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--neutral-500); }
@@ -591,9 +591,9 @@ type PeriodKey = CommandPeriod;
       font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.55rem;
       border-radius: 6px; background: var(--neutral-200); color: var(--neutral-700);
     }
-    .alert-item[data-tone='critical'] .badge { background: #fee2e2; color: #991b1b; }
-    .alert-item[data-tone='warning'] .badge { background: #fef3c7; color: #92400e; }
-    .alert-item[data-tone='info'] .badge { background: #f0f9ff; color: #043383; }
+    .alert-item[data-tone='critical'] .badge { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .alert-item[data-tone='warning'] .badge { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .alert-item[data-tone='info'] .badge { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #043383; }
 
     /* MÓDULOS DE GESTIÓN */
     .modules-grid {
@@ -608,7 +608,7 @@ type PeriodKey = CommandPeriod;
     }
     .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: var(--neutral-500); font-weight: 700; }
     .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: var(--neutral-900); }
-    .highlight-stat { background: #f0f9ff; border-color: #bae6fd; }
+    .highlight-stat { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); }
     .highlight-stat strong { color: #0d429c; }
 
     .chart-box { background: var(--neutral-50); border-radius: 0.75rem; border: 1px solid var(--neutral-100); padding: 0.5rem; }
@@ -619,8 +619,8 @@ type PeriodKey = CommandPeriod;
     .stack-row { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.5rem; align-items: center; font-size: 0.78rem; }
     .stack-track { height: 8px; border-radius: 999px; background: var(--neutral-100); overflow: hidden; }
     .stack-fill { height: 100%; border-radius: 999px; }
-    .stack-fill.ok { background: #22c55e; }
-    .stack-fill.warn { background: #f59e0b; }
+    .stack-fill.ok { background: var(--success-500); }
+    .stack-fill.warn { background: var(--warning-500); }
 
     .coverage { margin-bottom: 0.85rem; }
     .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--neutral-700); }
@@ -628,11 +628,11 @@ type PeriodKey = CommandPeriod;
     .coverage-fill { height: 100%; background: linear-gradient(90deg, #0d429c, #0d9488); border-radius: 999px; }
 
     .prio-box {
-      background: #fffbeb; border: 1px solid #fde68a; border-radius: 0.65rem;
+      background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning-500) 35%, var(--surface)); border-radius: 0.65rem;
       padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.2rem;
     }
-    .prio-badge { font-weight: 800; font-size: 0.82rem; color: #92400e; }
-    .prio-box small { color: #b45309; font-size: 0.75rem; }
+    .prio-badge { font-weight: 800; font-size: 0.82rem; color: var(--warning-600); }
+    .prio-box small { color: var(--warning-600); font-size: 0.75rem; }
 
     /* TIMELINE */
     .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
