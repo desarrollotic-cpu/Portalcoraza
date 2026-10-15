@@ -440,7 +440,7 @@ type PeriodKey = CommandPeriod;
 
     .hero {
       position: relative; overflow: hidden; border-radius: 1.25rem;
-      background: linear-gradient(135deg, #0f172a 0%, #032868 55%, #0d429c 100%);
+      background: linear-gradient(135deg, var(--neutral-900) 0%, #032868 55%, #0d429c 100%);
       color: #fff; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
     }
     .hero-mesh {
@@ -480,7 +480,7 @@ type PeriodKey = CommandPeriod;
       color: #fff; border-radius: 999px; padding: 0.35rem 0.85rem; font-size: 0.78rem;
       font-weight: 700; cursor: pointer; transition: all 0.2s;
     }
-    .period-btn.active { background: #fff; color: #0f172a; font-weight: 800; }
+    .period-btn.active { background: var(--surface); color: var(--neutral-900); font-weight: 800; }
 
     .hero-quick-stats { display: flex; gap: 1rem; }
     .stat-bubble {
@@ -497,7 +497,7 @@ type PeriodKey = CommandPeriod;
       display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;
     }
     .core-card {
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem;
+      background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 1rem;
       padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between;
       gap: 0.85rem; box-shadow: 0 2px 4px rgba(0,0,0,0.02); transition: all 0.2s ease;
     }
@@ -525,12 +525,12 @@ type PeriodKey = CommandPeriod;
     .core-badge.orange { background: #ffedd5; color: #9a3412; }
     .core-badge.teal { background: #ccfbf1; color: #115e59; }
 
-    .core-title { font-size: 0.8rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-    .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: #0f172a; line-height: 1.1; margin: 0.2rem 0; }
-    .core-subtext { font-size: 0.78rem; color: #94a3b8; }
+    .core-title { font-size: 0.8rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
+    .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: var(--neutral-900); line-height: 1.1; margin: 0.2rem 0; }
+    .core-subtext { font-size: 0.78rem; color: var(--neutral-400); }
     .core-link {
       font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none;
-      border-top: 1px solid #f1f5f9; padding-top: 0.6rem; display: block;
+      border-top: 1px solid var(--neutral-100); padding-top: 0.6rem; display: block;
     }
     .core-link:hover { text-decoration: underline; }
 
@@ -539,7 +539,7 @@ type PeriodKey = CommandPeriod;
       display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.1rem;
     }
     .panel {
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 1rem;
+      background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 1rem;
       padding: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.02);
     }
     .panel-head {
@@ -547,10 +547,10 @@ type PeriodKey = CommandPeriod;
       margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;
     }
     .panel-head h2 {
-      margin: 0; font-size: 1.1rem; font-weight: 800; color: #0f172a;
+      margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--neutral-900);
       display: inline-flex; align-items: center; gap: 0.5rem;
     }
-    .muted { color: #64748b; font-size: 0.82rem; }
+    .muted { color: var(--neutral-500); font-size: 0.82rem; }
     .link-quiet { font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none; }
     .link-quiet:hover { text-decoration: underline; }
 
@@ -558,18 +558,18 @@ type PeriodKey = CommandPeriod;
     .score-list { display: flex; flex-direction: column; gap: 0.85rem; }
     .score-row {
       display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.75rem; align-items: center;
-      padding: 0.5rem 0; border-bottom: 1px solid #f8fafc;
+      padding: 0.5rem 0; border-bottom: 1px solid var(--neutral-50);
     }
-    .score-meta strong { display: block; font-size: 0.9rem; color: #1e293b; }
-    .score-meta span { font-size: 0.75rem; color: #64748b; }
-    .score-bar-wrap { height: 8px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+    .score-meta strong { display: block; font-size: 0.9rem; color: var(--neutral-800); }
+    .score-meta span { font-size: 0.75rem; color: var(--neutral-500); }
+    .score-bar-wrap { height: 8px; background: var(--neutral-100); border-radius: 999px; overflow: hidden; }
     .score-bar { height: 100%; border-radius: 999px; background: #22c55e; transition: width 0.4s; }
     .score-bar[data-level='mid'] { background: #f59e0b; }
     .score-bar[data-level='low'] { background: #ef4444; }
     .score-pct { font-size: 0.95rem; font-weight: 900; color: #166534; min-width: 42px; text-align: right; }
     .score-pct[data-level='mid'] { color: #b45309; }
     .score-pct[data-level='low'] { color: #dc2626; }
-    .score-na { font-size: 0.78rem; color: #94a3b8; }
+    .score-na { font-size: 0.78rem; color: var(--neutral-400); }
 
     /* ALERTAS */
     .empty-box {
@@ -580,16 +580,16 @@ type PeriodKey = CommandPeriod;
     .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
     .alert-item {
       display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 0.9rem;
-      border-radius: 0.75rem; border: 1px solid #e2e8f0; background: #f8fafc;
+      border-radius: 0.75rem; border: 1px solid var(--neutral-200); background: var(--neutral-50);
       text-decoration: none; color: inherit; transition: all 0.2s;
     }
     .alert-item:hover { background: #f0f9ff; border-color: #bae6fd; transform: translateX(2px); }
     .alert-content { flex: 1; }
-    .alert-content strong { display: block; font-size: 0.88rem; color: #0f172a; }
-    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #64748b; }
+    .alert-content strong { display: block; font-size: 0.88rem; color: var(--neutral-900); }
+    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--neutral-500); }
     .badge {
       font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.55rem;
-      border-radius: 6px; background: #e2e8f0; color: #334155;
+      border-radius: 6px; background: var(--neutral-200); color: var(--neutral-700);
     }
     .alert-item[data-tone='critical'] .badge { background: #fee2e2; color: #991b1b; }
     .alert-item[data-tone='warning'] .badge { background: #fef3c7; color: #92400e; }
@@ -603,28 +603,28 @@ type PeriodKey = CommandPeriod;
       display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 0.5rem; margin-bottom: 0.85rem;
     }
     .stat-pill {
-      padding: 0.65rem 0.85rem; border-radius: 0.65rem; background: #f8fafc;
-      border: 1px solid #f1f5f9; display: flex; flex-direction: column;
+      padding: 0.65rem 0.85rem; border-radius: 0.65rem; background: var(--neutral-50);
+      border: 1px solid var(--neutral-100); display: flex; flex-direction: column;
     }
-    .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: #64748b; font-weight: 700; }
-    .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: #0f172a; }
+    .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: var(--neutral-500); font-weight: 700; }
+    .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: var(--neutral-900); }
     .highlight-stat { background: #f0f9ff; border-color: #bae6fd; }
     .highlight-stat strong { color: #0d429c; }
 
-    .chart-box { background: #f8fafc; border-radius: 0.75rem; border: 1px solid #f1f5f9; padding: 0.5rem; }
+    .chart-box { background: var(--neutral-50); border-radius: 0.75rem; border: 1px solid var(--neutral-100); padding: 0.5rem; }
     .chart { width: 100%; height: 90px; }
-    .chart-caption { font-size: 0.75rem; color: #94a3b8; margin: 0.4rem 0 0; text-align: center; }
+    .chart-caption { font-size: 0.75rem; color: var(--neutral-400); margin: 0.4rem 0 0; text-align: center; }
 
     .stack-bars { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.5rem; }
     .stack-row { display: grid; grid-template-columns: 1.2fr 1fr auto; gap: 0.5rem; align-items: center; font-size: 0.78rem; }
-    .stack-track { height: 8px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .stack-track { height: 8px; border-radius: 999px; background: var(--neutral-100); overflow: hidden; }
     .stack-fill { height: 100%; border-radius: 999px; }
     .stack-fill.ok { background: #22c55e; }
     .stack-fill.warn { background: #f59e0b; }
 
     .coverage { margin-bottom: 0.85rem; }
-    .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: #334155; }
-    .coverage-track { height: 10px; border-radius: 999px; background: #f1f5f9; overflow: hidden; }
+    .coverage-meta { display: flex; justify-content: space-between; margin-bottom: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--neutral-700); }
+    .coverage-track { height: 10px; border-radius: 999px; background: var(--neutral-100); overflow: hidden; }
     .coverage-fill { height: 100%; background: linear-gradient(90deg, #0d429c, #0d9488); border-radius: 999px; }
 
     .prio-box {
@@ -637,17 +637,17 @@ type PeriodKey = CommandPeriod;
     /* TIMELINE */
     .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
     .timeline li {
-      display: flex; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid #f1f5f9; align-items: center;
+      display: flex; gap: 1rem; padding: 0.65rem 0; border-bottom: 1px solid var(--neutral-100); align-items: center;
     }
     .timeline .time {
-      min-width: 90px; font-size: 0.78rem; font-weight: 700; color: #64748b; font-family: monospace;
+      min-width: 90px; font-size: 0.78rem; font-weight: 700; color: var(--neutral-500); font-family: monospace;
     }
     .timeline-body { flex: 1; display: flex; flex-direction: column; gap: 0.1rem; }
-    .timeline-body strong { font-size: 0.88rem; color: #0f172a; }
+    .timeline-body strong { font-size: 0.88rem; color: var(--neutral-900); }
 
     .skeleton-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
     .skeleton {
-      height: 130px; border-radius: 1rem; background: #e2e8f0;
+      height: 130px; border-radius: 1rem; background: var(--neutral-200);
       animation: pulse 1.5s infinite;
     }
     @keyframes pulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 0.3; } }
