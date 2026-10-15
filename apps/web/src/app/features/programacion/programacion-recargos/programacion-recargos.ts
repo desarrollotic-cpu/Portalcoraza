@@ -134,12 +134,12 @@ import {
       gap: 1rem;
     }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.25rem; font-weight: 800; }
-    .head p { margin: 0; color: var(--text-muted, #64748b); font-size: 0.88rem; max-width: 680px; }
+    .head p { margin: 0; color: var(--text-muted, var(--neutral-500)); font-size: 0.88rem; max-width: 680px; }
     .controls { display: flex; align-items: flex-end; gap: 0.75rem; flex-wrap: wrap; }
     .controls label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; font-weight: 700; }
     .controls input[type='month'] {
       padding: 0.45rem 0.75rem;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--neutral-300);
       border-radius: 0.5rem;
       font-size: 0.85rem;
       font-weight: 600;
@@ -164,21 +164,21 @@ import {
       gap: 0.85rem;
     }
     .kpi-card {
-      background: #fff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.75rem;
       padding: 0.85rem 1rem;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
     }
-    .kpi-card.highlight { background: #f0f9ff; border-color: #bfdbfe; }
+    .kpi-card.highlight { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #bfdbfe; }
     .kpi-card.accent { background: #faf5ff; border-color: #e9d5ff; }
-    .kpi-card.warn { background: #fffbeb; border-color: #fde68a; }
-    .kpi-card.holiday { background: #fef2f2; border-color: #fecaca; }
-    .kpi-label { font-size: 0.75rem; font-weight: 700; color: #475569; }
-    .kpi-value { font-size: 1.25rem; font-weight: 800; color: #0f172a; }
-    .kpi-sub { font-size: 0.7rem; color: #64748b; }
+    .kpi-card.warn { background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .kpi-card.holiday { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface)); }
+    .kpi-label { font-size: 0.75rem; font-weight: 700; color: var(--neutral-600); }
+    .kpi-value { font-size: 1.25rem; font-weight: 800; color: var(--neutral-900); }
+    .kpi-sub { font-size: 0.7rem; color: var(--neutral-500); }
 
     /* FILTERS */
     .filter-bar {
@@ -190,37 +190,37 @@ import {
     }
     .search-inp {
       padding: 0.45rem 0.85rem;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--neutral-300);
       border-radius: 0.5rem;
       font-size: 0.85rem;
       min-width: 280px;
     }
-    .count-text { font-size: 0.82rem; color: #64748b; }
+    .count-text { font-size: 0.82rem; color: var(--neutral-500); }
 
     /* TABLE */
     .table-wrap {
       overflow-x: auto;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--neutral-200);
       border-radius: 0.75rem;
-      background: #fff;
+      background: var(--surface);
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
-    th, td { padding: 0.6rem 0.85rem; border-bottom: 1px solid #f1f5f9; text-align: left; }
-    th { background: #f8fafc; font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: #475569; }
+    th, td { padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--neutral-100); text-align: left; }
+    th { background: var(--neutral-50); font-size: 0.75rem; text-transform: uppercase; font-weight: 800; color: var(--neutral-600); }
     th.num, td.num { text-align: right; }
-    .total-col { font-weight: 800; background: #f8fafc; color: #0f172a; }
+    .total-col { font-weight: 800; background: var(--neutral-50); color: var(--neutral-900); }
     .puestos-col { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .badge-d { background: #fef08a; color: #854d0e; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
-    .badge-n { background: #bbf7d0; color: #166534; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
-    .ext-d { color: #d97706; font-weight: 700; }
+    .badge-n { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
+    .ext-d { color: var(--warning-600); font-weight: 700; }
     .rec-n { color: #7e22ce; font-weight: 700; }
-    .ext-n { color: #dc2626; font-weight: 700; }
-    .dom { color: #b91c1c; font-weight: 700; }
+    .ext-n { color: var(--error-600); font-weight: 700; }
+    .dom { color: var(--error-600); font-weight: 700; }
 
-    .empty-cell { text-align: center; padding: 2.5rem 1rem; color: #64748b; }
+    .empty-cell { text-align: center; padding: 2.5rem 1rem; color: var(--neutral-500); }
     .empty-cell a { color: #0d429c; font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
-    .loading-state, .error-msg { text-align: center; padding: 2rem; font-size: 0.9rem; color: #64748b; }
-    .error-msg { color: #b91c1c; }
+    .loading-state, .error-msg { text-align: center; padding: 2rem; font-size: 0.9rem; color: var(--neutral-500); }
+    .error-msg { color: var(--error-600); }
   `,
 })
 export class ProgramacionRecargos implements OnInit {

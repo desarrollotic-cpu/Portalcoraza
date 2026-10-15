@@ -206,7 +206,7 @@ class SimpleSignaturePad {
       height: ${DISPLAY_HEIGHT}px;
       border: 1px solid var(--coraza-border);
       border-radius: 10px;
-      background: #fff;
+      background: var(--surface);
       touch-action: none;
       cursor: crosshair;
       box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);

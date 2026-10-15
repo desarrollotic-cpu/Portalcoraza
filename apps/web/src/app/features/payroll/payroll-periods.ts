@@ -198,8 +198,8 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
   styles: [`
     .payroll-container { display: flex; flex-direction: column; gap: 1.25rem; }
     .periods-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .periods-header h3 { margin: 0 0 0.2rem; font-size: 1.1rem; font-weight: 700; color: #0f172a; }
-    .subtitle { margin: 0; color: #64748b; font-size: 0.85rem; }
+    .periods-header h3 { margin: 0 0 0.2rem; font-size: 1.1rem; font-weight: 700; color: var(--neutral-900); }
+    .subtitle { margin: 0; color: var(--neutral-500); font-size: 0.85rem; }
     .btn-create {
       background: #0f766e; color: #fff; border: none; padding: 0.45rem 0.95rem; border-radius: 0.5rem;
       font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
@@ -207,36 +207,36 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .btn-create:hover { background: #0d9488; }
     .periods-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 1rem; }
     .period-card {
-      padding: 1.15rem; background: #ffffff; border-radius: 0.75rem; border: 1.5px solid #e2e8f0;
+      padding: 1.15rem; background: var(--surface); border-radius: 0.75rem; border: 1.5px solid var(--neutral-200);
       cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 0.5rem;
     }
-    .period-card:hover { border-color: #cbd5e1; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .period-card:hover { border-color: var(--neutral-300); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
     .period-card.active { border-color: #0f766e; background: #f0fdfa; box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .status-pill { font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px; }
-    .st-liquidado { background: #dcfce7; color: #166534; }
-    .st-borrador { background: #fef3c7; color: #92400e; }
-    .period-card h4 { margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; }
-    .period-dates { font-size: 0.82rem; color: #64748b; font-weight: 500; }
+    .st-liquidado { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .st-borrador { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .period-card h4 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--neutral-900); }
+    .period-dates { font-size: 0.82rem; color: var(--neutral-500); font-weight: 500; }
     .card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
     .btn-action {
-      flex: 1; padding: 0.35rem 0.65rem; border-radius: 0.4rem; border: 1px solid #cbd5e1;
-      background: #ffffff; font-size: 0.78rem; font-weight: 700; color: #334155; cursor: pointer;
+      flex: 1; padding: 0.35rem 0.65rem; border-radius: 0.4rem; border: 1px solid var(--neutral-300);
+      background: var(--surface); font-size: 0.78rem; font-weight: 700; color: var(--neutral-700); cursor: pointer;
     }
-    .btn-action:hover { background: #f1f5f9; }
+    .btn-action:hover { background: var(--neutral-100); }
     .btn-selected { border-color: #0f766e; color: #0f766e; background: #ccfbf1; }
     .btn-calc { background: #0f766e; color: #ffffff; border-color: #0f766e; }
     .btn-calc:hover { background: #0d9488; }
-    .card { padding: 1.25rem; background: #fff; border-radius: 0.75rem; border: 1px solid #e2e8f0; }
+    .card { padding: 1.25rem; background: var(--surface); border-radius: 0.75rem; border: 1px solid var(--neutral-200); }
     .slips-section { display: flex; flex-direction: column; gap: 1rem; }
     .section-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-    .section-header h3 { margin: 0 0 0.2rem; font-size: 1.05rem; font-weight: 700; color: #0f172a; }
-    .count-badge { background: #f1f5f9; color: #475569; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px; }
+    .section-header h3 { margin: 0 0 0.2rem; font-size: 1.05rem; font-weight: 700; color: var(--neutral-900); }
+    .count-badge { background: var(--neutral-100); color: var(--neutral-600); font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px; }
     .table-wrap { overflow-x: auto; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    .data-table th { background: #f8fafc; padding: 0.65rem 0.85rem; border-bottom: 1px solid #cbd5e1; text-align: left; font-weight: 700; color: #475569; font-size: 0.8rem; }
-    .data-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: middle; }
-    .data-table code { background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; color: #0f172a; font-size: 0.85rem; }
+    .data-table th { background: var(--neutral-50); padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--neutral-300); text-align: left; font-weight: 700; color: var(--neutral-600); font-size: 0.8rem; }
+    .data-table td { padding: 0.65rem 0.85rem; border-bottom: 1px solid var(--neutral-200); text-align: left; vertical-align: middle; }
+    .data-table code { background: var(--neutral-100); padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700; color: var(--neutral-900); font-size: 0.85rem; }
     .btn-export-excel {
       background: #0f766e; color: #fff; border: none; padding: 0.35rem 0.75rem; border-radius: 0.4rem;
       font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: background 0.15s;
@@ -245,35 +245,35 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .th-center, .td-center { text-align: center !important; }
     .th-num, .td-num { text-align: right !important; }
     .highlight-rec { color: #0f766e; font-weight: 600; }
-    .text-success { color: #16a34a; font-weight: 700; }
-    .text-danger { color: #dc2626; font-weight: 600; }
+    .text-success { color: var(--success-600); font-weight: 700; }
+    .text-danger { color: var(--error-600); font-weight: 600; }
     .text-primary { color: #0d429c; font-weight: 700; }
     .btn-slip {
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
-      border: 1px solid #cbd5e1; background: #f8fafc; color: #0f766e; cursor: pointer;
+      border: 1px solid var(--neutral-300); background: var(--neutral-50); color: #0f766e; cursor: pointer;
     }
     .btn-slip:hover { background: #f0fdfa; border-color: #0f766e; }
-    .empty-msg { padding: 2rem; color: #64748b; }
+    .empty-msg { padding: 2rem; color: var(--neutral-500); }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
-    .modal-card { background: #fff; padding: 1.5rem; border-radius: 0.75rem; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1rem; }
+    .modal-card { background: var(--surface); padding: 1.5rem; border-radius: 0.75rem; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1rem; }
     .slip-modal { max-width: 680px; }
-    .slip-header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 0.5rem; }
-    .slip-header h2 { margin: 0; font-size: 1.2rem; color: #0f172a; }
-    .slip-sub { margin: 0.25rem 0 0; font-size: 0.78rem; color: #64748b; font-weight: 600; }
-    .slip-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: #f8fafc; padding: 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; }
+    .slip-header { text-align: center; border-bottom: 2px solid var(--neutral-900); padding-bottom: 0.5rem; }
+    .slip-header h2 { margin: 0; font-size: 1.2rem; color: var(--neutral-900); }
+    .slip-sub { margin: 0.25rem 0 0; font-size: 0.78rem; color: var(--neutral-500); font-weight: 600; }
+    .slip-meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; background: var(--neutral-50); padding: 0.75rem; border-radius: 0.5rem; font-size: 0.85rem; }
     .slip-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
-    .slip-table th { background: #f1f5f9; padding: 0.5rem; text-align: left; font-size: 0.78rem; border-bottom: 1px solid #cbd5e1; }
-    .slip-table td { padding: 0.5rem; border-bottom: 1px solid #e2e8f0; }
-    .badge-green { background: #dcfce7; color: #166534; font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
-    .badge-red { background: #fee2e2; color: #991b1b; font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
-    .slip-totals-box { display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
+    .slip-table th { background: var(--neutral-100); padding: 0.5rem; text-align: left; font-size: 0.78rem; border-bottom: 1px solid var(--neutral-300); }
+    .slip-table td { padding: 0.5rem; border-bottom: 1px solid var(--neutral-200); }
+    .badge-green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
+    .badge-red { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
+    .slip-totals-box { display: flex; justify-content: space-between; align-items: center; background: var(--neutral-50); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
     .net-highlight { font-size: 1.05rem; color: #0f766e; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }
-    .btn-cancel { padding: 0.45rem 0.9rem; border-radius: 0.4rem; border: 1px solid #cbd5e1; background: #fff; font-weight: 600; cursor: pointer; }
+    .btn-cancel { padding: 0.45rem 0.9rem; border-radius: 0.4rem; border: 1px solid var(--neutral-300); background: var(--surface); font-weight: 600; cursor: pointer; }
     .btn-save { padding: 0.45rem 0.9rem; border-radius: 0.4rem; border: none; background: #0f766e; color: #fff; font-weight: 700; cursor: pointer; }
     .form-group { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
-    .form-group label { font-size: 0.82rem; font-weight: 700; color: #334155; }
-    .form-group input { padding: 0.5rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.9rem; }
+    .form-group label { font-size: 0.82rem; font-weight: 700; color: var(--neutral-700); }
+    .form-group input { padding: 0.5rem 0.75rem; border: 1px solid var(--neutral-300); border-radius: 0.4rem; font-size: 0.9rem; }
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
   `]
 })
