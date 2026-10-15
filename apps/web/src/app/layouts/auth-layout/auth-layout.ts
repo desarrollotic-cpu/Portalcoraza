@@ -40,13 +40,6 @@ import { Icon } from '../../shared/components/icon/icon';
 
           <!-- CUERPO PRINCIPAL HERO -->
           <div class="hero-main-content">
-            <div class="hero-shield-wrap">
-              <img
-                src="/brand/logo-coraza-cta.png"
-                class="hero-large-logo"
-                alt="Escudo Coraza"
-              />
-            </div>
             <h2 class="hero-headline">La Seguridad, un Compromiso de Todos</h2>
             <p class="hero-tagline">
               Plataforma integral de gestión operativa, talento humano, programación de turnos y seguridad privada.
@@ -229,18 +222,6 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
       gap: 1rem;
       z-index: 2;
-    }
-    .hero-shield-wrap {
-      display: flex;
-      margin-bottom: 0.25rem;
-    }
-    .hero-large-logo {
-      width: 68px;
-      height: 68px;
-      border-radius: 50%;
-      background: #ffffff;
-      padding: 3px;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
     }
     .hero-headline {
       font-size: 1.65rem;
