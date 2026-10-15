@@ -57,6 +57,26 @@
   --glass-border: rgba(203, 213, 225, 0.85);
   --glass-highlight: rgba(255, 255, 255, 0.35);
 
+  /* ─── Alias heredados ───────────────────────────────────────────
+     Varios componentes piden estas variables con un color de reserva
+     oscuro: `var(--text, #111)`. Como nunca se definieron, siempre
+     ganaba la reserva y el texto se quedaba negro también en modo
+     oscuro, invisible sobre la tarjeta. Al declararlas aquí, esos
+     componentes pasan a seguir el tema sin tocar ni uno. */
+  --text: var(--text-primary);
+  --muted: var(--text-muted);
+  --bg: var(--bg-page);
+  --bg-card: var(--surface);
+  --bg-surface: var(--surface);
+  --surface-alt: var(--surface-2);
+  --bg-hover: var(--neutral-100);
+  --border-color: var(--border);
+  --color-border: var(--border);
+  --color-muted: var(--text-muted);
+  --color-primary: var(--primary-600);
+  --color-surface: var(--surface);
+  --brand: var(--primary-600);
+
   /* ─── Tinta: oscuro en los dos temas ────────────────────────────
      Para superficies que deben seguir siendo oscuras aunque se active
      el modo oscuro: cabeceras hero, velos de diálogo, chips negros.
