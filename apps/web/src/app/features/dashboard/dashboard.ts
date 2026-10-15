@@ -440,7 +440,7 @@ type PeriodKey = CommandPeriod;
 
     .hero {
       position: relative; overflow: hidden; border-radius: 1.25rem;
-      background: linear-gradient(135deg, var(--neutral-900) 0%, #032868 55%, #0d429c 100%);
+      background: linear-gradient(135deg, var(--ink) 0%, #032868 55%, #0d429c 100%);
       color: #fff; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
     }
     .hero-mesh {

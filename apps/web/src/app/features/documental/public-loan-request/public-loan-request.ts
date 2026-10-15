@@ -233,7 +233,7 @@ import {
   styles: `
     .public-page {
       min-height: 100vh;
-      background: linear-gradient(135deg, #0f172a 0%, #032868 55%, #0d429c 100%);
+      background: linear-gradient(135deg, var(--ink) 0%, #032868 55%, #0d429c 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -242,7 +242,7 @@ import {
     }
 
     .card-container {
-      background: #ffffff;
+      background: var(--surface);
       border-radius: 1.25rem;
       box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
       width: 100%;
@@ -263,7 +263,7 @@ import {
       width: 58px;
       height: 58px;
       border-radius: 14px;
-      background: #ffffff;
+      background: var(--surface);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -291,37 +291,37 @@ import {
     .span-2 { grid-column: span 2; }
 
     .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
-    .label-text { font-size: 0.82rem; font-weight: 700; color: #334155; }
-    .hint { font-size: 0.72rem; color: #64748b; }
+    .label-text { font-size: 0.82rem; font-weight: 700; color: var(--neutral-700); }
+    .hint { font-size: 0.72rem; color: var(--neutral-500); }
     .block-title {
       margin: 0.25rem 0 0;
       font-size: 0.8rem;
       font-weight: 800;
       color: #032868;
       letter-spacing: 0.02em;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--neutral-200);
       padding-top: 0.85rem;
     }
     input, select, textarea {
       font: inherit;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--neutral-300);
       border-radius: 0.6rem;
       padding: 0.65rem 0.85rem;
-      color: #0f172a;
-      background: #f8fafc;
+      color: var(--neutral-900);
+      background: var(--neutral-50);
       transition: all 0.2s;
     }
     input.invalid {
-      border-color: #dc2626;
-      background: #fef2f2;
+      border-color: var(--error-600);
+      background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
     }
     input.valid {
-      border-color: #16a34a;
-      background: #f0fdf4;
+      border-color: var(--success-600);
+      background: color-mix(in srgb, var(--success-500) 10%, var(--surface));
     }
     .inp-readonly {
-      background: #e2e8f0;
-      color: #0f172a;
+      background: var(--neutral-200);
+      color: var(--neutral-900);
       font-weight: 700;
       cursor: default;
     }
@@ -331,8 +331,8 @@ import {
       gap: 0.55rem;
       margin-top: 0.55rem;
       padding: 0.65rem 0.75rem;
-      background: #f0f9ff;
-      border: 1px solid #bae6fd;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--primary-600) 30%, var(--surface));
       border-radius: 0.6rem;
       font-size: 0.8rem;
       color: #032868;
@@ -341,8 +341,8 @@ import {
       cursor: pointer;
     }
     .check-prorroga input { width: 1.05rem; height: 1.05rem; margin-top: 0.1rem; flex-shrink: 0; }
-    .field-error { font-size: 0.78rem; color: #b91c1c; font-weight: 700; }
-    .field-ok { font-size: 0.78rem; color: #15803d; font-weight: 700; }
+    .field-error { font-size: 0.78rem; color: var(--error-600); font-weight: 700; }
+    .field-ok { font-size: 0.78rem; color: var(--success-600); font-weight: 700; }
 
     .form-actions { margin-top: 1.25rem; }
     .btn-submit {
@@ -358,12 +358,12 @@ import {
       transition: background 0.2s;
     }
     .btn-submit:hover { background: #043383; }
-    .btn-submit:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-submit:disabled { background: var(--neutral-400); cursor: not-allowed; }
 
     .error-banner {
-      background: #fee2e2;
-      color: #991b1b;
-      border: 1px solid #fca5a5;
+      background: color-mix(in srgb, var(--error-500) 16%, var(--surface));
+      color: var(--error-600);
+      border: 1px solid color-mix(in srgb, var(--error-500) 35%, var(--surface));
       padding: 0.75rem 1rem;
       border-radius: 0.6rem;
       margin-bottom: 1rem;
@@ -379,12 +379,12 @@ import {
       align-items: center;
     }
     .check-circle { font-size: 3rem; margin-bottom: 0.5rem; }
-    .success-box h4 { margin: 0; font-size: 1.4rem; color: #0f172a; font-weight: 800; }
+    .success-box h4 { margin: 0; font-size: 1.4rem; color: var(--neutral-900); font-weight: 800; }
     .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #0d429c; }
-    .info-text { font-size: 0.9rem; color: #475569; margin: 0.25rem 0 1.25rem; }
+    .info-text { font-size: 0.9rem; color: var(--neutral-600); margin: 0.25rem 0 1.25rem; }
     .badge-pending {
-      background: #fef3c7;
-      color: #92400e;
+      background: color-mix(in srgb, var(--warning-500) 16%, var(--surface));
+      color: var(--warning-600);
       font-weight: 800;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;
@@ -392,16 +392,16 @@ import {
     }
 
     .steps-box {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.85rem;
       padding: 1.25rem 1.5rem;
       text-align: left;
       width: 100%;
       margin-bottom: 1.5rem;
     }
-    .steps-box strong { display: block; font-size: 0.88rem; color: #1e293b; margin-bottom: 0.5rem; }
-    .steps-box ol { margin: 0; padding-left: 1.25rem; font-size: 0.82rem; color: #475569; display: flex; flex-direction: column; gap: 0.4rem; }
+    .steps-box strong { display: block; font-size: 0.88rem; color: var(--neutral-800); margin-bottom: 0.5rem; }
+    .steps-box ol { margin: 0; padding-left: 1.25rem; font-size: 0.82rem; color: var(--neutral-600); display: flex; flex-direction: column; gap: 0.4rem; }
 
     .btn-primary {
       background: #032868;
@@ -415,12 +415,12 @@ import {
     }
 
     .footer {
-      background: #f8fafc;
-      border-top: 1px solid #f1f5f9;
+      background: var(--neutral-50);
+      border-top: 1px solid var(--neutral-100);
       padding: 0.85rem 1.5rem;
       text-align: center;
       font-size: 0.75rem;
-      color: #94a3b8;
+      color: var(--neutral-400);
       font-weight: 600;
     }
 

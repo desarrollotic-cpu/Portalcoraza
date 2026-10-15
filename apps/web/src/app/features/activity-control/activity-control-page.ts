@@ -277,11 +277,11 @@ export interface ActivityControlPayload {
   `,
   styles: `
     .ac-page {
-      --ac-ink: #0f172a;
-      --ac-muted: #64748b;
+      --ac-ink: var(--neutral-900);
+      --ac-muted: var(--neutral-500);
       --ac-line: rgba(148, 163, 184, 0.35);
-      --ac-ok: #16a34a;
-      --ac-idle: #d97706;
+      --ac-ok: var(--success-600);
+      --ac-idle: var(--warning-600);
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
@@ -293,11 +293,11 @@ export interface ActivityControlPayload {
       overflow: hidden;
       border-radius: 1.25rem;
       padding: 1.35rem 1.4rem 1.2rem;
-      color: #f8fafc;
+      color: var(--neutral-50);
       background:
         radial-gradient(900px 280px at 12% -20%, rgba(34, 197, 94, 0.22), transparent 55%),
         radial-gradient(700px 240px at 90% 0%, rgba(59, 130, 246, 0.28), transparent 50%),
-        linear-gradient(145deg, #0f172a 0%, #1e293b 55%, #032868 100%);
+        linear-gradient(145deg, var(--ink) 0%, var(--ink-2) 55%, #032868 100%);
       box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.65);
     }
     .ac-hero__glow {
@@ -323,7 +323,7 @@ export interface ActivityControlPayload {
       font-size: 0.72rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: #94a3b8;
+      color: var(--neutral-400);
     }
     .ac-hero h1 {
       margin: 0;
@@ -335,7 +335,7 @@ export interface ActivityControlPayload {
     .ac-lead {
       margin: 0.45rem 0 0;
       max-width: 38rem;
-      color: #cbd5e1;
+      color: var(--neutral-300);
       font-size: 0.92rem;
       line-height: 1.45;
     }
@@ -355,7 +355,7 @@ export interface ActivityControlPayload {
     .ac-seg__btn {
       border: 0;
       background: transparent;
-      color: #cbd5e1;
+      color: var(--neutral-300);
       padding: 0.45rem 0.85rem;
       border-radius: 999px;
       font: inherit;
@@ -366,7 +366,7 @@ export interface ActivityControlPayload {
     }
     .ac-seg__btn.is-on {
       background: rgba(248, 250, 252, 0.95);
-      color: #0f172a;
+      color: var(--neutral-900);
       font-weight: 600;
     }
     .ac-refresh {
@@ -375,7 +375,7 @@ export interface ActivityControlPayload {
       gap: 0.4rem;
       border: 1px solid rgba(255, 255, 255, 0.18);
       background: rgba(255, 255, 255, 0.08);
-      color: #f8fafc;
+      color: var(--neutral-50);
       border-radius: 999px;
       padding: 0.45rem 0.95rem;
       font: inherit;
@@ -405,17 +405,17 @@ export interface ActivityControlPayload {
       flex-direction: column;
       gap: 0.25rem;
     }
-    .ac-sum-card span { font-size: 0.72rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+    .ac-sum-card span { font-size: 0.72rem; color: var(--neutral-400); text-transform: uppercase; letter-spacing: 0.06em; }
     .ac-sum-card strong { font-size: 1.35rem; font-weight: 700; }
     .ac-sum-card__time { font-size: 1.05rem !important; font-variant-numeric: tabular-nums; }
     .ac-sum-card--ok strong { color: #4ade80; }
     .ac-sum-card--warn strong { color: #fbbf24; }
-    .ac-sum-card--muted strong { color: #e2e8f0; }
+    .ac-sum-card--muted strong { color: var(--neutral-200); }
 
     .ac-filter { display: flex; flex-wrap: wrap; gap: 0.45rem; }
     .ac-chip {
       border: 1px solid var(--ac-line);
-      background: #fff;
+      background: var(--surface);
       color: var(--ac-ink);
       border-radius: 999px;
       padding: 0.4rem 0.85rem;
@@ -425,9 +425,9 @@ export interface ActivityControlPayload {
       min-height: 40px;
       transition: border-color 0.2s ease, background 0.2s ease;
     }
-    .ac-chip.is-on { border-color: #0f172a; background: #0f172a; color: #fff; }
+    .ac-chip.is-on { border-color: var(--ink); background: var(--ink); color: #fff; }
     .ac-chip--ok.is-on { background: #14532d; border-color: #14532d; }
-    .ac-chip--idle.is-on { background: #92400e; border-color: #92400e; }
+    .ac-chip--idle.is-on { background: var(--warning-600); border-color: var(--warning-600); }
 
     .ac-grid {
       display: grid;
@@ -506,8 +506,8 @@ export interface ActivityControlPayload {
       font-weight: 600;
       white-space: nowrap;
     }
-    .ac-badge--ok { background: #dcfce7; color: #166534; }
-    .ac-badge--idle { background: #ffedd5; color: #9a3412; }
+    .ac-badge--ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .ac-badge--idle { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-600); }
 
     .ac-kpis {
       display: grid;
@@ -516,8 +516,8 @@ export interface ActivityControlPayload {
     }
     .ac-kpis > div {
       border-radius: 0.75rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       padding: 0.5rem 0.55rem;
       display: flex;
       flex-direction: column;
@@ -553,7 +553,7 @@ export interface ActivityControlPayload {
       max-width: 28px;
       min-height: 6px;
       border-radius: 6px 6px 3px 3px;
-      background: #e2e8f0;
+      background: var(--neutral-200);
       transition: height 0.25s ease, background 0.2s ease;
     }
     .ac-strip__cell.is-used .ac-strip__bar {
@@ -564,7 +564,7 @@ export interface ActivityControlPayload {
       color: var(--ac-ink);
     }
     .ac-strip__cell:not(.is-used) .ac-strip__bar {
-      background: #fecaca;
+      background: color-mix(in srgb, var(--error-500) 28%, var(--surface));
       opacity: 0.55;
     }
     .ac-strip__n {
@@ -577,7 +577,7 @@ export interface ActivityControlPayload {
       font-size: 0.75rem;
       color: var(--ac-muted);
     }
-    .ac-strip-note strong { color: #9a3412; font-weight: 600; }
+    .ac-strip-note strong { color: var(--warning-600); font-weight: 600; }
 
     .ac-section-label {
       display: flex;
@@ -615,7 +615,7 @@ export interface ActivityControlPayload {
       grid-template-columns: 72px 1fr;
       gap: 0.45rem;
       padding: 0.35rem 0;
-      border-bottom: 1px dashed #e2e8f0;
+      border-bottom: 1px dashed var(--neutral-200);
     }
     .ac-timeline li:last-child { border-bottom: 0; }
     .ac-timeline time {
@@ -631,7 +631,7 @@ export interface ActivityControlPayload {
       color: var(--ac-muted);
       line-height: 1.35;
     }
-    .ac-who { color: #334155; font-weight: 500; }
+    .ac-who { color: var(--neutral-700); font-weight: 500; }
 
     .ac-empty-actors {
       margin: 0;
@@ -641,7 +641,7 @@ export interface ActivityControlPayload {
     .ac-card__foot {
       margin-top: auto;
       padding-top: 0.35rem;
-      border-top: 1px solid #f1f5f9;
+      border-top: 1px solid var(--neutral-100);
       font-size: 0.72rem;
       color: var(--ac-muted);
     }
@@ -649,16 +649,16 @@ export interface ActivityControlPayload {
     .ac-skel {
       min-height: 280px;
       border-radius: 1.1rem;
-      background: linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9);
+      background: linear-gradient(90deg, var(--neutral-100), var(--neutral-200), var(--neutral-100));
       background-size: 200% 100%;
       animation: ac-shimmer 1.2s linear infinite;
     }
     .ac-error {
       padding: 1rem;
       border-radius: 0.85rem;
-      background: #fef2f2;
-      color: #991b1b;
-      border: 1px solid #fecaca;
+      background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
+      color: var(--error-600);
+      border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
     }
 
     @keyframes ac-in {

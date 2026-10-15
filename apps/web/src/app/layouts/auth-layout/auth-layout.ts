@@ -167,7 +167,7 @@ import { Icon } from '../../shared/components/icon/icon';
       flex-direction: column;
       justify-content: space-between;
       color: #ffffff;
-      background: linear-gradient(145deg, #032868 0%, #0d429c 50%, #0f172a 100%);
+      background: linear-gradient(145deg, #032868 0%, #0d429c 50%, var(--ink) 100%);
       overflow: hidden;
     }
 
@@ -185,7 +185,7 @@ import { Icon } from '../../shared/components/icon/icon';
       width: fit-content;
     }
     .logo-badge {
-      background: #ffffff;
+      background: var(--surface);
       border-radius: 50%;
       padding: 2px;
       display: flex;
@@ -234,7 +234,7 @@ import { Icon } from '../../shared/components/icon/icon';
     }
     .hero-tagline {
       font-size: 0.92rem;
-      color: #cbd5e1;
+      color: var(--neutral-300);
       line-height: 1.5;
       margin: 0;
       max-width: 440px;
@@ -256,7 +256,7 @@ import { Icon } from '../../shared/components/icon/icon';
       padding: 0.5rem 0.85rem;
       font-size: 0.85rem;
       font-weight: 600;
-      color: #f1f5f9;
+      color: var(--neutral-100);
       width: fit-content;
     }
     .pill-icon {
@@ -269,7 +269,7 @@ import { Icon } from '../../shared/components/icon/icon';
     .hero-footer p {
       margin: 0;
       font-size: 0.75rem;
-      color: #94a3b8;
+      color: var(--neutral-400);
       font-weight: 500;
     }
 
@@ -290,9 +290,9 @@ import { Icon } from '../../shared/components/icon/icon';
       width: 38px;
       height: 38px;
       border-radius: 50%;
-      border: 1px solid var(--border-color, #e2e8f0);
+      border: 1px solid var(--border-color, var(--neutral-200));
       background: var(--bg-card, #ffffff);
-      color: var(--text-muted, #64748b);
+      color: var(--text-muted, var(--neutral-500));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -300,8 +300,8 @@ import { Icon } from '../../shared/components/icon/icon';
       transition: all 0.2s;
     }
     .theme-btn:hover {
-      background: var(--bg-hover, #f1f5f9);
-      color: var(--text-primary, #0f172a);
+      background: var(--bg-hover, var(--neutral-100));
+      color: var(--text-primary, var(--neutral-900));
     }
 
     .form-content-wrap {
@@ -312,7 +312,7 @@ import { Icon } from '../../shared/components/icon/icon';
     .form-footer-links {
       text-align: center;
       font-size: 0.8rem;
-      color: var(--text-muted, #94a3b8);
+      color: var(--text-muted, var(--neutral-400));
       margin-top: 1.5rem;
     }
 

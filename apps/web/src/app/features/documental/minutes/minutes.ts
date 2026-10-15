@@ -158,15 +158,15 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     .post-results {
       position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
       margin: 0; padding: 0; list-style: none; max-height: 220px; overflow: auto;
-      background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--neutral-300); border-radius: 8px;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
     }
     .post-results button {
       display: block; width: 100%; text-align: left; padding: .45rem .65rem;
-      border: 0; background: #fff; cursor: pointer; font: inherit; color: #0f172a;
+      border: 0; background: var(--surface); cursor: pointer; font: inherit; color: var(--neutral-900);
     }
-    .post-results button:hover { background: #e2e8f0; }
-    .post-empty { padding: .45rem .65rem; color: #64748b; font-size: .82rem; }
+    .post-results button:hover { background: var(--neutral-200); }
+    .post-empty { padding: .45rem .65rem; color: var(--neutral-500); font-size: .82rem; }
   `,
   ],
 })

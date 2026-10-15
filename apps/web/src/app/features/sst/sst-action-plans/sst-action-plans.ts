@@ -167,16 +167,16 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     .page { display: flex; flex-direction: column; gap: 1.25rem; }
     .head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
-    .head p { margin: 0; color: var(--text-muted, #64748b); font-size: 0.9rem; max-width: 50rem; }
+    .head p { margin: 0; color: var(--text-muted, var(--neutral-500)); font-size: 0.9rem; max-width: 50rem; }
     .filters { display: flex; flex-wrap: wrap; gap: 0.4rem; }
     .chip {
-      border: 1px solid var(--border, #cbd5e1); background: var(--surface, #fff);
+      border: 1px solid var(--border, var(--neutral-300)); background: var(--surface, #fff);
       border-radius: 999px; padding: 0.35rem 0.8rem; font-size: 0.82rem; font-weight: 500; cursor: pointer;
       transition: all 0.15s;
     }
     .chip.active { background: var(--brand, #0f766e); color: #fff; border-color: transparent; font-weight: 600; }
     .card {
-      background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
+      background: var(--surface, #fff); border: 1px solid var(--border, var(--neutral-200));
       border-radius: 0.75rem; padding: 1.1rem; overflow: auto; display: flex; flex-direction: column; gap: 0.85rem;
     }
     .card-header-bar {
@@ -184,69 +184,69 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     }
     .card-header-bar h3 { margin: 0; font-size: 1rem; }
     .search-input {
-      font: inherit; padding: 0.45rem 0.8rem; border-radius: 0.5rem; border: 1px solid var(--border, #cbd5e1);
+      font: inherit; padding: 0.45rem 0.8rem; border-radius: 0.5rem; border: 1px solid var(--border, var(--neutral-300));
       width: 100%; max-width: 360px; font-size: 0.85rem; background: var(--bg, #fff);
     }
     table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th, td { text-align: left; padding: 0.65rem 0.45rem; border-bottom: 1px solid var(--border, #e2e8f0); vertical-align: top; }
-    th { color: var(--text-muted, #64748b); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+    th, td { text-align: left; padding: 0.65rem 0.45rem; border-bottom: 1px solid var(--border, var(--neutral-200)); vertical-align: top; }
+    th { color: var(--text-muted, var(--neutral-500)); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
     .item-tag { display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem; flex-wrap: wrap; }
     .badge-code {
       background: #0f766e; color: #fff; font-size: 0.72rem; font-weight: 700;
       padding: 0.15rem 0.45rem; border-radius: 0.3rem;
     }
     .badge-cat {
-      background: #f1f5f9; color: #475569; font-size: 0.72rem; font-weight: 600;
-      padding: 0.15rem 0.45rem; border-radius: 0.3rem; border: 1px solid #e2e8f0;
+      background: var(--neutral-100); color: var(--neutral-600); font-size: 0.72rem; font-weight: 600;
+      padding: 0.15rem 0.45rem; border-radius: 0.3rem; border: 1px solid var(--neutral-200);
     }
-    .item-pregunta { font-weight: 600; color: #1e293b; font-size: 0.88rem; line-height: 1.35; }
+    .item-pregunta { font-weight: 600; color: var(--neutral-800); font-size: 0.88rem; line-height: 1.35; }
     .reinc-badge {
       display: inline-block; margin-top: 0.35rem; font-size: 0.75rem; font-weight: 600;
       color: #ca8a04; background: #fef9c3; padding: 0.15rem 0.4rem; border-radius: 0.3rem;
     }
-    .reinc-badge.alert { color: #b91c1c; background: #fee2e2; }
-    .puesto-name { font-weight: 600; color: #0f172a; }
-    .meta { color: var(--text-muted, #64748b); font-size: 0.8rem; margin-top: 0.15rem; }
-    .meta-date { font-size: 0.76rem; color: #64748b; margin-top: 0.2rem; }
-    .hallazgo-box { color: #991b1b; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
+    .reinc-badge.alert { color: var(--error-600); background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); }
+    .puesto-name { font-weight: 600; color: var(--neutral-900); }
+    .meta { color: var(--text-muted, var(--neutral-500)); font-size: 0.8rem; margin-top: 0.15rem; }
+    .meta-date { font-size: 0.76rem; color: var(--neutral-500); margin-top: 0.2rem; }
+    .hallazgo-box { color: var(--error-600); font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
     .plan-box { color: #0f766e; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.25rem; }
     .plan-photos { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; }
     .plan-thumb {
       width: 44px; height: 44px; border-radius: 0.35rem; object-fit: cover;
-      border: 1px solid #cbd5e1; cursor: pointer; transition: transform 0.12s;
+      border: 1px solid var(--neutral-300); cursor: pointer; transition: transform 0.12s;
     }
     .plan-thumb:hover { transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
-    .meta-resp { font-size: 0.78rem; color: #475569; }
-    .overdue { color: #b91c1c; font-weight: 700; }
+    .meta-resp { font-size: 0.78rem; color: var(--neutral-600); }
+    .overdue { color: var(--error-600); font-weight: 700; }
     .tag-overdue {
-      display: inline-block; font-size: 0.68rem; font-weight: 700; color: #b91c1c;
-      background: #fee2e2; padding: 0.1rem 0.35rem; border-radius: 0.25rem; text-transform: uppercase;
+      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--error-600);
+      background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); padding: 0.1rem 0.35rem; border-radius: 0.25rem; text-transform: uppercase;
     }
     .status-badge {
       display: inline-flex; align-items: center; padding: 0.2rem 0.55rem; border-radius: 0.4rem;
       font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
     }
-    .status-badge[data-status='ABIERTO'] { background: #fef3c7; color: #92400e; }
-    .status-badge[data-status='EN_PROCESO'] { background: #dbeafe; color: #1e40af; }
-    .status-badge[data-status='CERRADO'] { background: #dcfce7; color: #15803d; }
-    .status-badge[data-status='REINCIDENTE'] { background: #fee2e2; color: #991b1b; }
+    .status-badge[data-status='ABIERTO'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .status-badge[data-status='EN_PROCESO'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #1e40af; }
+    .status-badge[data-status='CERRADO'] { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .status-badge[data-status='REINCIDENTE'] { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
     .ops { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
     .btn-link {
       color: var(--brand, #0f766e); font-weight: 600; font-size: 0.8rem; text-decoration: none;
       padding: 0.2rem 0.4rem; border-radius: 0.3rem; background: color-mix(in srgb, var(--brand, #0f766e) 10%, transparent);
     }
     .mini-btn {
-      border: 1px solid var(--border, #cbd5e1); background: var(--surface, #fff);
+      border: 1px solid var(--border, var(--neutral-300)); background: var(--surface, #fff);
       border-radius: 0.35rem; padding: 0.25rem 0.5rem; font-size: 0.74rem; cursor: pointer; font-weight: 600;
       white-space: nowrap; transition: background 0.15s;
     }
     .mini-btn.btn-process { color: #1d4ed8; border-color: #93c5fd; }
-    .mini-btn.btn-process:hover { background: #eff6ff; }
-    .mini-btn.btn-close { color: #15803d; border-color: #86efac; }
-    .mini-btn.btn-close:hover { background: #f0fdf4; }
-    .mini-btn.btn-reopen { color: #b45309; border-color: #fde68a; }
-    .empty { text-align: center; color: var(--text-muted, #64748b); padding: 1.5rem !important; }
-    tr.critical { background: color-mix(in srgb, #fecaca 25%, transparent); }
+    .mini-btn.btn-process:hover { background: color-mix(in srgb, var(--primary-600) 10%, var(--surface)); }
+    .mini-btn.btn-close { color: var(--success-600); border-color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
+    .mini-btn.btn-close:hover { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
+    .mini-btn.btn-reopen { color: var(--warning-600); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .empty { text-align: center; color: var(--text-muted, var(--neutral-500)); padding: 1.5rem !important; }
+    tr.critical { background: color-mix(in srgb, color-mix(in srgb, var(--error-500) 28%, var(--surface)) 25%, transparent); }
     tr.closed { opacity: 0.75; }
 
     /* Modal previsualización */
@@ -255,12 +255,12 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
       display: flex; align-items: center; justify-content: center; padding: 1rem;
     }
     .modal-content {
-      background: #fff; border-radius: 0.75rem; padding: 0.75rem; max-width: 90vw; max-height: 90vh;
+      background: var(--surface); border-radius: 0.75rem; padding: 0.75rem; max-width: 90vw; max-height: 90vh;
       display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
     }
     .modal-img { max-width: 85vw; max-height: 78vh; object-fit: contain; border-radius: 0.4rem; }
     .modal-close {
-      background: #334155; color: #fff; border: 0; border-radius: 0.4rem; padding: 0.4rem 0.85rem;
+      background: var(--neutral-700); color: #fff; border: 0; border-radius: 0.4rem; padding: 0.4rem 0.85rem;
       font-size: 0.85rem; font-weight: 600; cursor: pointer;
     }
   `,

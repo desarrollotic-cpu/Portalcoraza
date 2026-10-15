@@ -525,12 +525,12 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       margin: 0;
       padding: 0.85rem 1rem;
       border-radius: 10px;
-      background: color-mix(in srgb, #f59e0b 14%, var(--surface, #fff));
-      border: 1px solid #fde68a;
-      color: #92400e;
+      background: color-mix(in srgb, var(--warning-500) 14%, var(--surface, #fff));
+      border: 1px solid color-mix(in srgb, var(--warning-500) 35%, var(--surface));
+      color: var(--warning-600);
       font-size: 0.9rem;
     }
-    .error { color: #b91c1c; margin: 0; }
+    .error { color: var(--error-600); margin: 0; }
     .muted { margin: 0; color: var(--text-secondary); font-size: 0.88rem; }
     .month-summary {
       display: flex;
@@ -551,7 +551,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       color: var(--text-secondary);
       font-size: 0.9rem;
     }
-    .month-summary-copy .neg { color: #b45309; }
+    .month-summary-copy .neg { color: var(--warning-600); }
     .charts {
       display: grid;
       grid-template-columns: minmax(200px, 280px) 1fr;
@@ -585,7 +585,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       vertical-align: middle;
     }
     .leg-new::before { background: #2563eb; }
-    .leg-end::before { background: #d97706; }
+    .leg-end::before { background: var(--warning-600); }
     .compare-bars {
       display: flex;
       align-items: flex-end;
@@ -612,7 +612,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       transition: height 0.25s ease;
     }
     .compare-bar.new { background: #2563eb; }
-    .compare-bar.end { background: #d97706; }
+    .compare-bar.end { background: var(--warning-600); }
     .compare-label { font-size: 0.75rem; color: var(--text-secondary); }
     .trend {
       display: flex;
@@ -661,7 +661,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       transition: height 0.25s ease;
     }
     .trend-bar.new { background: #2563eb; }
-    .trend-bar.end { background: #d97706; }
+    .trend-bar.end { background: var(--warning-600); }
     .trend-label {
       font-size: 0.68rem;
       color: var(--text-secondary);
@@ -707,8 +707,8 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       color: #1d4ed8;
     }
     .count-pill--warn {
-      background: color-mix(in srgb, #d97706 18%, transparent);
-      color: #b45309;
+      background: color-mix(in srgb, var(--warning-600) 18%, transparent);
+      color: var(--warning-600);
     }
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 720px; }
@@ -745,8 +745,8 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       color: #6b7280;
     }
     .badge.on {
-      background: color-mix(in srgb, #16a34a 16%, transparent);
-      color: #15803d;
+      background: color-mix(in srgb, var(--success-600) 16%, transparent);
+      color: var(--success-600);
     }
 
     /* Casillas del resumen mensual (clickeables) */
@@ -775,13 +775,13 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       border-color: color-mix(in srgb, var(--primary) 45%, var(--border, #e5e7eb));
       outline: none;
     }
-    .mkpi--new { border-left: 4px solid #16a34a; }
-    .mkpi--end { border-left: 4px solid #dc2626; }
+    .mkpi--new { border-left: 4px solid var(--success-600); }
+    .mkpi--end { border-left: 4px solid var(--error-600); }
     .mkpi--net { border-left: 4px solid #6366f1; }
-    .mkpi--mov { border-left: 4px solid #94a3b8; }
+    .mkpi--mov { border-left: 4px solid var(--neutral-400); }
     .mkpi-label { font-size: 0.78rem; color: var(--text-secondary); }
     .mkpi-value { font-size: 1.6rem; line-height: 1.1; font-weight: 700; }
-    .mkpi-value.neg { color: #b45309; }
+    .mkpi-value.neg { color: var(--warning-600); }
     .mkpi-hint { font-size: 0.72rem; color: var(--text-secondary); }
 
     /* Card resaltada al llegar con scroll desde una casilla */
@@ -833,10 +833,10 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       font-size: 0.75rem; border: 1px solid transparent;
     }
     .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
-    .chip.chip--ok { background: color-mix(in srgb, #16a34a 12%, transparent); color: #15803d; }
-    .chip.chip--ok .chip-dot { background: #16a34a; }
-    .chip.chip--no { background: color-mix(in srgb, #dc2626 12%, transparent); color: #b91c1c; }
-    .chip.chip--no .chip-dot { background: #dc2626; }
+    .chip.chip--ok { background: color-mix(in srgb, var(--success-600) 12%, transparent); color: var(--success-600); }
+    .chip.chip--ok .chip-dot { background: var(--success-600); }
+    .chip.chip--no { background: color-mix(in srgb, var(--error-600) 12%, transparent); color: var(--error-600); }
+    .chip.chip--no .chip-dot { background: var(--error-600); }
     table.mini { width: 100%; font-size: 0.82rem; }
     table.mini th, table.mini td { padding: 0.35rem 0.4rem; }
     .detail-actions { display: flex; justify-content: flex-end; }

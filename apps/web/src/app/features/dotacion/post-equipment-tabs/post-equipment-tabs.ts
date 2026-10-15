@@ -25,7 +25,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       margin-bottom: 1.25rem;
       padding: 0.25rem;
       border-radius: 10px;
-      background: #f1f5f9;
+      background: var(--neutral-100);
       width: fit-content;
       max-width: 100%;
       flex-wrap: wrap;
@@ -36,10 +36,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
       text-decoration: none;
       font-size: 0.88rem;
       font-weight: 600;
-      color: #475569;
+      color: var(--neutral-600);
     }
     .tabs a.active {
-      background: #fff;
+      background: var(--surface);
       color: var(--primary-dark);
       box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
     }

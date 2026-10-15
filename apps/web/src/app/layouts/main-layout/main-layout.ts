@@ -424,7 +424,7 @@ interface NavGroup {
       height: 44px;
       object-fit: contain;
       border-radius: 50%;
-      background: #fff;
+      background: var(--surface);
       box-shadow: 0 6px 16px rgba(15, 23, 42, 0.28);
       flex-shrink: 0;
     }
@@ -629,7 +629,7 @@ interface NavGroup {
       bottom: 0.28rem;
       width: 2px;
       border-radius: 999px;
-      background: #fff;
+      background: var(--surface);
     }
 
     .sidebar-footer {
@@ -985,7 +985,7 @@ interface NavGroup {
         border: 0;
         padding: 0;
         margin: 0;
-        background: color-mix(in srgb, var(--neutral-900, #0f172a) 45%, transparent);
+        background: color-mix(in srgb, var(--ink) 45%, transparent);
         cursor: pointer;
       }
       .sidebar {
@@ -1052,7 +1052,7 @@ interface NavGroup {
       position: fixed;
       inset: 0;
       z-index: 80;
-      background: color-mix(in srgb, var(--neutral-900) 55%, transparent);
+      background: color-mix(in srgb, var(--ink) 55%, transparent);
       display: grid;
       place-items: center;
       padding: 1rem;

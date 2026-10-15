@@ -152,11 +152,11 @@ import { SignatureViewer } from '../signature-viewer/signature-viewer';
       height: 2rem;
       border: 1px solid var(--coraza-border, #e5e5e5);
       border-radius: 8px;
-      background: #fff;
+      background: var(--surface);
       color: var(--primary-dark, #1d4ed8);
       cursor: pointer;
     }
-    .btn-eye:hover { background: #eff6ff; }
+    .btn-eye:hover { background: color-mix(in srgb, var(--primary-600) 10%, var(--surface)); }
     .dot-pagination {
       display: flex;
       align-items: center;

@@ -475,30 +475,30 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
     .span-2 { grid-column: span 2; }
 
     .form-group { display: flex; flex-direction: column; gap: 0.35rem; }
-    .label-title { font-size: 0.82rem; font-weight: 700; color: #334155; }
+    .label-title { font-size: 0.82rem; font-weight: 700; color: var(--neutral-700); }
     
     .inp-select, .inp-text {
       font: inherit;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--neutral-300);
       border-radius: 0.55rem;
       padding: 0.6rem 0.8rem;
-      background: #f8fafc;
-      color: #0f172a;
+      background: var(--neutral-50);
+      color: var(--neutral-900);
       font-size: 0.86rem;
       transition: all 0.15s;
     }
     .inp-select:focus, .inp-text:focus {
       border-color: #0d429c;
-      background: #ffffff;
+      background: var(--surface);
       outline: none;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
-    .inp-select.highlight { border-color: #93c5fd; background: #f0f9ff; font-weight: 600; color: #0d429c; }
+    .inp-select.highlight { border-color: #93c5fd; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); font-weight: 600; color: #0d429c; }
     .inp-radicado {
       font: inherit;
       font-weight: 800;
       color: #0d429c;
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
       padding: 0.6rem 0.8rem;
@@ -507,8 +507,8 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
     /* GUIA DE ESTADOS */
     .status-guide-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.85rem;
       padding: 1rem 1.25rem;
     }
@@ -518,7 +518,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       gap: 0.45rem;
       font-size: 0.8rem;
       font-weight: 700;
-      color: #475569;
+      color: var(--neutral-600);
       margin-bottom: 0.75rem;
     }
     .guide-grid {
@@ -530,30 +530,30 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       display: flex;
       align-items: flex-start;
       gap: 0.65rem;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.55rem;
       padding: 0.65rem 0.85rem;
       font-size: 0.76rem;
     }
-    .guide-item.pend { border-left: 3px solid #f59e0b; }
+    .guide-item.pend { border-left: 3px solid var(--warning-500); }
     .guide-item.env { border-left: 3px solid #3b82f6; }
     .guide-item.rec { border-left: 3px solid #06b6d4; }
     .guide-item.ent { border-left: 3px solid #10b981; }
     .guide-emoji { font-size: 1.1rem; }
-    .guide-item strong { display: block; font-size: 0.78rem; color: #1e293b; }
-    .guide-item p { margin: 0.15rem 0 0; color: #64748b; font-size: 0.72rem; }
+    .guide-item strong { display: block; font-size: 0.78rem; color: var(--neutral-800); }
+    .guide-item p { margin: 0.15rem 0 0; color: var(--neutral-500); font-size: 0.72rem; }
 
     /* TABLE */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
     .radicado-text { color: #0d429c; font-size: 0.88rem; }
-    .voxel-tag { font-size: 0.72rem; color: #64748b; margin-top: 0.15rem; }
-    .dept-badge { background: #f1f5f9; color: #334155; font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
-    .arrow-sep { color: #94a3b8; margin: 0 0.25rem; font-size: 0.75rem; }
-    .doc-type-text { font-weight: 600; color: #0f172a; font-size: 0.82rem; }
-    .medium-tag { font-size: 0.72rem; color: #64748b; margin-left: 0.25rem; }
-    .subject-text { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
-    .detail-subtext { font-size: 0.74rem; color: #64748b; margin-top: 0.2rem; }
+    .voxel-tag { font-size: 0.72rem; color: var(--neutral-500); margin-top: 0.15rem; }
+    .dept-badge { background: var(--neutral-100); color: var(--neutral-700); font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
+    .arrow-sep { color: var(--neutral-400); margin: 0 0.25rem; font-size: 0.75rem; }
+    .doc-type-text { font-weight: 600; color: var(--neutral-900); font-size: 0.82rem; }
+    .medium-tag { font-size: 0.72rem; color: var(--neutral-500); margin-left: 0.25rem; }
+    .subject-text { font-size: 0.85rem; font-weight: 600; color: var(--neutral-900); }
+    .detail-subtext { font-size: 0.74rem; color: var(--neutral-500); margin-top: 0.2rem; }
 
     @media (max-width: 680px) {
       .form-grid { grid-template-columns: 1fr; }

@@ -239,7 +239,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
   styles: `
     .page-head { margin-bottom: 1rem; }
     .page-head h2 { margin: 0 0 0.35rem; color: var(--primary-dark); font-size: 1.25rem; }
-    .page-head p { margin: 0; color: var(--coraza-text-muted, #64748b); max-width: 42rem; font-size: 0.9rem; }
+    .page-head p { margin: 0; color: var(--coraza-text-muted, var(--neutral-500)); max-width: 42rem; font-size: 0.9rem; }
     .filter-bar {
       display: flex;
       flex-wrap: wrap;
@@ -252,7 +252,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       flex-direction: column;
       gap: 0.25rem;
       font-size: 0.85rem;
-      color: #64748b;
+      color: var(--neutral-500);
     }
     .filter-bar input {
       min-width: 260px;
@@ -261,7 +261,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       border-radius: 8px;
       font: inherit;
     }
-    .muted { color: #64748b; font-size: 0.85rem; }
+    .muted { color: var(--neutral-500); font-size: 0.85rem; }
     .table-wrap {
       border: 1px solid var(--coraza-border);
       border-radius: 10px;
@@ -287,21 +287,21 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       color: var(--primary);
       letter-spacing: 0.03em;
     }
-    .meta { font-size: 0.78rem; color: #64748b; }
+    .meta { font-size: 0.78rem; color: var(--neutral-500); }
     .badge {
       display: inline-block;
       min-width: 1.6rem;
       text-align: center;
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
-      background: #f1f5f9;
+      background: var(--neutral-100);
       font-weight: 700;
       font-size: 0.8rem;
     }
-    .badge.warn { background: color-mix(in srgb, #f59e0b 16%, #fff); color: #b45309; }
+    .badge.warn { background: color-mix(in srgb, var(--warning-500) 16%, #fff); color: var(--warning-600); }
     .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; }
-    .hint { margin: 0 0 0.75rem; font-size: 0.85rem; color: #64748b; }
+    .hint { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--neutral-500); }
     .unit-list {
       max-height: 280px;
       overflow: auto;
@@ -324,7 +324,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       gap: 0.25rem;
       margin-bottom: 0.65rem;
       font-size: 0.85rem;
-      color: #64748b;
+      color: var(--neutral-500);
     }
     .field input, .field select {
       padding: 0.5rem 0.65rem;
@@ -352,12 +352,12 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       cursor: pointer;
     }
     .btn-sm.danger {
-      border-color: color-mix(in srgb, #dc2626 35%, #fecaca);
-      background: color-mix(in srgb, #dc2626 8%, #fff);
-      color: #b91c1c;
+      border-color: color-mix(in srgb, var(--error-600) 35%, color-mix(in srgb, var(--error-500) 28%, var(--surface)));
+      background: color-mix(in srgb, var(--error-600) 8%, #fff);
+      color: var(--error-600);
     }
     .error { color: var(--coraza-error); }
-    .empty { color: #64748b; }
+    .empty { color: var(--neutral-500); }
   `,
 })
 export class PostEquipmentList implements OnInit {

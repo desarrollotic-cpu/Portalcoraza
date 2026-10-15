@@ -216,7 +216,7 @@ import {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       color: #0d429c;
       border: 1px solid #bfdbfe;
       border-radius: 0.65rem;
@@ -228,13 +228,13 @@ import {
       box-shadow: 0 1px 2px rgba(0,0,0,0.03);
     }
     .queue-topbar-btn:hover {
-      background: #e0f2fe;
+      background: color-mix(in srgb, var(--primary-600) 18%, var(--surface));
       border-color: #93c5fd;
       transform: translateY(-1px);
     }
     .queue-text { font-weight: 700; }
     .queue-badge {
-      background: #94a3b8;
+      background: var(--neutral-400);
       color: #fff;
       font-size: 0.72rem;
       font-weight: 800;
@@ -264,12 +264,12 @@ import {
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
     .modal-card {
-      background: #ffffff;
+      background: var(--surface);
       border-radius: 1.25rem;
       width: 100%;
       max-width: 680px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--neutral-200);
       display: flex;
       flex-direction: column;
       max-height: 88vh;
@@ -281,38 +281,38 @@ import {
       justify-content: space-between;
       align-items: center;
       padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--neutral-100);
     }
     .modal-title-wrap { display: flex; align-items: center; gap: 0.85rem; }
     .print-icon-box {
       width: 40px;
       height: 40px;
       border-radius: 10px;
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       color: #0d429c;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    .modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f172a; }
-    .modal-header p { margin: 0.15rem 0 0; font-size: 0.78rem; color: #64748b; }
+    .modal-header h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--neutral-900); }
+    .modal-header p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--neutral-500); }
     .btn-close {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--neutral-400);
       cursor: pointer;
       padding: 0.35rem;
       border-radius: 0.4rem;
       display: flex;
       align-items: center;
     }
-    .btn-close:hover { background: #f1f5f9; color: #0f172a; }
+    .btn-close:hover { background: var(--neutral-100); color: var(--neutral-900); }
 
     /* TABS */
     .modal-tabs {
       display: flex;
-      border-bottom: 1px solid #e2e8f0;
-      background: #f8fafc;
+      border-bottom: 1px solid var(--neutral-200);
+      background: var(--neutral-50);
       padding: 0 1.5rem;
       gap: 0.5rem;
     }
@@ -326,15 +326,15 @@ import {
       padding: 0.75rem 0.95rem;
       font-size: 0.85rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--neutral-500);
       cursor: pointer;
       transition: all 0.15s ease;
     }
-    .tab-btn:hover { color: #0f172a; }
+    .tab-btn:hover { color: var(--neutral-900); }
     .tab-btn.active {
       color: #0d429c;
       border-bottom-color: #0d429c;
-      background: #ffffff;
+      background: var(--surface);
     }
 
     .modal-body {
@@ -349,19 +349,19 @@ import {
     .empty-queue {
       text-align: center;
       padding: 2.5rem 1.5rem;
-      background: #f8fafc;
+      background: var(--neutral-50);
       border-radius: 0.85rem;
-      border: 1px dashed #cbd5e1;
+      border: 1px dashed var(--neutral-300);
     }
     .empty-icon { font-size: 2.2rem; margin-bottom: 0.5rem; }
-    .empty-queue strong { display: block; font-size: 0.95rem; color: #334155; margin-bottom: 0.3rem; }
-    .empty-queue p { margin: 0; font-size: 0.82rem; color: #64748b; max-width: 420px; margin: 0 auto; line-height: 1.4; }
+    .empty-queue strong { display: block; font-size: 0.95rem; color: var(--neutral-700); margin-bottom: 0.3rem; }
+    .empty-queue p { margin: 0; font-size: 0.82rem; color: var(--neutral-500); max-width: 420px; margin: 0 auto; line-height: 1.4; }
     .btn-goto-history {
       margin-top: 1rem;
       display: inline-flex;
       align-items: center;
       gap: 0.4rem;
-      background: #ffffff;
+      background: var(--surface);
       border: 1px solid #bfdbfe;
       color: #0d429c;
       padding: 0.45rem 0.85rem;
@@ -370,19 +370,19 @@ import {
       font-weight: 700;
       cursor: pointer;
     }
-    .btn-goto-history:hover { background: #f0f9ff; }
+    .btn-goto-history:hover { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
 
     .queue-status-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       font-size: 0.85rem;
-      color: #334155;
+      color: var(--neutral-700);
     }
     .btn-clear {
       background: transparent;
-      border: 1px solid #fca5a5;
-      color: #dc2626;
+      border: 1px solid color-mix(in srgb, var(--error-500) 35%, var(--surface));
+      color: var(--error-600);
       border-radius: 0.4rem;
       padding: 0.25rem 0.55rem;
       font-size: 0.75rem;
@@ -392,15 +392,15 @@ import {
       align-items: center;
       gap: 0.3rem;
     }
-    .btn-clear:hover { background: #fee2e2; }
+    .btn-clear:hover { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); }
 
     .queue-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .queue-item {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.65rem;
       padding: 0.65rem 0.85rem;
       gap: 0.75rem;
@@ -412,34 +412,34 @@ import {
       text-transform: uppercase;
       padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
-      background: #e2e8f0;
-      color: #475569;
+      background: var(--neutral-200);
+      color: var(--neutral-600);
     }
     .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
     .item-badge[data-mod='CONTRATOS'] { background: #e0e7ff; color: #3730a3; }
-    .item-badge[data-mod='PERSONAL'] { background: #fef3c7; color: #92400e; }
-    .item-badge[data-mod='CORRESPONDENCIA'] { background: #e0f2fe; color: #0d429c; }
+    .item-badge[data-mod='PERSONAL'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .item-badge[data-mod='CORRESPONDENCIA'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
     .item-code { color: #0d429c; font-size: 0.92rem; }
-    .item-title { font-size: 0.85rem; font-weight: 600; color: #0f172a; }
-    .item-slot { font-size: 0.75rem; color: #64748b; background: #f1f5f9; padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
+    .item-title { font-size: 0.85rem; font-weight: 600; color: var(--neutral-900); }
+    .item-slot { font-size: 0.75rem; color: var(--neutral-500); background: var(--neutral-100); padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
     
     .btn-remove {
       background: transparent;
       border: none;
-      color: #94a3b8;
+      color: var(--neutral-400);
       cursor: pointer;
       padding: 0.35rem;
       border-radius: 0.35rem;
       display: flex;
       align-items: center;
     }
-    .btn-remove:hover { background: #fee2e2; color: #ef4444; }
+    .btn-remove:hover { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-500); }
 
     /* HISTORIAL CARDS */
     .history-list { display: flex; flex-direction: column; gap: 0.75rem; }
     .history-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.75rem;
       padding: 0.85rem 1rem;
       display: flex;
@@ -455,8 +455,8 @@ import {
       gap: 0.5rem;
     }
     .history-card-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
-    .history-badge { font-size: 0.72rem; font-weight: 800; background: #f1f5f9; color: #334155; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
-    .history-date { font-size: 0.78rem; color: #64748b; font-weight: 600; }
+    .history-badge { font-size: 0.72rem; font-weight: 800; background: var(--neutral-100); color: var(--neutral-700); padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
+    .history-date { font-size: 0.78rem; color: var(--neutral-500); font-weight: 600; }
     .history-count { font-size: 0.78rem; font-weight: 700; color: #0d429c; }
     .history-actions { display: flex; align-items: center; gap: 0.4rem; }
     .btn-reprint {
@@ -477,24 +477,24 @@ import {
       display: inline-flex;
       align-items: center;
       gap: 0.3rem;
-      background: #f8fafc;
-      border: 1px solid #cbd5e1;
-      color: #475569;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-300);
+      color: var(--neutral-600);
       border-radius: 0.45rem;
       padding: 0.35rem 0.6rem;
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
     }
-    .btn-restore:hover { background: #f1f5f9; }
+    .btn-restore:hover { background: var(--neutral-100); }
     .history-items-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .history-chip {
       font-size: 0.72rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
-      color: #334155;
+      color: var(--neutral-700);
     }
     .history-chip strong { color: #0d429c; }
 
@@ -503,20 +503,20 @@ import {
       justify-content: flex-end;
       gap: 0.75rem;
       padding: 1rem 1.5rem;
-      border-top: 1px solid #f1f5f9;
-      background: #f8fafc;
+      border-top: 1px solid var(--neutral-100);
+      background: var(--neutral-50);
     }
     .btn-cancel {
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #475569;
+      border: 1px solid var(--neutral-300);
+      background: var(--surface);
+      color: var(--neutral-600);
       border-radius: 0.55rem;
       padding: 0.55rem 1rem;
       font-weight: 700;
       font-size: 0.85rem;
       cursor: pointer;
     }
-    .btn-cancel:hover { background: #f1f5f9; }
+    .btn-cancel:hover { background: var(--neutral-100); }
     
     .btn-print-all {
       border: none;
@@ -533,7 +533,7 @@ import {
       transition: background 0.2s;
     }
     .btn-print-all:hover { background: var(--primary-700, #043383); }
-    .btn-print-all:disabled { background: #94a3b8; cursor: not-allowed; }
+    .btn-print-all:disabled { background: var(--neutral-400); cursor: not-allowed; }
   `,
 })
 export class DocumentalLayout implements OnInit {

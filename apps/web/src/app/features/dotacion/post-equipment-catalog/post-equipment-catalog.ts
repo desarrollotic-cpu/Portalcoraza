@@ -180,7 +180,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
   styles: `
     .page-head { margin-bottom: 1.25rem; }
     .page-head h2 { margin: 0 0 0.35rem; color: var(--primary-dark); font-size: 1.25rem; }
-    .page-head p { margin: 0; color: var(--coraza-text-muted, #64748b); max-width: 42rem; font-size: 0.9rem; }
+    .page-head p { margin: 0; color: var(--coraza-text-muted, var(--neutral-500)); max-width: 42rem; font-size: 0.9rem; }
     .panel {
       margin-bottom: 1.25rem;
       padding: 1rem 1.1rem;
@@ -189,7 +189,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       background: var(--coraza-surface, #fff);
     }
     .panel h3 { margin: 0 0 0.35rem; font-size: 1rem; color: var(--primary-dark); }
-    .hint { margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--coraza-text-muted, #64748b); }
+    .hint { margin: 0 0 0.75rem; font-size: 0.82rem; color: var(--coraza-text-muted, var(--neutral-500)); }
     .form {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -202,7 +202,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       flex-direction: column;
       gap: 0.25rem;
       font-size: 0.85rem;
-      color: var(--coraza-text-muted, #64748b);
+      color: var(--coraza-text-muted, var(--neutral-500));
     }
     input {
       padding: 0.5rem 0.65rem;
@@ -231,15 +231,15 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       padding: 0.55rem 0.8rem;
       border-radius: 10px;
       border: 1px solid var(--coraza-border);
-      background: #f8fafc;
+      background: var(--neutral-50);
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     .kpis strong { font-size: 1.15rem; color: var(--primary-dark); }
-    .kpis span { font-size: 0.72rem; color: #64748b; }
-    .kpis .warn { background: color-mix(in srgb, #f59e0b 12%, #fff); border-color: #fde68a; }
-    .kpis .warn strong { color: #b45309; }
+    .kpis span { font-size: 0.72rem; color: var(--neutral-500); }
+    .kpis .warn { background: color-mix(in srgb, var(--warning-500) 12%, #fff); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .kpis .warn strong { color: var(--warning-600); }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -260,8 +260,8 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       text-transform: uppercase;
       color: var(--primary-dark);
     }
-    .meta, .muted { font-size: 0.78rem; color: var(--coraza-text-muted, #64748b); }
-    .warn { color: #b45309; font-weight: 700; }
+    .meta, .muted { font-size: 0.78rem; color: var(--coraza-text-muted, var(--neutral-500)); }
+    .warn { color: var(--warning-600); font-weight: 700; }
     .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .btn-sm, a.btn-sm {
       padding: 0.3rem 0.65rem;
@@ -275,16 +275,16 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       text-decoration: none;
     }
     a.btn-sm.ghost, .btn-sm.ghost {
-      background: #fff;
+      background: var(--surface);
       border-color: var(--coraza-border);
-      color: #475569;
+      color: var(--neutral-600);
     }
     .loc-summary {
       display: flex;
       gap: 1rem;
       margin-bottom: 0.85rem;
       font-size: 0.85rem;
-      color: #475569;
+      color: var(--neutral-600);
     }
     table.inner { margin-top: 0.5rem; }
     .error { color: var(--coraza-error); }

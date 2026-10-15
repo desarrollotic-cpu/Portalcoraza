@@ -192,7 +192,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
     .step-hint {
       margin: 0 0 0.75rem;
       padding: 0.55rem 0.75rem;
-      background: #eff6ff;
+      background: color-mix(in srgb, var(--primary-600) 10%, var(--surface));
       border: 1px solid #bfdbfe;
       border-radius: 8px;
       color: #1e3a8a;
@@ -217,9 +217,9 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
     }
     .variant-fixed {
       font-size: 0.85rem;
-      color: #334155;
+      color: var(--neutral-700);
       padding: 0.35rem 0.5rem;
-      background: #f1f5f9;
+      background: var(--neutral-100);
       border-radius: 8px;
     }
     .stock-badge {
@@ -246,7 +246,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       cursor: pointer;
     }
     .obs { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 1rem; }
-    .obs-ro { font-size: 0.9rem; color: #334155; }
+    .obs-ro { font-size: 0.9rem; color: var(--neutral-700); }
     .summary {
       list-style: none;
       margin: 0 0 1rem;
@@ -260,8 +260,8 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       grid-template-columns: 1.2fr 1.4fr auto;
       gap: 0.5rem;
       padding: 0.55rem 0.65rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       border-radius: 8px;
       font-size: 0.88rem;
     }
@@ -271,7 +271,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       padding: 0.65rem;
       border: 1px solid var(--coraza-border);
       border-radius: 10px;
-      background: #fff;
+      background: var(--surface);
     }
     .sig-label {
       margin: 0 0 0.35rem;
@@ -283,7 +283,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       width: 100%;
       max-height: 160px;
       object-fit: contain;
-      background: #fff;
+      background: var(--surface);
     }
     .actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; margin-top: 1rem; }
     .btn-confirm {
@@ -300,10 +300,10 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
     .hint-block {
       margin: 0.75rem 0 0;
       padding: 0.55rem 0.75rem;
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
+      background: color-mix(in srgb, var(--warning-500) 10%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--warning-500) 30%, var(--surface));
       border-radius: 8px;
-      color: #9a3412;
+      color: var(--warning-600);
       font-size: 0.85rem;
     }
   `,

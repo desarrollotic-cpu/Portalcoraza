@@ -733,7 +733,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     button.primary { background: var(--coraza-primary, #1d4ed8); color: #fff; padding: 0.5rem 0.9rem; }
     button.ghost { background: transparent; border: 1px solid var(--border, #d1d5db); padding: 0.5rem 0.9rem; }
     button.link { background: none; color: var(--coraza-primary, #1d4ed8); padding: 0; }
-    button.link.danger { color: #b91c1c; }
+    button.link.danger { color: var(--error-600); }
     .form {
       border: 1px solid var(--border, #e5e7eb); border-radius: 12px;
       padding: 1rem; background: var(--surface, #fff);
@@ -751,7 +751,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     }
     button.add {
-      border: 1px dashed var(--border, #d1d5db); background: #fff; color: inherit;
+      border: 1px dashed var(--border, #d1d5db); background: var(--surface); color: inherit;
       border-radius: 8px; padding: 0.2rem 0.55rem; font: inherit; font-size: 0.78rem;
       cursor: pointer;
     }
@@ -788,10 +788,10 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px;
       font-size: 0.72rem; background: #f3f4f6;
     }
-    .badge.ok { background: #dcfce7; color: #166534; }
+    .badge.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .empty, .error { color: var(--text-muted, #6b7280); }
-    .error { color: #b91c1c; }
+    .error { color: var(--error-600); }
     .baja-info { margin-top: 0.2rem; font-size: 0.72rem; color: var(--text-muted, #6b7280); }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; }
 
@@ -802,21 +802,21 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     }
     .panel {
       background: var(--coraza-surface, #fff); border-radius: var(--coraza-radius, 12px);
-      border: 1px solid var(--coraza-border, #e2e8f0);
+      border: 1px solid var(--coraza-border, var(--neutral-200));
       box-shadow: var(--coraza-shadow, 0 18px 40px rgba(15, 23, 42, 0.18));
       width: min(440px, 100%);
     }
     .panel-header {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 1rem 1.15rem; border-bottom: 1px solid var(--coraza-border, #e2e8f0);
+      padding: 1rem 1.15rem; border-bottom: 1px solid var(--coraza-border, var(--neutral-200));
     }
     .panel-header h3 { margin: 0; font-size: 1.05rem; color: var(--primary-dark, #1e3a5f); }
     .panel .close {
       border: none; background: transparent; font-size: 1.45rem; line-height: 1; cursor: pointer;
-      color: var(--coraza-text-muted, #64748b); width: 44px; height: 44px;
+      color: var(--coraza-text-muted, var(--neutral-500)); width: 44px; height: 44px;
     }
     .panel-body { padding: 1.15rem 1.2rem 1.25rem; display: flex; flex-direction: column; gap: 0.75rem; }
-    .panel-body .message { margin: 0; color: var(--coraza-text, #0f172a); font-size: 0.9rem; line-height: 1.45; }
+    .panel-body .message { margin: 0; color: var(--coraza-text, var(--neutral-900)); font-size: 0.9rem; line-height: 1.45; }
     .panel-body label {
       display: flex; flex-direction: column; gap: 0.3rem;
       font-size: 0.82rem; color: var(--text-muted, #6b7280);
@@ -827,13 +827,13 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       font-weight: 600; cursor: pointer; min-height: 44px;
     }
     .btn-ghost {
-      border: 1px solid var(--coraza-border, #e2e8f0); background: transparent; color: var(--primary-dark, #1e3a5f);
+      border: 1px solid var(--coraza-border, var(--neutral-200)); background: transparent; color: var(--primary-dark, #1e3a5f);
     }
     .btn-confirm {
       border: 1px solid color-mix(in srgb, var(--primary, #1d4ed8) 40%, transparent);
       background: var(--primary, #1d4ed8); color: #fff;
     }
-    .btn-confirm.danger { border-color: color-mix(in srgb, #dc2626 40%, transparent); background: #dc2626; }
+    .btn-confirm.danger { border-color: color-mix(in srgb, var(--error-600) 40%, transparent); background: var(--error-600); }
     .btn-ghost:disabled, .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
     @media (max-width: 800px) {
       .grid { grid-template-columns: 1fr; }

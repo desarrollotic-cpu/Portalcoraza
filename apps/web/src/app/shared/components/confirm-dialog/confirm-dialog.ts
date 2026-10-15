@@ -60,7 +60,7 @@ import { Component, input, output } from '@angular/core';
     .panel {
       background: var(--coraza-surface, #fff);
       border-radius: var(--coraza-radius, 12px);
-      border: 1px solid var(--coraza-border, #e2e8f0);
+      border: 1px solid var(--coraza-border, var(--neutral-200));
       box-shadow: var(--coraza-shadow, 0 18px 40px rgba(15, 23, 42, 0.18));
       width: min(440px, 100%);
     }
@@ -69,7 +69,7 @@ import { Component, input, output } from '@angular/core';
       justify-content: space-between;
       align-items: center;
       padding: 1rem 1.15rem;
-      border-bottom: 1px solid var(--coraza-border, #e2e8f0);
+      border-bottom: 1px solid var(--coraza-border, var(--neutral-200));
     }
     .panel-header h3 {
       margin: 0;
@@ -82,7 +82,7 @@ import { Component, input, output } from '@angular/core';
       font-size: 1.45rem;
       line-height: 1;
       cursor: pointer;
-      color: var(--coraza-text-muted, #64748b);
+      color: var(--coraza-text-muted, var(--neutral-500));
       width: 44px;
       height: 44px;
     }
@@ -94,14 +94,14 @@ import { Component, input, output } from '@angular/core';
     }
     .message {
       margin: 0;
-      color: var(--coraza-text, #0f172a);
+      color: var(--coraza-text, var(--neutral-900));
       font-size: 0.95rem;
       line-height: 1.45;
     }
     .detail {
       margin: 0;
       font-size: 0.85rem;
-      color: var(--text-secondary, #64748b);
+      color: var(--text-secondary, var(--neutral-500));
     }
     .actions {
       display: flex;
@@ -121,7 +121,7 @@ import { Component, input, output } from '@angular/core';
       min-height: 44px;
     }
     .btn-ghost {
-      border: 1px solid var(--coraza-border, #e2e8f0);
+      border: 1px solid var(--coraza-border, var(--neutral-200));
       background: transparent;
       color: var(--primary-dark, #1e3a5f);
     }
@@ -131,8 +131,8 @@ import { Component, input, output } from '@angular/core';
       color: #fff;
     }
     .btn-confirm.danger {
-      border-color: color-mix(in srgb, #dc2626 40%, transparent);
-      background: #dc2626;
+      border-color: color-mix(in srgb, var(--error-600) 40%, transparent);
+      background: var(--error-600);
     }
     .btn-ghost:disabled,
     .btn-confirm:disabled {

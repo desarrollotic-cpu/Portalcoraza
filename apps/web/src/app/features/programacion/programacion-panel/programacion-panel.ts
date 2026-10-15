@@ -357,16 +357,16 @@ export interface GuardAvailabilityItem {
       margin: 0 0 0.25rem;
       font-size: 1.25rem;
       font-weight: 800;
-      color: var(--text, #0f172a);
+      color: var(--text, var(--neutral-900));
     }
     .prog-panel__head p {
       margin: 0;
-      color: var(--text-muted, #64748b);
+      color: var(--text-muted, var(--neutral-500));
       font-size: 0.88rem;
     }
     .period-hint {
       margin-top: 0.45rem !important;
-      color: #b45309 !important;
+      color: var(--warning-600) !important;
       font-weight: 600;
       font-size: 0.82rem !important;
     }
@@ -375,16 +375,16 @@ export interface GuardAvailabilityItem {
       flex-direction: column;
       gap: 0.2rem;
       font-size: 0.75rem;
-      color: var(--text-muted, #64748b);
+      color: var(--text-muted, var(--neutral-500));
       font-weight: 600;
     }
     .month-pick input {
       padding: 0.4rem 0.55rem;
-      border: 1px solid var(--border, #cbd5e1);
+      border: 1px solid var(--border, var(--neutral-300));
       border-radius: 8px;
       font: inherit;
       background: var(--surface, #fff);
-      color: var(--text, #0f172a);
+      color: var(--text, var(--neutral-900));
     }
     .head-actions {
       display: flex;
@@ -401,20 +401,20 @@ export interface GuardAvailabilityItem {
     }
     .btn-primary:hover { background: #1e3a8a; }
     .btn-secondary {
-      background: #f1f5f9;
-      color: #334155;
-      border: 1px solid #cbd5e1;
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
       padding: 0.5rem 0.95rem;
       border-radius: 0.5rem;
       text-decoration: none;
       font-weight: 700;
       font-size: 0.84rem;
     }
-    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-secondary:hover { background: var(--neutral-200); }
 
     .prog-panel__error {
       margin: 0;
-      color: #b91c1c;
+      color: var(--error-600);
       font-size: 0.9rem;
     }
 
@@ -422,7 +422,7 @@ export interface GuardAvailabilityItem {
     .panel-tabs {
       display: flex;
       gap: 0.5rem;
-      border-bottom: 2px solid #e2e8f0;
+      border-bottom: 2px solid var(--neutral-200);
       padding-bottom: 0.25rem;
     }
     .tab-btn {
@@ -431,22 +431,22 @@ export interface GuardAvailabilityItem {
       background: none;
       font-size: 0.92rem;
       font-weight: 700;
-      color: #64748b;
+      color: var(--neutral-500);
       cursor: pointer;
       border-radius: 0.5rem 0.5rem 0 0;
       transition: all 0.15s;
     }
-    .tab-btn:hover { color: #0d429c; background: #f8fafc; }
+    .tab-btn:hover { color: #0d429c; background: var(--neutral-50); }
     .tab-btn.active {
       color: #0d429c;
       border-bottom: 3px solid #0d429c;
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
     }
 
     /* TODAY WIDGET */
     .today-card, .availability-card {
       background: var(--surface, #ffffff);
-      border: 1px solid var(--border, #e2e8f0);
+      border: 1px solid var(--border, var(--neutral-200));
       border-radius: 1rem;
       padding: 1.25rem 1.5rem;
       display: flex;
@@ -484,11 +484,11 @@ export interface GuardAvailabilityItem {
       margin: 0;
       font-size: 1.05rem;
       font-weight: 800;
-      color: #0f172a;
+      color: var(--neutral-900);
     }
-    .avail-sub { margin: 0.15rem 0 0; font-size: 0.82rem; color: #64748b; }
+    .avail-sub { margin: 0.15rem 0 0; font-size: 0.82rem; color: var(--neutral-500); }
     .today-date-badge {
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       color: #0d429c;
       font-size: 0.75rem;
       font-weight: 800;
@@ -498,7 +498,7 @@ export interface GuardAvailabilityItem {
     .inp-search, .inp-search-guard, .select-filter {
       padding: 0.45rem 0.75rem;
       border-radius: 0.45rem;
-      border: 1px solid #cbd5e1;
+      border: 1px solid var(--neutral-300);
       font-size: 0.82rem;
     }
     .inp-search { min-width: 240px; }
@@ -516,17 +516,17 @@ export interface GuardAvailabilityItem {
       gap: 0.6rem;
       padding: 0.65rem 0.85rem;
       border-radius: 0.65rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
     }
     .sum-item.diurno { background: #fefce8; border-color: #fef08a; }
-    .sum-item.nocturno { background: #f0fdf4; border-color: #bbf7d0; }
-    .sum-item.covered { background: #f0f9ff; border-color: #bfdbfe; }
+    .sum-item.nocturno { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--success-500) 30%, var(--surface)); }
+    .sum-item.covered { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #bfdbfe; }
     .sum-item.descansos { background: #faf5ff; border-color: #e9d5ff; }
     .sum-item.disponibles { background: #ecfdf5; border-color: #6ee7b7; }
     .sum-icon { font-size: 1.3rem; }
-    .sum-item strong { display: block; font-size: 1.05rem; font-weight: 800; color: #0f172a; }
-    .sum-item span { font-size: 0.72rem; color: #64748b; font-weight: 600; }
+    .sum-item strong { display: block; font-size: 1.05rem; font-weight: 800; color: var(--neutral-900); }
+    .sum-item span { font-size: 0.72rem; color: var(--neutral-500); font-weight: 600; }
 
     .today-posts-grid {
       display: grid;
@@ -534,8 +534,8 @@ export interface GuardAvailabilityItem {
       gap: 0.85rem;
     }
     .post-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
+      background: var(--surface);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.75rem;
       padding: 0.85rem 1rem;
       display: flex;
@@ -544,33 +544,33 @@ export interface GuardAvailabilityItem {
       transition: all 0.2s;
     }
     .post-card.uncovered {
-      border-color: #fecaca;
+      border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface));
       background: #fffafa;
     }
     .post-card__header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      border-bottom: 1px solid #f1f5f9;
+      border-bottom: 1px solid var(--neutral-100);
       padding-bottom: 0.4rem;
     }
     .post-code { color: #0d429c; font-size: 0.82rem; margin-right: 0.3rem; }
-    .post-name { font-size: 0.86rem; color: #0f172a; }
+    .post-name { font-size: 0.86rem; color: var(--neutral-900); }
     .badge-status {
       font-size: 0.7rem;
       font-weight: 700;
       padding: 0.1rem 0.4rem;
       border-radius: 0.3rem;
     }
-    .badge-status.ok { background: #dcfce7; color: #166534; }
-    .badge-status.warn { background: #fee2e2; color: #991b1b; }
+    .badge-status.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .badge-status.warn { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
 
     .shifts-list { display: flex; flex-direction: column; gap: 0.45rem; }
     .shift-row {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      background: #f8fafc;
+      background: var(--neutral-50);
       padding: 0.35rem 0.55rem;
       border-radius: 0.45rem;
     }
@@ -582,19 +582,19 @@ export interface GuardAvailabilityItem {
       white-space: nowrap;
     }
     .tag-day { background: #fef08a; color: #854d0e; }
-    .tag-night { background: #bbf7d0; color: #166534; }
+    .tag-night { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
     .guard-info { display: flex; flex-direction: column; }
-    .guard-name { font-size: 0.8rem; color: #0f172a; line-height: 1.1; }
-    .guard-sub { font-size: 0.68rem; color: #64748b; }
-    .guard-empty { font-size: 0.75rem; color: #ef4444; font-style: italic; }
+    .guard-name { font-size: 0.8rem; color: var(--neutral-900); line-height: 1.1; }
+    .guard-sub { font-size: 0.68rem; color: var(--neutral-500); }
+    .guard-empty { font-size: 0.75rem; color: var(--error-500); font-style: italic; }
 
     .other-shifts { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.2rem; }
-    .other-chip { font-size: 0.68rem; background: #f1f5f9; padding: 0.1rem 0.35rem; border-radius: 0.3rem; color: #475569; }
+    .other-chip { font-size: 0.68rem; background: var(--neutral-100); padding: 0.1rem 0.35rem; border-radius: 0.3rem; color: var(--neutral-600); }
 
     /* TABLA DE DISPONIBILIDAD */
     .avail-table-wrap {
       overflow-x: auto;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--neutral-200);
       border-radius: 0.75rem;
     }
     .avail-table {
@@ -604,7 +604,7 @@ export interface GuardAvailabilityItem {
       text-align: left;
     }
     .avail-table th {
-      background: #0f172a;
+      background: var(--ink);
       color: #ffffff;
       padding: 0.65rem 0.85rem;
       font-weight: 700;
@@ -612,14 +612,14 @@ export interface GuardAvailabilityItem {
     }
     .avail-table td {
       padding: 0.65rem 0.85rem;
-      border-bottom: 1px solid #f1f5f9;
-      color: #334155;
+      border-bottom: 1px solid var(--neutral-100);
+      color: var(--neutral-700);
     }
     .avail-table tr:hover td {
-      background: #f8fafc;
+      background: var(--neutral-50);
     }
     .guard-main { display: flex; flex-direction: column; }
-    .guard-ced { font-size: 0.72rem; color: #64748b; }
+    .guard-ced { font-size: 0.72rem; color: var(--neutral-500); }
     .status-pill {
       display: inline-block;
       padding: 0.2rem 0.55rem;
@@ -628,16 +628,16 @@ export interface GuardAvailabilityItem {
       font-weight: 800;
     }
     .st-turno_dia { background: #fef08a; color: #854d0e; }
-    .st-turno_noche { background: #bbf7d0; color: #166534; }
-    .st-disponible { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
-    .st-descanso { background: #f1f5f9; color: #475569; }
-    .st-novedad { background: #fee2e2; color: #991b1b; }
+    .st-turno_noche { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
+    .st-disponible { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); border: 1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
+    .st-descanso { background: var(--neutral-100); color: var(--neutral-600); }
+    .st-novedad { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
 
     .puesto-highlight { color: #0d429c; font-size: 0.84rem; }
-    .free-text { color: #15803d; font-weight: 700; font-size: 0.78rem; }
+    .free-text { color: var(--success-600); font-weight: 700; font-size: 0.78rem; }
     .puesto-chip {
       display: inline-block;
-      background: #f0f9ff;
+      background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       color: #0d429c;
       border: 1px solid #bfdbfe;
       padding: 0.15rem 0.45rem;
@@ -645,13 +645,13 @@ export interface GuardAvailabilityItem {
       font-size: 0.75rem;
       font-weight: 600;
     }
-    .empty-cell { text-align: center; padding: 2rem; color: #94a3b8; }
+    .empty-cell { text-align: center; padding: 2rem; color: var(--neutral-400); }
     .text-right { text-align: right; }
-    .text-muted { color: #94a3b8; }
+    .text-muted { color: var(--neutral-400); }
 
     .today-search-filters, .avail-filters { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .page-size-wrap { display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: #475569; }
-    .page-size-wrap select { padding: 0.35rem 0.5rem; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.8rem; font-weight: 700; }
+    .page-size-wrap { display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: var(--neutral-600); }
+    .page-size-wrap select { padding: 0.35rem 0.5rem; border: 1px solid var(--neutral-300); border-radius: 0.4rem; font-size: 0.8rem; font-weight: 700; }
 
     /* PAGINATION BAR */
     .pagination-bar {
@@ -661,17 +661,17 @@ export interface GuardAvailabilityItem {
       flex-wrap: wrap;
       gap: 0.75rem;
       padding: 0.75rem 1rem;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
       border-radius: 0.65rem;
       margin-top: 0.5rem;
     }
-    .pagination-info { font-size: 0.82rem; color: #475569; }
+    .pagination-info { font-size: 0.82rem; color: var(--neutral-600); }
     .pagination-buttons { display: flex; align-items: center; gap: 0.35rem; }
     .btn-page {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      color: #0f172a;
+      background: var(--surface);
+      border: 1px solid var(--neutral-300);
+      color: var(--neutral-900);
       padding: 0.35rem 0.65rem;
       border-radius: 0.4rem;
       font-size: 0.78rem;
@@ -679,7 +679,7 @@ export interface GuardAvailabilityItem {
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-page:hover:not(:disabled) { background: #f0f9ff; border-color: #0d429c; color: #0d429c; }
+    .btn-page:hover:not(:disabled) { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #0d429c; color: #0d429c; }
     .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
     .page-current-pill {
       background: #0d429c;
@@ -693,11 +693,11 @@ export interface GuardAvailabilityItem {
     .empty-today {
       text-align: center;
       padding: 2rem 1rem;
-      background: #f8fafc;
+      background: var(--neutral-50);
       border-radius: 0.75rem;
     }
     .btn-link { color: #0d429c; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
-    .loading-text { font-size: 0.85rem; color: #64748b; text-align: center; padding: 1.5rem; }
+    .loading-text { font-size: 0.85rem; color: var(--neutral-500); text-align: center; padding: 1.5rem; }
 
     .prog-panel__chart { max-width: 720px; }
   `,

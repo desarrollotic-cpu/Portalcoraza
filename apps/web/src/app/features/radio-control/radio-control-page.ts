@@ -306,50 +306,50 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
     .rc-filters label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; }
     .rc-grow { flex: 1; min-width: 160px; }
     .rc-progress, .rc-pass, .rc-clock {
-      font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 8px; background: #f1f5f9;
+      font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 8px; background: var(--neutral-100);
     }
     .rc-clock { background: #ecfeff; border: 1px solid #a5f3fc; }
     .rc-pass { background: #eef2ff; border: 1px solid #c7d2fe; }
     .rc-save-next { font-weight: 700; white-space: nowrap; }
     .rc-table-wrap {
       overflow: auto; max-height: calc(100vh - 280px);
-      border: 1px solid #e2e8f0; border-radius: 10px;
+      border: 1px solid var(--neutral-200); border-radius: 10px;
     }
     .rc-table-wrap--short { max-height: 420px; margin-top: 0.75rem; }
-    .rc-table th { position: sticky; top: 0; background: #fff; z-index: 1; }
+    .rc-table th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
     .rc-status { display: flex; flex-wrap: wrap; gap: 0.35rem; }
     .rc-chip {
-      border: 1px solid #cbd5e1; background: #fff; border-radius: 6px;
+      border: 1px solid var(--neutral-300); background: var(--surface); border-radius: 6px;
       padding: 0.2rem 0.45rem; font-size: 0.75rem; cursor: pointer;
     }
     .rc-chip.active { color: #fff; font-weight: 700; }
-    .rc-chip.active[data-st='S/N'] { background: #15803d; border-color: #14532d; }
-    .rc-chip.active[data-st='N/C'] { background: #dc2626; border-color: #991b1b; }
-    .rc-chip.active[data-st='N/A'] { background: #334155; border-color: #0f172a; }
-    .rc-chip.active[data-st='C/N'] { background: #ea580c; border-color: #9a3412; }
-    .rc-done td { background: #f8fafc; }
+    .rc-chip.active[data-st='S/N'] { background: var(--success-600); border-color: #14532d; }
+    .rc-chip.active[data-st='N/C'] { background: var(--error-600); border-color: var(--error-600); }
+    .rc-chip.active[data-st='N/A'] { background: var(--neutral-700); border-color: var(--neutral-900); }
+    .rc-chip.active[data-st='C/N'] { background: var(--warning-600); border-color: var(--warning-600); }
+    .rc-done td { background: var(--neutral-50); }
     .rc-notes {
       width: 100%; min-width: 160px; max-width: 280px;
-      border: 1px solid #cbd5e1; border-radius: 6px;
+      border: 1px solid var(--neutral-300); border-radius: 6px;
       padding: 0.35rem 0.5rem; font-size: 0.8rem;
     }
-    .rc-notes:disabled { background: #f8fafc; }
+    .rc-notes:disabled { background: var(--neutral-50); }
     .rc-minuta-frame {
       display: block; width: 100%; height: calc(100vh - 210px); min-height: 560px;
-      border: 1px solid #e2e8f0; border-radius: 10px; background: #fff;
+      border: 1px solid var(--neutral-200); border-radius: 10px; background: var(--surface);
     }
     .rc-history-list { display: grid; gap: 0.5rem; }
     .rc-history-card {
-      text-align: left; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 0.75rem 1rem; background: #fff; cursor: pointer;
+      text-align: left; border: 1px solid var(--neutral-200); border-radius: 10px;
+      padding: 0.75rem 1rem; background: var(--surface); cursor: pointer;
     }
-    .rc-history-card:hover { border-color: #94a3b8; }
+    .rc-history-card:hover { border-color: var(--neutral-400); }
     .rc-history-card__title { display: flex; gap: 0.5rem; align-items: center; font-weight: 700; }
     .rc-badge {
       font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px;
-      background: #e2e8f0; font-weight: 600;
+      background: var(--neutral-200); font-weight: 600;
     }
-    .rc-badge.open { background: #dcfce7; color: #166534; }
+    .rc-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .rc-pass-detail { margin-top: 1.25rem; }
     .rc-pass-detail h3 {
       display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;

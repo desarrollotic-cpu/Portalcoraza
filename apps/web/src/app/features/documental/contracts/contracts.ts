@@ -177,35 +177,35 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     .expiring-banner {
       display:flex; flex-wrap:wrap; gap:.5rem; align-items:flex-start;
       margin-bottom:1rem; padding:.9rem 1rem;
-      background:#fffbeb; border:1px solid #fcd34d; border-left:4px solid #f59e0b;
-      border-radius:10px; font-size:.88rem; color:#92400e;
+      background:color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border:1px solid #fcd34d; border-left:4px solid var(--warning-500);
+      border-radius:10px; font-size:.88rem; color:var(--warning-600);
     }
     .expiring-icon { font-size:1.1rem; }
     .expiring-list { margin:.35rem 0 0 1rem; padding:0; list-style:disc; width:100%; }
     .expiring-list li { margin:.15rem 0; }
-    .date-warn { color:#b45309; font-weight:700; }
+    .date-warn { color:var(--warning-600); font-weight:700; }
     .toast-ok {
       display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;
       margin-bottom:1rem; padding:.85rem 1rem;
       background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; font-size:.9rem;
     }
     .code-preview {
-      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
+      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:var(--neutral-900);
       letter-spacing:.02em; margin:0;
     }
     .client-pick { position: relative; }
     .client-results {
       position: absolute; z-index: 30; left: 0; right: 0; top: calc(100% + 4px);
       margin: 0; padding: 0; list-style: none; max-height: 220px; overflow: auto;
-      background: #fff; border: 1px solid #cbd5e1; border-radius: 8px;
+      background: var(--surface); border: 1px solid var(--neutral-300); border-radius: 8px;
       box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
     }
     .client-results button {
       display: block; width: 100%; text-align: left; padding: .45rem .65rem;
-      border: 0; background: #fff; cursor: pointer; font: inherit; color: #0f172a;
+      border: 0; background: var(--surface); cursor: pointer; font: inherit; color: var(--neutral-900);
     }
-    .client-results button:hover { background: #e2e8f0; }
-    .client-empty { padding: .45rem .65rem; color: #64748b; font-size: .82rem; }
+    .client-results button:hover { background: var(--neutral-200); }
+    .client-empty { padding: .45rem .65rem; color: var(--neutral-500); font-size: .82rem; }
   `,
   ],
 })

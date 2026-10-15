@@ -280,7 +280,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
     }
     .wh-tab {
       border: 1px solid var(--coraza-border, #e5e5e5);
-      background: #fff;
+      background: var(--surface);
       border-radius: 999px;
       padding: 0.4rem 0.85rem;
       cursor: pointer;
@@ -304,7 +304,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       border-radius: 999px;
       padding: 0.1rem 0.4rem;
     }
-    .wh-tab:not(.active) .wh-tag { background: #e2e8f0; color: #475569; }
+    .wh-tab:not(.active) .wh-tag { background: var(--neutral-200); color: var(--neutral-600); }
     .wh-tag.muted { font-weight: 600; }
     .btn-primary {
       display: inline-block;
@@ -322,7 +322,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       border: 1px solid var(--coraza-border, #e5e5e5);
       border-radius: 10px;
       overflow: hidden;
-      background: #fff;
+      background: var(--surface);
     }
     th, td {
       text-align: left;
@@ -331,17 +331,17 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       vertical-align: top;
     }
     th {
-      background: #f8fafc;
+      background: var(--neutral-50);
       font-size: 0.72rem;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      color: #475569;
+      color: var(--neutral-600);
       font-weight: 600;
     }
     .item-name { color: var(--primary, #1d4ed8); font-size: 1rem; }
     .low-stock { background: #fff8f0; }
-    .stock-ok { color: #15803d; font-weight: 600; }
-    .stock-zero { color: #b91c1c; font-weight: 600; }
+    .stock-ok { color: var(--success-600); font-weight: 600; }
+    .stock-zero { color: var(--error-600); font-weight: 600; }
     .muted { color: #737373; font-size: 0.8rem; margin-top: 0.15rem; }
     .size-lines {
       display: flex;
@@ -355,7 +355,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      color: #64748b;
+      color: var(--neutral-500);
     }
     .size-group__chips {
       display: flex;
@@ -365,8 +365,8 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
     .size-chip {
       font-size: 0.88rem;
       line-height: 1.25;
-      background: #f1f5f9;
-      border: 1px solid #e2e8f0;
+      background: var(--neutral-100);
+      border: 1px solid var(--neutral-200);
       padding: 0.4rem 0.65rem;
       border-radius: 10px;
       display: inline-flex;
@@ -374,12 +374,12 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       flex-wrap: wrap;
       gap: 0.45rem 0.55rem;
     }
-    .size-chip__main { font-weight: 600; color: #0f172a; }
-    .size-chip__stock { color: #475569; font-variant-numeric: tabular-nums; }
-    .size-chip__sep { color: #94a3b8; margin: 0 0.1rem; }
+    .size-chip__main { font-weight: 600; color: var(--neutral-900); }
+    .size-chip__stock { color: var(--neutral-600); font-variant-numeric: tabular-nums; }
+    .size-chip__sep { color: var(--neutral-400); margin: 0 0.1rem; }
     .chip-btn {
       border: none;
-      background: #e2e8f0;
+      background: var(--neutral-200);
       border-radius: 8px;
       font: inherit;
       font-size: 0.75rem;
@@ -399,7 +399,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       font-weight: 600;
       border: none;
       border-radius: 8px;
-      background: #16a34a;
+      background: var(--success-600);
       color: #fff;
       cursor: pointer;
     }
@@ -429,10 +429,10 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       padding: 0.4rem 0.75rem;
       font-size: 0.8rem;
       font-weight: 600;
-      border: 1px solid #fecaca;
+      border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
       border-radius: 8px;
-      background: #fef2f2;
-      color: #b91c1c;
+      background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
+      color: var(--error-600);
       cursor: pointer;
     }
     .link-edit {
@@ -441,19 +441,19 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
     }
     code {
       font-size: 0.85rem;
-      background: #f1f5f9;
+      background: var(--neutral-100);
       padding: 0.15rem 0.4rem;
       border-radius: 4px;
     }
-    .error { color: var(--coraza-error, #b91c1c); }
+    .error { color: var(--coraza-error, var(--error-600)); }
     .confirm-text { margin: 0 0 0.75rem; font-size: 1rem; line-height: 1.4; }
     .confirm-warn {
       margin: 0 0 1rem;
       padding: 0.65rem 0.8rem;
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
+      background: color-mix(in srgb, var(--warning-500) 10%, var(--surface));
+      border: 1px solid color-mix(in srgb, var(--warning-500) 30%, var(--surface));
       border-radius: 8px;
-      color: #9a3412;
+      color: var(--warning-600);
       font-size: 0.85rem;
     }
     .confirm-actions {
@@ -469,11 +469,11 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       cursor: pointer;
     }
     .btn-ghost {
-      background: #fff;
+      background: var(--surface);
       border: 1px solid #d4d4d4;
     }
     .btn-danger {
-      background: #dc2626;
+      background: var(--error-600);
       border: none;
       color: #fff;
     }

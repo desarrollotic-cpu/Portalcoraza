@@ -281,21 +281,21 @@ import {
       border-radius: 10px;
     }
     .panel h3 { margin: 0 0 0.85rem; font-size: 1rem; color: var(--primary-dark); }
-    .hint { margin: 0 0 0.85rem; font-size: 0.88rem; color: var(--coraza-text-muted, #64748b); }
+    .hint { margin: 0 0 0.85rem; font-size: 0.88rem; color: var(--coraza-text-muted, var(--neutral-500)); }
     .create-form {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
       gap: 0.75rem;
       align-items: end;
     }
-    label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--coraza-text-muted, #64748b); }
+    label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; color: var(--coraza-text-muted, var(--neutral-500)); }
     .checkbox-field .check-row { display: flex; align-items: center; gap: 0.4rem; min-height: 2.1rem; color: var(--primary-dark); }
     input, select {
       padding: 0.5rem 0.7rem;
       border: 1px solid var(--coraza-border);
       border-radius: 8px;
       font: inherit;
-      background: #fff;
+      background: var(--surface);
     }
     input:focus, select:focus {
       outline: none;
@@ -343,7 +343,7 @@ import {
     }
 
     .btn-ghost {
-      background: #fff;
+      background: var(--surface);
       border-color: var(--coraza-border);
       color: var(--primary-dark);
     }
@@ -370,23 +370,23 @@ import {
     }
 
     .btn-danger {
-      background: color-mix(in srgb, var(--coraza-error, #dc2626) 10%, #fff);
-      border-color: color-mix(in srgb, var(--coraza-error, #dc2626) 35%, #fecaca);
-      color: var(--coraza-error, #b91c1c);
+      background: color-mix(in srgb, var(--coraza-error, var(--error-600)) 10%, #fff);
+      border-color: color-mix(in srgb, var(--coraza-error, var(--error-600)) 35%, color-mix(in srgb, var(--error-500) 28%, var(--surface)));
+      color: var(--coraza-error, var(--error-600));
     }
     .btn-danger:not(:disabled):hover {
-      background: color-mix(in srgb, var(--coraza-error, #dc2626) 18%, #fff);
-      border-color: var(--coraza-error, #dc2626);
+      background: color-mix(in srgb, var(--coraza-error, var(--error-600)) 18%, #fff);
+      border-color: var(--coraza-error, var(--error-600));
     }
 
     .btn-success {
-      background: color-mix(in srgb, #16a34a 10%, #fff);
-      border-color: color-mix(in srgb, #16a34a 35%, #bbf7d0);
-      color: #15803d;
+      background: color-mix(in srgb, var(--success-600) 10%, #fff);
+      border-color: color-mix(in srgb, var(--success-600) 35%, color-mix(in srgb, var(--success-500) 30%, var(--surface)));
+      color: var(--success-600);
     }
     .btn-success:not(:disabled):hover {
-      background: color-mix(in srgb, #16a34a 18%, #fff);
-      border-color: #16a34a;
+      background: color-mix(in srgb, var(--success-600) 18%, #fff);
+      border-color: var(--success-600);
     }
 
     .form-actions { display: flex; gap: 0.55rem; align-items: end; flex-wrap: wrap; }
@@ -407,7 +407,7 @@ import {
       color: var(--primary-dark);
     }
     .actions { display: flex; gap: 0.45rem; white-space: nowrap; flex-wrap: wrap; }
-    .inactive-row { opacity: 0.7; background: color-mix(in srgb, #94a3b8 6%, transparent); }
+    .inactive-row { opacity: 0.7; background: color-mix(in srgb, var(--neutral-400) 6%, transparent); }
     .error { color: var(--coraza-error); margin: 0.65rem 0 0; }
     .success { color: #1b7a3d; margin: 0.65rem 0 0; }
   `,

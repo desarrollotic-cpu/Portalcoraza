@@ -152,7 +152,7 @@ interface PassDetailPayload {
     </div>
   `,
   styles: `
-    .rch-link { margin: 0 0 1rem; font-size: 0.9rem; color: #64748b; }
+    .rch-link { margin: 0 0 1rem; font-size: 0.9rem; color: var(--neutral-500); }
     .rch-link a { color: #1d4ed8; }
     .rch-filters {
       display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin-bottom: 1rem;
@@ -160,16 +160,16 @@ interface PassDetailPayload {
     .rch-filters label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; }
     .rch-list { display: grid; gap: 0.5rem; }
     .rch-card {
-      text-align: left; border: 1px solid #e2e8f0; border-radius: 10px;
-      padding: 0.75rem 1rem; background: #fff; cursor: pointer;
+      text-align: left; border: 1px solid var(--neutral-200); border-radius: 10px;
+      padding: 0.75rem 1rem; background: var(--surface); cursor: pointer;
     }
-    .rch-card:hover { border-color: #94a3b8; }
+    .rch-card:hover { border-color: var(--neutral-400); }
     .rch-card__title { display: flex; gap: 0.5rem; align-items: center; font-weight: 700; }
     .rch-badge {
       font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px;
-      background: #e2e8f0; font-weight: 600;
+      background: var(--neutral-200); font-weight: 600;
     }
-    .rch-badge.open { background: #dcfce7; color: #166534; }
+    .rch-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .rch-detail { margin-top: 1.25rem; }
     .rch-detail h3 {
       display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
@@ -177,7 +177,7 @@ interface PassDetailPayload {
     }
     .rch-table-wrap {
       overflow: auto; max-height: 420px;
-      border: 1px solid #e2e8f0; border-radius: 10px;
+      border: 1px solid var(--neutral-200); border-radius: 10px;
     }
   `,
 })

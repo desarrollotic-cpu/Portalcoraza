@@ -326,7 +326,7 @@ const PAGE_SIZE = 12;
       min-height: 44px; padding: 0.45rem 0.7rem; border: 1px solid var(--coraza-border);
       border-radius: 10px; background: var(--coraza-surface); color: inherit; font: inherit;
     }
-    .alerts__error { margin: 0; color: var(--coraza-error, #b91c1c); font-weight: 600; }
+    .alerts__error { margin: 0; color: var(--coraza-error, var(--error-600)); font-weight: 600; }
     .link-btn {
       align-self: flex-start; min-height: 40px; padding: 0.35rem 0; cursor: pointer; font: inherit; font-size: 0.85rem;
       border: 0; background: none; color: var(--text-secondary); text-decoration: underline;
@@ -343,13 +343,13 @@ const PAGE_SIZE = 12;
       min-height: 40px; padding: 0.35rem 0.8rem; border-radius: 10px; cursor: pointer; font: inherit;
       border: 1px solid var(--coraza-border); background: var(--coraza-surface); color: inherit;
     }
-    .dismiss__actions .dismiss__ok { background: #334155; border-color: #334155; color: #fff; font-weight: 700; }
+    .dismiss__actions .dismiss__ok { background: var(--neutral-700); border-color: var(--neutral-700); color: #fff; font-weight: 700; }
     .dismiss__actions button:disabled { opacity: 0.5; cursor: not-allowed; }
     .dismissed-note { margin: 0; font-size: 0.8rem; color: var(--text-muted, var(--text-secondary)); }
     .horas {
       display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; align-items: center; justify-content: space-between;
-      padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid #f59e0b; border-left-width: 4px;
-      background: color-mix(in srgb, #f59e0b 10%, var(--coraza-surface)); color: inherit;
+      padding: 0.85rem 1rem; border-radius: 14px; border: 1px solid var(--warning-500); border-left-width: 4px;
+      background: color-mix(in srgb, var(--warning-500) 10%, var(--coraza-surface)); color: inherit;
       text-decoration: none; font-size: 0.92rem; line-height: 1.45;
     }
     .horas:focus-visible { outline: 3px solid var(--coraza-primary, #1d4ed8); outline-offset: 2px; }
@@ -374,7 +374,7 @@ const PAGE_SIZE = 12;
       border-color: var(--coraza-primary, #1d4ed8);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--coraza-primary, #1d4ed8) 22%, transparent);
     }
-    .kpi--hot .kpi__value { color: #b91c1c; }
+    .kpi--hot .kpi__value { color: var(--error-600); }
     .kpi__icon { color: var(--text-secondary); }
     .kpi__label { font-size: 0.8rem; font-weight: 700; }
     .kpi__value { font-size: 1.6rem; line-height: 1.1; }
@@ -409,18 +409,18 @@ const PAGE_SIZE = 12;
       display: flex; flex-direction: column; gap: 0.7rem;
       padding: 1rem 1.1rem; border-radius: 14px;
       border: 1px solid var(--coraza-border);
-      border-left: 4px solid #b91c1c;
+      border-left: 4px solid var(--error-600);
       background: var(--coraza-surface);
     }
-    .card--warn { border-left-color: #b45309; }
+    .card--warn { border-left-color: var(--warning-600); }
     .card__top { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; }
     .card h3 { margin: 0; font-size: 1.15rem; }
     .badge {
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
-      padding: 0.2rem 0.55rem; border-radius: 999px; background: #fee2e2; color: #991b1b;
+      padding: 0.2rem 0.55rem; border-radius: 999px; background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600);
     }
-    .badge--warn { background: #fef3c7; color: #92400e; }
-    .badge--muted { background: #e2e8f0; color: #334155; }
+    .badge--warn { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .badge--muted { background: var(--neutral-200); color: var(--neutral-700); }
     .alerts__tools { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: flex-end; margin-bottom: 0.5rem; }
     .alerts__search { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; max-width: 24rem; flex: 1 1 16rem; }
     .alerts__search input {
@@ -438,7 +438,7 @@ const PAGE_SIZE = 12;
     .stat {
       display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto auto;
       column-gap: 0.4rem; padding: 0.55rem 0.65rem; border-radius: 10px;
-      background: var(--bg-page, #f8fafc); border: 1px solid var(--coraza-border);
+      background: var(--bg-page, var(--neutral-50)); border: 1px solid var(--coraza-border);
       font-size: 0.8rem;
     }
     .stat app-icon { grid-row: 1 / span 3; align-self: center; }

@@ -210,12 +210,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; font-size:.9rem;
     }
     .alert-info {
-      padding:.75rem 1rem; background:#eff6ff; border:1px solid #93c5fd;
+      padding:.75rem 1rem; background:color-mix(in srgb, var(--primary-600) 10%, var(--surface)); border:1px solid #93c5fd;
       border-radius:8px; color:#1e40af; font-size:.9rem;
     }
     .alert-ok {
-      padding:.75rem 1rem; background:#f0fdf4; border:1px solid #86efac;
-      border-radius:8px; color:#166534; font-size:.9rem;
+      padding:.75rem 1rem; background:color-mix(in srgb, var(--success-500) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface));
+      border-radius:8px; color:var(--success-600); font-size:.9rem;
     }
     .search-bar {
       display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;
@@ -223,19 +223,19 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     }
     .search-bar input[type="search"] {
       flex:1; min-width:240px; max-width:480px;
-      padding:.55rem .85rem; border:1px solid #cbd5e1; border-radius:.55rem;
+      padding:.55rem .85rem; border:1px solid var(--neutral-300); border-radius:.55rem;
       font-size:.92rem;
     }
     .pick-list { display:flex; flex-direction:column; gap:.4rem; }
     .pick-item {
       display:flex; flex-wrap:wrap; gap:.5rem; align-items:center;
-      text-align:left; padding:.55rem .75rem; border:1px solid #cbd5e1;
-      border-radius:.55rem; background:#fff; cursor:pointer; font-size:.85rem;
+      text-align:left; padding:.55rem .75rem; border:1px solid var(--neutral-300);
+      border-radius:.55rem; background: var(--surface); cursor:pointer; font-size:.85rem;
     }
     .btn-sm { padding:.2rem .55rem; font-size:.8rem; }
     label .muted { display:block; font-size:.8rem; margin-top:.2rem; }
     .code-preview {
-      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:#0f172a;
+      grid-column:1/-1; font-size:1.35rem; font-weight:800; color:var(--neutral-900);
       letter-spacing:.02em; margin:0;
     }
   `,

@@ -190,7 +190,7 @@ import { Icon } from '../../../shared/components/icon/icon';
       height: 64px;
       object-fit: contain;
       border-radius: 50%;
-      background: #fff;
+      background: var(--surface);
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
       border: 1px solid var(--border);
     }
@@ -318,14 +318,14 @@ import { Icon } from '../../../shared/components/icon/icon';
 
     .input-wrap input:hover {
       border-color: var(--border-strong);
-      background: #fff;
+      background: var(--surface);
     }
 
     .input-wrap input:focus {
       outline: 2px solid var(--border-focus);
       outline-offset: 1px;
       border-color: var(--primary-500);
-      background: #fff;
+      background: var(--surface);
       box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-500) 18%, transparent);
     }
 
@@ -457,12 +457,12 @@ import { Icon } from '../../../shared/components/icon/icon';
     .recover-form .field { margin-bottom: 0.65rem; }
     .submit-btn.secondary {
       margin-top: 0.25rem;
-      background: #0f172a;
+      background: var(--ink);
       box-shadow: none;
     }
     .alert.ok {
-      background: color-mix(in srgb, #16a34a 12%, #fff);
-      color: #166534;
+      background: color-mix(in srgb, var(--success-600) 12%, #fff);
+      color: var(--success-600);
     }
   `,
 })

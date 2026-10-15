@@ -123,7 +123,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       color: var(--primary);
     }
     .page-head h2 { margin: 0.15rem 0; color: var(--primary-dark); }
-    .page-head p { margin: 0; color: var(--coraza-text-muted, #64748b); }
+    .page-head p { margin: 0; color: var(--coraza-text-muted, var(--neutral-500)); }
     .page-head .meta { margin-top: 0.35rem; font-size: 0.85rem; }
     .stats { display: flex; gap: 0.75rem; }
     .stats div {
@@ -133,13 +133,13 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       min-width: 4.5rem;
       padding: 0.5rem 0.75rem;
       border-radius: 10px;
-      background: #f8fafc;
+      background: var(--neutral-50);
       border: 1px solid var(--coraza-border);
     }
     .stats strong { font-size: 1.2rem; color: var(--primary-dark); }
-    .stats span { font-size: 0.72rem; color: var(--coraza-text-muted, #64748b); }
-    .stats .warn { background: color-mix(in srgb, #f59e0b 12%, #fff); border-color: #fde68a; }
-    .stats .warn strong { color: #b45309; }
+    .stats span { font-size: 0.72rem; color: var(--coraza-text-muted, var(--neutral-500)); }
+    .stats .warn { background: color-mix(in srgb, var(--warning-500) 12%, #fff); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .stats .warn strong { color: var(--warning-600); }
     .panel {
       margin-bottom: 1.25rem;
       padding: 1rem 1.1rem;
@@ -152,7 +152,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       font-size: 1rem;
       color: var(--primary-dark);
     }
-    .hint { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--coraza-text-muted, #64748b); }
+    .hint { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--coraza-text-muted, var(--neutral-500)); }
     .form {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
@@ -164,7 +164,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       flex-direction: column;
       gap: 0.25rem;
       font-size: 0.85rem;
-      color: var(--coraza-text-muted, #64748b);
+      color: var(--coraza-text-muted, var(--neutral-500));
     }
     input {
       padding: 0.5rem 0.65rem;
@@ -202,7 +202,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       color: var(--primary-dark);
     }
     a { color: var(--primary); text-decoration: none; font-weight: 600; }
-    .muted { color: var(--coraza-text-muted, #64748b); }
+    .muted { color: var(--coraza-text-muted, var(--neutral-500)); }
     .error { color: var(--coraza-error); }
   `,
 })

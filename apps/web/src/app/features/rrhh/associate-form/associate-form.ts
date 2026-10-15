@@ -167,7 +167,7 @@ function cleanEmail(v: unknown): string | null {
                   min="0"
                   placeholder="Se asigna automático si lo dejas vacío"
                 />
-                <small style="color:#64748b; font-size:0.75rem; margin-top:0.15rem;">
+                <small style="color:var(--neutral-500); font-size:0.75rem; margin-top:0.15rem;">
                   Sugerido automáticamente (siguiente consecutivo). Puedes cambiarlo si necesitas.
                 </small>
               </div>
@@ -384,7 +384,7 @@ function cleanEmail(v: unknown): string | null {
                   <option [ngValue]="3">Nivel 3</option>
                   <option [ngValue]="4">Nivel 4</option>
                 </select>
-                <small style="color:#64748b; font-size:0.75rem; margin-top:0.15rem;">
+                <small style="color:var(--neutral-500); font-size:0.75rem; margin-top:0.15rem;">
                   Cobertura escalonada por cargo/antigüedad (1–4).
                 </small>
               </div>

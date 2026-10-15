@@ -57,6 +57,13 @@
   --glass-border: rgba(203, 213, 225, 0.85);
   --glass-highlight: rgba(255, 255, 255, 0.35);
 
+  /* ─── Tinta: oscuro en los dos temas ────────────────────────────
+     Para superficies que deben seguir siendo oscuras aunque se active
+     el modo oscuro: cabeceras hero, velos de diálogo, chips negros.
+     A propósito NO se redefine en [data-theme='dark']. */
+  --ink: #0e1725;
+  --ink-2: #16233b;
+
   /* ─── Texto ───────────────────────────────────────────────────── */
   --text-primary: #020617;
   --text-secondary: var(--neutral-600);

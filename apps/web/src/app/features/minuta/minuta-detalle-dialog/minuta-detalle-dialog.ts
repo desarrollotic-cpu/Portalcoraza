@@ -103,13 +103,13 @@ const FIELD_LABELS: Record<string, string> = {
     }
     .panel-head {
       display: flex; justify-content: space-between; gap: 0.75rem;
-      padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border, #e2e8f0);
+      padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border, var(--neutral-200));
     }
     .panel-head h3 { margin: 0; font-size: 1.05rem; color: #032868; }
-    .sub { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted, #64748b); }
+    .sub { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted, var(--neutral-500)); }
     .close {
       border: 0; background: transparent; font-size: 1.5rem; line-height: 1;
-      cursor: pointer; color: var(--text-muted, #64748b); padding: 0 0.25rem;
+      cursor: pointer; color: var(--text-muted, var(--neutral-500)); padding: 0 0.25rem;
     }
     .panel-body {
       padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 0.65rem;
@@ -117,20 +117,20 @@ const FIELD_LABELS: Record<string, string> = {
     .field {
       display: grid; gap: 0.15rem;
       padding-bottom: 0.55rem;
-      border-bottom: 1px solid var(--border, #f1f5f9);
+      border-bottom: 1px solid var(--border, var(--neutral-100));
     }
     .label {
       font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.04em; color: var(--text-muted, #64748b);
+      letter-spacing: 0.04em; color: var(--text-muted, var(--neutral-500));
     }
     .value {
-      font-size: 0.95rem; color: var(--text-primary, #0f172a);
+      font-size: 0.95rem; color: var(--text-primary, var(--neutral-900));
       white-space: pre-wrap; word-break: break-word;
     }
-    .empty { margin: 0; color: var(--text-muted, #64748b); }
+    .empty { margin: 0; color: var(--text-muted, var(--neutral-500)); }
     .panel-foot {
       padding: 0.75rem 1rem calc(0.85rem + env(safe-area-inset-bottom, 0px));
-      border-top: 1px solid var(--border, #e2e8f0);
+      border-top: 1px solid var(--border, var(--neutral-200));
     }
     .btn {
       width: 100%; border: 0; border-radius: 10px; padding: 0.7rem 1rem;

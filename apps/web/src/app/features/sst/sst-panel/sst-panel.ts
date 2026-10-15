@@ -121,38 +121,38 @@ import { SstApiService, SstOverview } from '../sst-api.service';
     .page { display: flex; flex-direction: column; gap: 1.25rem; }
     .head { display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.25rem; }
-    .head p { margin: 0; color: var(--text-muted, #64748b); font-size: 0.9rem; max-width: 52rem; }
+    .head p { margin: 0; color: var(--text-muted, var(--neutral-500)); font-size: 0.9rem; max-width: 52rem; }
     .btn {
       display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 0.5rem;
       background: var(--brand, #0f766e); color: #fff; text-decoration: none; font-weight: 600; font-size: 0.9rem;
       border: 0; cursor: pointer;
     }
     .btn.ghost {
-      background: transparent; color: var(--brand, #0f766e); border: 1px solid var(--border, #cbd5e1);
+      background: transparent; color: var(--brand, #0f766e); border: 1px solid var(--border, var(--neutral-300));
     }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .wizard {
       background: color-mix(in srgb, var(--brand, #0f766e) 8%, var(--surface, #fff));
-      border: 1px solid var(--border, #e2e8f0); border-radius: 0.75rem; padding: 1.1rem 1.25rem;
+      border: 1px solid var(--border, var(--neutral-200)); border-radius: 0.75rem; padding: 1.1rem 1.25rem;
     }
     .wizard h3 { margin: 0 0 0.45rem; font-size: 1.05rem; }
-    .wizard p { margin: 0 0 0.85rem; font-size: 0.9rem; color: var(--text-muted, #475569); }
+    .wizard p { margin: 0 0 0.85rem; font-size: 0.9rem; color: var(--text-muted, var(--neutral-600)); }
     .wizard-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem; }
     .card {
-      background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0);
+      background: var(--surface, #fff); border: 1px solid var(--border, var(--neutral-200));
       border-radius: 0.75rem; padding: 1rem; overflow: auto;
     }
     .card h3 { margin: 0 0 0.75rem; font-size: 1rem; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { text-align: left; padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--border, #e2e8f0); vertical-align: top; }
-    th { color: var(--text-muted, #64748b); font-weight: 600; font-size: 0.8rem; }
-    .meta { color: var(--text-muted, #64748b); font-size: 0.8rem; }
-    .empty { color: var(--text-muted, #64748b); text-align: center; padding: 1.25rem !important; }
-    .error { color: #b91c1c; margin: 0; }
+    th, td { text-align: left; padding: 0.55rem 0.4rem; border-bottom: 1px solid var(--border, var(--neutral-200)); vertical-align: top; }
+    th { color: var(--text-muted, var(--neutral-500)); font-weight: 600; font-size: 0.8rem; }
+    .meta { color: var(--text-muted, var(--neutral-500)); font-size: 0.8rem; }
+    .empty { color: var(--text-muted, var(--neutral-500)); text-align: center; padding: 1.25rem !important; }
+    .error { color: var(--error-600); margin: 0; }
     .link { color: var(--brand, #0f766e); font-weight: 600; text-decoration: none; }
-    .risk[data-nivel='BAJO'] { color: #15803d; font-weight: 700; }
+    .risk[data-nivel='BAJO'] { color: var(--success-600); font-weight: 700; }
     .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
-    .risk[data-nivel='ALTO'] { color: #b91c1c; font-weight: 700; }
+    .risk[data-nivel='ALTO'] { color: var(--error-600); font-weight: 700; }
   `,
 })
 export class SstPanel implements OnInit {
