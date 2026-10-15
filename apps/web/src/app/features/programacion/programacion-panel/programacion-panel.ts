@@ -519,11 +519,11 @@ export interface GuardAvailabilityItem {
       background: var(--neutral-50);
       border: 1px solid var(--neutral-200);
     }
-    .sum-item.diurno { background: #fefce8; border-color: #fef08a; }
+    .sum-item.diurno { background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); border-color: #fef08a; }
     .sum-item.nocturno { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--success-500) 30%, var(--surface)); }
     .sum-item.covered { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #bfdbfe; }
-    .sum-item.descansos { background: #faf5ff; border-color: #e9d5ff; }
-    .sum-item.disponibles { background: #ecfdf5; border-color: #6ee7b7; }
+    .sum-item.descansos { background: color-mix(in srgb, #7500eb 14%, var(--surface)); border-color: color-mix(in srgb, #7000eb 32%, var(--surface)); }
+    .sum-item.disponibles { background: color-mix(in srgb, #16d47b 14%, var(--surface)); border-color: #6ee7b7; }
     .sum-icon { font-size: 1.3rem; }
     .sum-item strong { display: block; font-size: 1.05rem; font-weight: 800; color: var(--neutral-900); }
     .sum-item span { font-size: 0.72rem; color: var(--neutral-500); font-weight: 600; }
@@ -545,7 +545,7 @@ export interface GuardAvailabilityItem {
     }
     .post-card.uncovered {
       border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface));
-      background: #fffafa;
+      background: color-mix(in srgb, #eb0000 14%, var(--surface));
     }
     .post-card__header {
       display: flex;

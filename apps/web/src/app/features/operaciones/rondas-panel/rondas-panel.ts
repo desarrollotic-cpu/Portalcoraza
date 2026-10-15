@@ -172,7 +172,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
     .head p, .link-box p { margin: 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
     .link-box {
       display: flex; gap: 1rem; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; padding: 1rem; border: 1px solid var(--border, #e5e7eb);
+      flex-wrap: wrap; padding: 1rem; border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
       border-radius: 12px; background: var(--surface, #fff);
     }
     .link-box a { color: var(--primary-600); word-break: break-all; font-weight: 600; }

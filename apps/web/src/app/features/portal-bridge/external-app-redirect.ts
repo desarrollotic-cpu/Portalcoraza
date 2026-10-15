@@ -73,7 +73,7 @@ import { Icon } from '../../shared/components/icon/icon';
       line-height: 1.45;
     }
     .hint {
-      background: var(--warning-bg, #fff7ed);
+      background: var(--warning-bg, color-mix(in srgb, #eb8200 14%, var(--surface)));
       color: var(--warning-dark, #9a3412);
       border-radius: var(--radius-sm);
       padding: 0.65rem 0.75rem;

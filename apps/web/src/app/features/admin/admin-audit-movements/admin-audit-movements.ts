@@ -319,7 +319,7 @@ function humanAction(action: string): string {
       padding: 0.15rem 0 0.25rem;
     }
     .tab {
-      border: 1px solid var(--border, #e5e7eb);
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
       background: var(--surface, #fff);
       color: var(--text, #111);
       border-radius: 999px;
@@ -344,7 +344,7 @@ function humanAction(action: string): string {
     }
     .mov__filters input {
       min-width: 9rem; padding: 0.4rem 0.55rem; border-radius: 8px;
-      border: 1px solid var(--border, #e5e7eb); background: var(--surface, #fff);
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); background: var(--surface, #fff);
     }
     .btn {
       padding: 0.45rem 0.9rem; border-radius: 8px; border: none;
@@ -352,13 +352,13 @@ function humanAction(action: string): string {
     }
     .btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn.ghost {
-      background: transparent; color: var(--text, #111); border: 1px solid var(--border, #e5e7eb);
+      background: transparent; color: var(--text, #111); border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
     }
     .mov__error { color: var(--coraza-error, #b91c1c); margin: 0; }
-    .mov__table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 10px; }
+    .mov__table-wrap { overflow: auto; border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); border-radius: 10px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
-    th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border, #f3f4f6); vertical-align: top; }
-    th { background: var(--surface-2, #f9fafb); font-weight: 600; white-space: nowrap; }
+    th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); vertical-align: top; }
+    th { background: var(--surface-2, color-mix(in srgb, #2d75be 14%, var(--surface))); font-weight: 600; white-space: nowrap; }
     .nowrap { white-space: nowrap; }
     .who { font-weight: 500; }
     .what { font-weight: 600; color: var(--coraza-primary, #1d4ed8); }

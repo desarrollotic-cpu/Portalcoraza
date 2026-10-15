@@ -173,7 +173,7 @@ import {
       gap: 0.25rem;
     }
     .kpi-card.highlight { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #bfdbfe; }
-    .kpi-card.accent { background: #faf5ff; border-color: #e9d5ff; }
+    .kpi-card.accent { background: color-mix(in srgb, #7500eb 14%, var(--surface)); border-color: color-mix(in srgb, #7000eb 32%, var(--surface)); }
     .kpi-card.warn { background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
     .kpi-card.holiday { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface)); }
     .kpi-label { font-size: 0.75rem; font-weight: 700; color: var(--neutral-600); }

@@ -226,10 +226,10 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       font-size: 0.75rem;
       padding: 0.2rem 0.45rem;
       border-radius: 999px;
-      background: #d4edda;
+      background: color-mix(in srgb, #2dbe4f 14%, var(--surface));
       white-space: nowrap;
     }
-    .stock-badge.low { background: #f8d7da; }
+    .stock-badge.low { background: color-mix(in srgb, #c82332 14%, var(--surface)); }
     .btn-remove {
       border: none;
       background: transparent;

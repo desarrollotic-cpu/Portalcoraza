@@ -308,8 +308,8 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
     .rc-progress, .rc-pass, .rc-clock {
       font-weight: 600; padding: 0.5rem 0.75rem; border-radius: 8px; background: var(--neutral-100);
     }
-    .rc-clock { background: #ecfeff; border: 1px solid #a5f3fc; }
-    .rc-pass { background: #eef2ff; border: 1px solid #c7d2fe; }
+    .rc-clock { background: color-mix(in srgb, #00deeb 14%, var(--surface)); border: 1px solid #a5f3fc; }
+    .rc-pass { background: color-mix(in srgb, #0037eb 14%, var(--surface)); border: 1px solid #c7d2fe; }
     .rc-save-next { font-weight: 700; white-space: nowrap; }
     .rc-table-wrap {
       overflow: auto; max-height: calc(100vh - 280px);

@@ -160,7 +160,7 @@ import { AdminApiService, UsersOverview } from '../admin-api.service';
       border-radius: 999px;
       font-size: 0.72rem;
       font-weight: 600;
-      background: var(--neutral-100, #f3f4f6);
+      background: var(--neutral-100, color-mix(in srgb, #2d5dbe 14%, var(--surface)));
       color: var(--neutral-600, #4b5563);
     }
     .badge.on {

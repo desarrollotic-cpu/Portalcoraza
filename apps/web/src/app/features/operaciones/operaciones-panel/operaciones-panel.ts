@@ -53,7 +53,7 @@ import { OperacionesApiService, OperacionesPost } from '../operaciones-api.servi
       max-width: 640px;
     }
     .kpis article {
-      border: 1px solid var(--border, #e5e7eb);
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
       border-radius: 10px;
       padding: 0.9rem 1rem;
       background: var(--surface, #fff);

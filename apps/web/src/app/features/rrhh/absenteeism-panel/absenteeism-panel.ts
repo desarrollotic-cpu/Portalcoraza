@@ -584,10 +584,10 @@ export class AbsenteeismPanel implements OnInit, OnDestroy {
           .title { background:#0F172A; color:#fff; font-size:13pt; font-weight:bold; text-align:center; height:32px; }
           .sub { background:#1E293B; color:#E2E8F0; font-size:10pt; text-align:center; height:24px; }
           .th { background:#0F766E; color:#fff; font-weight:bold; text-align:center; border:1px solid #0D9488; height:28px; font-size:9.5pt; }
-          .td-text { text-align:left; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
-          .td-center { text-align:center; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
-          .td-num { text-align:right; border:1px solid #CBD5E1; font-size:9pt; padding:4px; }
-          .even { background:#F8FAFC; }
+          .td-text { text-align:left; border:1px solid color-mix(in srgb, #2d6fbe 32%, var(--surface)); font-size:9pt; padding:4px; }
+          .td-center { text-align:center; border:1px solid color-mix(in srgb, #2d6fbe 32%, var(--surface)); font-size:9pt; padding:4px; }
+          .td-num { text-align:right; border:1px solid color-mix(in srgb, #2d6fbe 32%, var(--surface)); font-size:9pt; padding:4px; }
+          .even { background:color-mix(in srgb, #2d75be 14%, var(--surface)); }
         </style></head>
         <body>
           <table border="0" cellspacing="0" cellpadding="4">

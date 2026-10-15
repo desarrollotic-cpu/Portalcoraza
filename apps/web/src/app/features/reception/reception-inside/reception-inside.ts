@@ -184,8 +184,8 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       font-weight: 600;
       vertical-align: middle;
     }
-    .badge.associate { background: #dcfce7; color: #166534; }
-    .badge.visitor { background: #f3f4f6; color: #4b5563; }
+    .badge.associate { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: #166534; }
+    .badge.visitor { background: color-mix(in srgb, #2d5dbe 14%, var(--surface)); color: #4b5563; }
     .actions { text-align: right; }
     .ghost {
       border-radius: 999px;
@@ -224,12 +224,12 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
       border-radius: 4px;
       font-size: 0.72rem;
       font-weight: 700;
-      background: #ecfdf5;
+      background: color-mix(in srgb, #16d47b 14%, var(--surface));
       color: #065f46;
       border: 1px solid #a7f3d0;
     }
     .stay-badge.warn {
-      background: #fffbeb;
+      background: color-mix(in srgb, #ebbc00 14%, var(--surface));
       color: #92400e;
       border-color: #fde68a;
     }

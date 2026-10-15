@@ -445,7 +445,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
     .toast-ok {
       display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
       padding: .85rem 1rem;
-      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+      background: color-mix(in srgb, #16d47b 14%, var(--surface)); border: 1px solid #a7f3d0; border-radius: 10px;
       font-size: .9rem;
     }
     

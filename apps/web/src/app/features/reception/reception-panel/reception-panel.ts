@@ -274,8 +274,8 @@ import {
       color: var(--neutral-600);
     }
     .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: #15803d; }
-    .badge.associate { background: #dcfce7; color: #166534; }
-    .badge.visitor { background: #f3f4f6; color: #4b5563; }
+    .badge.associate { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: #166534; }
+    .badge.visitor { background: color-mix(in srgb, #2d5dbe 14%, var(--surface)); color: #4b5563; }
     .actions { text-align: right; white-space: nowrap; }
     .btn-sm {
       padding: 0.35rem 0.75rem;

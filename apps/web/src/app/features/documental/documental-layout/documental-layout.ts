@@ -416,7 +416,7 @@ import {
       color: var(--neutral-600);
     }
     .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
-    .item-badge[data-mod='CONTRATOS'] { background: #e0e7ff; color: #3730a3; }
+    .item-badge[data-mod='CONTRATOS'] { background: color-mix(in srgb, #0035eb 14%, var(--surface)); color: #3730a3; }
     .item-badge[data-mod='PERSONAL'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
     .item-badge[data-mod='CORRESPONDENCIA'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
     .item-code { color: #0d429c; font-size: 0.92rem; }

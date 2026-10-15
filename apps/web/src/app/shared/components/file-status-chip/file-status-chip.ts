@@ -23,7 +23,7 @@ import {
         white-space: nowrap;
       }
       .file-chip[data-kind='ACTIVO'] {
-        background: #dcfce7;
+        background: color-mix(in srgb, #13d856 14%, var(--surface));
         color: #166534;
       }
       .file-chip[data-kind='RETIRADO'] {
@@ -31,7 +31,7 @@ import {
         color: #92400e;
       }
       .file-chip[data-kind='ARCHIVADO'] {
-        background: #e0f2fe;
+        background: color-mix(in srgb, #078be3 14%, var(--surface));
         color: #043383;
       }
     `,

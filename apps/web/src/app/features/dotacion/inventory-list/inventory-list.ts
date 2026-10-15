@@ -339,7 +339,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       font-weight: 600;
     }
     .item-name { color: var(--primary, #1d4ed8); font-size: 1rem; }
-    .low-stock { background: #fff8f0; }
+    .low-stock { background: color-mix(in srgb, #eb7d00 14%, var(--surface)); }
     .stock-ok { color: var(--success-600); font-weight: 600; }
     .stock-zero { color: var(--error-600); font-weight: 600; }
     .muted { color: #737373; font-size: 0.8rem; margin-top: 0.15rem; }
@@ -409,7 +409,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       font-weight: 600;
       border: 1px solid #c4b5fd;
       border-radius: 8px;
-      background: #f5f3ff;
+      background: color-mix(in srgb, #2700eb 14%, var(--surface));
       color: #5b21b6;
       cursor: pointer;
     }

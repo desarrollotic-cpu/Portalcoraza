@@ -138,11 +138,11 @@ const RE_FECHA = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/(\d{4})$/;
     .subtitle { margin: 0; color: var(--neutral-500); font-size: 0.85rem; }
     .drop {
       display: flex; flex-direction: column; align-items: center; gap: 0.3rem; text-align: center;
-      padding: 1.6rem 1rem; border: 2px dashed #93a8e6; border-radius: 0.75rem; background: #f5f8ff;
+      padding: 1.6rem 1rem; border: 2px dashed #93a8e6; border-radius: 0.75rem; background: color-mix(in srgb, #0046eb 14%, var(--surface));
       color: #1e3a8a; cursor: pointer; transition: all 0.15s;
     }
     .drop span { font-size: 0.82rem; color: var(--neutral-600); }
-    .drop:hover, .drop.over { border-color: #1d4ed8; background: #eaf0ff; }
+    .drop:hover, .drop.over { border-color: #1d4ed8; background: color-mix(in srgb, #0043eb 14%, var(--surface)); }
     .info { margin: 0; color: #1d4ed8; font-size: 0.88rem; font-weight: 600; }
     .error { margin: 0; color: var(--error-600); font-size: 0.88rem; font-weight: 600; }
     .card { padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.7rem; }
@@ -158,7 +158,7 @@ const RE_FECHA = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/(\d{4})$/;
     .kpi span { font-size: 0.8rem; font-weight: 700; color: var(--neutral-700); }
     .kpi strong { font-size: 1.35rem; color: #1d4ed8; }
     .chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-    .chip { background: #eaf0ff; color: #1e3a8a; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px; }
+    .chip { background: color-mix(in srgb, #0043eb 14%, var(--surface)); color: #1e3a8a; font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 999px; }
     .table-wrap { overflow-x: auto; }
     .data-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
     .data-table th { background: var(--neutral-50); padding: 0.55rem 0.85rem; border-bottom: 1px solid var(--neutral-300); text-align: left; font-weight: 700; color: var(--neutral-600); font-size: 0.8rem; }
@@ -173,7 +173,7 @@ const RE_FECHA = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/(\d{4})$/;
     }
     .btn:hover:not(:disabled) { background: #1e40af; }
     .btn.secondary { background: var(--surface); color: #1d4ed8; }
-    .btn.secondary:hover:not(:disabled) { background: #eaf0ff; }
+    .btn.secondary:hover:not(:disabled) { background: color-mix(in srgb, #0043eb 14%, var(--surface)); }
     .btn:disabled { opacity: 0.55; cursor: not-allowed; }
   `],
 })

@@ -723,7 +723,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     .controls { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     .controls input[type='search'], .controls select,
     .form input, .form select, .form textarea {
-      border: 1px solid var(--border, #d1d5db); border-radius: 8px;
+      border: 1px solid var(--border, color-mix(in srgb, #2d67be 32%, var(--surface))); border-radius: 8px;
       padding: 0.45rem 0.65rem; background: var(--surface, #fff); color: inherit; font: inherit;
     }
     .controls input[type='search'] { min-width: 240px; }
@@ -731,17 +731,17 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       border: none; border-radius: 8px; cursor: pointer; font: inherit;
     }
     button.primary { background: var(--coraza-primary, #1d4ed8); color: #fff; padding: 0.5rem 0.9rem; }
-    button.ghost { background: transparent; border: 1px solid var(--border, #d1d5db); padding: 0.5rem 0.9rem; }
+    button.ghost { background: transparent; border: 1px solid var(--border, color-mix(in srgb, #2d67be 32%, var(--surface))); padding: 0.5rem 0.9rem; }
     button.link { background: none; color: var(--coraza-primary, #1d4ed8); padding: 0; }
     button.link.danger { color: var(--error-600); }
     .form {
-      border: 1px solid var(--border, #e5e7eb); border-radius: 12px;
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); border-radius: 12px;
       padding: 1rem; background: var(--surface, #fff);
       display: flex; flex-direction: column; gap: 0.75rem;
     }
     .form h3 { margin: 0 0 0.25rem; font-size: 1rem; }
     details {
-      border: 1px solid var(--border, #e5e7eb); border-radius: 10px; padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); border-radius: 10px; padding: 0.5rem 0.75rem;
       background: var(--surface-alt, #fafafa);
     }
     details[open] { padding-bottom: 0.9rem; }
@@ -751,13 +751,13 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     }
     button.add {
-      border: 1px dashed var(--border, #d1d5db); background: var(--surface); color: inherit;
+      border: 1px dashed var(--border, color-mix(in srgb, #2d67be 32%, var(--surface))); background: var(--surface); color: inherit;
       border-radius: 8px; padding: 0.2rem 0.55rem; font: inherit; font-size: 0.78rem;
       cursor: pointer;
     }
     .subblock {
       margin-top: 0.75rem; padding-top: 0.65rem;
-      border-top: 1px solid var(--border, #e5e7eb);
+      border-top: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
     }
     .subhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; }
     .hint { margin: 0.5rem 0 0; font-size: 0.82rem; color: var(--text-muted, #6b7280); }
@@ -779,14 +779,14 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     .span-2 { grid-column: span 2; }
     .span-3 { grid-column: span 3; }
     .form-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
-    .table-wrap { overflow: auto; border: 1px solid var(--border, #e5e7eb); border-radius: 12px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); border-radius: 12px; }
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { padding: 0.7rem 0.85rem; text-align: left; border-bottom: 1px solid var(--border, #eee); }
     th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-muted, #6b7280); }
     .dim { opacity: 0.55; }
     .badge {
       display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px;
-      font-size: 0.72rem; background: #f3f4f6;
+      font-size: 0.72rem; background: color-mix(in srgb, #2d5dbe 14%, var(--surface));
     }
     .badge.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }

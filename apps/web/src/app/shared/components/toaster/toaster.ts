@@ -78,8 +78,8 @@ import { Icon } from '../icon/icon';
       display: inline-flex; align-items: center; justify-content: center;
       background: var(--primary-50); color: var(--primary-700);
     }
-    .icon[data-kind='success'] { background: #dcfce7; color: #166534; }
-    .icon[data-kind='error'] { background: #fee2e2; color: #991b1b; }
+    .icon[data-kind='success'] { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: #166534; }
+    .icon[data-kind='error'] { background: color-mix(in srgb, #e30808 14%, var(--surface)); color: #991b1b; }
     .icon[data-kind='warning'] { background: #fef3c7; color: #92400e; }
 
     .body { display: flex; flex-direction: column; gap: 0.15rem; font-size: 0.85rem; }

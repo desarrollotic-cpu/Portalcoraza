@@ -150,7 +150,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     .toast-ok {
       display: flex; flex-wrap: wrap; align-items: center; gap: .75rem;
       margin-bottom: 1rem; padding: .85rem 1rem;
-      background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 10px;
+      background: color-mix(in srgb, #16d47b 14%, var(--surface)); border: 1px solid #a7f3d0; border-radius: 10px;
       font-size: .9rem;
     }
     .code-preview { grid-column:1/-1; font-weight:700; margin:0; }

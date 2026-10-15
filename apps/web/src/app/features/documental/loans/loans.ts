@@ -741,7 +741,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .box-table-head p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--neutral-500); }
 
     .email-toast {
-      background: #ecfdf5;
+      background: color-mix(in srgb, #16d47b 14%, var(--surface));
       color: #065f46;
       border: 1px solid #a7f3d0;
       padding: 0.75rem 1rem;
@@ -765,8 +765,8 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
 
     /* TABLE */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
-    .row-pending { background: #fffdf5; }
-    .row-vencido { background: #fff5f5; }
+    .row-pending { background: color-mix(in srgb, #ebbc00 14%, var(--surface)); }
+    .row-vencido { background: color-mix(in srgb, #eb0000 14%, var(--surface)); }
     .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #0d429c; font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
     .doc-code-tag { font-size: 0.72rem; color: #0d429c; font-weight: 700; }
@@ -793,7 +793,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       border-color: var(--neutral-400);
     }
     .btn-act-approve {
-      background: #ecfdf5;
+      background: color-mix(in srgb, #16d47b 14%, var(--surface));
       color: #047857;
       border: 1px solid #a7f3d0;
       border-radius: 0.35rem;

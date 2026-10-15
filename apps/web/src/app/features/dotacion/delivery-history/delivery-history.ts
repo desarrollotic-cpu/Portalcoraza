@@ -129,12 +129,12 @@ const REVERT_WINDOW_MS = 120 * 60 * 60 * 1000;
     .badge {
       font-size: 0.75rem;
       font-weight: 600;
-      background: #fff3cd;
+      background: color-mix(in srgb, #ebb200 14%, var(--surface));
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
     }
-    .badge.delivered { background: #d4edda; color: var(--success-600); }
-    .badge.reverted { background: #f8d7da; color: var(--error-600); }
+    .badge.delivered { background: color-mix(in srgb, #2dbe4f 14%, var(--surface)); color: var(--success-600); }
+    .badge.reverted { background: color-mix(in srgb, #c82332 14%, var(--surface)); color: var(--error-600); }
     .badge.pending { background: var(--neutral-200); color: var(--neutral-700); }
     .items {
       margin: 0;

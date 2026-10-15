@@ -328,7 +328,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
       font: inherit;
     }
     .dot-suggest li:last-child .dot-suggest__btn { border-bottom: none; }
-    .dot-suggest__btn:hover { background: #eff6ff; }
+    .dot-suggest__btn:hover { background: color-mix(in srgb, #0067eb 14%, var(--surface)); }
     .dot-suggest__btn span { font-size: 0.8rem; color: var(--text-secondary); }
     .dot-picked {
       display: flex;
@@ -338,7 +338,7 @@ import { DotacionOverview, InventoryApiService, InventoryItem } from '../invento
       padding: 0.55rem 0.7rem;
       border: 1px solid #bfdbfe;
       border-radius: 8px;
-      background: #eff6ff;
+      background: color-mix(in srgb, #0067eb 14%, var(--surface));
     }
     .dot-picked strong { display: block; font-size: 0.9rem; }
     .dot-period {

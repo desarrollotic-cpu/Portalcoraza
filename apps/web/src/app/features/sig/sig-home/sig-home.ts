@@ -1173,7 +1173,7 @@ interface DashboardItem {
     }
     .period-detail-box[data-c='VERDE'] { border-left-color: var(--success-500); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .period-detail-box[data-c='AZUL'] { border-left-color: #3b82f6; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
-    .period-detail-box[data-c='AMARILLO'] { border-left-color: #eab308; background: #fefce8; }
+    .period-detail-box[data-c='AMARILLO'] { border-left-color: #eab308; background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
     .period-detail-box[data-c='ROJO'] { border-left-color: var(--error-500); background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); }
 
     .period-detail-top { display: flex; justify-content: space-between; align-items: center; }
@@ -1376,7 +1376,7 @@ interface DashboardItem {
     .obj-btn strong { font-size: 0.85rem; color: var(--neutral-800); line-height: 1.3; }
     .obj-footer { display: flex; justify-content: space-between; align-items: center; }
     .sys-badge {
-      background: #e0e7ff;
+      background: color-mix(in srgb, #0035eb 14%, var(--surface));
       color: #3730a3;
       font-size: 0.68rem;
       font-weight: 800;

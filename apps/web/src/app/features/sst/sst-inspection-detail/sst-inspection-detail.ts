@@ -358,7 +358,7 @@ interface DraftRow {
       margin-top: 0.4rem; background: var(--surface); border: 1px dashed var(--neutral-300);
       border-radius: 0.5rem; padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.5rem;
     }
-    .evidence-box-risk { border-color: color-mix(in srgb, var(--error-500) 35%, var(--surface)); background: #fff5f5; }
+    .evidence-box-risk { border-color: color-mix(in srgb, var(--error-500) 35%, var(--surface)); background: color-mix(in srgb, #eb0000 14%, var(--surface)); }
     .evidence-box-safe { border-color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .evidence-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .evidence-label { font-size: 0.82rem; font-weight: 700; color: var(--neutral-700); }

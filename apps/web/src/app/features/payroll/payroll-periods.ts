@@ -211,7 +211,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       cursor: pointer; transition: all 0.15s ease; display: flex; flex-direction: column; gap: 0.5rem;
     }
     .period-card:hover { border-color: var(--neutral-300); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-    .period-card.active { border-color: #0f766e; background: #f0fdfa; box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
+    .period-card.active { border-color: #0f766e; background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .status-pill { font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px; }
     .st-liquidado { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
@@ -224,7 +224,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       background: var(--surface); font-size: 0.78rem; font-weight: 700; color: var(--neutral-700); cursor: pointer;
     }
     .btn-action:hover { background: var(--neutral-100); }
-    .btn-selected { border-color: #0f766e; color: #0f766e; background: #ccfbf1; }
+    .btn-selected { border-color: #0f766e; color: #0f766e; background: color-mix(in srgb, #11daaf 14%, var(--surface)); }
     .btn-calc { background: #0f766e; color: #ffffff; border-color: #0f766e; }
     .btn-calc:hover { background: #0d9488; }
     .card { padding: 1.25rem; background: var(--surface); border-radius: 0.75rem; border: 1px solid var(--neutral-200); }
@@ -252,7 +252,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
       border: 1px solid var(--neutral-300); background: var(--neutral-50); color: #0f766e; cursor: pointer;
     }
-    .btn-slip:hover { background: #f0fdfa; border-color: #0f766e; }
+    .btn-slip:hover { background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); border-color: #0f766e; }
     .empty-msg { padding: 2rem; color: var(--neutral-500); }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; padding: 1rem; }
     .modal-card { background: var(--surface); padding: 1.5rem; border-radius: 0.75rem; width: 100%; max-width: 480px; display: flex; flex-direction: column; gap: 1rem; }

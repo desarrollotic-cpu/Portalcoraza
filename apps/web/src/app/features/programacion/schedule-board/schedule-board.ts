@@ -663,9 +663,9 @@ const CODES: CodeConfig[] = [
     label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; }
     select, input { padding: 0.45rem 0.6rem; border: 1px solid var(--coraza-border); border-radius: 8px; font: inherit; }
     .status { padding: 0.3rem 0.7rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; align-self: center; }
-    .st-borrador { background: #fff3cd; color: #8a6d00; }
-    .st-publicado { background: #d1e7dd; color: #0f5132; }
-    .st-anulado { background: #f8d7da; color: #842029; }
+    .st-borrador { background: color-mix(in srgb, #ebb200 14%, var(--surface)); color: #8a6d00; }
+    .st-publicado { background: color-mix(in srgb, #2dbe7c 14%, var(--surface)); color: #0f5132; }
+    .st-anulado { background: color-mix(in srgb, #c82332 14%, var(--surface)); color: #842029; }
     .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: end; margin-bottom: 1rem; }
     .tpl { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.75rem; color: var(--coraza-text-muted); }
     button { padding: 0.5rem 0.9rem; border: 1px solid var(--coraza-border); border-radius: 8px; background: var(--coraza-surface); cursor: pointer; font: inherit; }
@@ -733,7 +733,7 @@ const CODES: CodeConfig[] = [
       border-color: #fca5a5 !important;
     }
     td.col-sunday, td.col-holiday {
-      background-color: #fff1f2;
+      background-color: color-mix(in srgb, #eb0011 14%, var(--surface));
       border-color: #fed7aa;
     }
 
@@ -901,16 +901,16 @@ const CODES: CodeConfig[] = [
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
     .cell.alert-error { outline: 1.5px dashed var(--error-600); outline-offset: -2px; }
     .cell.alert-warn { outline: 1.5px dashed var(--warning-600); outline-offset: -2px; }
-    .c-d { background: #d1e7dd; color: #0f5132; }
-    .c-n { background: #cfe2ff; color: #084298; }
+    .c-d { background: color-mix(in srgb, #2dbe7c 14%, var(--surface)); color: #0f5132; }
+    .c-n { background: color-mix(in srgb, #005deb 14%, var(--surface)); color: #084298; }
     .c-d8 { background: #b7e4c7; color: #1b4332; }
     .c-n8 { background: #9ec5fe; color: #052c65; }
     .c-n10 { background: #6ea8fe; color: #031633; }
-    .c-dr { background: #e9ecef; color: #495057; }
-    .c-nr { background: #ced4da; color: #212529; }
-    .c-vac { background: #fff3cd; color: #664d03; }
-    .c-lc { background: #ffe5d0; color: #8a4b00; }
-    .c-in { background: #f8d7da; color: #842029; }
+    .c-dr { background: color-mix(in srgb, #2d75be 14%, var(--surface)); color: #495057; }
+    .c-nr { background: color-mix(in srgb, #2d75be 14%, var(--surface)); color: #212529; }
+    .c-vac { background: color-mix(in srgb, #ebb200 14%, var(--surface)); color: #664d03; }
+    .c-lc { background: color-mix(in srgb, #eb6900 14%, var(--surface)); color: #8a4b00; }
+    .c-in { background: color-mix(in srgb, #c82332 14%, var(--surface)); color: #842029; }
     .c-sp { background: #f5c2c7; color: #58151c; }
     .c-ac { background: #e2b6cf; color: #6a1a4c; }
     .legend { margin-top: 0.75rem; display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center; }
@@ -1014,7 +1014,7 @@ const CODES: CodeConfig[] = [
       border-color: var(--neutral-300);
       color: var(--neutral-700);
     }
-    .diurno-td { color: #854d0e; background: #fefce8; }
+    .diurno-td { color: #854d0e; background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
     .nocturno-td { color: var(--success-600); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .hours-td { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
     .hours-over { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)) !important; color: var(--error-600) !important; }

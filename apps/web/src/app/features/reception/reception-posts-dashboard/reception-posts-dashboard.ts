@@ -519,7 +519,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     .btn.ghost {
       background: transparent;
       color: var(--text, var(--coraza-text));
-      border: 1px solid var(--border, #d1d5db);
+      border: 1px solid var(--border, color-mix(in srgb, #2d67be 32%, var(--surface)));
     }
     .warn-banner {
       margin: 0;
@@ -642,7 +642,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       outline: none;
     }
     .trend-col.active {
-      border-color: color-mix(in srgb, var(--primary) 45%, var(--border, #e5e7eb));
+      border-color: color-mix(in srgb, var(--primary) 45%, var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))));
       background: color-mix(in srgb, var(--primary) 10%, transparent);
     }
     .trend-bars {
@@ -715,7 +715,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     th, td {
       text-align: left;
       padding: 0.5rem 0.4rem;
-      border-bottom: 1px solid var(--border, #e5e7eb);
+      border-bottom: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
       vertical-align: top;
     }
     th {
@@ -728,7 +728,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     }
     code {
       font-size: 0.8rem;
-      background: var(--surface-2, #f3f4f6);
+      background: var(--surface-2, color-mix(in srgb, #2d5dbe 14%, var(--surface)));
       padding: 0.1rem 0.3rem;
       border-radius: 4px;
     }
@@ -741,7 +741,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       border-radius: 999px;
       font-size: 0.7rem;
       font-weight: 700;
-      background: #f3f4f6;
+      background: color-mix(in srgb, #2d5dbe 14%, var(--surface));
       color: #6b7280;
     }
     .badge.on {
@@ -760,7 +760,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       display: flex; flex-direction: column; gap: 0.15rem;
       padding: 0.85rem 1rem;
       border-radius: 12px;
-      border: 1px solid var(--border, #e5e7eb);
+      border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface)));
       background: var(--surface, #fff);
       color: inherit;
       text-align: left;
@@ -772,7 +772,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     button.mkpi:hover, button.mkpi:focus-visible {
       transform: translateY(-1px);
       box-shadow: 0 6px 18px -12px rgba(0,0,0,0.35);
-      border-color: color-mix(in srgb, var(--primary) 45%, var(--border, #e5e7eb));
+      border-color: color-mix(in srgb, var(--primary) 45%, var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))));
       outline: none;
     }
     .mkpi--new { border-left: 4px solid var(--success-600); }
@@ -800,7 +800,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       font-size: 0.9rem; color: var(--text-secondary);
       padding: 0.15rem 0.35rem; border-radius: 6px;
     }
-    .chev:hover { background: var(--surface-2, #f3f4f6); color: var(--text); }
+    .chev:hover { background: var(--surface-2, color-mix(in srgb, #2d5dbe 14%, var(--surface))); color: var(--text); }
     tr.row.expanded { background: color-mix(in srgb, var(--primary) 6%, transparent); }
     tr.detail-row td { background: color-mix(in srgb, var(--primary) 3%, var(--surface, #fff)); }
 
@@ -828,7 +828,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     .chip {
       display: inline-flex; align-items: center; gap: 0.35rem;
       padding: 0.2rem 0.55rem; border-radius: 999px;
-      background: var(--surface-2, #f3f4f6);
+      background: var(--surface-2, color-mix(in srgb, #2d5dbe 14%, var(--surface)));
       color: var(--text-secondary);
       font-size: 0.75rem; border: 1px solid transparent;
     }
