@@ -30,7 +30,6 @@ import {
   LucideKeyRound,
   LucideLogOut,
   LucideMoon,
-  LucideSearch,
   LucideSparkles,
   LucideSun,
   LucideUserCog,
@@ -230,12 +229,6 @@ interface NavGroup {
           </div>
 
           <div class="topbar-right">
-            <div class="search-box">
-              <app-icon [icon]="icons.Search" [size]="16" [strokeWidth]="1.8" />
-              <input type="search" placeholder="Buscar en el portal..." disabled />
-              <kbd>Ctrl K</kbd>
-            </div>
-
             <button
               type="button"
               class="icon-btn theme-btn"
@@ -753,42 +746,6 @@ interface NavGroup {
       gap: 0.6rem;
     }
 
-    .search-box {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      /* El buscador medía 55px y era lo que fijaba el alto de toda la barra,
-         por encima de los botones (40px) y del chip de usuario (46px). */
-      padding: 0.3rem 0.85rem;
-      background: var(--surface-2);
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      min-width: 260px;
-      color: var(--text-muted);
-    }
-    .search-box input {
-      border: none;
-      background: transparent;
-      padding: 0;
-      color: var(--text-primary);
-      font-size: 0.85rem;
-      width: 100%;
-    }
-    .search-box input:focus {
-      outline: none;
-      box-shadow: none;
-    }
-    .search-box kbd {
-      font-family: var(--font-sans);
-      font-size: 0.65rem;
-      font-weight: 600;
-      background: var(--neutral-200);
-      color: var(--text-secondary);
-      border-radius: 6px;
-      padding: 0.15rem 0.4rem;
-      border-bottom: 1px solid var(--neutral-300);
-    }
-
     .icon-btn {
       position: relative;
       width: 40px;
@@ -1013,11 +970,6 @@ interface NavGroup {
       animation: portal-page-in 0.22s ease both;
     }
 
-    @media (max-width: 1100px) {
-      .search-box {
-        display: none;
-      }
-    }
     @media (max-width: 900px) {
       .layout {
         grid-template-columns: 1fr;
@@ -1212,7 +1164,6 @@ export class MainLayout implements OnDestroy {
     LogOut: LucideLogOut,
     Menu: LucideMenu,
     Moon: LucideMoon,
-    Search: LucideSearch,
     DoorOpen: LucideDoorOpen,
     Sparkles: LucideSparkles,
     Sun: LucideSun,

@@ -105,7 +105,7 @@ import { Icon } from '../../shared/components/icon/icon';
       align-items: center;
       justify-content: center;
       background: #0f172a;
-      padding: 1.5rem;
+      padding: 1rem;
       position: relative;
       overflow: hidden;
     }
@@ -153,7 +153,10 @@ import { Icon } from '../../shared/components/icon/icon';
       z-index: 10;
       width: 100%;
       max-width: 1060px;
-      min-height: 580px;
+      /* Sin alto mínimo: los 580px fijos hacían que la pantalla midiera 628px
+         y apareciera barra de desplazamiento en cualquier portátil. Ahora la
+         tarjeta mide lo que mide su contenido. */
+      min-height: 0;
       display: grid;
       grid-template-columns: 1.15fr 0.95fr;
       border-radius: 2rem;
@@ -165,7 +168,7 @@ import { Icon } from '../../shared/components/icon/icon';
     /* LADO IZQUIERDO: HERO CORPORATIVO */
     .auth-hero-side {
       position: relative;
-      padding: 2.5rem;
+      padding: 1.75rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
@@ -291,7 +294,7 @@ import { Icon } from '../../shared/components/icon/icon';
     /* LADO DERECHO: FORMULARIO */
     .auth-form-side {
       position: relative;
-      padding: 2.5rem 3rem;
+      padding: 1.75rem 2.25rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;

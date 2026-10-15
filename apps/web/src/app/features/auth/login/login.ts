@@ -215,11 +215,11 @@ import { Icon } from '../../../shared/components/icon/icon';
       letter-spacing: 0.02em;
       text-transform: uppercase;
       align-self: flex-start;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
     }
 
     h1 {
-      margin: 0 0 0.3rem;
+      margin: 0 0 0.2rem;
       font-family: var(--font-display);
       font-size: 1.45rem;
       font-weight: 700;
@@ -229,14 +229,14 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .subtitle {
-      margin: 0 0 0.45rem;
+      margin: 0 0 0.25rem;
       color: var(--text-secondary);
       font-size: 0.88rem;
       line-height: 1.45;
     }
 
     .minuta-hint {
-      margin: 0 0 1rem;
+      margin: 0 0 0.65rem;
       color: var(--text-muted);
       font-size: 0.82rem;
     }
@@ -268,7 +268,7 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .field {
-      margin-bottom: 0.85rem;
+      margin-bottom: 0.55rem;
     }
     .field-error {
       margin: 0.4rem 0 0;
@@ -359,7 +359,7 @@ import { Icon } from '../../../shared/components/icon/icon';
       justify-content: center;
       gap: 0.5rem;
       width: 100%;
-      margin-top: 0.35rem;
+      margin-top: 0.25rem;
       padding: 0.75rem 1.25rem;
       border: none;
       border-radius: var(--radius-sm);
@@ -410,9 +410,10 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
 
     .foot-note {
-      margin: 0.85rem 0 0;
+      margin: 0.55rem 0 0;
       text-align: center;
       font-size: 0.75rem;
+      line-height: 1.35;
       color: var(--text-muted);
     }
 
