@@ -38,3 +38,7 @@ export const memoryMonitorEnabled = (): boolean =>
 
 export const toMb = (bytes: number): number =>
   Math.round((bytes / 1024 / 1024) * 10) / 10;
+
+/** `REQUEST_LOG=off` apaga la línea de inicio/fin por petición (ver MemoryProfileInterceptor). */
+export const requestLogEnabled = (): boolean =>
+  (process.env.REQUEST_LOG ?? '').trim().toLowerCase() !== 'off';

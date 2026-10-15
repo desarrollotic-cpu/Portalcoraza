@@ -9,6 +9,7 @@ import { Observable, tap } from 'rxjs';
 import {
   MEMORY_REQUEST_DELTA_MB,
   memoryMonitorEnabled,
+  requestLogEnabled,
   toMb,
 } from './memory.config';
 import { registrarFin, registrarInicio } from './peticiones-en-curso';
@@ -28,6 +29,7 @@ import { registrarFin, registrarInicio } from './peticiones-en-curso';
 @Injectable()
 export class MemoryProfileInterceptor implements NestInterceptor {
   private readonly logger = new Logger('MemoriaPeticion');
+  private readonly trace = new Logger('Peticion');
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     if (context.getType() !== 'http' || !memoryMonitorEnabled()) {
@@ -38,6 +40,7 @@ export class MemoryProfileInterceptor implements NestInterceptor {
       method?: string;
       originalUrl?: string;
       url?: string;
+      user?: { sub?: string };
     }>();
     // Sin query string: puede llevar filtros y datos del usuario.
     const ruta = (req.originalUrl ?? req.url ?? '?').split('?')[0];
@@ -47,9 +50,21 @@ export class MemoryProfileInterceptor implements NestInterceptor {
     const startedAt = Date.now();
     const id = registrarInicio(metodo, ruta);
 
+    // Una línea al empezar y otra al terminar. La de inicio es la que sobrevive si el proceso
+    // muere a mitad de la petición: la última IN sin su OUT en el log señala a la culpable.
+    // Los números largos (cédulas en la ruta) se tapan: el log no debe llevar datos personales.
+    const rutaLog = ruta.replace(/\d{6,}/g, '#');
+    const trazar = requestLogEnabled() && metodo !== 'OPTIONS' && !ruta.endsWith('/health');
+    if (trazar) {
+      this.trace.log(`IN ${metodo} ${rutaLog} user=${req.user?.sub ?? '-'} rss=${toMb(before)}MB`);
+    }
+
     const report = () => {
       registrarFin(id);
       const deltaMb = toMb(process.memoryUsage.rss() - before);
+      if (trazar) {
+        this.trace.log(`OUT ${metodo} ${rutaLog} ${Date.now() - startedAt}ms ${deltaMb >= 0 ? '+' : ''}${deltaMb}MB`);
+      }
       if (deltaMb < MEMORY_REQUEST_DELTA_MB) return;
       this.logger.warn(
         `${metodo} ${ruta} +${deltaMb}MB en ${Date.now() - startedAt}ms ` +

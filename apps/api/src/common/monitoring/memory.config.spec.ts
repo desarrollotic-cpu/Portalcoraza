@@ -46,4 +46,13 @@ describe('configuración de la instrumentación de memoria', () => {
     expect(cfg.toMb(1024 * 1024)).toBe(1);
     expect(cfg.toMb(1024 * 1024 * 2.55)).toBe(2.6);
   });
+
+  it('el log por petición va activo salvo REQUEST_LOG=off', () => {
+    delete process.env.REQUEST_LOG;
+    jest.resetModules();
+    expect(load().requestLogEnabled()).toBe(true);
+    process.env.REQUEST_LOG = ' OFF ';
+    jest.resetModules();
+    expect(load().requestLogEnabled()).toBe(false);
+  });
 });
