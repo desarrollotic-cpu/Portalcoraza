@@ -7,7 +7,7 @@
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
     "start": "nest start",
     "start:dev": "nest start --watch",
-    "start:prod": "node --max-old-space-size=${NODE_HEAP_MB:-460} dist/main",
+    "start:prod": "MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-2} node --max-old-space-size=${NODE_HEAP_MB:-460} dist/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:int": "jest -c jest.int.config.js",
