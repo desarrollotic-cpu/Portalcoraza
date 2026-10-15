@@ -73,9 +73,10 @@
   --border-color: var(--border);
   --color-border: var(--border);
   --color-muted: var(--text-muted);
-  --color-primary: var(--primary-600);
+  --color-primary: var(--primary);
   --color-surface: var(--surface);
-  --brand: var(--primary-600);
+  /* --primary, no --primary-600: en oscuro baja al 400, que aguanta texto blanco encima. */
+  --brand: var(--primary);
 
   /* ─── Tinta: oscuro en los dos temas ────────────────────────────
      Para superficies que deben seguir siendo oscuras aunque se active
