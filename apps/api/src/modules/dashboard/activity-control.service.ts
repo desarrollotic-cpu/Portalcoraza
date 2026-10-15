@@ -99,6 +99,24 @@ const MINUTA_FECHA_UNION = `
 
 type NamedActor = { name: string; count: number; lastAt: Date };
 
+/** Claves JSON que detail()/collectAssociateIds() leen de audit_logs. */
+const DETAIL_KEYS = [
+  'firstName',
+  'firstLastName',
+  'documentNumber',
+  'associateId',
+  'name',
+  'code',
+  'firstSurname',
+  'label',
+  'callsign',
+  'status',
+  'passNumber',
+];
+const DETAIL_JSON_SQL = `jsonb_strip_nulls(jsonb_build_object(${DETAIL_KEYS.map(
+  (k) => `'${k}', COALESCE(a.new_value, a.old_value)->'${k}'`,
+).join(', ')}))`;
+
 @Injectable()
 export class ActivityControlService {
   private readonly logger = new Logger(ActivityControlService.name);
@@ -139,13 +157,32 @@ export class ActivityControlService {
     const since = this.bogotaStartOfDayOffset(lookback - 1);
     const periodSince = this.bogotaStartOfDayOffset(days - 1);
 
+    // Solo columnas y claves JSON que usa detail(): new_value/old_value pueden pesar MB por fila
+    // y 3000 filas completas llevaron el RSS a >500MB en una sola petición (OOM en Render).
     const auditRows = await this.auditRepo
       .createQueryBuilder('a')
+      .select('a.id', 'id')
+      .addSelect('a.user_id', 'userId')
+      .addSelect('a.module', 'module')
+      .addSelect('a.action', 'action')
+      .addSelect('a.entity_type', 'entityType')
+      .addSelect('a.entity_id', 'entityId')
+      .addSelect('a.created_at', 'createdAt')
+      .addSelect(DETAIL_JSON_SQL, 'detailJson')
       .where('a.created_at >= :since', { since })
       .andWhere('a.action NOT IN (:...skip)', { skip: [...SKIP_ACTIONS] })
       .orderBy('a.created_at', 'DESC')
-      .take(3000)
-      .getMany();
+      .limit(3000)
+      .getRawMany<{
+        id: string;
+        userId: string | null;
+        module: string;
+        action: string;
+        entityType: string | null;
+        entityId: string | null;
+        createdAt: Date | string;
+        detailJson: Record<string, unknown> | null;
+      }>();
 
     const events: ActivityEvent[] = auditRows.map((a) => ({
       id: a.id,
@@ -153,8 +190,8 @@ export class ActivityControlService {
       module: a.module,
       action: a.action,
       createdAt: a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt),
-      newValue: a.newValue,
-      oldValue: a.oldValue,
+      newValue: a.detailJson,
+      oldValue: null,
       entityType: a.entityType,
       entityId: a.entityId,
     }));
@@ -163,6 +200,7 @@ export class ActivityControlService {
     // altas/ediciones aunque algún camino no haya escrito audit_logs.
     const histRows = await this.historyRepo
       .createQueryBuilder('h')
+      .select(['h.id', 'h.associateId', 'h.changedBy', 'h.action', 'h.fieldName', 'h.createdAt'])
       .where('h.created_at >= :since', { since })
       .andWhere("h.action NOT IN ('ALERTA')")
       .orderBy('h.created_at', 'DESC')
@@ -192,12 +230,8 @@ export class ActivityControlService {
         module: 'hr',
         action,
         createdAt: at,
-        newValue: {
-          fieldName: h.fieldName,
-          newValue: h.newValue,
-          associateId: h.associateId,
-        },
-        oldValue: h.oldValue ? { oldValue: h.oldValue } : null,
+        newValue: { fieldName: h.fieldName, associateId: h.associateId },
+        oldValue: null,
         entityType: 'associate',
         entityId: h.associateId,
       });
