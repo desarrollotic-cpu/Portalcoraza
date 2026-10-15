@@ -68,7 +68,6 @@ const routes = [
   'admin/roles',
   'vigilantes',
   'minutas',
-  'sig',
   'vigia',
   'vigia/login',
   'solicitud-prestamo',

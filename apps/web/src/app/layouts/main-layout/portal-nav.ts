@@ -88,8 +88,6 @@ export const RRHH_NAV: ModuleNavItem[] = [
   { label: 'Cargos', route: '/rrhh/admin/cargos', permission: 'job_positions.view', icon: LucideBriefcase },
   { label: 'Puestos / centros', route: '/rrhh/admin/centros', permission: 'work_centers.view', icon: LucideBuilding2 },
   { label: 'Catálogos', route: '/rrhh/admin/catalogos', permission: 'catalogs.view', icon: LucideBookMarked },
-  { label: 'Importar', route: '/rrhh/importar', permission: 'hr_import.execute', icon: LucideFileSpreadsheet },
-  { label: 'Bitácora', route: '/rrhh/bitacora', permission: 'hr_audit.view', icon: LucideHistory },
 ];
 
 export const DOTACION_NAV: ModuleNavItem[] = [
@@ -106,7 +104,6 @@ export const PROGRAMACION_NAV: ModuleNavItem[] = [
   { label: 'Personal', route: '/rrhh/asociados', permission: 'associates.view', icon: LucideUsersRound },
   { label: 'Cuadro de Turnos', route: '/programacion/cuadro', permission: 'scheduling.view', icon: LucideCalendarClock },
   { label: 'Control de Alertas', route: '/programacion/alertas', permission: 'scheduling.edit', icon: LucideAlertTriangle },
-  { label: 'Estado de Vigilantes', route: '/programacion/vigilantes', permission: 'scheduling.view', icon: LucideActivity },
   { label: 'Liquidación y Recargos', route: '/programacion/recargos', permission: 'scheduling.edit', icon: LucideCalculator },
 ];
 
@@ -173,10 +170,10 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },
       { label: 'Programación', route: '/programacion', icon: LucideCalendarClock, permission: 'scheduling.view', children: PROGRAMACION_NAV },
       { label: 'Nómina', route: '/nomina', icon: LucideBriefcaseBusiness, permissions: ['payroll.view', 'payroll.convert'], children: NOMINA_NAV },
-      { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
+      // OCULTO TEMPORALMENTE (presentacion): descomentar esta linea para volver a mostrar Documental en el menu.
+      // { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
       { label: 'Recepción', route: '/recepcion', icon: LucideDoorOpen, permission: 'reception.view', children: RECEPCION_NAV },
       { label: 'SST / Salud y Seguridad', route: '/sst', icon: LucideShieldCheck, permission: 'sst.view', children: SST_NAV },
-      { label: 'SIG-Indicadores', route: '/sig', icon: LucideSparkles, permission: 'sig.view' },
     ],
   },
   {

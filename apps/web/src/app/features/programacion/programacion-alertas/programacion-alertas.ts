@@ -56,14 +56,13 @@ const PAGE_SIZE = 12;
 
       @if (horas(); as h) {
         @if (h.bajoMinimo || h.sinProgramar) {
-          <a class="horas" routerLink="/programacion/vigilantes">
+          <div class="horas">
             <span>
               <strong>Horas del personal:</strong>
               {{ h.bajoMinimo }} vigilante{{ h.bajoMinimo === 1 ? '' : 's' }} bajo el mínimo
               (faltan {{ h.horasFaltantes }} h) y {{ h.sinProgramar }} activo{{ h.sinProgramar === 1 ? '' : 's' }} sin ningún turno este mes.
             </span>
-            <span class="horas__go">Ver Estado de Vigilantes <app-icon [icon]="icons.Arrow" [size]="16" /></span>
-          </a>
+          </div>
         }
       }
 

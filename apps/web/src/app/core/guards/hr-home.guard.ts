@@ -29,9 +29,5 @@ export const hrHomeGuard: CanActivateFn = () => {
   if (auth.hasPermission('catalogs.view')) {
     return router.createUrlTree(['/rrhh/admin/catalogos']);
   }
-  if (auth.hasPermission('hr_audit.view')) {
-    return router.createUrlTree(['/rrhh/bitacora']);
-  }
-
   return router.createUrlTree(['/sin-acceso']);
 };

@@ -722,7 +722,11 @@ export class Dashboard implements OnInit {
   readonly dotacion = computed(() => this.data()?.modules?.['dotacion'] as any);
   readonly programacion = computed(() => this.data()?.modules?.['programacion'] as any);
   readonly operaciones = computed(() => this.data()?.modules?.['operaciones'] as any);
-  readonly documental = computed(() => this.data()?.modules?.['documental'] as any);
+  /** OCULTO TEMPORALMENTE (presentacion): poner en true para volver a mostrar el panel Documental. */
+  readonly showDocumental = false;
+  readonly documental = computed(() =>
+    this.showDocumental ? (this.data()?.modules?.['documental'] as any) : null,
+  );
 
   /** Conteo real desde modules.rrhh.counts.ACTIVO (o KPI rrhh-active del command center). */
   readonly activeAssociates = computed(() => {

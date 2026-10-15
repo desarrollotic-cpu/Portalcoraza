@@ -159,9 +159,6 @@ export class AuthService {
     if (user.role?.code === 'BIENESTAR') {
       return '/rrhh/asociados';
     }
-    if (user.role?.code === 'SIG' || (this.hasPermission('sig.view') && !this.hasPermission('users.view') && user.role?.code !== 'GERENCIA')) {
-      return '/sig';
-    }
     if (
       this.hasPermission('users.view') ||
       this.hasPermission('dashboard.view') ||
@@ -177,7 +174,6 @@ export class AuthService {
     if (this.hasPermission('operations.view')) return '/operaciones';
     if (this.hasPermission('sst.view')) return '/sst';
     if (this.hasPermission('payroll.view')) return '/nomina';
-    if (this.hasPermission('sig.view')) return '/sig';
     return '/sin-acceso';
   }
 

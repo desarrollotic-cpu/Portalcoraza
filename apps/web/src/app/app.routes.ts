@@ -239,20 +239,6 @@ export const routes: Routes = [
                 (m) => m.CatalogsAdmin,
               ),
           },
-          {
-            path: 'importar',
-            canActivate: [permissionGuard],
-            data: { permission: 'hr_import.execute' },
-            loadComponent: () =>
-              import('./features/rrhh/excel-import/excel-import').then((m) => m.ExcelImport),
-          },
-          {
-            path: 'bitacora',
-            canActivate: [permissionGuard],
-            data: { permission: 'hr_audit.view' },
-            loadComponent: () =>
-              import('./features/rrhh/hr-audit-log/hr-audit-log').then((m) => m.HrAuditLog),
-          },
         ],
       },
       {
@@ -420,15 +406,6 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/programacion/programacion-alertas/programacion-alertas').then(
                 (m) => m.ProgramacionAlertas,
-              ),
-          },
-          {
-            path: 'vigilantes',
-            canActivate: [permissionGuard],
-            data: { permission: 'scheduling.view' },
-            loadComponent: () =>
-              import('./features/programacion/estado-vigilantes/estado-vigilantes').then(
-                (m) => m.EstadoVigilantes,
               ),
           },
         ],
@@ -737,13 +714,6 @@ export const routes: Routes = [
               ),
           },
         ],
-      },
-      {
-        path: 'sig',
-        canActivate: [permissionGuard],
-        data: { permission: 'sig.view' },
-        loadComponent: () =>
-          import('./features/sig/sig-home/sig-home').then((m) => m.SigHome),
       },
       {
         path: 'sst',
