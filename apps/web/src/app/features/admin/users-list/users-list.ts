@@ -382,11 +382,11 @@ import {
     .btn-success {
       background: color-mix(in srgb, var(--success-600) 10%, #fff);
       border-color: color-mix(in srgb, var(--success-600) 35%, color-mix(in srgb, var(--success-500) 30%, var(--surface)));
-      color: var(--success-600);
+      color: var(--success-text);
     }
     .btn-success:not(:disabled):hover {
       background: color-mix(in srgb, var(--success-600) 18%, #fff);
-      border-color: var(--success-600);
+      border-color: var(--success-text);
     }
 
     .form-actions { display: flex; gap: 0.55rem; align-items: end; flex-wrap: wrap; }

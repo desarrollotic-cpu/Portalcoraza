@@ -340,8 +340,8 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
     }
     .item-name { color: var(--primary, #1d4ed8); font-size: 1rem; }
     .low-stock { background: color-mix(in srgb, #eb7d00 14%, var(--surface)); }
-    .stock-ok { color: var(--success-600); font-weight: 600; }
-    .stock-zero { color: var(--error-600); font-weight: 600; }
+    .stock-ok { color: var(--success-text); font-weight: 600; }
+    .stock-zero { color: var(--error-text); font-weight: 600; }
     .muted { color: #737373; font-size: 0.8rem; margin-top: 0.15rem; }
     .size-lines {
       display: flex;
@@ -432,7 +432,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
       border-radius: 8px;
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       cursor: pointer;
     }
     .link-edit {
@@ -453,7 +453,7 @@ function groupVariants(list: InventoryVariant[]): VariantGroup[] {
       background: color-mix(in srgb, var(--warning-500) 10%, var(--surface));
       border: 1px solid color-mix(in srgb, var(--warning-500) 30%, var(--surface));
       border-radius: 8px;
-      color: var(--warning-600);
+      color: var(--warning-text);
       font-size: 0.85rem;
     }
     .confirm-actions {

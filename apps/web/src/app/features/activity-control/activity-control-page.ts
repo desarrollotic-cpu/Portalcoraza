@@ -428,7 +428,7 @@ export interface ActivityControlPayload {
     }
     .ac-chip.is-on { border-color: var(--ink); background: var(--ink); color: #fff; }
     .ac-chip--ok.is-on { background: #14532d; border-color: #14532d; }
-    .ac-chip--idle.is-on { background: var(--warning-600); border-color: var(--warning-600); }
+    .ac-chip--idle.is-on { background: var(--warning-600); border-color: var(--warning-text); }
 
     .ac-grid {
       display: grid;
@@ -507,8 +507,8 @@ export interface ActivityControlPayload {
       font-weight: 600;
       white-space: nowrap;
     }
-    .ac-badge--ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .ac-badge--idle { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-600); }
+    .ac-badge--ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
+    .ac-badge--idle { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-text); }
 
     .ac-kpis {
       display: grid;
@@ -578,7 +578,7 @@ export interface ActivityControlPayload {
       font-size: 0.75rem;
       color: var(--ac-muted);
     }
-    .ac-strip-note strong { color: var(--warning-600); font-weight: 600; }
+    .ac-strip-note strong { color: var(--warning-text); font-weight: 600; }
 
     .ac-section-label {
       display: flex;
@@ -658,7 +658,7 @@ export interface ActivityControlPayload {
       padding: 1rem;
       border-radius: 0.85rem;
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
     }
 

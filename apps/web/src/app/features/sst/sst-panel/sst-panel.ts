@@ -148,11 +148,11 @@ import { SstApiService, SstOverview } from '../sst-api.service';
     th { color: var(--text-muted, var(--neutral-500)); font-weight: 600; font-size: 0.8rem; }
     .meta { color: var(--text-muted, var(--neutral-500)); font-size: 0.8rem; }
     .empty { color: var(--text-muted, var(--neutral-500)); text-align: center; padding: 1.25rem !important; }
-    .error { color: var(--error-600); margin: 0; }
+    .error { color: var(--error-text); margin: 0; }
     .link { color: var(--brand, #0f766e); font-weight: 600; text-decoration: none; }
-    .risk[data-nivel='BAJO'] { color: var(--success-600); font-weight: 700; }
+    .risk[data-nivel='BAJO'] { color: var(--success-text); font-weight: 700; }
     .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
-    .risk[data-nivel='ALTO'] { color: var(--error-600); font-weight: 700; }
+    .risk[data-nivel='ALTO'] { color: var(--error-text); font-weight: 700; }
   `,
 })
 export class SstPanel implements OnInit {

@@ -294,14 +294,14 @@ interface DraftRow {
       border: 1px solid #fcd34d;
       border-radius: 0.5rem;
       font-size: 0.82rem;
-      color: var(--warning-600);
+      color: var(--warning-text);
       font-weight: 600;
       line-height: 1.4;
     }
     .live { margin: 0.35rem 0 0 !important; font-weight: 600; font-size: 0.88rem; }
-    .risk[data-nivel='BAJO'] { color: var(--success-600); font-weight: 700; }
+    .risk[data-nivel='BAJO'] { color: var(--success-text); font-weight: 700; }
     .risk[data-nivel='MEDIO'] { color: #ca8a04; font-weight: 700; }
-    .risk[data-nivel='ALTO'] { color: var(--error-600); font-weight: 700; }
+    .risk[data-nivel='ALTO'] { color: var(--error-text); font-weight: 700; }
     .actions { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: flex-start; }
     .btn {
       border: 0; border-radius: 0.5rem; padding: 0.45rem 0.85rem; font-weight: 600; cursor: pointer;
@@ -348,9 +348,9 @@ interface DraftRow {
     .radio.checked { background: var(--neutral-100); border-color: var(--neutral-300); }
     .risk-fields { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.5rem; }
     .risk-fields label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; font-weight: 600; }
-    .req { color: var(--error-600); font-weight: 700; }
+    .req { color: var(--error-text); font-weight: 700; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
-    .critical { color: var(--error-600); font-weight: 800; margin: 0.3rem 0 0; font-size: 0.85rem; }
+    .critical { color: var(--error-text); font-weight: 800; margin: 0.3rem 0 0; font-size: 0.85rem; }
     @media (max-width: 640px) { .row2 { grid-template-columns: 1fr; } }
 
     /* Evidencias fotográficas */
@@ -362,7 +362,7 @@ interface DraftRow {
     .evidence-box-safe { border-color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .evidence-top { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .evidence-label { font-size: 0.82rem; font-weight: 700; color: var(--neutral-700); }
-    .evidence-label-safe { color: var(--success-600); }
+    .evidence-label-safe { color: var(--success-text); }
     .btn-upload-photo {
       background: #0f766e; color: #fff; font-size: 0.78rem; font-weight: 600;
       padding: 0.3rem 0.65rem; border-radius: 0.4rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.25rem;
@@ -389,7 +389,7 @@ interface DraftRow {
       background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface)); border-radius: 0.5rem;
       padding: 0.75rem 0.9rem; margin-top: 0.4rem; display: flex; flex-direction: column; gap: 0.6rem;
     }
-    .safe-fields label { font-size: 0.85rem; font-weight: 600; color: var(--success-600); display: flex; flex-direction: column; gap: 0.3rem; }
+    .safe-fields label { font-size: 0.85rem; font-weight: 600; color: var(--success-text); display: flex; flex-direction: column; gap: 0.3rem; }
     .safe-fields textarea {
       font-size: 0.85rem; padding: 0.45rem 0.6rem; border-radius: 0.4rem;
       border: 1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface)); resize: vertical; background: var(--surface); color: var(--neutral-800);

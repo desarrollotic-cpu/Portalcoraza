@@ -374,7 +374,7 @@ const PAGE_SIZE = 12;
       border-color: var(--coraza-primary, #1d4ed8);
       box-shadow: 0 0 0 3px color-mix(in srgb, var(--coraza-primary, #1d4ed8) 22%, transparent);
     }
-    .kpi--hot .kpi__value { color: var(--error-600); }
+    .kpi--hot .kpi__value { color: var(--error-text); }
     .kpi__icon { color: var(--text-secondary); }
     .kpi__label { font-size: 0.8rem; font-weight: 700; }
     .kpi__value { font-size: 1.6rem; line-height: 1.1; }
@@ -412,14 +412,14 @@ const PAGE_SIZE = 12;
       border-left: 4px solid var(--error-600);
       background: var(--coraza-surface);
     }
-    .card--warn { border-left-color: var(--warning-600); }
+    .card--warn { border-left-color: var(--warning-text); }
     .card__top { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; justify-content: space-between; }
     .card h3 { margin: 0; font-size: 1.15rem; }
     .badge {
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase;
-      padding: 0.2rem 0.55rem; border-radius: 999px; background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600);
+      padding: 0.2rem 0.55rem; border-radius: 999px; background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text);
     }
-    .badge--warn { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .badge--warn { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
     .badge--muted { background: var(--neutral-200); color: var(--neutral-700); }
     .alerts__tools { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: flex-end; margin-bottom: 0.5rem; }
     .alerts__search { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.85rem; font-weight: 600; max-width: 24rem; flex: 1 1 16rem; }

@@ -235,8 +235,8 @@ import { ModalShell } from '../modal-shell/modal-shell';
     }
     .muted { color: var(--text-muted, #737373); }
     .variant-form { margin-top: 0.75rem; }
-    .error { color: var(--error-600); }
-    .field-warn { color: var(--warning-600); margin-top: 0.25rem; font-size: 0.8rem; }
+    .error { color: var(--error-text); }
+    .field-warn { color: var(--warning-text); margin-top: 0.25rem; font-size: 0.8rem; }
     .confirm-text { margin: 0 0 1rem; font-size: 0.95rem; line-height: 1.45; }
     .confirm-actions { display: flex; justify-content: flex-end; gap: 0.6rem; }
   `,

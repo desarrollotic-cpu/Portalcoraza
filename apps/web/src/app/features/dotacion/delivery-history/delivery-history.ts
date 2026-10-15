@@ -133,8 +133,8 @@ const REVERT_WINDOW_MS = 120 * 60 * 60 * 1000;
       padding: 0.15rem 0.5rem;
       border-radius: 999px;
     }
-    .badge.delivered { background: color-mix(in srgb, #2dbe4f 14%, var(--surface)); color: var(--success-600); }
-    .badge.reverted { background: color-mix(in srgb, #c82332 14%, var(--surface)); color: var(--error-600); }
+    .badge.delivered { background: color-mix(in srgb, #2dbe4f 14%, var(--surface)); color: var(--success-text); }
+    .badge.reverted { background: color-mix(in srgb, #c82332 14%, var(--surface)); color: var(--error-text); }
     .badge.pending { background: var(--neutral-200); color: var(--neutral-700); }
     .items {
       margin: 0;
@@ -164,7 +164,7 @@ const REVERT_WINDOW_MS = 120 * 60 * 60 * 1000;
       border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
       border-radius: 8px;
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       font-weight: 600;
       font-size: 0.8rem;
       cursor: pointer;

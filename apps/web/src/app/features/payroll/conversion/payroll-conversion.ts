@@ -144,11 +144,11 @@ const RE_FECHA = /^(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\/(\d{4})$/;
     .drop span { font-size: 0.82rem; color: var(--neutral-600); }
     .drop:hover, .drop.over { border-color: #1d4ed8; background: color-mix(in srgb, #0043eb 14%, var(--surface)); }
     .info { margin: 0; color: #1d4ed8; font-size: 0.88rem; font-weight: 600; }
-    .error { margin: 0; color: var(--error-600); font-size: 0.88rem; font-weight: 600; }
+    .error { margin: 0; color: var(--error-text); font-size: 0.88rem; font-weight: 600; }
     .card { padding: 1.1rem 1.25rem; background: var(--surface); border: 1px solid var(--neutral-200); border-radius: 0.75rem; display: flex; flex-direction: column; gap: 0.7rem; }
     .card h4 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--neutral-900); }
     .card.warn { background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border-color: #fcd34d; }
-    .card.warn ul { margin: 0; padding-left: 1.1rem; font-size: 0.84rem; color: var(--warning-600); }
+    .card.warn ul { margin: 0; padding-left: 1.1rem; font-size: 0.84rem; color: var(--warning-text); }
     .card.manual p { margin: 0; font-size: 0.9rem; color: var(--neutral-700); }
     .fields { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
     .field { display: flex; flex-direction: column; gap: 0.3rem; }

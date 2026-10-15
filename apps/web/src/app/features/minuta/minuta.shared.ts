@@ -168,7 +168,7 @@ export const MINUTA_PAGE_STYLES = `
   .card.row { flex-direction: row; justify-content: space-between; align-items: center; gap: 0.75rem; }
   .muted { color: var(--text-muted, var(--neutral-500)); font-size: 0.82rem; }
   .toast { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: #065f46; border-radius: 10px; padding: 0.55rem 0.75rem; margin: 0; }
-  .error { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); border-radius: 10px; padding: 0.55rem 0.75rem; margin: 0; }
+  .error { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); border-radius: 10px; padding: 0.55rem 0.75rem; margin: 0; }
   .filt { display: flex; flex-direction: column; gap: 0.25rem; max-width: 16rem; font-weight: 600; font-size: 0.85rem; }
   select, input, textarea {
     font: inherit; border: 1px solid var(--border, var(--neutral-300)); border-radius: 8px;

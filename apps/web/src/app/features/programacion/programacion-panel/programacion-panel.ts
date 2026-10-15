@@ -366,7 +366,7 @@ export interface GuardAvailabilityItem {
     }
     .period-hint {
       margin-top: 0.45rem !important;
-      color: var(--warning-600) !important;
+      color: var(--warning-text) !important;
       font-weight: 600;
       font-size: 0.82rem !important;
     }
@@ -414,7 +414,7 @@ export interface GuardAvailabilityItem {
 
     .prog-panel__error {
       margin: 0;
-      color: var(--error-600);
+      color: var(--error-text);
       font-size: 0.9rem;
     }
 
@@ -562,8 +562,8 @@ export interface GuardAvailabilityItem {
       padding: 0.1rem 0.4rem;
       border-radius: 0.3rem;
     }
-    .badge-status.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .badge-status.warn { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .badge-status.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
+    .badge-status.warn { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
 
     .shifts-list { display: flex; flex-direction: column; gap: 0.45rem; }
     .shift-row {
@@ -582,7 +582,7 @@ export interface GuardAvailabilityItem {
       white-space: nowrap;
     }
     .tag-day { background: #fef08a; color: #854d0e; }
-    .tag-night { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
+    .tag-night { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-text); }
     .guard-info { display: flex; flex-direction: column; }
     .guard-name { font-size: 0.8rem; color: var(--neutral-900); line-height: 1.1; }
     .guard-sub { font-size: 0.68rem; color: var(--neutral-500); }
@@ -628,13 +628,13 @@ export interface GuardAvailabilityItem {
       font-weight: 800;
     }
     .st-turno_dia { background: #fef08a; color: #854d0e; }
-    .st-turno_noche { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
-    .st-disponible { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); border: 1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
+    .st-turno_noche { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-text); }
+    .st-disponible { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); border: 1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
     .st-descanso { background: var(--neutral-100); color: var(--neutral-600); }
-    .st-novedad { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .st-novedad { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
 
     .puesto-highlight { color: var(--primary-500); font-size: 0.84rem; }
-    .free-text { color: var(--success-600); font-weight: 700; font-size: 0.78rem; }
+    .free-text { color: var(--success-text); font-weight: 700; font-size: 0.78rem; }
     .puesto-chip {
       display: inline-block;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));

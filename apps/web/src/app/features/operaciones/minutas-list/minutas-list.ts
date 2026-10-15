@@ -316,7 +316,7 @@ import {
     button:disabled { opacity: 0.55; cursor: not-allowed; }
     .primary { background: #0f766e; color: #fff; }
     .ghost { background: transparent; border: 1px solid var(--border, var(--neutral-300)); }
-    .error { color: var(--error-600); margin: 0; }
+    .error { color: var(--error-text); margin: 0; }
     .meta { margin: 0; font-size: 0.9rem; color: var(--muted, var(--neutral-500)); }
     .empty { margin: 0; color: var(--muted, var(--neutral-500)); }
     .table-wrap { overflow: auto; border: 1px solid var(--border, var(--neutral-200)); border-radius: 10px; }

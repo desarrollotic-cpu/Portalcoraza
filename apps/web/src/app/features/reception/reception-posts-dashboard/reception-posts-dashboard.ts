@@ -527,10 +527,10 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       border-radius: 10px;
       background: color-mix(in srgb, var(--warning-500) 14%, var(--surface, #fff));
       border: 1px solid color-mix(in srgb, var(--warning-500) 35%, var(--surface));
-      color: var(--warning-600);
+      color: var(--warning-text);
       font-size: 0.9rem;
     }
-    .error { color: var(--error-600); margin: 0; }
+    .error { color: var(--error-text); margin: 0; }
     .muted { margin: 0; color: var(--text-secondary); font-size: 0.88rem; }
     .month-summary {
       display: flex;
@@ -551,7 +551,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       color: var(--text-secondary);
       font-size: 0.9rem;
     }
-    .month-summary-copy .neg { color: var(--warning-600); }
+    .month-summary-copy .neg { color: var(--warning-text); }
     .charts {
       display: grid;
       grid-template-columns: minmax(200px, 280px) 1fr;
@@ -708,7 +708,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     }
     .count-pill--warn {
       background: color-mix(in srgb, var(--warning-600) 18%, transparent);
-      color: var(--warning-600);
+      color: var(--warning-text);
     }
     .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     table { width: 100%; border-collapse: collapse; font-size: 0.84rem; min-width: 720px; }
@@ -746,7 +746,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     }
     .badge.on {
       background: color-mix(in srgb, var(--success-600) 16%, transparent);
-      color: var(--success-600);
+      color: var(--success-text);
     }
 
     /* Casillas del resumen mensual (clickeables) */
@@ -781,7 +781,7 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
     .mkpi--mov { border-left: 4px solid var(--neutral-400); }
     .mkpi-label { font-size: 0.78rem; color: var(--text-secondary); }
     .mkpi-value { font-size: 1.6rem; line-height: 1.1; font-weight: 700; }
-    .mkpi-value.neg { color: var(--warning-600); }
+    .mkpi-value.neg { color: var(--warning-text); }
     .mkpi-hint { font-size: 0.72rem; color: var(--text-secondary); }
 
     /* Card resaltada al llegar con scroll desde una casilla */
@@ -833,9 +833,9 @@ function buildMonthOptions(count = 24, ref = new Date()): MonthOption[] {
       font-size: 0.75rem; border: 1px solid transparent;
     }
     .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
-    .chip.chip--ok { background: color-mix(in srgb, var(--success-600) 12%, transparent); color: var(--success-600); }
+    .chip.chip--ok { background: color-mix(in srgb, var(--success-600) 12%, transparent); color: var(--success-text); }
     .chip.chip--ok .chip-dot { background: var(--success-600); }
-    .chip.chip--no { background: color-mix(in srgb, var(--error-600) 12%, transparent); color: var(--error-600); }
+    .chip.chip--no { background: color-mix(in srgb, var(--error-600) 12%, transparent); color: var(--error-text); }
     .chip.chip--no .chip-dot { background: var(--error-600); }
     table.mini { width: 100%; font-size: 0.82rem; }
     table.mini th, table.mini td { padding: 0.35rem 0.4rem; }

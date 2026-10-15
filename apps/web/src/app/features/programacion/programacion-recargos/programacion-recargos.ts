@@ -211,16 +211,16 @@ import {
     .total-col { font-weight: 800; background: var(--neutral-50); color: var(--neutral-900); }
     .puestos-col { max-width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .badge-d { background: #fef08a; color: #854d0e; padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
-    .badge-n { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
-    .ext-d { color: var(--warning-600); font-weight: 700; }
+    .badge-n { background: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-text); padding: 0.1rem 0.35rem; border-radius: 0.25rem; font-weight: 800; }
+    .ext-d { color: var(--warning-text); font-weight: 700; }
     .rec-n { color: #7e22ce; font-weight: 700; }
-    .ext-n { color: var(--error-600); font-weight: 700; }
-    .dom { color: var(--error-600); font-weight: 700; }
+    .ext-n { color: var(--error-text); font-weight: 700; }
+    .dom { color: var(--error-text); font-weight: 700; }
 
     .empty-cell { text-align: center; padding: 2.5rem 1rem; color: var(--neutral-500); }
     .empty-cell a { color: var(--primary-500); font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
     .loading-state, .error-msg { text-align: center; padding: 2rem; font-size: 0.9rem; color: var(--neutral-500); }
-    .error-msg { color: var(--error-600); }
+    .error-msg { color: var(--error-text); }
   `,
 })
 export class ProgramacionRecargos implements OnInit {

@@ -328,9 +328,9 @@ const ESTADO_LABEL: Record<AssociateLoadStatus, string> = {
     .kpi:hover { border-color: var(--coraza-primary, #1d4ed8); }
     .kpi:focus-visible { outline: 3px solid var(--coraza-primary, #1d4ed8); outline-offset: 2px; }
     .kpi--on { border-color: var(--coraza-primary, #1d4ed8); box-shadow: 0 0 0 3px color-mix(in srgb, var(--coraza-primary, #1d4ed8) 22%, transparent); }
-    .kpi--ok { border-top-color: var(--success-600); }
-    .kpi--warn { border-top-color: var(--warning-600); }
-    .kpi--bad { border-top-color: var(--error-600); }
+    .kpi--ok { border-top-color: var(--success-text); }
+    .kpi--warn { border-top-color: var(--warning-text); }
+    .kpi--bad { border-top-color: var(--error-text); }
     .kpi--muted { border-top-color: var(--neutral-500); }
     .kpi__label { font-size: 0.8rem; font-weight: 700; }
     .kpi__value { font-size: 1.6rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
@@ -343,8 +343,8 @@ const ESTADO_LABEL: Record<AssociateLoadStatus, string> = {
     .insight p { margin: 0 0 0.5rem; line-height: 1.5; font-size: 0.93rem; }
     .insight p:last-child { margin-bottom: 0; }
     .muted { color: var(--text-secondary); }
-    .t-bad { color: var(--error-600); }
-    .t-warn { color: var(--warning-600); }
+    .t-bad { color: var(--error-text); }
+    .t-warn { color: var(--warning-text); }
 
     .tools { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; }
     .field--grow { flex: 1 1 16rem; max-width: 24rem; }
@@ -366,9 +366,9 @@ const ESTADO_LABEL: Record<AssociateLoadStatus, string> = {
     .name { display: block; font-weight: 600; }
     .sub { display: block; font-size: 0.75rem; color: var(--text-muted, var(--text-secondary)); }
     .badge { display: inline-block; white-space: nowrap; font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 999px; }
-    .badge--en_rango { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .badge--bajo_minimo { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
-    .badge--sobre_maximo, .badge--sin_programar { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .badge--en_rango { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
+    .badge--bajo_minimo { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
+    .badge--sobre_maximo, .badge--sin_programar { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
     .badge--con_novedad { background: var(--neutral-200); color: var(--neutral-700); }
     .bar { display: block; width: 6rem; height: 0.5rem; border-radius: 999px; background: var(--bg-page, var(--neutral-100)); overflow: hidden; }
     .bar__fill { display: block; height: 100%; background: var(--success-600); }

@@ -155,7 +155,7 @@ import { SstApiService, SstInspectionType, SstWorkplace } from '../sst-api.servi
     .field-label {
       display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.88rem; font-weight: 600; color: var(--neutral-800);
     }
-    .req { color: var(--error-600); font-weight: 700; }
+    .req { color: var(--error-text); font-weight: 700; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     @media (max-width: 580px) { .row2 { grid-template-columns: 1fr; } }
     input, select {

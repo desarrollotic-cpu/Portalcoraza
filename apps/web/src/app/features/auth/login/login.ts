@@ -273,7 +273,7 @@ import { Icon } from '../../../shared/components/icon/icon';
     .field-error {
       margin: 0.4rem 0 0;
       font-size: 0.8rem;
-      color: var(--error-600);
+      color: var(--error-text);
     }
 
     label {
@@ -462,7 +462,7 @@ import { Icon } from '../../../shared/components/icon/icon';
     }
     .alert.ok {
       background: color-mix(in srgb, var(--success-600) 12%, #fff);
-      color: var(--success-600);
+      color: var(--success-text);
     }
   `,
 })

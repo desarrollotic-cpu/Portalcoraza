@@ -204,11 +204,11 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
       display: inline-block; margin-top: 0.35rem; font-size: 0.75rem; font-weight: 600;
       color: #ca8a04; background: #fef9c3; padding: 0.15rem 0.4rem; border-radius: 0.3rem;
     }
-    .reinc-badge.alert { color: var(--error-600); background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); }
+    .reinc-badge.alert { color: var(--error-text); background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); }
     .puesto-name { font-weight: 600; color: var(--neutral-900); }
     .meta { color: var(--text-muted, var(--neutral-500)); font-size: 0.8rem; margin-top: 0.15rem; }
     .meta-date { font-size: 0.76rem; color: var(--neutral-500); margin-top: 0.2rem; }
-    .hallazgo-box { color: var(--error-600); font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
+    .hallazgo-box { color: var(--error-text); font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.35rem; }
     .plan-box { color: #0f766e; font-size: 0.85rem; line-height: 1.35; margin-bottom: 0.25rem; }
     .plan-photos { display: flex; flex-wrap: wrap; gap: 0.35rem; margin: 0.35rem 0; }
     .plan-thumb {
@@ -217,19 +217,19 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     }
     .plan-thumb:hover { transform: scale(1.1); box-shadow: 0 2px 4px rgba(0,0,0,0.15); }
     .meta-resp { font-size: 0.78rem; color: var(--neutral-600); }
-    .overdue { color: var(--error-600); font-weight: 700; }
+    .overdue { color: var(--error-text); font-weight: 700; }
     .tag-overdue {
-      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--error-600);
+      display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--error-text);
       background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); padding: 0.1rem 0.35rem; border-radius: 0.25rem; text-transform: uppercase;
     }
     .status-badge {
       display: inline-flex; align-items: center; padding: 0.2rem 0.55rem; border-radius: 0.4rem;
       font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
     }
-    .status-badge[data-status='ABIERTO'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .status-badge[data-status='ABIERTO'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
     .status-badge[data-status='EN_PROCESO'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #1e40af; }
-    .status-badge[data-status='CERRADO'] { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .status-badge[data-status='REINCIDENTE'] { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .status-badge[data-status='CERRADO'] { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
+    .status-badge[data-status='REINCIDENTE'] { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
     .ops { display: flex; flex-direction: column; gap: 0.35rem; align-items: flex-start; }
     .btn-link {
       color: var(--brand, #0f766e); font-weight: 600; font-size: 0.8rem; text-decoration: none;
@@ -242,9 +242,9 @@ import { SstApiService, SstPlanStatus, SstResponseRow } from '../sst-api.service
     }
     .mini-btn.btn-process { color: #1d4ed8; border-color: #93c5fd; }
     .mini-btn.btn-process:hover { background: color-mix(in srgb, var(--primary-600) 10%, var(--surface)); }
-    .mini-btn.btn-close { color: var(--success-600); border-color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
+    .mini-btn.btn-close { color: var(--success-text); border-color: color-mix(in srgb, var(--success-500) 35%, var(--surface)); }
     .mini-btn.btn-close:hover { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
-    .mini-btn.btn-reopen { color: var(--warning-600); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
+    .mini-btn.btn-reopen { color: var(--warning-text); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
     .empty { text-align: center; color: var(--text-muted, var(--neutral-500)); padding: 1.5rem !important; }
     tr.critical { background: color-mix(in srgb, color-mix(in srgb, var(--error-500) 28%, var(--surface)) 25%, transparent); }
     tr.closed { opacity: 0.75; }

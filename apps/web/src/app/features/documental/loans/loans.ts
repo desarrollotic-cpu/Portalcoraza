@@ -654,7 +654,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       flex-shrink: 0;
     }
     .banner-left strong { display: block; font-size: 0.92rem; color: #14532d; }
-    .banner-left p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--success-600); }
+    .banner-left p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--success-text); }
 
     .banner-actions { display: flex; gap: 0.5rem; align-items: center; }
     .btn-banner-action {
@@ -662,7 +662,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       align-items: center;
       gap: 0.4rem;
       background: var(--surface);
-      color: var(--success-600);
+      color: var(--success-text);
       border: 1px solid #86efac;
       border-radius: 0.5rem;
       padding: 0.45rem 0.85rem;
@@ -675,7 +675,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .btn-banner-action.primary {
       background: var(--success-600);
       color: #ffffff;
-      border-color: var(--success-600);
+      border-color: var(--success-text);
     }
     .btn-banner-action.primary:hover { background: var(--success-600); }
 
@@ -697,8 +697,8 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     }
     .pending-alert-box:hover { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); }
     .alert-icon { font-size: 1.5rem; }
-    .alert-content strong { display: block; font-size: 0.88rem; color: var(--warning-600); }
-    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--warning-600); }
+    .alert-content strong { display: block; font-size: 0.88rem; color: var(--warning-text); }
+    .alert-content p { margin: 0.15rem 0 0; font-size: 0.78rem; color: var(--warning-text); }
 
     .loan-boxes {
       display: grid;
@@ -726,9 +726,9 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .loan-box.warn { border-left: 4px solid #f59e0b; }
     .loan-box.warn.active { background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border-color: #f59e0b; }
     .loan-box.ok { border-left: 4px solid var(--success-600); }
-    .loan-box.ok.active { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: var(--success-600); }
+    .loan-box.ok.active { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: var(--success-text); }
     .loan-box.crit { border-left: 4px solid var(--error-600); }
-    .loan-box.crit.active { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: var(--error-600); }
+    .loan-box.crit.active { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: var(--error-text); }
     .loan-box.reject { border-left: 4px solid var(--neutral-500); }
     .loan-box.reject.active { background: var(--neutral-50); border-color: var(--neutral-500); }
     .loan-box.archive { border-left: 4px solid #0d429c; }
@@ -770,7 +770,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: var(--primary-500); font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
     .doc-code-tag { font-size: 0.72rem; color: var(--primary-500); font-weight: 700; }
-    .notif-badge { font-size: 0.68rem; color: var(--warning-600); background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
+    .notif-badge { font-size: 0.68rem; color: var(--warning-text); background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
     
     .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
     .btn-act-view {
@@ -808,7 +808,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .btn-act-approve:hover { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); }
     .btn-act-reject {
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
       border-radius: 0.35rem;
       padding: 0.25rem 0.55rem;
@@ -907,7 +907,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       border-radius: 0.65rem;
       padding: 0.85rem 1rem;
     }
-    .obs-content-text { font-size: 0.85rem; color: var(--warning-600); font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-top: 0.25rem; }
+    .obs-content-text { font-size: 0.85rem; color: var(--warning-text); font-weight: 600; line-height: 1.5; white-space: pre-wrap; margin-top: 0.25rem; }
 
     .detail-modal-footer {
       display: flex;
@@ -940,8 +940,8 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       background: var(--neutral-50);
       border-bottom: 1px solid var(--neutral-200);
     }
-    .confirm-modal-header.success { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
-    .confirm-modal-header.danger { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface)); color: var(--error-600); }
+    .confirm-modal-header.success { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-text); }
+    .confirm-modal-header.danger { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface)); color: var(--error-text); }
     .confirm-modal-header.info { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); color: var(--primary-600); }
 
     .confirm-icon-box {
@@ -954,8 +954,8 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       background: var(--surface);
       box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
-    .confirm-modal-header.success .confirm-icon-box { color: var(--success-600); }
-    .confirm-modal-header.danger .confirm-icon-box { color: var(--error-600); }
+    .confirm-modal-header.success .confirm-icon-box { color: var(--success-text); }
+    .confirm-modal-header.danger .confirm-icon-box { color: var(--error-text); }
     .confirm-modal-header.info .confirm-icon-box { color: #0284c7; }
 
     .confirm-modal-header h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--neutral-900); }
@@ -1038,14 +1038,14 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       padding: 0.55rem 1rem;
       font-size: 0.85rem;
       font-weight: 800;
-      color: var(--error-600);
+      color: var(--error-text);
       cursor: pointer;
       transition: all 0.15s;
     }
     .btn-gmail-direct:hover {
       background: color-mix(in srgb, var(--error-500) 16%, var(--surface));
-      border-color: var(--error-600);
-      color: var(--error-600);
+      border-color: var(--error-text);
+      color: var(--error-text);
     }
 
     /* MODAL QR */
@@ -1142,10 +1142,10 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .mail-log-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
     .mail-log-list li { font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; align-items: baseline; }
     .mail-kind { font-weight: 800; color: var(--primary-700); }
-    .mail-ok { color: var(--success-600); font-weight: 700; }
-    .mail-fail { color: var(--error-600); font-weight: 700; }
+    .mail-ok { color: var(--success-text); font-weight: 700; }
+    .mail-fail { color: var(--error-text); font-weight: 700; }
     .mail-meta { color: var(--neutral-500); }
-    .mail-err { width: 100%; color: var(--warning-600); font-size: 0.74rem; }
+    .mail-err { width: 100%; color: var(--warning-text); font-size: 0.74rem; }
   `,
   ],
 })

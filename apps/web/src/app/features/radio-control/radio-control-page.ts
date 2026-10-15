@@ -324,9 +324,9 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
     }
     .rc-chip.active { color: #fff; font-weight: 700; }
     .rc-chip.active[data-st='S/N'] { background: var(--success-600); border-color: #14532d; }
-    .rc-chip.active[data-st='N/C'] { background: var(--error-600); border-color: var(--error-600); }
+    .rc-chip.active[data-st='N/C'] { background: var(--error-600); border-color: var(--error-text); }
     .rc-chip.active[data-st='N/A'] { background: var(--neutral-700); border-color: var(--neutral-900); }
-    .rc-chip.active[data-st='C/N'] { background: var(--warning-600); border-color: var(--warning-600); }
+    .rc-chip.active[data-st='C/N'] { background: var(--warning-600); border-color: var(--warning-text); }
     .rc-done td { background: var(--neutral-50); }
     .rc-notes {
       width: 100%; min-width: 160px; max-width: 280px;
@@ -349,7 +349,7 @@ const MINUTA_ORIGIN = 'https://portalcoraza-minuta.onrender.com';
       font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px;
       background: var(--neutral-200); font-weight: 600;
     }
-    .rc-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .rc-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
     .rc-pass-detail { margin-top: 1.25rem; }
     .rc-pass-detail h3 {
       display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;

@@ -139,7 +139,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     .stats strong { font-size: 1.2rem; color: var(--primary-dark); }
     .stats span { font-size: 0.72rem; color: var(--coraza-text-muted, var(--neutral-500)); }
     .stats .warn { background: color-mix(in srgb, var(--warning-500) 12%, #fff); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
-    .stats .warn strong { color: var(--warning-600); }
+    .stats .warn strong { color: var(--warning-text); }
     .panel {
       margin-bottom: 1.25rem;
       padding: 1rem 1.1rem;

@@ -169,7 +169,7 @@ const ANSWER_LABELS: Record<string, string> = {
     th, td { padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--border); text-align: left; }
     th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
     .muted { color: var(--text-muted); }
-    .error { color: var(--error-600); }
+    .error { color: var(--error-text); }
     .link {
       border: 0; background: transparent; color: var(--primary-600);
       font-weight: 600; cursor: pointer;

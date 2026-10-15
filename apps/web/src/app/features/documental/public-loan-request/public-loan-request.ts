@@ -312,11 +312,11 @@ import {
       transition: all 0.2s;
     }
     input.invalid {
-      border-color: var(--error-600);
+      border-color: var(--error-text);
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
     }
     input.valid {
-      border-color: var(--success-600);
+      border-color: var(--success-text);
       background: color-mix(in srgb, var(--success-500) 10%, var(--surface));
     }
     .inp-readonly {
@@ -341,8 +341,8 @@ import {
       cursor: pointer;
     }
     .check-prorroga input { width: 1.05rem; height: 1.05rem; margin-top: 0.1rem; flex-shrink: 0; }
-    .field-error { font-size: 0.78rem; color: var(--error-600); font-weight: 700; }
-    .field-ok { font-size: 0.78rem; color: var(--success-600); font-weight: 700; }
+    .field-error { font-size: 0.78rem; color: var(--error-text); font-weight: 700; }
+    .field-ok { font-size: 0.78rem; color: var(--success-text); font-weight: 700; }
 
     .form-actions { margin-top: 1.25rem; }
     .btn-submit {
@@ -362,7 +362,7 @@ import {
 
     .error-banner {
       background: color-mix(in srgb, var(--error-500) 16%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       border: 1px solid color-mix(in srgb, var(--error-500) 35%, var(--surface));
       padding: 0.75rem 1rem;
       border-radius: 0.6rem;
@@ -384,7 +384,7 @@ import {
     .info-text { font-size: 0.9rem; color: var(--neutral-600); margin: 0.25rem 0 1.25rem; }
     .badge-pending {
       background: color-mix(in srgb, var(--warning-500) 16%, var(--surface));
-      color: var(--warning-600);
+      color: var(--warning-text);
       font-weight: 800;
       padding: 0.2rem 0.6rem;
       border-radius: 999px;

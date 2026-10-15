@@ -676,14 +676,14 @@ const CODES: CodeConfig[] = [
     button.danger { background: #dc3545; color: #fff; border-color: #dc3545; }
     button.btn-print { background: #0f766e; color: #fff; border-color: #0f766e; font-weight: 600; }
     button.btn-print:hover:not(:disabled) { background: #115e59; }
-    button.btn-excel { background: var(--success-600); color: #fff; border-color: var(--success-600); font-weight: 600; }
+    button.btn-excel { background: var(--success-600); color: #fff; border-color: var(--success-text); font-weight: 600; }
     button.btn-excel:hover:not(:disabled) { background: var(--success-600); }
     button.sm { padding: 0.3rem 0.6rem; font-size: 0.8rem; }
     .empty-state { padding: 2rem; text-align: center; border: 1px dashed var(--coraza-border); border-radius: 12px; }
     .motor-ok-banner {
       background: color-mix(in srgb, var(--success-500) 16%, var(--surface));
       border: 1px solid #86efac;
-      color: var(--success-600);
+      color: var(--success-text);
       padding: 0.65rem 1rem;
       border-radius: 8px;
       margin-bottom: 1rem;
@@ -691,7 +691,7 @@ const CODES: CodeConfig[] = [
       font-size: 0.88rem;
     }
     .roles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid var(--coraza-border); border-radius: 12px; background: var(--coraza-surface); }
-    .read-only-banner { margin-bottom: 0.75rem; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); border: 1px solid #fbbf24; border-radius: 10px; color: var(--warning-600); font-weight: 700; font-size: 0.9rem; }
+    .read-only-banner { margin-bottom: 0.75rem; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); border: 1px solid #fbbf24; border-radius: 10px; color: var(--warning-text); font-weight: 700; font-size: 0.9rem; }
     .disponibles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 12px; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
     .disponibles-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
     .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: var(--primary-500); font-weight: 800; letter-spacing: 0.02em; }
@@ -729,7 +729,7 @@ const CODES: CodeConfig[] = [
     /* DOMINGOS Y FESTIVOS (ROJO / SALMON DE ALMANAQUE COLOMBIANO) */
     th.col-sunday, th.col-holiday {
       background: color-mix(in srgb, var(--error-500) 16%, var(--surface)) !important;
-      color: var(--error-600) !important;
+      color: var(--error-text) !important;
       border-color: #fca5a5 !important;
     }
     td.col-sunday, td.col-holiday {
@@ -764,7 +764,7 @@ const CODES: CodeConfig[] = [
       border-radius: 8px;
       border: 1px solid color-mix(in srgb, var(--error-500) 28%, var(--surface));
       background: color-mix(in srgb, var(--error-500) 10%, var(--surface));
-      color: var(--error-600);
+      color: var(--error-text);
       font-size: 0.88rem;
       display: flex;
       flex-wrap: wrap;
@@ -775,7 +775,7 @@ const CODES: CodeConfig[] = [
       margin-left: auto;
       border: 1px solid #fca5a5;
       background: var(--surface);
-      color: var(--error-600);
+      color: var(--error-text);
       font-weight: 700;
       font-size: 0.8rem;
       padding: 0.3rem 0.7rem;
@@ -823,8 +823,8 @@ const CODES: CodeConfig[] = [
       background: var(--neutral-50);
       border-left: 3px solid var(--neutral-400);
     }
-    .alerts-board-details__list li.err { border-left-color: var(--error-600); background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); }
-    .alerts-board-details__list li.warn { border-left-color: var(--warning-600); background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); }
+    .alerts-board-details__list li.err { border-left-color: var(--error-text); background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); }
+    .alerts-board-details__list li.warn { border-left-color: var(--warning-text); background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); }
     .alerts-board-details__tag {
       font-size: 0.7rem;
       font-weight: 800;
@@ -853,7 +853,7 @@ const CODES: CodeConfig[] = [
     }
     .hol-star {
       font-size: 0.65rem;
-      color: var(--error-600);
+      color: var(--error-text);
       display: block;
       margin-top: 1px;
     }
@@ -883,7 +883,7 @@ const CODES: CodeConfig[] = [
       font-weight: 800;
       font-size: 0.72rem;
     }
-    .sun-bg { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); border: 1px solid #fca5a5; }
+    .sun-bg { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); border: 1px solid #fca5a5; }
     .sat-bg { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); border: 1px solid color-mix(in srgb, var(--primary-600) 30%, var(--surface)); }
     .week-bg { background: var(--surface); color: var(--neutral-600); border: 1px solid var(--neutral-300); }
 
@@ -893,10 +893,10 @@ const CODES: CodeConfig[] = [
     .role-hours {
       display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 999px;
       font-size: 0.68rem; font-weight: 700; font-variant-numeric: tabular-nums;
-      background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600);
+      background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text);
     }
-    .role-hours--bajo { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
-    .role-hours--sobre { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
+    .role-hours--bajo { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
+    .role-hours--sobre { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
     .cell { cursor: pointer; user-select: none; font-weight: 600; }
     .cell:hover { outline: 2px solid var(--primary-dark); outline-offset: -2px; }
     .cell.alert-error { outline: 1.5px dashed var(--error-600); outline-offset: -2px; }
@@ -1015,9 +1015,9 @@ const CODES: CodeConfig[] = [
       color: var(--neutral-700);
     }
     .diurno-td { color: #854d0e; background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
-    .nocturno-td { color: var(--success-600); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
+    .nocturno-td { color: var(--success-text); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
     .hours-td { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
-    .hours-over { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)) !important; color: var(--error-600) !important; }
+    .hours-over { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)) !important; color: var(--error-text) !important; }
 
     /* BOTONERA DE NOVEDADES EN 1 CLIC (MODAL) */
     .quick-novelty-bar {
@@ -1167,7 +1167,7 @@ const CODES: CodeConfig[] = [
     .btn-clear-assoc {
       background: none;
       border: none;
-      color: var(--error-600);
+      color: var(--error-text);
       font-weight: 800;
       cursor: pointer;
       padding: 0 0.3rem;

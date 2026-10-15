@@ -192,7 +192,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
     table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
     th, td { text-align: left; padding: 0.5rem 0.7rem; border-top: 1px solid var(--border); }
     thead th { background: var(--gradient-hero); color: var(--text-on-dark); border: 0; }
-    .error { color: var(--error-600); }
+    .error { color: var(--error-text); }
     tr.urgente td { background: color-mix(in srgb, var(--error-600, #b91c1c) 14%, var(--surface)); font-weight: 700; }
   `,
 })

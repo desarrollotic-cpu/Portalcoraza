@@ -273,8 +273,8 @@ import {
       background: var(--neutral-100);
       color: var(--neutral-600);
     }
-    .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: var(--success-600); }
-    .badge.associate { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: var(--success-600); }
+    .badge.inside { background: color-mix(in srgb, #16a34a 12%, var(--surface)); color: var(--success-text); }
+    .badge.associate { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: var(--success-text); }
     .badge.visitor { background: color-mix(in srgb, #2d5dbe 14%, var(--surface)); color: var(--primary-600); }
     .actions { text-align: right; white-space: nowrap; }
     .btn-sm {

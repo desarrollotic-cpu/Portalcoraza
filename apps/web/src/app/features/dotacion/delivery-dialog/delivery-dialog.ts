@@ -303,7 +303,7 @@ function variantLabel(v: InventoryVariant, warehouseId?: string | null): string 
       background: color-mix(in srgb, var(--warning-500) 10%, var(--surface));
       border: 1px solid color-mix(in srgb, var(--warning-500) 30%, var(--surface));
       border-radius: 8px;
-      color: var(--warning-600);
+      color: var(--warning-text);
       font-size: 0.85rem;
     }
   `,

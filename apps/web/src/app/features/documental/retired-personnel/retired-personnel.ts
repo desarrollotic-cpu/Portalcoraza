@@ -215,7 +215,7 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
     }
     .alert-ok {
       padding:.75rem 1rem; background:color-mix(in srgb, var(--success-500) 10%, var(--surface)); border:1px solid color-mix(in srgb, var(--success-500) 35%, var(--surface));
-      border-radius:8px; color:var(--success-600); font-size:.9rem;
+      border-radius:8px; color: var(--success-text); font-size:.9rem;
     }
     .search-bar {
       display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;

@@ -281,19 +281,19 @@ type PeriodKey = CommandPeriod;
               <div class="mini-stats">
                 <div class="stat-pill">
                   <span>Sin Entrega</span>
-                  <strong style="color: var(--warning-600);">{{ dot.withoutDotacionCount }}</strong>
+                  <strong style="color: var(--warning-text);">{{ dot.withoutDotacionCount }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Con Entrega</span>
-                  <strong style="color: var(--success-600);">{{ dot.withDotacionCount ?? '—' }}</strong>
+                  <strong style="color: var(--success-text);">{{ dot.withDotacionCount ?? '—' }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Stock Bajo</span>
-                  <strong style="color: var(--error-600);">{{ dot.lowStockCount }}</strong>
+                  <strong style="color: var(--error-text);">{{ dot.lowStockCount }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Agotados</span>
-                  <strong style="color: var(--error-600);">{{ dot.zeroStockCount ?? 0 }}</strong>
+                  <strong style="color: var(--error-text);">{{ dot.zeroStockCount ?? 0 }}</strong>
                 </div>
               </div>
               @if (dot.statusBreakdown) {
@@ -347,7 +347,7 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Cubiertos</span>
-                  <strong style="color: var(--success-600);">{{ prog.kpis.postsCovered }}</strong>
+                  <strong style="color: var(--success-text);">{{ prog.kpis.postsCovered }}</strong>
                 </div>
                 <div class="stat-pill">
                   <span>Sin cubrir hoy</span>
@@ -386,7 +386,7 @@ type PeriodKey = CommandPeriod;
                 </div>
                 <div class="stat-pill">
                   <span>Alertas</span>
-                  <strong style="color: var(--error-600);">{{ doc.notifications.totalAlertas }}</strong>
+                  <strong style="color: var(--error-text);">{{ doc.notifications.totalAlertas }}</strong>
                 </div>
               </div>
               @if ((doc.notifications.alertas ?? []).length > 0) {
@@ -514,15 +514,15 @@ type PeriodKey = CommandPeriod;
     }
     .core-icon.bg-blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-500); }
     .core-icon.bg-indigo { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
-    .core-icon.bg-amber { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .core-icon.bg-amber { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
     .core-icon.bg-teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
     .core-badge {
       font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
     }
-    .core-badge.green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .core-badge.green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
     .core-badge.blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-600); }
-    .core-badge.orange { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-600); }
+    .core-badge.orange { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-text); }
     .core-badge.teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
     .core-title { font-size: 0.8rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
@@ -566,15 +566,15 @@ type PeriodKey = CommandPeriod;
     .score-bar { height: 100%; border-radius: 999px; background: var(--success-500); transition: width 0.4s; }
     .score-bar[data-level='mid'] { background: var(--warning-500); }
     .score-bar[data-level='low'] { background: var(--error-500); }
-    .score-pct { font-size: 0.95rem; font-weight: 900; color: var(--success-600); min-width: 42px; text-align: right; }
-    .score-pct[data-level='mid'] { color: var(--warning-600); }
-    .score-pct[data-level='low'] { color: var(--error-600); }
+    .score-pct { font-size: 0.95rem; font-weight: 900; color: var(--success-text); min-width: 42px; text-align: right; }
+    .score-pct[data-level='mid'] { color: var(--warning-text); }
+    .score-pct[data-level='low'] { color: var(--error-text); }
     .score-na { font-size: 0.78rem; color: var(--neutral-400); }
 
     /* ALERTAS */
     .empty-box {
       background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--success-500) 30%, var(--surface)); border-radius: 0.75rem;
-      padding: 1.25rem; text-align: center; color: var(--success-600); font-size: 0.88rem;
+      padding: 1.25rem; text-align: center; color: var(--success-text); font-size: 0.88rem;
     }
     .ok-icon { font-size: 1.5rem; display: block; margin-bottom: 0.25rem; }
     .alert-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
@@ -591,8 +591,8 @@ type PeriodKey = CommandPeriod;
       font-size: 0.68rem; font-weight: 800; text-transform: uppercase; padding: 0.2rem 0.55rem;
       border-radius: 6px; background: var(--neutral-200); color: var(--neutral-700);
     }
-    .alert-item[data-tone='critical'] .badge { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
-    .alert-item[data-tone='warning'] .badge { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .alert-item[data-tone='critical'] .badge { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); }
+    .alert-item[data-tone='warning'] .badge { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
     .alert-item[data-tone='info'] .badge { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-600); }
 
     /* MÓDULOS DE GESTIÓN */
@@ -631,8 +631,8 @@ type PeriodKey = CommandPeriod;
       background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border: 1px solid color-mix(in srgb, var(--warning-500) 35%, var(--surface)); border-radius: 0.65rem;
       padding: 0.65rem 0.85rem; display: flex; flex-direction: column; gap: 0.2rem;
     }
-    .prio-badge { font-weight: 800; font-size: 0.82rem; color: var(--warning-600); }
-    .prio-box small { color: var(--warning-600); font-size: 0.75rem; }
+    .prio-badge { font-weight: 800; font-size: 0.82rem; color: var(--warning-text); }
+    .prio-box small { color: var(--warning-text); font-size: 0.75rem; }
 
     /* TIMELINE */
     .timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }

@@ -406,8 +406,8 @@ const TIPOS_ALERTA = [
     }
     .hint, .nota, .aviso { margin: 0.75rem 1rem; padding: 0.7rem; border-radius: var(--radius-sm); font-size: 0.9rem; }
     .hint { margin: 0.5rem 0; background: var(--primary-50); color: var(--primary-800); }
-    .aviso { background: var(--success-bg); color: var(--success-600); }
-    .nota { background: var(--warning-bg); color: var(--warning-600); }
+    .aviso { background: var(--success-bg); color: var(--success-text); }
+    .nota { background: var(--warning-bg); color: var(--warning-text); }
     .brujula-wrap {
       position: relative; width: 220px; height: 220px; margin: 0.5rem auto 0.25rem;
     }
@@ -462,7 +462,7 @@ const TIPOS_ALERTA = [
     }
     .puntos li .mini.cta { background: var(--gradient-primary); color: var(--text-on-primary); text-align: center; margin: 0; }
     .puntos li .acciones { display: grid; gap: 0.2rem; flex-shrink: 0; }
-    .puntos li .mini.malo { color: var(--error-600); }
+    .puntos li .mini.malo { color: var(--error-text); }
     .puntos b {
       width: 1.7rem; height: 1.7rem; border-radius: 99px; display: grid; place-items: center;
       background: var(--surface-2); font-size: 0.8rem;

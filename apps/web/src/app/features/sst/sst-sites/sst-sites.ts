@@ -195,7 +195,7 @@ import {
     .search-input:focus { border-color: var(--brand, #0f766e); outline: none; }
     .field-group { display: flex; flex-direction: column; gap: 0.35rem; }
     .field-label { font-size: 0.85rem; font-weight: 600; color: var(--neutral-800); }
-    .req { color: var(--error-600); font-weight: 700; }
+    .req { color: var(--error-text); font-weight: 700; }
     .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
     label { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; }
     input, select {

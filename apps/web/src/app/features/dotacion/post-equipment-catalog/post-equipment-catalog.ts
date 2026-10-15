@@ -239,7 +239,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     .kpis strong { font-size: 1.15rem; color: var(--primary-dark); }
     .kpis span { font-size: 0.72rem; color: var(--neutral-500); }
     .kpis .warn { background: color-mix(in srgb, var(--warning-500) 12%, #fff); border-color: color-mix(in srgb, var(--warning-500) 35%, var(--surface)); }
-    .kpis .warn strong { color: var(--warning-600); }
+    .kpis .warn strong { color: var(--warning-text); }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -261,7 +261,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       color: var(--primary-dark);
     }
     .meta, .muted { font-size: 0.78rem; color: var(--coraza-text-muted, var(--neutral-500)); }
-    .warn { color: var(--warning-600); font-weight: 700; }
+    .warn { color: var(--warning-text); font-weight: 700; }
     .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .btn-sm, a.btn-sm {
       padding: 0.3rem 0.65rem;

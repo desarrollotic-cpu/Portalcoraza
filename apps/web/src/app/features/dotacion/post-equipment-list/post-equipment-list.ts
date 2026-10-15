@@ -298,7 +298,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       font-weight: 700;
       font-size: 0.8rem;
     }
-    .badge.warn { background: color-mix(in srgb, var(--warning-500) 16%, #fff); color: var(--warning-600); }
+    .badge.warn { background: color-mix(in srgb, var(--warning-500) 16%, #fff); color: var(--warning-text); }
     .actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
     .btn-sm { padding: 0.35rem 0.65rem; font-size: 0.78rem; }
     .hint { margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--neutral-500); }
@@ -354,7 +354,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     .btn-sm.danger {
       border-color: color-mix(in srgb, var(--error-600) 35%, color-mix(in srgb, var(--error-500) 28%, var(--surface)));
       background: color-mix(in srgb, var(--error-600) 8%, #fff);
-      color: var(--error-600);
+      color: var(--error-text);
     }
     .error { color: var(--coraza-error); }
     .empty { color: var(--neutral-500); }

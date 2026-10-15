@@ -178,12 +178,12 @@ import { addToPrintQueue, getPrintQueue, printQueue, printRotulo } from '../rotu
       display:flex; flex-wrap:wrap; gap:.5rem; align-items:flex-start;
       margin-bottom:1rem; padding:.9rem 1rem;
       background:color-mix(in srgb, var(--warning-500) 12%, var(--surface)); border:1px solid #fcd34d; border-left:4px solid var(--warning-500);
-      border-radius:10px; font-size:.88rem; color:var(--warning-600);
+      border-radius:10px; font-size:.88rem; color: var(--warning-text);
     }
     .expiring-icon { font-size:1.1rem; }
     .expiring-list { margin:.35rem 0 0 1rem; padding:0; list-style:disc; width:100%; }
     .expiring-list li { margin:.15rem 0; }
-    .date-warn { color:var(--warning-600); font-weight:700; }
+    .date-warn { color: var(--warning-text); font-weight:700; }
     .toast-ok {
       display:flex; flex-wrap:wrap; align-items:center; gap:.75rem;
       margin-bottom:1rem; padding:.85rem 1rem;

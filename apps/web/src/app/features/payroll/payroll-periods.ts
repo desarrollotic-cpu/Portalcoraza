@@ -214,8 +214,8 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .period-card.active { border-color: #0f766e; background: color-mix(in srgb, #1ccfa6 14%, var(--surface)); box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.2); }
     .card-top { display: flex; justify-content: space-between; align-items: center; }
     .status-pill { font-size: 0.72rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 999px; }
-    .st-liquidado { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .st-borrador { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
+    .st-liquidado { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
+    .st-borrador { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-text); }
     .period-card h4 { margin: 0; font-size: 1rem; font-weight: 700; color: var(--neutral-900); }
     .period-dates { font-size: 0.82rem; color: var(--neutral-500); font-weight: 500; }
     .card-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
@@ -245,8 +245,8 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .th-center, .td-center { text-align: center !important; }
     .th-num, .td-num { text-align: right !important; }
     .highlight-rec { color: #0f766e; font-weight: 600; }
-    .text-success { color: var(--success-600); font-weight: 700; }
-    .text-danger { color: var(--error-600); font-weight: 600; }
+    .text-success { color: var(--success-text); font-weight: 700; }
+    .text-danger { color: var(--error-text); font-weight: 600; }
     .text-primary { color: var(--primary-500); font-weight: 700; }
     .btn-slip {
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
@@ -264,8 +264,8 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .slip-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 0.5rem; }
     .slip-table th { background: var(--neutral-100); padding: 0.5rem; text-align: left; font-size: 0.78rem; border-bottom: 1px solid var(--neutral-300); }
     .slip-table td { padding: 0.5rem; border-bottom: 1px solid var(--neutral-200); }
-    .badge-green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
-    .badge-red { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
+    .badge-green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
+    .badge-red { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-text); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; }
     .slip-totals-box { display: flex; justify-content: space-between; align-items: center; background: var(--neutral-50); padding: 0.75rem 1rem; border-radius: 0.5rem; font-size: 0.9rem; }
     .net-highlight { font-size: 1.05rem; color: #0f766e; }
     .modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; }

@@ -733,7 +733,7 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
     button.primary { background: var(--coraza-primary, #1d4ed8); color: #fff; padding: 0.5rem 0.9rem; }
     button.ghost { background: transparent; border: 1px solid var(--border, color-mix(in srgb, #2d67be 32%, var(--surface))); padding: 0.5rem 0.9rem; }
     button.link { background: none; color: var(--coraza-primary, #1d4ed8); padding: 0; }
-    button.link.danger { color: var(--error-600); }
+    button.link.danger { color: var(--error-text); }
     .form {
       border: 1px solid var(--border, color-mix(in srgb, #2d5dbe 32%, var(--surface))); border-radius: 12px;
       padding: 1rem; background: var(--surface, #fff);
@@ -788,10 +788,10 @@ const VERIF_GROUPS: { title: string; items: { key: keyof CreateOperacionesPostPa
       display: inline-block; padding: 0.15rem 0.45rem; border-radius: 999px;
       font-size: 0.72rem; background: color-mix(in srgb, #2d5dbe 14%, var(--surface));
     }
-    .badge.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .badge.ok { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
     .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; }
     .empty, .error { color: var(--text-muted, #6b7280); }
-    .error { color: var(--error-600); }
+    .error { color: var(--error-text); }
     .baja-info { margin-top: 0.2rem; font-size: 0.72rem; color: var(--text-muted, #6b7280); }
     code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.85em; }
 

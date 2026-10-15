@@ -134,7 +134,7 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
       font-size: 0.85rem;
       color: #525252;
     }
-    .stock-ok { color: var(--success-600); font-weight: 600; }
+    .stock-ok { color: var(--success-text); font-weight: 600; }
     .hint {
       margin: 0 0 0.85rem;
       padding: 0.55rem 0.7rem;
@@ -193,7 +193,7 @@ function variantGenero(v: InventoryVariant): 'M' | 'F' | '' {
       border: 1px solid var(--border, #d4d4d4);
       color: var(--text-primary, #171717);
     }
-    .error { color: var(--error-600); font-size: 0.85rem; margin: 0.5rem 0 0; }
+    .error { color: var(--error-text); font-size: 0.85rem; margin: 0.5rem 0 0; }
   `,
 })
 export class AddStockDialog {

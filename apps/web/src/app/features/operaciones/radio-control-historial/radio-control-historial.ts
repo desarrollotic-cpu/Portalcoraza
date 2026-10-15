@@ -169,7 +169,7 @@ interface PassDetailPayload {
       font-size: 0.7rem; padding: 0.1rem 0.4rem; border-radius: 999px;
       background: var(--neutral-200); font-weight: 600;
     }
-    .rch-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
+    .rch-badge.open { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-text); }
     .rch-detail { margin-top: 1.25rem; }
     .rch-detail h3 {
       display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;

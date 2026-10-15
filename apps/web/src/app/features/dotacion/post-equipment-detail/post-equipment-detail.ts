@@ -191,8 +191,8 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
       background: color-mix(in srgb, var(--warning-500) 12%, #fff);
       border: 1px solid color-mix(in srgb, var(--warning-500) 30%, color-mix(in srgb, var(--warning-500) 35%, var(--surface)));
     }
-    .summary strong { font-size: 1.4rem; color: var(--warning-600); }
-    .summary span { font-size: 0.75rem; color: var(--warning-600); }
+    .summary strong { font-size: 1.4rem; color: var(--warning-text); }
+    .summary span { font-size: 0.75rem; color: var(--warning-text); }
     .panel {
       margin-bottom: 1.5rem;
       padding: 1rem 1.1rem;
@@ -251,7 +251,7 @@ import { PostEquipmentTabs } from '../post-equipment-tabs/post-equipment-tabs';
     .btn-sm.danger {
       border-color: color-mix(in srgb, var(--error-600) 35%, color-mix(in srgb, var(--error-500) 28%, var(--surface)));
       background: color-mix(in srgb, var(--error-600) 8%, #fff);
-      color: var(--error-600);
+      color: var(--error-text);
     }
     table {
       width: 100%;
