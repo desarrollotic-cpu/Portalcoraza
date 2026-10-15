@@ -11,16 +11,19 @@ import {
   memoryMonitorEnabled,
   toMb,
 } from './memory.config';
+import { registrarFin, registrarInicio } from './peticiones-en-curso';
 
 /**
- * Registra las peticiones que hacen crecer la memoria de forma notable.
+ * Registra las peticiones que hacen crecer la memoria de forma notable, y
+ * apunta en el registro de peticiones en curso cuál se está ejecutando.
  *
- * Con esto, la próxima alerta de Render viene acompañada de la ruta que la
- * provocó en lugar de obligarnos a deducirla por la hora.
+ * Lo segundo importa tanto como lo primero: si el proceso muere a mitad de una
+ * petición, esta medición nunca llega a escribirse, y lo único que queda en el
+ * log es lo que el muestreo periódico vaya contando sobre lo que había en
+ * vuelo.
  *
- * Solo mide RSS antes y después (`process.memoryUsage.rss()`, que no recorre el
- * heap) y no registra nada por debajo del umbral, así que en la operación
- * normal no añade ruido ni coste apreciable.
+ * Solo mide RSS antes y después (`process.memoryUsage.rss()`, que no recorre
+ * el heap) y no registra nada por debajo del umbral.
  */
 @Injectable()
 export class MemoryProfileInterceptor implements NestInterceptor {
@@ -36,16 +39,20 @@ export class MemoryProfileInterceptor implements NestInterceptor {
       originalUrl?: string;
       url?: string;
     }>();
+    // Sin query string: puede llevar filtros y datos del usuario.
+    const ruta = (req.originalUrl ?? req.url ?? '?').split('?')[0];
+    const metodo = req.method ?? '?';
+
     const before = process.memoryUsage.rss();
     const startedAt = Date.now();
+    const id = registrarInicio(metodo, ruta);
 
     const report = () => {
+      registrarFin(id);
       const deltaMb = toMb(process.memoryUsage.rss() - before);
       if (deltaMb < MEMORY_REQUEST_DELTA_MB) return;
-      // Sin query string: puede llevar filtros y datos del usuario.
-      const path = (req.originalUrl ?? req.url ?? '?').split('?')[0];
       this.logger.warn(
-        `${req.method ?? '?'} ${path} +${deltaMb}MB en ${Date.now() - startedAt}ms ` +
+        `${metodo} ${ruta} +${deltaMb}MB en ${Date.now() - startedAt}ms ` +
           `(rss=${toMb(process.memoryUsage.rss())}MB)`,
       );
     };

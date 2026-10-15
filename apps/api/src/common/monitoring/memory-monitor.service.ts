@@ -8,9 +8,11 @@ import { getHeapStatistics } from 'v8';
 import {
   MEMORY_LIMIT_MB,
   MEMORY_SAMPLE_INTERVAL_MS,
+  SLOW_REQUEST_MS,
   memoryMonitorEnabled,
   toMb,
 } from './memory.config';
+import { describir, peticionesLentas } from './peticiones-en-curso';
 
 /**
  * Deja en los logs una muestra periódica del consumo de memoria.
@@ -68,5 +70,29 @@ export class MemoryMonitorService implements OnModuleInit, OnModuleDestroy {
     // Por encima del 80% el reinicio está cerca: que destaque en los logs.
     if (pct >= 80) this.logger.warn(line);
     else this.logger.log(line);
+
+    this.avisarDeLentas();
+  }
+
+  /**
+   * Deja por escrito qué peticiones llevan rato abiertas.
+   *
+   * Es lo único que queda en el log si el proceso muere a mitad de una: el
+   * interceptor mide al terminar, y una petición que mata la instancia nunca
+   * termina.
+   */
+  private avisarDeLentas(): void {
+    const ahora = Date.now();
+    const lentas = peticionesLentas(SLOW_REQUEST_MS, ahora);
+    if (!lentas.length) return;
+
+    this.logger.warn(
+      `${lentas.length} petición(es) en curso desde hace más de ${Math.round(
+        SLOW_REQUEST_MS / 1000,
+      )}s: ${lentas
+        .slice(0, 5)
+        .map((p) => describir(p, ahora))
+        .join(' · ')}`,
+    );
   }
 }

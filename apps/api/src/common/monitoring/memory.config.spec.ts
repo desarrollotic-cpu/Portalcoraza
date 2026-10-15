@@ -15,7 +15,7 @@ describe('configuración de la instrumentación de memoria', () => {
     delete process.env.MEMORY_LIMIT_MB;
     jest.resetModules();
     const cfg = load();
-    expect(cfg.MEMORY_SAMPLE_INTERVAL_MS).toBe(60_000);
+    expect(cfg.MEMORY_SAMPLE_INTERVAL_MS).toBe(15_000);
     expect(cfg.MEMORY_REQUEST_DELTA_MB).toBe(25);
     expect(cfg.MEMORY_LIMIT_MB).toBe(512);
   });
@@ -25,7 +25,7 @@ describe('configuración de la instrumentación de memoria', () => {
     process.env.MEMORY_REQUEST_DELTA_MB = '-5';
     jest.resetModules();
     const cfg = load();
-    expect(cfg.MEMORY_SAMPLE_INTERVAL_MS).toBe(60_000);
+    expect(cfg.MEMORY_SAMPLE_INTERVAL_MS).toBe(15_000);
     expect(cfg.MEMORY_REQUEST_DELTA_MB).toBe(25);
   });
 
