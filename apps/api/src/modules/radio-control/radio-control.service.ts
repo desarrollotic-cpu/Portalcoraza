@@ -385,13 +385,8 @@ export class RadioControlService {
     const id = String(rosterId || '').trim();
     if (!id) throw new BadRequestException('rosterId requerido');
     const roster = await this.assertRoster(user.tenantId, id);
-    const [open] = await this.q<{ id: string; pass_number: number }>(
-      `SELECT id, pass_number FROM radio_control_passes
-       WHERE tenant_id = $1 AND pass_date = $2::date AND closed_at IS NULL
-       ORDER BY pass_number DESC
-       LIMIT 1`,
-      [user.tenantId, d],
-    );
+    // Misma pasada que usa el marcado (turno de noche: la del día anterior); no crea ninguna.
+    const open = await this.findOpenPass(user.tenantId, d);
     if (!open) return { cleared: false };
     const deleted = await this.q<{ id: string }>(
       `DELETE FROM radio_control_checks
@@ -481,6 +476,11 @@ export class RadioControlService {
   }
 
   private async getOrCreateOpenPass(tenantId: string, date: string) {
+    return (await this.findOpenPass(tenantId, date)) ?? this.createPass(tenantId, date);
+  }
+
+  /** Pasada abierta de la fecha o, en turno de noche, la abierta del día anterior. No crea. */
+  private async findOpenPass(tenantId: string, date: string) {
     await this.closeStalePasses(tenantId);
     const [open] = await this.q<{
       id: string;
@@ -511,8 +511,7 @@ export class RadioControlService {
        LIMIT 1`,
       [tenantId, date],
     );
-    if (previa) return previa;
-    return this.createPass(tenantId, date);
+    return previa ?? null;
   }
 
   private async createPass(tenantId: string, date: string) {
