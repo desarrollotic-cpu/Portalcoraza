@@ -274,7 +274,7 @@ export interface EstanteInfo {
       gap: 0.4rem;
     }
     .estante-summary-card:hover { transform: translateY(-2px); box-shadow: 0 8px 15px -3px rgba(0,0,0,0.06); }
-    .estante-summary-card.active { border-color: #0d429c; background: var(--neutral-50); }
+    .estante-summary-card.active { border-color: var(--primary-500); background: var(--neutral-50); }
     
     .estante-head { display: flex; justify-content: space-between; align-items: center; }
     .estante-tag { color: #ffffff; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
@@ -303,8 +303,8 @@ export interface EstanteInfo {
       border-bottom: 3px solid transparent;
       margin-bottom: -0.25rem;
     }
-    .shelf-tab-btn:hover { color: #0d429c; background: var(--neutral-100); }
-    .shelf-tab-btn.active { color: #0d429c; border-bottom-color: #0d429c; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
+    .shelf-tab-btn:hover { color: var(--primary-500); background: var(--neutral-100); }
+    .shelf-tab-btn.active { color: var(--primary-500); border-bottom-color: var(--primary-500); background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
     .badge-count { background: var(--neutral-300); color: var(--neutral-700); font-size: 0.72rem; padding: 0.1rem 0.4rem; border-radius: 1rem; font-weight: 800; }
     .shelf-tab-btn.active .badge-count { background: #0d429c; color: #ffffff; }
 
@@ -319,7 +319,7 @@ export interface EstanteInfo {
       gap: 1.25rem;
     }
     .matrix-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .matrix-title { display: flex; align-items: center; gap: 0.75rem; color: #0d429c; }
+    .matrix-title { display: flex; align-items: center; gap: 0.75rem; color: var(--primary-500); }
     .matrix-title h4 { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--neutral-900); }
     .matrix-title p { margin: 0.1rem 0 0; font-size: 0.78rem; color: var(--neutral-500); }
 
@@ -355,11 +355,11 @@ export interface EstanteInfo {
       box-shadow: 0 10px 15px -3px rgba(0,0,0,0.06);
     }
     .slot-card.has-items { border-color: #bfdbfe; background: var(--surface); }
-    .slot-card.is-selected { border-color: #0d429c; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .slot-card.is-selected { border-color: var(--primary-500); background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
     .slot-card.is-highlighted { border-color: var(--warning-500); background: color-mix(in srgb, var(--warning-500) 12%, var(--surface)); animation: pulse 1.5s infinite; }
 
     .slot-badge { display: flex; justify-content: space-between; align-items: center; }
-    .slot-badge strong { font-size: 1.1rem; font-weight: 900; color: #032868; }
+    .slot-badge strong { font-size: 1.1rem; font-weight: 900; color: var(--primary-700); }
     .slot-count { font-size: 0.84rem; font-weight: 800; color: var(--neutral-900); }
     .slot-sub { font-size: 0.74rem; color: var(--neutral-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .slot-action-indicator {
@@ -371,7 +371,7 @@ export interface EstanteInfo {
       border-top: 1px dashed var(--neutral-200);
       font-size: 0.72rem;
       font-weight: 700;
-      color: #0d429c;
+      color: var(--primary-500);
     }
 
     /* DRAWER MODAL */
@@ -401,7 +401,7 @@ export interface EstanteInfo {
       justify-content: space-between;
       align-items: center;
     }
-    .drawer-tag { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #0d429c; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
+    .drawer-tag { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-500); font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 0.35rem; }
     .drawer-title-box h4 { margin: 0.2rem 0 0; font-size: 1rem; font-weight: 800; color: var(--neutral-900); }
     .drawer-title-box p { margin: 0; font-size: 0.75rem; color: var(--neutral-500); }
     .btn-close { background: transparent; border: none; color: var(--neutral-400); cursor: pointer; }
@@ -425,7 +425,7 @@ export interface EstanteInfo {
     .item-content { flex: 1; min-width: 0; }
     .item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.2rem; }
     .item-mod-badge { background: var(--neutral-200); color: var(--neutral-700); font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 0.25rem; }
-    .item-code-text { font-size: 0.76rem; color: #0d429c; font-weight: 800; }
+    .item-code-text { font-size: 0.76rem; color: var(--primary-500); font-weight: 800; }
     .item-title { margin: 0; font-size: 0.84rem; font-weight: 700; color: var(--neutral-900); line-height: 1.3; }
 
     .drawer-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--neutral-100); background: var(--neutral-50); display: flex; justify-content: flex-end; }

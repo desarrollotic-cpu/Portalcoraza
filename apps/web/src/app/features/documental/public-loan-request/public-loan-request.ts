@@ -297,7 +297,7 @@ import {
       margin: 0.25rem 0 0;
       font-size: 0.8rem;
       font-weight: 800;
-      color: #032868;
+      color: var(--primary-700);
       letter-spacing: 0.02em;
       border-top: 1px solid var(--neutral-200);
       padding-top: 0.85rem;
@@ -335,7 +335,7 @@ import {
       border: 1px solid color-mix(in srgb, var(--primary-600) 30%, var(--surface));
       border-radius: 0.6rem;
       font-size: 0.8rem;
-      color: #032868;
+      color: var(--primary-700);
       font-weight: 600;
       line-height: 1.35;
       cursor: pointer;
@@ -380,7 +380,7 @@ import {
     }
     .check-circle { font-size: 3rem; margin-bottom: 0.5rem; }
     .success-box h4 { margin: 0; font-size: 1.4rem; color: var(--neutral-900); font-weight: 800; }
-    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: #0d429c; }
+    .radicado { margin: 0.5rem 0; font-size: 1.1rem; color: var(--primary-500); }
     .info-text { font-size: 0.9rem; color: var(--neutral-600); margin: 0.25rem 0 1.25rem; }
     .badge-pending {
       background: color-mix(in srgb, var(--warning-500) 16%, var(--surface));

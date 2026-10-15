@@ -694,7 +694,7 @@ const CODES: CodeConfig[] = [
     .read-only-banner { margin-bottom: 0.75rem; padding: 0.7rem 1rem; background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); border: 1px solid #fbbf24; border-radius: 10px; color: var(--warning-600); font-weight: 700; font-size: 0.9rem; }
     .disponibles-panel { margin-bottom: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 12px; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); }
     .disponibles-head { display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
-    .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: #0d429c; font-weight: 800; letter-spacing: 0.02em; }
+    .disponibles-head h3 { margin: 0; font-size: 0.95rem; color: var(--primary-500); font-weight: 800; letter-spacing: 0.02em; }
     .disponibles-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .disponibles-count { background: #0d429c; color: #fff; font-size: 0.75rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 28px; text-align: center; }
     .disponibles-empty { margin: 0.35rem 0 0; font-size: 0.82rem; color: var(--neutral-600); }
@@ -705,7 +705,7 @@ const CODES: CodeConfig[] = [
     .disponible-cc { font-size: 0.75rem; color: var(--neutral-500); }
     .disponible-ultimo { display: flex; flex-direction: column; gap: 0.1rem; border-top: 1px dashed var(--neutral-200); padding-top: 0.35rem; }
     .disponible-ultimo.no-ultimo .ultimo-tag { color: var(--neutral-400); font-style: italic; }
-    .ultimo-tag { font-size: 0.68rem; font-weight: 700; color: #0d429c; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ultimo-tag { font-size: 0.68rem; font-weight: 700; color: var(--primary-500); text-transform: uppercase; letter-spacing: 0.04em; }
     .ultimo-post { font-size: 0.82rem; font-weight: 700; color: var(--neutral-900); }
     .ultimo-detalle { font-size: 0.72rem; color: var(--neutral-600); }
     .roles-panel h3 { margin: 0 0 0.75rem; font-size: 0.95rem; }
@@ -740,7 +740,7 @@ const CODES: CodeConfig[] = [
     /* SABADOS (AZUL CELESTE SUAVE) */
     th.col-saturday {
       background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)) !important;
-      color: #0d429c !important;
+      color: var(--primary-500) !important;
       border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)) !important;
     }
     td.col-saturday {
@@ -884,7 +884,7 @@ const CODES: CodeConfig[] = [
       font-size: 0.72rem;
     }
     .sun-bg { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); border: 1px solid #fca5a5; }
-    .sat-bg { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; border: 1px solid color-mix(in srgb, var(--primary-600) 30%, var(--surface)); }
+    .sat-bg { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); border: 1px solid color-mix(in srgb, var(--primary-600) 30%, var(--surface)); }
     .week-bg { background: var(--surface); color: var(--neutral-600); border: 1px solid var(--neutral-300); }
 
     .sticky-col { position: sticky; left: 0; background: var(--coraza-surface); text-align: left; min-width: 170px; z-index: 2; }
@@ -1016,7 +1016,7 @@ const CODES: CodeConfig[] = [
     }
     .diurno-td { color: #854d0e; background: color-mix(in srgb, #e1cd0a 14%, var(--surface)); }
     .nocturno-td { color: var(--success-600); background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); }
-    .hours-td { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
+    .hours-td { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
     .hours-over { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)) !important; color: var(--error-600) !important; }
 
     /* BOTONERA DE NOVEDADES EN 1 CLIC (MODAL) */
@@ -1123,11 +1123,11 @@ const CODES: CodeConfig[] = [
     }
     .post-dropdown-item:hover {
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
     }
     .post-dropdown-item.selected {
       background: color-mix(in srgb, var(--primary-600) 18%, var(--surface));
-      color: #032868;
+      color: var(--primary-700);
       font-weight: 800;
     }
     .post-dropdown-empty {
@@ -1157,7 +1157,7 @@ const CODES: CodeConfig[] = [
       justify-content: space-between;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       border: 1px solid #bfdbfe;
-      color: #0d429c;
+      color: var(--primary-500);
       padding: 0.35rem 0.6rem;
       border-radius: 6px;
       font-size: 0.8rem;
@@ -2273,7 +2273,7 @@ export class ScheduleBoard implements OnInit {
           .brand-title { font-size: 15px; font-weight: bold; color: #0f172a; margin: 0; }
           .brand-sub { font-size: 8.5px; color: #475569; margin: 2px 0 0; }
           .meta-box { border: 1px solid #0f172a; padding: 4px 8px; border-radius: 4px; text-align: right; background: #f8fafc; }
-          .meta-box h3 { margin: 0; font-size: 11px; color: #0d429c; }
+          .meta-box h3 { margin: 0; font-size: 11px; color: var(--primary-500); }
           .meta-box p { margin: 2px 0 0; font-size: 9px; }
           .post-bar { display: flex; justify-content: space-between; background: #0f172a; color: #ffffff; padding: 4px 8px; font-size: 10px; border-radius: 3px; margin-bottom: 6px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
@@ -2290,12 +2290,12 @@ export class ScheduleBoard implements OnInit {
             <img src="/brand/logo-coraza-cta.png" style="width:48px; height:48px; border-radius:50%;" alt="Logo Coraza" onerror="this.style.display='none'">
             <div>
               <h1 style="font-size:15px; font-weight:800; color:#0f172a; margin:0; letter-spacing:0.5px;">CORAZA SEGURIDAD C.T.A.</h1>
-              <p style="font-size:8.5px; color:#0d429c; font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
+              <p style="font-size:8.5px; color: var(--primary-500); font-weight:700; margin:1px 0;">La Seguridad un Compromiso de Todos</p>
               <p style="font-size:7.8px; color:#64748b; margin:0;">NIT: 811.026.837-1 · VIGILADO Supervigilancia Resolución 6889 del 29 de septiembre de 2011</p>
             </div>
           </div>
           <div class="meta-box" style="border:1.5px solid #0d429c; padding:5px 10px; border-radius:6px; text-align:right; background:#f8fafc;">
-            <h3 style="margin:0; font-size:11px; color:#0d429c; font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
+            <h3 style="margin:0; font-size:11px; color: var(--primary-500); font-weight:800;">PLANILLA OFICIAL DE PROGRAMACIÓN DE PUESTO</h3>
             <p style="margin:2px 0 0; font-size:9.5px; font-weight:700; color:#0f172a;">Periodo: ${monthLabel}</p>
           </div>
         </div>

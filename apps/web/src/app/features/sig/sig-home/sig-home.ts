@@ -658,7 +658,7 @@ interface DashboardItem {
       align-items: center;
       justify-content: center;
     }
-    .head h2 { margin: 0; font-size: 1.4rem; color: #032868; font-weight: 800; }
+    .head h2 { margin: 0; font-size: 1.4rem; color: var(--primary-700); font-weight: 800; }
     .head p { margin: 0.2rem 0 0; font-size: 0.85rem; color: var(--neutral-500); }
     
     .tabs { display: flex; gap: 0.4rem; }
@@ -676,7 +676,7 @@ interface DashboardItem {
     .tabs button.on {
       background: #032868;
       color: #ffffff;
-      border-color: #032868;
+      border-color: var(--primary-700);
       box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
     }
 
@@ -714,7 +714,7 @@ interface DashboardItem {
       font-size: 0.9rem;
       outline: none;
     }
-    .field select:focus, .field input:focus { border-color: #0d429c; background: var(--surface); }
+    .field select:focus, .field input:focus { border-color: var(--primary-500); background: var(--surface); }
     .search-field { flex: 1; min-width: 250px; }
 
     .global-kpi-pill {
@@ -815,7 +815,7 @@ interface DashboardItem {
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    .dot[data-c='AZUL'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
+    .dot[data-c='AZUL'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
     .dot[data-c='VERDE'] { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .dot[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
     .dot[data-c='ROJO'] { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
@@ -853,7 +853,7 @@ interface DashboardItem {
     .val-col { display: flex; flex-direction: column; align-items: center; text-align: center; }
     .val-col .lbl { font-size: 0.68rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
     .val-col .val { font-size: 1rem; font-weight: 900; color: var(--neutral-900); }
-    .val-col .pct-val[data-c='AZUL'] { color: #0d429c; }
+    .val-col .pct-val[data-c='AZUL'] { color: var(--primary-500); }
     .val-col .pct-val[data-c='VERDE'] { color: var(--success-600); }
     .val-col .pct-val[data-c='AMARILLO'] { color: #ca8a04; }
     .val-col .pct-val[data-c='ROJO'] { color: var(--error-600); }
@@ -911,7 +911,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 0.2rem;
     }
-    .analysis-lbl { font-size: 0.68rem; font-weight: 800; color: #0d429c; }
+    .analysis-lbl { font-size: 0.68rem; font-weight: 800; color: var(--primary-500); }
     .analysis-txt {
       margin: 0;
       font-size: 0.76rem;
@@ -932,7 +932,7 @@ interface DashboardItem {
     .btn-detail {
       border: 1px solid var(--neutral-300);
       background: var(--surface);
-      color: #032868;
+      color: var(--primary-700);
       border-radius: 0.55rem;
       padding: 0.55rem;
       font-weight: 700;
@@ -946,7 +946,7 @@ interface DashboardItem {
     .btn-capturar {
       border: 1px solid #bfdbfe;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border-radius: 0.55rem;
       padding: 0.55rem;
       font-weight: 700;
@@ -1024,7 +1024,7 @@ interface DashboardItem {
     }
     .kpi-box .kpi-lbl { font-size: 0.75rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; }
     .kpi-box .kpi-val { font-size: 1.35rem; font-weight: 900; color: var(--neutral-900); }
-    .kpi-box .kpi-val.highlight { color: #032868; }
+    .kpi-box .kpi-val.highlight { color: var(--primary-700); }
 
     .detail-chart-card {
       background: var(--surface);
@@ -1035,7 +1035,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 1rem;
     }
-    .chart-header h4 { margin: 0; font-size: 1.05rem; color: #032868; font-weight: 800; }
+    .chart-header h4 { margin: 0; font-size: 1.05rem; color: var(--primary-700); font-weight: 800; }
     .chart-header small { color: var(--neutral-500); font-size: 0.8rem; }
 
     .big-chart-container { display: flex; flex-direction: column; gap: 1rem; }
@@ -1128,7 +1128,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 1rem;
     }
-    .section-title-wrap h4 { margin: 0; font-size: 1.05rem; color: #032868; font-weight: 800; }
+    .section-title-wrap h4 { margin: 0; font-size: 1.05rem; color: var(--primary-700); font-weight: 800; }
     .section-title-wrap small { color: var(--neutral-500); font-size: 0.8rem; }
     
     .period-pills-row {
@@ -1156,7 +1156,7 @@ interface DashboardItem {
     .period-pill-btn.selected {
       background: #032868;
       color: #ffffff;
-      border-color: #032868;
+      border-color: var(--primary-700);
       box-shadow: 0 2px 4px rgba(30, 58, 138, 0.25);
     }
     .period-pill-btn.selected .period-title { color: #ffffff; }
@@ -1201,7 +1201,7 @@ interface DashboardItem {
       flex-direction: column;
       gap: 0.75rem;
     }
-    .hist-table-card h4 { margin: 0; font-size: 1rem; color: #032868; font-weight: 800; }
+    .hist-table-card h4 { margin: 0; font-size: 1rem; color: var(--primary-700); font-weight: 800; }
     .table-scroll { overflow-x: auto; border: 1px solid var(--neutral-200); border-radius: 0.65rem; }
     .detail-hist-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
     .detail-hist-table th {
@@ -1226,7 +1226,7 @@ interface DashboardItem {
       border-radius: 0.35rem;
       background: var(--neutral-100);
     }
-    .pct-tag[data-c='AZUL'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
+    .pct-tag[data-c='AZUL'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
     .pct-tag[data-c='VERDE'] { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
     .pct-tag[data-c='AMARILLO'] { background: #fef9c3; color: #854d0e; }
     .pct-tag[data-c='ROJO'] { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
@@ -1329,7 +1329,7 @@ interface DashboardItem {
     .btn-action {
       border: none;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border-radius: 0.4rem;
       padding: 0.35rem 0.65rem;
       font-weight: 700;
@@ -1353,7 +1353,7 @@ interface DashboardItem {
     .perspectiva-header h3 {
       margin: 0;
       font-size: 1.05rem;
-      color: #032868;
+      color: var(--primary-700);
       font-weight: 800;
       border-bottom: 2px solid color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       padding-bottom: 0.5rem;
@@ -1399,7 +1399,7 @@ interface DashboardItem {
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--neutral-200);
     }
-    .form-header h3 { margin: 0; font-size: 1.15rem; color: #032868; font-weight: 800; }
+    .form-header h3 { margin: 0; font-size: 1.15rem; color: var(--primary-700); font-weight: 800; }
     .form-header p { margin: 0.25rem 0 0; color: var(--neutral-500); font-size: 0.85rem; }
     .form-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
     .form-label { display: flex; flex-direction: column; gap: 0.35rem; font-size: 0.85rem; font-weight: 700; color: var(--neutral-700); }
@@ -1413,7 +1413,7 @@ interface DashboardItem {
       outline: none;
     }
     .form-label select:focus, .form-label input:focus, .form-label textarea:focus {
-      border-color: #0d429c;
+      border-color: var(--primary-500);
       background: var(--surface);
     }
     .grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
@@ -1423,7 +1423,7 @@ interface DashboardItem {
       border-radius: 0.65rem;
       padding: 0.75rem 1rem;
       font-size: 0.85rem;
-      color: #0d429c;
+      color: var(--primary-500);
       display: flex;
       flex-direction: column;
       gap: 0.25rem;

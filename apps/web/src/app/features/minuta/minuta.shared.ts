@@ -155,11 +155,11 @@ export const MINUTA_PAGE_STYLES = `
     border-radius: 12px; padding: 0.75rem;
   }
   .stats small { color: var(--text-muted, var(--neutral-500)); }
-  .stats b { display: block; font-size: 1.25rem; color: #032868; }
+  .stats b { display: block; font-size: 1.25rem; color: var(--primary-700); }
   .quick, .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
   .quick button, .tile {
     border: 0; border-radius: 12px; padding: 0.9rem; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-    color: #032868; font-weight: 700; text-align: left; cursor: pointer;
+    color: var(--primary-700); font-weight: 700; text-align: left; cursor: pointer;
   }
   .card {
     background: var(--surface, #fff); border: 1px solid var(--border, var(--neutral-200));
@@ -177,7 +177,7 @@ export const MINUTA_PAGE_STYLES = `
   .actions { display: flex; gap: 0.35rem; flex-wrap: wrap; }
   .mini {
     border: 1px solid var(--border, var(--neutral-300)); background: transparent; border-radius: 8px;
-    padding: 0.35rem 0.55rem; cursor: pointer; color: #032868; font-weight: 700;
+    padding: 0.35rem 0.55rem; cursor: pointer; color: var(--primary-700); font-weight: 700;
   }
   .btn {
     border: 0; border-radius: 8px; padding: 0.7rem 1rem; background: #032868; color: #fff;
@@ -194,7 +194,7 @@ export const MINUTA_PAGE_STYLES = `
     display: flex; flex-direction: column; gap: 0.55rem;
   }
   label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.82rem; color: var(--text-muted, var(--neutral-500)); font-weight: 600; }
-  h3 { margin: 0.25rem 0; color: #032868; }
+  h3 { margin: 0.25rem 0; color: var(--primary-700); }
   @media (max-width: 800px) {
     .stats { grid-template-columns: 1fr 1fr; }
     .quick, .grid { grid-template-columns: 1fr; }

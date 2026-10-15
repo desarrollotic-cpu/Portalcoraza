@@ -217,7 +217,7 @@ import {
       align-items: center;
       gap: 0.5rem;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border: 1px solid #bfdbfe;
       border-radius: 0.65rem;
       padding: 0.45rem 0.85rem;
@@ -289,7 +289,7 @@ import {
       height: 40px;
       border-radius: 10px;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -332,8 +332,8 @@ import {
     }
     .tab-btn:hover { color: var(--neutral-900); }
     .tab-btn.active {
-      color: #0d429c;
-      border-bottom-color: #0d429c;
+      color: var(--primary-500);
+      border-bottom-color: var(--primary-500);
       background: var(--surface);
     }
 
@@ -363,7 +363,7 @@ import {
       gap: 0.4rem;
       background: var(--surface);
       border: 1px solid #bfdbfe;
-      color: #0d429c;
+      color: var(--primary-500);
       padding: 0.45rem 0.85rem;
       border-radius: 0.5rem;
       font-size: 0.8rem;
@@ -418,8 +418,8 @@ import {
     .item-badge[data-mod='MINUTAS'] { background: var(--primary-50); color: var(--primary-700); }
     .item-badge[data-mod='CONTRATOS'] { background: color-mix(in srgb, #0035eb 14%, var(--surface)); color: #3730a3; }
     .item-badge[data-mod='PERSONAL'] { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
-    .item-badge[data-mod='CORRESPONDENCIA'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
-    .item-code { color: #0d429c; font-size: 0.92rem; }
+    .item-badge[data-mod='CORRESPONDENCIA'] { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
+    .item-code { color: var(--primary-500); font-size: 0.92rem; }
     .item-title { font-size: 0.85rem; font-weight: 600; color: var(--neutral-900); }
     .item-slot { font-size: 0.75rem; color: var(--neutral-500); background: var(--neutral-100); padding: 0.1rem 0.4rem; border-radius: 0.3rem; }
     
@@ -457,7 +457,7 @@ import {
     .history-card-title { display: flex; align-items: center; gap: 0.55rem; flex-wrap: wrap; }
     .history-badge { font-size: 0.72rem; font-weight: 800; background: var(--neutral-100); color: var(--neutral-700); padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
     .history-date { font-size: 0.78rem; color: var(--neutral-500); font-weight: 600; }
-    .history-count { font-size: 0.78rem; font-weight: 700; color: #0d429c; }
+    .history-count { font-size: 0.78rem; font-weight: 700; color: var(--primary-500); }
     .history-actions { display: flex; align-items: center; gap: 0.4rem; }
     .btn-reprint {
       display: inline-flex;
@@ -496,7 +496,7 @@ import {
       border-radius: 0.35rem;
       color: var(--neutral-700);
     }
-    .history-chip strong { color: #0d429c; }
+    .history-chip strong { color: var(--primary-500); }
 
     .modal-footer {
       display: flex;

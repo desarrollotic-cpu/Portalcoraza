@@ -218,7 +218,7 @@ import {
     .dom { color: var(--error-600); font-weight: 700; }
 
     .empty-cell { text-align: center; padding: 2.5rem 1rem; color: var(--neutral-500); }
-    .empty-cell a { color: #0d429c; font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
+    .empty-cell a { color: var(--primary-500); font-weight: 700; text-decoration: none; margin-left: 0.5rem; }
     .loading-state, .error-msg { text-align: center; padding: 2rem; font-size: 0.9rem; color: var(--neutral-500); }
     .error-msg { color: var(--error-600); }
   `,

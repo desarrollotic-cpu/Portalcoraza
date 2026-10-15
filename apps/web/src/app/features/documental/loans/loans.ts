@@ -618,7 +618,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       align-items: center;
       gap: 0.45rem;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
       padding: 0.45rem 0.85rem;
@@ -732,7 +732,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .loan-box.reject { border-left: 4px solid var(--neutral-500); }
     .loan-box.reject.active { background: var(--neutral-50); border-color: var(--neutral-500); }
     .loan-box.archive { border-left: 4px solid #0d429c; }
-    .loan-box.archive.active { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #0d429c; }
+    .loan-box.archive.active { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: var(--primary-500); }
     .loan-box-label { font-size: 0.78rem; font-weight: 800; color: var(--neutral-700); }
     .loan-box-count { font-size: 1.35rem; font-weight: 900; color: var(--neutral-900); line-height: 1.1; }
     .loan-box-hint { font-size: 0.7rem; color: var(--neutral-500); font-weight: 600; }
@@ -767,9 +767,9 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
     .row-pending { background: color-mix(in srgb, #ebbc00 14%, var(--surface)); }
     .row-vencido { background: color-mix(in srgb, #eb0000 14%, var(--surface)); }
-    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: #0d429c; font-weight: 600; margin-top: 0.15rem; }
+    .email-tag { display: flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; color: var(--primary-500); font-weight: 600; margin-top: 0.15rem; }
     .obs-text { font-size: 0.74rem; color: var(--text-muted); margin-top: 0.2rem; }
-    .doc-code-tag { font-size: 0.72rem; color: #0d429c; font-weight: 700; }
+    .doc-code-tag { font-size: 0.72rem; color: var(--primary-500); font-weight: 700; }
     .notif-badge { font-size: 0.68rem; color: var(--warning-600); background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); padding: 0.1rem 0.4rem; border-radius: 0.3rem; display: inline-block; margin-top: 0.2rem; font-weight: 700; }
     
     .btn-group-right { display: flex; gap: 0.35rem; justify-content: flex-end; align-items: center; }
@@ -823,7 +823,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     
     .btn-notify-email {
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border: 1px solid #bfdbfe;
       border-radius: 0.35rem;
       padding: 0.25rem 0.55rem;
@@ -868,7 +868,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       height: 42px;
       border-radius: 10px;
       background: color-mix(in srgb, var(--primary-600) 18%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -898,7 +898,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       border-radius: 0.65rem;
       padding: 0.85rem 1rem;
     }
-    .doc-name { color: #0d429c; font-size: 1rem; }
+    .doc-name { color: var(--primary-500); font-size: 1rem; }
     .doc-code-pill { display: inline-block; background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0284c7; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; margin-top: 0.35rem; }
 
     .obs-card-box {
@@ -942,7 +942,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     }
     .confirm-modal-header.success { background: color-mix(in srgb, var(--success-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--success-500) 30%, var(--surface)); color: var(--success-600); }
     .confirm-modal-header.danger { background: color-mix(in srgb, var(--error-500) 10%, var(--surface)); border-color: color-mix(in srgb, var(--error-500) 28%, var(--surface)); color: var(--error-600); }
-    .confirm-modal-header.info { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); color: #043383; }
+    .confirm-modal-header.info { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); color: var(--primary-600); }
 
     .confirm-icon-box {
       width: 44px;
@@ -1077,7 +1077,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
       padding: 1.25rem 1.5rem;
       border-bottom: 1px solid var(--neutral-100);
     }
-    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: #032868; }
+    .qr-title-box { display: flex; align-items: center; gap: 0.75rem; color: var(--primary-700); }
     .qr-title-box h4 { margin: 0; font-size: 1rem; font-weight: 800; color: var(--neutral-900); }
     .qr-title-box p { margin: 0.1rem 0 0; font-size: 0.75rem; color: var(--neutral-500); }
     .btn-close { background: transparent; border: none; color: var(--neutral-400); cursor: pointer; }
@@ -1111,7 +1111,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     .qr-corp-header span { font-size: 0.75rem; color: var(--neutral-500); }
     .qr-image-wrap { margin: 1rem 0; padding: 0.5rem; background: var(--surface); border-radius: 0.5rem; }
     .qr-code-img { width: 180px; height: 180px; display: block; }
-    .qr-instructions strong { display: block; font-size: 0.85rem; color: #032868; margin-bottom: 0.25rem; }
+    .qr-instructions strong { display: block; font-size: 0.85rem; color: var(--primary-700); margin-bottom: 0.25rem; }
     .qr-instructions p { margin: 0; font-size: 0.76rem; color: var(--neutral-600); line-height: 1.35; max-width: 280px; }
 
     .link-copy-box { display: flex; gap: 0.4rem; width: 100%; }
@@ -1141,7 +1141,7 @@ import { LOAN_MAX_BUSINESS_DAYS, loanReturnDeadlineYmd } from '../loan-term';
     }
     .mail-log-list { list-style: none; margin: 0.4rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.45rem; }
     .mail-log-list li { font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.35rem 0.65rem; align-items: baseline; }
-    .mail-kind { font-weight: 800; color: #032868; }
+    .mail-kind { font-weight: 800; color: var(--primary-700); }
     .mail-ok { color: var(--success-600); font-weight: 700; }
     .mail-fail { color: var(--error-600); font-weight: 700; }
     .mail-meta { color: var(--neutral-500); }
@@ -1535,13 +1535,13 @@ export class LoansScreen implements OnInit {
               max-width: 500px; margin: 0 auto; border: 3px solid #032868;
               border-radius: 20px; padding: 30px;
             }
-            h1 { font-size: 22px; color: #032868; margin: 0; }
+            h1 { font-size: 22px; color: var(--primary-700); margin: 0; }
             .print-logo { width: 72px; height: 72px; object-fit: contain; margin: 0 auto 10px; display: block; }
             h2 { font-size: 16px; color: #475569; margin: 5px 0 20px; font-weight: normal; }
             .qr-print { width: 240px; height: 240px; border-radius: 10px; margin: 10px 0; }
-            .inst { font-size: 14px; font-weight: bold; color: #032868; margin-top: 15px; }
+            .inst { font-size: 14px; font-weight: bold; color: var(--primary-700); margin-top: 15px; }
             .desc { font-size: 12px; color: #64748b; margin-top: 5px; }
-            .url { font-size: 11px; color: #0d429c; margin-top: 15px; word-break: break-all; }
+            .url { font-size: 11px; color: var(--primary-500); margin-top: 15px; word-break: break-all; }
             @media print { body { padding: 0; } }
           </style>
         </head>

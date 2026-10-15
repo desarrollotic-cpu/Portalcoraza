@@ -32,7 +32,7 @@ import {
       }
       .file-chip[data-kind='ARCHIVADO'] {
         background: color-mix(in srgb, #078be3 14%, var(--surface));
-        color: #043383;
+        color: var(--primary-600);
       }
     `,
   ],

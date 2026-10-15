@@ -105,7 +105,7 @@ const FIELD_LABELS: Record<string, string> = {
       display: flex; justify-content: space-between; gap: 0.75rem;
       padding: 1rem 1rem 0.75rem; border-bottom: 1px solid var(--border, var(--neutral-200));
     }
-    .panel-head h3 { margin: 0; font-size: 1.05rem; color: #032868; }
+    .panel-head h3 { margin: 0; font-size: 1.05rem; color: var(--primary-700); }
     .sub { margin: 0.25rem 0 0; font-size: 0.8rem; color: var(--text-muted, var(--neutral-500)); }
     .close {
       border: 0; background: transparent; font-size: 1.5rem; line-height: 1;

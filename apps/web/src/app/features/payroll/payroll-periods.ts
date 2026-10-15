@@ -247,7 +247,7 @@ import { PayrollPeriod, PayrollSlip, PayrollService } from './payroll.service';
     .highlight-rec { color: #0f766e; font-weight: 600; }
     .text-success { color: var(--success-600); font-weight: 700; }
     .text-danger { color: var(--error-600); font-weight: 600; }
-    .text-primary { color: #0d429c; font-weight: 700; }
+    .text-primary { color: var(--primary-500); font-weight: 700; }
     .btn-slip {
       padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.4rem;
       border: 1px solid var(--neutral-300); background: var(--neutral-50); color: #0f766e; cursor: pointer;

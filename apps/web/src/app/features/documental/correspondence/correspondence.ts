@@ -462,7 +462,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: #0d429c;
+      color: var(--primary-500);
       font-size: 0.95rem;
       margin-bottom: 0.25rem;
     }
@@ -488,16 +488,16 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
       transition: all 0.15s;
     }
     .inp-select:focus, .inp-text:focus {
-      border-color: #0d429c;
+      border-color: var(--primary-500);
       background: var(--surface);
       outline: none;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
-    .inp-select.highlight { border-color: #93c5fd; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); font-weight: 600; color: #0d429c; }
+    .inp-select.highlight { border-color: #93c5fd; background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); font-weight: 600; color: var(--primary-500); }
     .inp-radicado {
       font: inherit;
       font-weight: 800;
-      color: #0d429c;
+      color: var(--primary-500);
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
       border: 1px solid #bfdbfe;
       border-radius: 0.55rem;
@@ -546,7 +546,7 @@ export const MAPA_TRD_COMPLETO: Record<string, TrdOption[]> = {
 
     /* TABLE */
     .table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: 0.85rem; background: var(--surface); }
-    .radicado-text { color: #0d429c; font-size: 0.88rem; }
+    .radicado-text { color: var(--primary-500); font-size: 0.88rem; }
     .voxel-tag { font-size: 0.72rem; color: var(--neutral-500); margin-top: 0.15rem; }
     .dept-badge { background: var(--neutral-100); color: var(--neutral-700); font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 0.35rem; }
     .arrow-sep { color: var(--neutral-400); margin: 0 0.25rem; font-size: 0.75rem; }

@@ -726,7 +726,8 @@ interface NavGroup {
       letter-spacing: 0.08em;
     }
     .crumb-sep {
-      color: var(--neutral-300);
+      /* El 300 se queda en 1.8 de contraste sobre el fondo oscuro. */
+      color: var(--neutral-400);
     }
     .crumb-active {
       color: var(--primary-600);

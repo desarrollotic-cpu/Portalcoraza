@@ -436,9 +436,9 @@ export interface GuardAvailabilityItem {
       border-radius: 0.5rem 0.5rem 0 0;
       transition: all 0.15s;
     }
-    .tab-btn:hover { color: #0d429c; background: var(--neutral-50); }
+    .tab-btn:hover { color: var(--primary-500); background: var(--neutral-50); }
     .tab-btn.active {
-      color: #0d429c;
+      color: var(--primary-500);
       border-bottom: 3px solid #0d429c;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
     }
@@ -489,7 +489,7 @@ export interface GuardAvailabilityItem {
     .avail-sub { margin: 0.15rem 0 0; font-size: 0.82rem; color: var(--neutral-500); }
     .today-date-badge {
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       font-size: 0.75rem;
       font-weight: 800;
       padding: 0.15rem 0.5rem;
@@ -554,7 +554,7 @@ export interface GuardAvailabilityItem {
       border-bottom: 1px solid var(--neutral-100);
       padding-bottom: 0.4rem;
     }
-    .post-code { color: #0d429c; font-size: 0.82rem; margin-right: 0.3rem; }
+    .post-code { color: var(--primary-500); font-size: 0.82rem; margin-right: 0.3rem; }
     .post-name { font-size: 0.86rem; color: var(--neutral-900); }
     .badge-status {
       font-size: 0.7rem;
@@ -633,12 +633,12 @@ export interface GuardAvailabilityItem {
     .st-descanso { background: var(--neutral-100); color: var(--neutral-600); }
     .st-novedad { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
 
-    .puesto-highlight { color: #0d429c; font-size: 0.84rem; }
+    .puesto-highlight { color: var(--primary-500); font-size: 0.84rem; }
     .free-text { color: var(--success-600); font-weight: 700; font-size: 0.78rem; }
     .puesto-chip {
       display: inline-block;
       background: color-mix(in srgb, var(--primary-600) 12%, var(--surface));
-      color: #0d429c;
+      color: var(--primary-500);
       border: 1px solid #bfdbfe;
       padding: 0.15rem 0.45rem;
       border-radius: 0.35rem;
@@ -679,7 +679,7 @@ export interface GuardAvailabilityItem {
       cursor: pointer;
       transition: all 0.15s;
     }
-    .btn-page:hover:not(:disabled) { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: #0d429c; color: #0d429c; }
+    .btn-page:hover:not(:disabled) { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: var(--primary-500); color: var(--primary-500); }
     .btn-page:disabled { opacity: 0.4; cursor: not-allowed; }
     .page-current-pill {
       background: #0d429c;
@@ -696,7 +696,7 @@ export interface GuardAvailabilityItem {
       background: var(--neutral-50);
       border-radius: 0.75rem;
     }
-    .btn-link { color: #0d429c; font-weight: 700; font-size: 0.85rem; text-decoration: none; }
+    .btn-link { color: var(--primary-500); font-weight: 700; font-size: 0.85rem; text-decoration: none; }
     .loading-text { font-size: 0.85rem; color: var(--neutral-500); text-align: center; padding: 1.5rem; }
 
     .prog-panel__chart { max-width: 720px; }

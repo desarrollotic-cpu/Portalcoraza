@@ -512,8 +512,8 @@ type PeriodKey = CommandPeriod;
       width: 42px; height: 42px; border-radius: 10px; display: flex;
       align-items: center; justify-content: center;
     }
-    .core-icon.bg-blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #0d429c; }
-    .core-icon.bg-indigo { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: #0d429c; }
+    .core-icon.bg-blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-500); }
+    .core-icon.bg-indigo { background: color-mix(in srgb, var(--primary-600) 18%, var(--surface)); color: var(--primary-500); }
     .core-icon.bg-amber { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
     .core-icon.bg-teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
@@ -521,7 +521,7 @@ type PeriodKey = CommandPeriod;
       font-size: 0.75rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 999px;
     }
     .core-badge.green { background: color-mix(in srgb, var(--success-500) 16%, var(--surface)); color: var(--success-600); }
-    .core-badge.blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #043383; }
+    .core-badge.blue { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-600); }
     .core-badge.orange { background: color-mix(in srgb, var(--warning-500) 18%, var(--surface)); color: var(--warning-600); }
     .core-badge.teal { background: color-mix(in srgb, #0d9488 16%, var(--surface)); color: #0f766e; }
 
@@ -529,7 +529,7 @@ type PeriodKey = CommandPeriod;
     .core-number { display: block; font-size: 2.1rem; font-weight: 900; color: var(--neutral-900); line-height: 1.1; margin: 0.2rem 0; }
     .core-subtext { font-size: 0.78rem; color: var(--neutral-400); }
     .core-link {
-      font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none;
+      font-size: 0.82rem; font-weight: 700; color: var(--primary-500); text-decoration: none;
       border-top: 1px solid var(--neutral-100); padding-top: 0.6rem; display: block;
     }
     .core-link:hover { text-decoration: underline; }
@@ -551,7 +551,7 @@ type PeriodKey = CommandPeriod;
       display: inline-flex; align-items: center; gap: 0.5rem;
     }
     .muted { color: var(--neutral-500); font-size: 0.82rem; }
-    .link-quiet { font-size: 0.82rem; font-weight: 700; color: #0d429c; text-decoration: none; }
+    .link-quiet { font-size: 0.82rem; font-weight: 700; color: var(--primary-500); text-decoration: none; }
     .link-quiet:hover { text-decoration: underline; }
 
     /* ESTADO OPERATIVO */
@@ -593,7 +593,7 @@ type PeriodKey = CommandPeriod;
     }
     .alert-item[data-tone='critical'] .badge { background: color-mix(in srgb, var(--error-500) 16%, var(--surface)); color: var(--error-600); }
     .alert-item[data-tone='warning'] .badge { background: color-mix(in srgb, var(--warning-500) 16%, var(--surface)); color: var(--warning-600); }
-    .alert-item[data-tone='info'] .badge { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: #043383; }
+    .alert-item[data-tone='info'] .badge { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); color: var(--primary-600); }
 
     /* MÓDULOS DE GESTIÓN */
     .modules-grid {
@@ -609,7 +609,7 @@ type PeriodKey = CommandPeriod;
     .stat-pill span { font-size: 0.7rem; text-transform: uppercase; color: var(--neutral-500); font-weight: 700; }
     .stat-pill strong { font-size: 1.25rem; font-weight: 900; color: var(--neutral-900); }
     .highlight-stat { background: color-mix(in srgb, var(--primary-600) 12%, var(--surface)); border-color: color-mix(in srgb, var(--primary-600) 30%, var(--surface)); }
-    .highlight-stat strong { color: #0d429c; }
+    .highlight-stat strong { color: var(--primary-500); }
 
     .chart-box { background: var(--neutral-50); border-radius: 0.75rem; border: 1px solid var(--neutral-100); padding: 0.5rem; }
     .chart { width: 100%; height: 90px; }
