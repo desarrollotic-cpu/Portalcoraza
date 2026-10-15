@@ -372,7 +372,7 @@ interface NavGroup {
       /* 252px y no 260: los 8px salen del margen interno del menú, no del
          espacio del texto, así que las opciones siguen cabiendo en una línea
          exactamente igual que antes (medido sobre las 74 del menú real). */
-      grid-template-columns: 252px 1fr;
+      grid-template-columns: 248px 1fr;
       min-height: 100vh;
     }
 
@@ -402,7 +402,7 @@ interface NavGroup {
       flex-direction: column;
       /* Laterales de 1rem a 0.75rem: compensa exactamente los 8px que pierde
          la barra, de modo que el ancho útil de cada opción no cambia. */
-      padding: 1.5rem 0.75rem 1.25rem;
+      padding: 1.5rem 0.625rem 1.25rem;
       overflow-y: auto;
     }
 
@@ -477,7 +477,10 @@ interface NavGroup {
       position: relative;
       display: flex;
       align-items: center;
-      gap: 0.7rem;
+      /* 0.5rem y no 0.7: la separación entre icono y texto es de donde sale
+         el ancho que cede la barra. Tocar el tamaño del icono, en cambio,
+         descuadra el alto de 56 de las 74 opciones. */
+      gap: 0.5rem;
       padding: 0.6rem 0.85rem;
       border-radius: var(--radius-sm);
       color: rgba(255, 255, 255, 0.75);
@@ -689,7 +692,7 @@ interface NavGroup {
       /* La barra superior medía 88px de alto en una ventana de 585: un 15% de
          la pantalla para un título y cuatro botones. Bajando el relleno a
          0.65rem queda en 76px sin tocar el tamaño de letra ni de los botones. */
-      padding: 0.65rem 1.25rem;
+      padding: 0.5rem 1.25rem;
       background: var(--glass-bg);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -754,7 +757,9 @@ interface NavGroup {
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      padding: 0.5rem 0.85rem;
+      /* El buscador medía 55px y era lo que fijaba el alto de toda la barra,
+         por encima de los botones (40px) y del chip de usuario (46px). */
+      padding: 0.3rem 0.85rem;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 999px;
@@ -896,7 +901,7 @@ interface NavGroup {
       display: inline-flex;
       align-items: center;
       gap: 0.6rem;
-      padding: 0.4rem 0.6rem 0.4rem 0.4rem;
+      padding: 0.3rem 0.6rem 0.3rem 0.3rem;
       background: var(--surface-2);
       border: 1px solid var(--border);
       border-radius: 999px;
