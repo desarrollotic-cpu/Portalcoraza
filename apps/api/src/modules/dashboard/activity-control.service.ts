@@ -63,6 +63,16 @@ const SKIP_ACTIONS = new Set([
   'logout',
 ]);
 
+/**
+ * Un solo formateador: crear `new Intl.DateTimeFormat` por evento (decenas de miles de veces
+ * por petición) reservaba cientos de MB nativos que V8 no ve (rss +300MB con heap en 77MB).
+ */
+const BOGOTA_DAY_FMT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Bogota',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
 /** Colombia sin DST: UTC−5 todo el año. */
 const BOGOTA_OFFSET = '-05:00';
 
@@ -723,12 +733,7 @@ export class ActivityControlService {
   }
 
   private bogotaDayKey(d: Date): string {
-    return new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'America/Bogota',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(d);
+    return BOGOTA_DAY_FMT.format(d);
   }
 
   private bogotaStartOfToday(): Date {
