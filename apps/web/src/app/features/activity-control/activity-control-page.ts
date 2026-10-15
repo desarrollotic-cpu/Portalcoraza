@@ -355,7 +355,8 @@ export interface ActivityControlPayload {
     .ac-seg__btn {
       border: 0;
       background: transparent;
-      color: var(--neutral-300);
+      /* Barra siempre oscura: el texto no sigue al tema. */
+      color: rgba(248, 250, 252, 0.75);
       padding: 0.45rem 0.85rem;
       border-radius: 999px;
       font: inherit;
@@ -366,7 +367,7 @@ export interface ActivityControlPayload {
     }
     .ac-seg__btn.is-on {
       background: rgba(248, 250, 252, 0.95);
-      color: var(--neutral-900);
+      color: var(--ink);
       font-weight: 600;
     }
     .ac-refresh {
