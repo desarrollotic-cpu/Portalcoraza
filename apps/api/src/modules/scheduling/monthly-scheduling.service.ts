@@ -58,6 +58,7 @@ import { AssociatesStatusResult, computeAssociatesStatus } from './associate-sta
 import { MotorTurnosService, TipoCiclo } from './motor-turnos.service';
 import { buildPlanillaWorkbook } from './planilla-excel';
 import { remainingMonthsOfYear } from './copy-month-pattern';
+import { ColombiaHoliday, getColombiaHolidays } from './utils/colombia-holidays';
 import { isKnownScheduleCode, splitShiftHours } from './shift-hours.split';
 import { backfillPersonalAssociates } from './personal-hydrate';
 
@@ -894,6 +895,19 @@ export class MonthlySchedulingService {
   }
 
   /** Reglas del tenant (tabla `scheduling_settings`, migración 075). Sin tabla o sin fila → por defecto. */
+  /**
+   * Festivos de Colombia del ano pedido.
+   *
+   * Unica fuente: `utils/colombia-holidays`. El cuadro los pide por aqui en vez
+   * de llevar su propia copia del listado -- habia dos archivos identicos, y si
+   * alguien corregia una fecha en uno solo la pantalla y la liquidacion dejaban
+   * de coincidir.
+   */
+  async getHolidays(year: number): Promise<ColombiaHoliday[]> {
+    const y = Number.isFinite(year) ? year : new Date().getFullYear();
+    return getColombiaHolidays(y);
+  }
+
   async getRules(): Promise<SchedulingRules> {
     const key = 'rules';
     const cached = this.readReportCache<SchedulingRules>(key);
@@ -2224,7 +2238,7 @@ export class MonthlySchedulingService {
     }
 
     const daysInMonth = new Date(year, month, 0).getDate();
-    const holidays = (await import('./utils/colombia-holidays')).getColombiaHolidays(year);
+    const holidays = getColombiaHolidays(year);
     const holidayIsoSet = new Set(holidays.map((h) => h.date));
 
     const byAssociate = new Map<

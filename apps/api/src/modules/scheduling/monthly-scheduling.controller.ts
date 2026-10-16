@@ -140,6 +140,12 @@ export class MonthlySchedulingController {
     return this.service.listByMonth(query);
   }
 
+  @Get('holidays')
+  @RequirePermissions('scheduling.view')
+  getHolidays(@Query('year') year?: string) {
+    return this.service.getHolidays(parseInt(year ?? '', 10));
+  }
+
   @Get('settings')
   @RequirePermissions('scheduling.view')
   getRules() {

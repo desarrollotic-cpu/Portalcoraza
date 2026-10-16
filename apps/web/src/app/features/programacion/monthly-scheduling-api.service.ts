@@ -3,6 +3,11 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
+export interface ColombiaHoliday {
+  date: string;
+  name: string;
+}
+
 export type Jornada =
   | 'normal'
   | 'descanso_remunerado'
@@ -429,6 +434,14 @@ export class MonthlySchedulingApiService {
     return this.http.post<MonthlySchedule>(
       `${this.baseUrl}/${scheduleId}/apply-template/${templateId}`,
       {},
+    );
+  }
+
+  /** Festivos de Colombia. Fuente unica: el API (antes el web tenia su copia). */
+  getHolidays(year: number): Observable<ColombiaHoliday[]> {
+    return this.http.get<ColombiaHoliday[]>(
+      `${this.baseUrl}/holidays`,
+      { params: new HttpParams().set('year', String(year)) },
     );
   }
 

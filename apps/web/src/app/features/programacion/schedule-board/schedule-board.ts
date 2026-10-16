@@ -9,6 +9,7 @@ import { Associate, AssociatesApiService } from '../../rrhh/associates-api.servi
 import { SchedulingApiService } from '../scheduling-api.service';
 import {
   BoardAlertsResponse,
+  ColombiaHoliday,
   Jornada,
   MonthlySchedule,
   MonthlySchedulingApiService,
@@ -20,7 +21,6 @@ import {
   ScheduleTemplate,
   Turno,
 } from '../monthly-scheduling-api.service';
-import { getColombiaHolidays, isColombiaHoliday } from '../utils/colombia-holidays';
 import { daysInCalendarMonth } from '../utils/calendar-month';
 import { guardMetrics, type GuardMetrics } from '../utils/schedule-metrics';
 
@@ -1295,6 +1295,8 @@ export class ScheduleBoard implements OnInit {
   }
   set month(value: string) {
     this.monthKey.set(value);
+    // Todo cambio de mes pasa por aqui; `ensureHolidays` no repite por anio.
+    this.ensureHolidays(Number(value.split('-')[0]));
   }
   tipoCiclo: '12x3' | '10x5' | '2x2' | '13x2' = '12x3';
   selectedTemplateId = '';
@@ -1438,10 +1440,29 @@ export class ScheduleBoard implements OnInit {
   private confirmAction: (() => void) | null = null;
   private pendingSavePayload: SavePayload | null = null;
 
-  readonly holidays = computed(() => {
+  /**
+   * Festivos del ano en pantalla. Los sirve el API (fuente unica); se piden una
+   * vez por ano y quedan en cache. Arranca vacio: el cuadro se repinta solo
+   * cuando llegan, porque es una signal.
+   */
+  private readonly holidaysByYear = signal<Record<number, ColombiaHoliday[]>>({});
+  private holidaysPedidos = new Set<number>();
+
+  readonly holidays = computed<ColombiaHoliday[]>(() => {
     const [year] = this.monthKey().split('-').map(Number);
-    return getColombiaHolidays(year || new Date().getFullYear());
+    const y = year || new Date().getFullYear();
+    return this.holidaysByYear()[y] ?? [];
   });
+
+  private ensureHolidays(year: number): void {
+    if (!year || this.holidaysPedidos.has(year)) return;
+    this.holidaysPedidos.add(year);
+    this.api.getHolidays(year).subscribe({
+      next: (list) =>
+        this.holidaysByYear.update((prev) => ({ ...prev, [year]: list })),
+      error: () => this.holidaysPedidos.delete(year),
+    });
+  }
 
   readonly days = computed(() => {
     const [year, mon] = this.monthKey().split('-').map(Number);
@@ -1589,7 +1610,8 @@ export class ScheduleBoard implements OnInit {
 
   holidayName(day: number): string | null {
     const [year, mon] = this.month.split('-').map(Number);
-    return isColombiaHoliday(year, mon, day, this.holidays())?.name ?? null;
+    const iso = `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return this.holidays().find((h) => h.date === iso)?.name ?? null;
   }
 
   private readonly scheduleCache = new Map<string, MonthlySchedule | null>();
@@ -1598,6 +1620,8 @@ export class ScheduleBoard implements OnInit {
     this.editing.set(null);
     this.motorOk.set(null);
     this.selectedTemplateId = '';
+    const [yActual] = this.month.split('-').map(Number);
+    this.ensureHolidays(yActual);
     this.loadSchedule();
   }
 
@@ -2188,8 +2212,7 @@ export class ScheduleBoard implements OnInit {
       return;
     }
 
-    const holidays = getColombiaHolidays(year);
-    const holidayDates = new Set(holidays.map(h => h.date));
+    const holidayDates = new Set(this.holidays().map((h) => h.date));
 
     // Días que se resaltan en rojo (sábado, domingo, festivo) — reglamentación de recargos
     const redDays = new Set<number>();
