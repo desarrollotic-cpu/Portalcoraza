@@ -281,3 +281,10 @@ export class CreateScheduleTemplateDto {
   @IsUUID()
   fromScheduleId?: string;
 }
+
+export class ApplyRestOfYearDto {
+  /** Ciclo con el que se encadenan los meses siguientes (default 12x3). */
+  @IsOptional()
+  @IsIn(['12x3', '10x5', '2x2', '13x2'])
+  tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2';
+}

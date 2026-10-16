@@ -231,7 +231,7 @@ const CODES: CodeConfig[] = [
         </div>
         @if (canEdit()) {
         <p class="tpl-hint">
-          Flujo: motor → ajusta celdas a mano → Guardar. Luego «Aplicar a los siguientes meses» copia este puesto al resto del año.
+          Flujo: motor → ajusta celdas a mano → Guardar. «Aplicar a los siguientes meses» genera el resto del año con el motor, encadenando el ciclo (no copia los ajustes manuales).
         </p>
         }
         @if (boardSummary().total) {
@@ -1928,11 +1928,11 @@ export class ScheduleBoard implements OnInit {
     const postName = this.posts().find((p) => p.id === this.postId)?.name ?? 'este puesto';
     this.confirmTitle.set('Aplicar a los siguientes meses');
     this.confirmMessage.set(
-      `Se copiará el cuadro de «${postName}» (${this.monthLabel()}) a ${from}–${to} de ${year}. Solo este puesto. Lo que ya esté programado en esos meses se sobrescribe.`,
+      `Se generará «${postName}» de ${from} a ${to} de ${year} con el motor ${this.tipoCiclo}, encadenando el ciclo desde ${this.monthLabel()}. Solo este puesto. Lo que ya esté programado en esos meses se sobrescribe, y los ajustes manuales de este mes no se copian.`,
     );
     this.confirmDetail.set(
       this.dirty()
-        ? 'Hay cambios sin guardar: primero se guarda este mes y después se copia al resto del año.'
+        ? 'Hay cambios sin guardar: primero se guarda este mes y después se generan los siguientes.'
         : `Meses: ${names.slice(mon).join(', ')}.`,
     );
     this.confirmLabel.set('Sí, aplicar y sobrescribir');
@@ -1946,7 +1946,7 @@ export class ScheduleBoard implements OnInit {
     const run = (id: string) => {
       this.saving.set(true);
       this.error.set(null);
-      this.api.applyRestOfYear(id).subscribe({
+      this.api.applyRestOfYear(id, this.tipoCiclo).subscribe({
         next: (res) => {
           this.saving.set(false);
           this.confirmOpen.set(false);
@@ -1956,7 +1956,7 @@ export class ScheduleBoard implements OnInit {
           ];
           const listed = res.applied.map((a) => names[a.month - 1]).join(', ');
           this.motorOk.set(
-            `Cuadro copiado a ${res.applied.length} mes(es) de este puesto: ${listed}.`,
+            `Motor aplicado a ${res.applied.length} mes(es) de este puesto, con el ciclo encadenado: ${listed}.`,
           );
           if (res.skipped?.length) {
             this.error.set(
@@ -1986,7 +1986,7 @@ export class ScheduleBoard implements OnInit {
           this.saving.set(false);
           const msg = (err.error as { message?: string })?.message;
           this.error.set(
-            typeof msg === 'string' ? msg : 'Guarda el cuadro antes de copiarlo al resto del año',
+            typeof msg === 'string' ? msg : 'Guarda el cuadro antes de extenderlo al resto del año',
           );
         },
       });

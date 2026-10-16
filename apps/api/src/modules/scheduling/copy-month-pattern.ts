@@ -4,11 +4,5 @@ export function remainingMonthsOfYear(fromMonth: number): number[] {
   return Array.from({ length: 12 - fromMonth }, (_, i) => fromMonth + 1 + i);
 }
 
-/**
- * ponytail: si el mes destino tiene más días, se recicla el patrón del mes origen.
- * Upgrade: continuidad de ciclo motor mes a mes.
- */
-export function mapCopiedDay(destDay: number, sourceDays: number): number {
-  if (sourceDays < 1) return destDay;
-  return ((destDay - 1) % sourceDays) + 1;
-}
+// `mapCopiedDay` se retiró al pasar «Aplicar a los siguientes meses» de copiar el
+// patrón del mes a encadenar el motor: reciclar los días reiniciaba el ciclo.

@@ -432,20 +432,25 @@ export class MonthlySchedulingApiService {
     );
   }
 
-  applyRestOfYear(scheduleId: string): Observable<{
+  applyRestOfYear(
+    scheduleId: string,
+    tipoCiclo?: '12x3' | '10x5' | '2x2' | '13x2',
+  ): Observable<{
     year: number;
     fromMonth: number;
     postId: string;
-    applied: Array<{ month: number; scheduleId: string }>;
+    tipoCiclo?: string;
+    applied: Array<{ month: number; scheduleId: string; assignments?: number }>;
     skipped?: Array<{ month: number; motivo: string }>;
   }> {
     return this.http.post<{
       year: number;
       fromMonth: number;
       postId: string;
-      applied: Array<{ month: number; scheduleId: string }>;
+      tipoCiclo?: string;
+      applied: Array<{ month: number; scheduleId: string; assignments?: number }>;
       skipped?: Array<{ month: number; motivo: string }>;
-    }>(`${this.baseUrl}/${scheduleId}/apply-rest-of-year`, {});
+    }>(`${this.baseUrl}/${scheduleId}/apply-rest-of-year`, { tipoCiclo });
   }
 
 }

@@ -18,6 +18,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import {
+  ApplyRestOfYearDto,
   BoardAlertsQueryDto,
   CreateMonthlyScheduleDto,
   CreateScheduleTemplateDto,
@@ -252,7 +253,11 @@ export class MonthlySchedulingController {
 
   @Post(':id/apply-rest-of-year')
   @RequirePermissions('scheduling.edit')
-  applyRestOfYear(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
-    return this.service.applyRestOfYear(id, user.sub);
+  applyRestOfYear(
+    @Param('id') id: string,
+    @Body() dto: ApplyRestOfYearDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.service.applyRestOfYear(id, user.sub, dto.tipoCiclo ?? '12x3');
   }
 }

@@ -55,9 +55,10 @@ import {
   SchedulingRules,
 } from './monthly-alerts.compute';
 import { AssociatesStatusResult, computeAssociatesStatus } from './associate-status.compute';
-import { MotorTurnosService } from './motor-turnos.service';
+import { MotorTurnosService, TipoCiclo } from './motor-turnos.service';
 import { buildPlanillaWorkbook } from './planilla-excel';
-import { mapCopiedDay, remainingMonthsOfYear } from './copy-month-pattern';
+import { remainingMonthsOfYear } from './copy-month-pattern';
+import { isKnownScheduleCode, splitShiftHours } from './shift-hours.split';
 import { backfillPersonalAssociates } from './personal-hydrate';
 
 const DEFAULT_ROLES: PersonalRole[] = [
@@ -850,6 +851,40 @@ export class MonthlySchedulingService {
     return { blocking, warnings, pastChanges };
   }
 
+  /**
+   * El día cabe en el mes y el código existe.
+   *
+   * La columna `day` solo tiene `CHECK (day BETWEEN 1 AND 31)`, así que sin esto
+   * se podía grabar un 31 de febrero; y `codigo` no tiene `CHECK` ninguno.
+   */
+  private assertAssignmentsFitMonth(
+    schedule: Pick<MonthlySchedule, 'year' | 'month'>,
+    assignments: ReadonlyArray<{ day: number; role: string; codigo?: string | null }>,
+  ): void {
+    const daysInMonth = new Date(schedule.year, schedule.month, 0).getDate();
+
+    const fueraDeMes = assignments.filter((a) => a.day < 1 || a.day > daysInMonth);
+    if (fueraDeMes.length) {
+      const dias = [...new Set(fueraDeMes.map((a) => a.day))].sort((x, y) => x - y);
+      throw new BadRequestException(
+        `${schedule.month}/${schedule.year} tiene ${daysInMonth} días: no existe el día ${dias.join(', ')}.`,
+      );
+    }
+
+    const desconocidos = [
+      ...new Set(
+        assignments
+          .filter((a) => !isKnownScheduleCode(a.codigo))
+          .map((a) => a.codigo as string),
+      ),
+    ];
+    if (desconocidos.length) {
+      throw new BadRequestException(
+        `Código de turno desconocido: ${desconocidos.join(', ')}.`,
+      );
+    }
+  }
+
   /** true si la tabla existe (migración aplicada). No lanza: un error abortaría la transacción de la request. */
   private async tableExists(name: string): Promise<boolean> {
     const rows: Array<{ t: string | null }> = await this.runInTenantTx((m) =>
@@ -1084,6 +1119,7 @@ export class MonthlySchedulingService {
 
   async save(id: string, dto: SaveMonthlyScheduleDto, userId: string) {
     const schedule = await this.getById(id);
+    this.assertAssignmentsFitMonth(schedule, dto.assignments);
 
     const { blocking, warnings, pastChanges } = await this.collectSaveWarnings(schedule, dto);
     if (blocking.length) {
@@ -1111,6 +1147,14 @@ export class MonthlySchedulingService {
 
       await manager.delete(ScheduleAssignment, { scheduleId: id });
 
+      // Cambiar el código de una celda a mano no mueve el ciclo del rol: se
+      // conserva la fase que ya tenía para no perder la continuidad mes a mes.
+      const cycleByCell = new Map(
+        (schedule.assignments ?? []).map(
+          (a) => [`${a.role}:${a.day}`, a.cyclePosition ?? null] as const,
+        ),
+      );
+
       const rows = dto.assignments.map((a) =>
         manager.create(ScheduleAssignment, {
           tenantId: schedule.tenantId,
@@ -1123,6 +1167,7 @@ export class MonthlySchedulingService {
           codigo: a.codigo ?? null,
           inicio: a.inicio ?? null,
           fin: a.fin ?? null,
+          cyclePosition: cycleByCell.get(`${a.role}:${a.day}`) ?? null,
         }),
       );
 
@@ -1265,6 +1310,8 @@ export class MonthlySchedulingService {
           codigo: a.codigo,
           inicio: a.inicio,
           fin: a.fin,
+          // Fase real del ciclo: de aquí sale la continuidad con el mes siguiente.
+          cyclePosition: a.cyclePosition ?? null,
         }),
       );
       if (rows.length) {
@@ -1691,82 +1738,81 @@ export class MonthlySchedulingService {
    * Copia personal + celdas de este puesto/mes a los meses siguientes del mismo año.
    * Sobrescribe cuadros existentes de ese puesto. No toca otros puestos.
    */
-  async applyRestOfYear(scheduleId: string, userId: string) {
+  /**
+   * Extiende el puesto a los meses que quedan del año **encadenando el motor**:
+   * cada mes arranca en la fase donde terminó el anterior.
+   *
+   * Antes copiaba el patrón del mes origen con `mapCopiedDay`, así que el ciclo
+   * se reiniciaba en cada mes y las novedades (vacaciones, incapacidades) se
+   * arrastraban hasta diciembre. Los ajustes manuales del mes origen ya no se
+   * propagan: el motor genera solo D/N/DR/NR y las novedades se registran en el
+   * mes al que corresponden.
+   */
+  async applyRestOfYear(
+    scheduleId: string,
+    userId: string,
+    tipoCiclo: TipoCiclo = '12x3',
+  ) {
     const source = await this.getById(scheduleId);
     const months = remainingMonthsOfYear(source.month);
     if (!months.length) {
       throw new BadRequestException('No hay meses siguientes en este año');
     }
-    const sourceDays = new Date(source.year, source.month, 0).getDate();
-    const cells = (source.assignments ?? []).filter(
-      (a) => a.jornada !== 'sin_asignar' || a.associateId,
-    );
-    if (!cells.length) {
+
+    const personal = (source.personal ?? []).map((p) => ({ ...p }));
+    if (!personal.length) {
       throw new BadRequestException(
-        'Este mes no tiene celdas para copiar. Aplica el motor o guarda el cuadro primero.',
+        'Este puesto no tiene personal asignado. Define los titulares antes de extenderlo al resto del año.',
+      );
+    }
+    if (!(source.assignments ?? []).length) {
+      throw new BadRequestException(
+        'Este mes no tiene turnos. Aplica el motor y guarda el cuadro antes de extenderlo.',
       );
     }
 
-    const personal = (source.personal ?? []).map((p) => ({ ...p }));
-    const byRoleDay = new Map<string, ScheduleAssignment>();
-    for (const a of cells) {
-      byRoleDay.set(`${a.role}:${a.day}`, a);
-    }
-
-    const applied: Array<{ month: number; scheduleId: string }> = [];
+    const applied: Array<{ month: number; scheduleId: string; assignments: number }> = [];
     const skipped: Array<{ month: number; motivo: string }> = [];
 
+    // En orden: cada mes lee la fase final del anterior vía resolveStartPositions.
     for (const month of months) {
-      const destDays = new Date(source.year, month, 0).getDate();
       const dest = await this.createOrGet(
         { postId: source.postId, year: source.year, month },
         userId,
       );
-      const assignments = [];
-      for (let day = 1; day <= destDays; day++) {
-        const srcDay = mapCopiedDay(day, sourceDays);
-        const roles = personal.length
-          ? personal.map((p) => p.rol)
-          : [...new Set(cells.map((c) => c.role))];
-        for (const role of roles) {
-          const src = byRoleDay.get(`${role}:${srcDay}`);
-          if (!src) continue;
-          assignments.push({
-            day,
-            role,
-            associateId: src.associateId,
-            turno: src.turno,
-            jornada: src.jornada,
-            codigo: src.codigo,
-            inicio: src.inicio,
-            fin: src.fin,
-          });
-        }
-      }
-
       try {
-        await this.save(
+        const out = await this.generateWithMotor(
           dest.id,
-          { personal, assignments, confirmWarnings: true, observaciones: source.observaciones ?? null },
+          { tipoCiclo, personal },
           userId,
         );
-      } catch (err) {
-        // Cruces/sin descanso con otros puestos en ese mes: no se copia ese mes y se informa.
-        const body = err instanceof ConflictException ? (err.getResponse() as { code?: string; warnings?: ScheduleAlertItem[] }) : null;
-        if (body?.code !== 'SCHEDULING_BLOCKED') throw err;
-        skipped.push({
+        applied.push({
           month,
-          motivo: (body.warnings ?? []).slice(0, 3).map((w) => w.message).join(' · '),
+          scheduleId: dest.id,
+          assignments: out.assignments?.length ?? 0,
         });
+      } catch (err) {
+        // Un mes que no se puede generar no detiene los demás, pero sí corta la
+        // cadena: se informa para que el programador lo revise.
+        const body =
+          err instanceof ConflictException
+            ? (err.getResponse() as { code?: string; warnings?: ScheduleAlertItem[] })
+            : null;
+        const motivo = body?.warnings?.length
+          ? body.warnings.slice(0, 3).map((w) => w.message).join(' · ')
+          : err instanceof Error
+            ? err.message
+            : 'Error al generar el mes';
+        skipped.push({ month, motivo });
         continue;
       }
+
       if (dest.status !== ScheduleStatus.BORRADOR) {
         await this.schedulesRepo.update(dest.id, {
           status: ScheduleStatus.BORRADOR,
           updatedBy: userId,
         });
       }
-      applied.push({ month, scheduleId: dest.id });
     }
 
     await this.auditService.log({
@@ -1779,6 +1825,7 @@ export class MonthlySchedulingService {
         postId: source.postId,
         year: source.year,
         fromMonth: source.month,
+        tipoCiclo,
         months: applied.map((a) => a.month),
         skipped,
       },
@@ -1789,6 +1836,7 @@ export class MonthlySchedulingService {
       year: source.year,
       fromMonth: source.month,
       postId: source.postId,
+      tipoCiclo,
       applied,
       skipped,
     };
@@ -1824,6 +1872,16 @@ export class MonthlySchedulingService {
         (a) => a.role === role.rol && a.day === daysInPrev,
       );
       if (!last) continue;
+
+      // Fase guardada por el motor (migración 088): dato exacto.
+      if (typeof last.cyclePosition === 'number' && last.cyclePosition >= 0) {
+        starts[role.rol] = this.motor.normalizePosition(last.cyclePosition + 1, tipoCiclo);
+        continue;
+      }
+
+      // Respaldo para celdas sin fase (meses grabados antes de la migración): se
+      // infiere por código. Es ambiguo — 12x3 tiene 6 posiciones `D` y 6 `N` —
+      // así que solo se usa cuando no hay dato real.
       const inferred = this.inferPosition(last.codigo, last.jornada, last.turno, tipoCiclo);
       if (inferred !== null) {
         starts[role.rol] = this.motor.normalizePosition(inferred + 1, tipoCiclo);
@@ -1896,10 +1954,22 @@ export class MonthlySchedulingService {
     let month: number;
     let day: number;
     if (dateIso) {
-      const targetDate = new Date(dateIso);
-      year = targetDate.getFullYear();
-      month = targetDate.getMonth() + 1;
-      day = targetDate.getDate();
+      // `new Date('2026-10-05')` es medianoche UTC: en Bogotá (UTC-5) getDate()
+      // devolvía el día anterior. Se lee la fecha del texto, sin zona horaria.
+      const ymd = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateIso.trim());
+      if (ymd) {
+        year = Number(ymd[1]);
+        month = Number(ymd[2]);
+        day = Number(ymd[3]);
+      } else {
+        const targetDate = new Date(dateIso);
+        if (Number.isNaN(targetDate.getTime())) {
+          throw new BadRequestException('Fecha inválida. Formato esperado: YYYY-MM-DD.');
+        }
+        year = targetDate.getFullYear();
+        month = targetDate.getMonth() + 1;
+        day = targetDate.getDate();
+      }
     } else {
       const bogota = this.bogotaYmd();
       year = bogota.year;
@@ -2233,40 +2303,18 @@ export class MonthlySchedulingService {
 
         const code = assign.codigo;
 
-        if (code === 'D') {
-          countD++;
-          if (isFestivo) {
-            dom += 12;
-          } else {
-            ord += 8;
-            extD += 4;
-          }
-        } else if (code === 'N') {
-          countN++;
-          if (isFestivo) {
-            dom += 12;
-            recN += 5;
-          } else {
-            ord += 3;
-            recN += 5;
-            extN += 4;
-          }
-        } else if (code === 'D8') {
-          countD++;
-          if (isFestivo) {
-            dom += 8;
-          } else {
-            ord += 8;
-          }
-        } else if (code === 'N8') {
-          countN++;
-          if (isFestivo) {
-            dom += 8;
-            recN += 8;
-          } else {
-            ord += 8;
-            recN += 8;
-          }
+        // Reparto derivado de SHIFT_HOURS: misma fuente que usan las alertas y
+        // el estado de vigilantes, así que los tres reportes cuentan lo mismo.
+        const split = splitShiftHours(code, isFestivo);
+
+        if (split) {
+          if (this.motor.isNightCode(code)) countN++;
+          else countD++;
+          ord += split.ord;
+          extD += split.extD;
+          recN += split.recN;
+          extN += split.extN;
+          dom += split.dom;
         } else if (code === 'DR' || code === 'NR') {
           countDR++;
         } else {
