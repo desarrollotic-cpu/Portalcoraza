@@ -816,6 +816,8 @@ export class AssociateForm implements OnInit {
     this.submitError.set(null);
     const payload: Record<string, unknown> = { ...raw, credentials };
     for (const key of DATE_ONLY_KEYS) delete payload[key];
+    // Fecha vacía = null: el API valida ISO 8601 y '' no lo es (IsOptional solo omite null/undefined).
+    for (const key of DATE_INPUT_KEYS) if (payload[key] === '') payload[key] = null;
     const id = this.associateId();
     const req = id
       ? this.api.updateAssociate(id, payload as Partial<Associate>)
