@@ -288,7 +288,7 @@ function cleanEmail(v: unknown): string | null {
                 <select formControlName="workCenterId">
                   <option [ngValue]="null">Sin asignar</option>
                   @for (wc of workCenters(); track wc.id) {
-                    <option [ngValue]="wc.id">{{ wc.code }} — {{ wc.clientName }}</option>
+                    <option [ngValue]="wc.id">{{ wc.code }}</option>
                   }
                 </select>
               </div>

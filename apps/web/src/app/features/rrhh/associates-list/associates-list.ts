@@ -120,7 +120,7 @@ function monthBounds(ym: string): { from: string; to: string } {
         <select [ngModel]="query.workCenterId" (ngModelChange)="query.workCenterId = $event; page.set(1); applyFilters()">
           <option [ngValue]="undefined">Todos los centros</option>
           @for (wc of workCenters(); track wc.id) {
-            <option [ngValue]="wc.id">{{ wc.code }} — {{ wc.clientName }}</option>
+            <option [ngValue]="wc.id">{{ wc.code }}</option>
           }
         </select>
         <select [ngModel]="query.educationLevelId" (ngModelChange)="query.educationLevelId = $event; page.set(1); applyFilters()">
@@ -186,7 +186,7 @@ function monthBounds(ym: string): { from: string; to: string } {
                 <th>Nombre</th>
                 <th>Cargo</th>
                 <th>Nivel educativo</th>
-                <th>Centro</th>
+                <th>Centro de trabajo</th>
                 <th>Estado</th>
                 <th>Archivo</th>
                 <th>Fecha de baja</th>

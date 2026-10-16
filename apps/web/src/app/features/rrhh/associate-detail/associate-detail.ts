@@ -250,7 +250,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                 <h3>Contrato</h3>
                 <dl class="hr-dl">
                   <div><dt>Cargo actual</dt><dd>{{ a.jobPosition?.name ?? '—' }}</dd></div>
-                  <div><dt>Centro</dt><dd>{{ a.workCenter?.clientName ?? '—' }}</dd></div>
+                  <div><dt>Centro de trabajo</dt><dd>{{ a.workCenter?.code ?? '—' }}</dd></div>
                   <div><dt>Ingreso</dt><dd>{{ a.hireDate }}</dd></div>
                   <div><dt>Fecha de baja</dt><dd>{{ a.retirementDate ?? '—' }}</dd></div>
                   <div><dt>Salario ordinario</dt><dd>\${{ a.ordinaryCompensation | number:'1.0-0' }}</dd></div>
@@ -292,7 +292,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
                       <div class="hr-timeline-body">
                         <strong>{{ h.jobPosition.name }}</strong>
                         @if (h.workCenter) {
-                          <span> · {{ h.workCenter.code }} — {{ h.workCenter.clientName }}</span>
+                          <span> · {{ h.workCenter.code }}</span>
                         }
                         @if (h.changeReason) {
                           <div class="hr-timeline-reason">{{ h.changeReason }}</div>

@@ -47,7 +47,7 @@ import { InventoryApiService, WithoutDotacionRow } from '../inventory-api.servic
                   <th>Nombre</th>
                   <th>Estado</th>
                   <th>Cargo</th>
-                  <th>Centro</th>
+                  <th>Centro de trabajo</th>
                   <th>Última entrega</th>
                   <th>Meses</th>
                 </tr>

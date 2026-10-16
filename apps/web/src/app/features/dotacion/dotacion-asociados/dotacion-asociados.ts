@@ -48,7 +48,7 @@ import {
                 <tr>
                   <th>Nombre</th>
                   <th>Cédula</th>
-                  <th>Centro / zona</th>
+                  <th>Centro de trabajo</th>
                   <th>Cargo</th>
                   <th>Ingreso</th>
                   <th>Acciones</th>
@@ -221,8 +221,6 @@ export class DotacionAsociados implements OnInit {
   }
 
   workCenterLabel(row: DotacionAssociate): string {
-    if (row.workCenterZone) return row.workCenterZone;
-    if (row.workCenterClient) return row.workCenterClient;
     return row.workCenterCode ?? '—';
   }
 
