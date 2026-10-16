@@ -78,6 +78,8 @@ import type { Associate, JobPosition, WorkCenter } from '../../services/hr.types
             @if (submitError()) { <div class="hr-error">{{ submitError() }}</div> }
           </form>
         }
+      } @else {
+        <div class="hr-error">No se pudo cargar el formulario de reingreso. Revisa tus permisos o intenta de nuevo.</div>
       }
     </div>
   `,
@@ -117,6 +119,12 @@ export class ReadmitForm implements OnInit {
     }).subscribe({
       next: ({ associate, positions, workCenters }) => {
         this.associate.set(associate);
+        // Parte de los datos actuales: si no se tocan, el reingreso no borra cargo, centro ni carpeta.
+        this.form.patchValue({
+          jobPositionId: associate.jobPositionId ?? '',
+          workCenterId: associate.workCenterId ?? null,
+          folderNumber: associate.folderNumber ?? null,
+        });
         this.positions.set(positions);
         this.workCenters.set(workCenters);
         this.loading.set(false);
