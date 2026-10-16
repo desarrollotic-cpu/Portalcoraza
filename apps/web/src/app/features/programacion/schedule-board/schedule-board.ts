@@ -381,7 +381,8 @@ const CODES: CodeConfig[] = [
               </div>
             }
           </div>
-          <button type="button" class="sm" (click)="addRole()">+ Agregar rol</button>
+          <button type="button" class="sm" (click)="addRole()">+ Titular</button>
+          <button type="button" class="sm" (click)="addRelevante()">+ Relevante</button>
           <button type="button" class="sm" (click)="addRonda()">+ Ronda</button>
           <label class="obs-label">
             Observaciones del puesto
@@ -2387,7 +2388,26 @@ export class ScheduleBoard implements OnInit {
     const rol = `turno_${Date.now()}`;
     this.personal.update((list) => [
       ...list,
-      { rol, associateId: null, turnoId: 'AM', displayName: `Rol ${list.length + 1}` },
+      { rol, associateId: null, turnoId: 'AM', displayName: `Titular ${list.length + 1}` },
+    ]);
+    this.dirty.set(true);
+  }
+
+  /**
+   * El relevante no lleva ciclo propio: solo tapa los huecos D/N que dejan los
+   * titulares ese dia. El tipo lo fija la clave `relevante_N`, no el rotulo.
+   */
+  addRelevante(): void {
+    const n = this.personal().filter((r) => /^relevante(_\d+)?$/i.test(r.rol)).length;
+    const rol = n === 0 ? 'relevante' : `relevante_${n + 1}`;
+    this.personal.update((list) => [
+      ...list,
+      {
+        rol,
+        associateId: null,
+        turnoId: 'AM',
+        displayName: n === 0 ? 'Relevante' : `Relevante ${n + 1}`,
+      },
     ]);
     this.dirty.set(true);
   }

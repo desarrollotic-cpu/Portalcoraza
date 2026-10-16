@@ -115,3 +115,61 @@ describe('MotorTurnosService — desfases por defecto sin colisión', () => {
     }
   });
 });
+
+describe('MotorTurnosService — el tipo de rol lo fija la clave, no el rótulo', () => {
+  const motor = new MotorTurnosService();
+
+  it('clasifica por la clave que crea cada botón', () => {
+    expect(motor.isRondaRole('ronda')).toBe(true);
+    expect(motor.isRondaRole('ronda_2')).toBe(true);
+    expect(motor.isRelevanteRole('relevante')).toBe(true);
+    expect(motor.isRelevanteRole('relevante_2')).toBe(true);
+
+    // «+ Titular» y los roles por defecto son titulares.
+    for (const rol of ['titular_a', 'titular_b', 'turno_1762300000000']) {
+      expect(motor.isRondaRole(rol)).toBe(false);
+      expect(motor.isRelevanteRole(rol)).toBe(false);
+    }
+  });
+
+  it('renombrar un rol ya no cambia su tipo', () => {
+    // Antes «Apoyo portería» o «Relevante de ronda» en el rótulo convertían el
+    // rol en relevante o en ronda. El rótulo ya no se mira.
+    const titular: PersonalRole = {
+      rol: 'titular_a',
+      associateId: null,
+      turnoId: 'AM',
+      displayName: 'Apoyo portería',
+    };
+    expect(motor.isRelevanteRole(titular.rol)).toBe(false);
+    expect(motor.isRondaRole(titular.rol)).toBe(false);
+
+    // Y sigue recibiendo ciclo propio: trabaja, no queda todo el mes en NR.
+    const mes = motor.generate([titular], 15, { titular_a: 0 }, '12x3');
+    expect(mes.filter((a) => a.codigo === 'D' || a.codigo === 'N').length).toBe(12);
+  });
+
+  it('un segundo relevante solo tapa huecos, sin ciclo propio', () => {
+    const personal: PersonalRole[] = [
+      { rol: 'titular_a', associateId: null, turnoId: 'AM', displayName: 'Titular A' },
+      { rol: 'titular_b', associateId: null, turnoId: 'PM', displayName: 'Titular B' },
+      { rol: 'relevante', associateId: null, turnoId: 'AM', displayName: 'Relevante' },
+      { rol: 'relevante_2', associateId: null, turnoId: 'AM', displayName: 'Relevante 2' },
+    ];
+    const mes = motor.generate(personal, 15, { titular_a: 0, titular_b: 6 }, '12x3');
+
+    for (const rol of ['relevante', 'relevante_2']) {
+      const celdas = mes.filter((a) => a.role === rol);
+      expect(celdas).toHaveLength(15);
+      // Sin ciclo propio: la fase es -1 en todas.
+      expect(celdas.every((c) => c.cyclePosition === -1)).toBe(true);
+    }
+
+    // Cobertura completa los 15 días.
+    for (let day = 1; day <= 15; day++) {
+      const celdas = mes.filter((a) => a.day === day);
+      expect(celdas.some((c) => motor.isDayCode(c.codigo))).toBe(true);
+      expect(celdas.some((c) => motor.isNightCode(c.codigo))).toBe(true);
+    }
+  });
+});

@@ -195,8 +195,8 @@ export class MotorTurnosService {
     tipoCiclo: TipoCiclo = '12x3',
     tipoCicloByRole?: Record<string, TipoCiclo>,
   ): GeneratedAssignment[] {
-    const isRelev = (p: PersonalRole) => this.isRelevanteRole(p.rol, p.displayName);
-    const isRonda = (p: PersonalRole) => this.isRondaRole(p.rol, p.displayName);
+    const isRelev = (p: PersonalRole) => this.isRelevanteRole(p.rol);
+    const isRonda = (p: PersonalRole) => this.isRondaRole(p.rol);
     const titulares = personal.filter((p) => !isRelev(p) && !isRonda(p));
     const rondas = personal.filter(isRonda);
     const relevantes = personal.filter(isRelev);
@@ -246,21 +246,25 @@ export class MotorTurnosService {
     return result;
   }
 
-  /** `ronda`, `ronda_2` — ciclo propio, no cubre portería ni alimenta al relevante. */
-  isRondaRole(rol: string, displayName?: string): boolean {
-    const text = `${rol} ${displayName ?? ''}`.toLowerCase().trim();
-    return /^ronda(_\d+)?$/i.test(rol.trim()) || /\bronda\b/.test(text);
+  /**
+   * El tipo de rol se decide por la **clave** del rol, que fija el boton con
+   * el que se creo: `titular_*` / `turno_*`, `ronda*` o `relevante*`.
+   *
+   * Antes tambien se miraba el rotulo (`displayName`), que es texto libre que
+   * escribe el programador. Eso tenia dos efectos indeseados: renombrar un
+   * titular como <<Apoyo porteria>> lo convertia en relevante sin avisar, y la
+   * unica forma de crear un relevante nuevo era acertar con la palabra. Ahora
+   * el rotulo es solo un nombre y no cambia el comportamiento.
+   */
+
+  /** `ronda`, `ronda_2` - ciclo propio, no cubre porteria ni alimenta al relevante. */
+  isRondaRole(rol: string): boolean {
+    return /^ronda(_\d+)?$/i.test(rol.trim());
   }
 
-  /** `relevante`, `relevante_1`, `Relevo`, etc. */
-  isRelevanteRole(rol: string, displayName?: string): boolean {
-    const text = `${rol} ${displayName ?? ''}`.toLowerCase().trim();
-    return (
-      text.includes('relev') ||
-      text.includes('apoyo') ||
-      text.includes('reemplazo') ||
-      /^relevante(_\d+)?$/i.test(rol.trim())
-    );
+  /** `relevante`, `relevante_2` - sin ciclo propio; solo tapa huecos D/N. */
+  isRelevanteRole(rol: string): boolean {
+    return /^relevante(_\d+)?$/i.test(rol.trim());
   }
 
   /** Códigos que cubren franja diurna (12h o 8h). */

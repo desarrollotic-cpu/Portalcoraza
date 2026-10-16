@@ -65,8 +65,8 @@ describe('MotorTurnosService relevante gap-fill', () => {
       titular_b: 6,
       ronda: 0,
     });
-    expect(motor.isRondaRole('ronda', 'Ronda')).toBe(true);
-    expect(motor.isRelevanteRole('ronda', 'Ronda')).toBe(false);
+    expect(motor.isRondaRole('ronda')).toBe(true);
+    expect(motor.isRelevanteRole('ronda')).toBe(false);
 
     const rondaCodes = rows
       .filter((r) => r.role === 'ronda')
