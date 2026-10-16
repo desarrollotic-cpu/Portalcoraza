@@ -6,6 +6,7 @@ import { HrSharedModule } from '../hr-shared/hr-shared.module';
 import { HrDocumentsModule } from '../hr-documents/hr-documents.module';
 import { HrExcelModule } from '../hr-excel/hr-excel.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
 import { AssociatesController } from './associates.controller';
 import { AssociatesService } from './associates.service';
 import { AssociateHistory } from './entities/associate-history.entity';
@@ -20,6 +21,7 @@ import { User } from '../users/entities/user.entity';
     HrDocumentsModule,
     HrExcelModule,
     NotificationsModule,
+    SchedulingModule,
     AuditModule,
   ],
   controllers: [AssociatesController],

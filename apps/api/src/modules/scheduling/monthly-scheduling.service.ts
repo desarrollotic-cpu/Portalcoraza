@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
 import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
@@ -80,6 +80,7 @@ const REPORT_CACHE_TTL_MS = 45_000;
 
 @Injectable()
 export class MonthlySchedulingService {
+  private readonly logger = new Logger(MonthlySchedulingService.name);
   // ponytail: cache en proceso, techo 45s; upgrade: Redis por tenant si hay >1 instancia
   private readonly reportCache = new Map<string, { at: number; data: unknown }>();
 
@@ -458,6 +459,52 @@ export class MonthlySchedulingService {
     const num = (type: Intl.DateTimeFormatPartTypes) =>
       Number(parts.find((p) => p.type === type)?.value ?? '0');
     return { year: num('year'), month: num('month'), day: num('day') };
+  }
+
+  /**
+   * Avisa al programador de cada cuadro donde el asociado sigue con turnos futuros
+   * pero ya no puede cumplirlos (baja, incapacidad...). Nunca rompe el flujo que lo llama.
+   * `desde`/`hasta` (YYYY-MM-DD) limitan el rango cuando la novedad es temporal.
+   */
+  async notifyAssociateUnavailable(associateId: string, motivo: string, desde?: string, hasta?: string): Promise<void> {
+    try {
+      const t = this.bogotaYmd();
+      const hoyBogota = `${t.year}-${String(t.month).padStart(2, '0')}-${String(t.day).padStart(2, '0')}`;
+      const hoy = desde && desde > hoyBogota ? desde : hoyBogota;
+      const rows: Array<{ postId: string; year: number; month: number; programador: string | null; days: number[] }> =
+        await this.runInTenantTx((m) =>
+          m.query(
+            `SELECT s.post_id AS "postId", s.year, s.month,
+                    COALESCE(s.updated_by, s.created_by) AS programador,
+                    array_agg(DISTINCT a.day ORDER BY a.day) AS days
+               FROM schedule_assignments a
+               JOIN monthly_schedules s ON s.id = a.schedule_id
+              WHERE a.associate_id = $1 AND a.turno IS NOT NULL AND s.status::text <> 'anulado'
+                AND make_date(s.year, s.month, a.day) >= $2::date
+                AND ($3::date IS NULL OR make_date(s.year, s.month, a.day) <= $3::date)
+              GROUP BY s.post_id, s.year, s.month, COALESCE(s.updated_by, s.created_by)`,
+            [associateId, hoy, hasta ?? null],
+          ),
+        );
+      if (!rows.length) return;
+      const assoc = await this.dataSource.getRepository(Associate).findOne({ where: { id: associateId } });
+      const nombre = assoc ? this.associateDisplayName(assoc) : 'Un vigilante';
+      const posts = new Map(
+        (await this.dataSource.getRepository(Post).find({ where: { id: In(rows.map((r) => r.postId)) } })).map((p) => [p.id, p]),
+      );
+      for (const r of rows) {
+        const post = posts.get(r.postId);
+        const puesto = this.formatPostLabel(post ?? { id: r.postId });
+        const dias = r.days.slice(0, 15).join(', ') + (r.days.length > 15 ? '…' : '');
+        const titulo = `Puesto sin vigilante: ${puesto}`;
+        const cuerpo = `${nombre} ${motivo}. Quedan turnos sin cubrir en ${r.month}/${r.year}, días: ${dias}.`;
+        if (r.programador) await this.notificationsService.send(r.programador, titulo, cuerpo, 'scheduling');
+        else await this.notificationsService.sendToRole('GERENCIA', titulo, cuerpo, 'scheduling');
+      }
+      this.clearReportCache();
+    } catch (e) {
+      this.logger.warn(`No se pudo avisar novedad de ${associateId}: ${(e as Error).message}`);
+    }
   }
 
   private associateDisplayName(a: {

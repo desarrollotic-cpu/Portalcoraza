@@ -18,6 +18,7 @@ import {
 import { AuditService } from '../audit/audit.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { NotificationsService } from '../notifications/notifications.service';
+import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
 import { AssociateDerivedService } from '../hr-shared/services/associate-derived.service';
 import { HrAuditService } from '../hr-shared/services/hr-audit.service';
 import { SensitiveDataService } from '../hr-shared/services/sensitive-data.service';
@@ -76,6 +77,7 @@ export class AssociatesService {
     private readonly derived: AssociateDerivedService,
     private readonly sensitive: SensitiveDataService,
     private readonly notifications: NotificationsService,
+    private readonly scheduling: MonthlySchedulingService,
     private readonly audit: AuditService,
     private readonly documents: HrDocumentsService,
     @InjectEntityManager()
@@ -520,6 +522,7 @@ export class AssociatesService {
     const name = [saved.firstName, saved.firstLastName].filter(Boolean).join(' ') || 'Sin nombre';
     await this.notifications.sendToRole('RRHH', `Asociado retirado: ${name}`, saved.documentNumber, 'rrhh');
     await this.notifications.sendToRole('GERENCIA', `Asociado retirado: ${name}`, saved.documentNumber, 'rrhh');
+    await this.scheduling.notifyAssociateUnavailable(saved.id, 'fue retirado');
 
     return this.findOne(saved.id, user);
   }

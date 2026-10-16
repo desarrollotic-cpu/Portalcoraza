@@ -8,6 +8,7 @@ import * as XLSX from 'xlsx';
 import { Brackets, Repository } from 'typeorm';
 import { Associate } from '../associates/entities/associate.entity';
 import { AuditService } from '../audit/audit.service';
+import { MonthlySchedulingService } from '../scheduling/monthly-scheduling.service';
 import { CreateAbsenceDto, UpdateAbsenceDto } from './dto/absence.dto';
 import {
   AbsenteeismEventType,
@@ -26,7 +27,15 @@ export class HrAbsenteeismService {
     @InjectRepository(Associate)
     private readonly associatesRepo: Repository<Associate>,
     private readonly auditService: AuditService,
+    private readonly scheduling: MonthlySchedulingService,
   ) {}
+
+  /** Avisa al programador si la ausencia deja turnos futuros sin cubrir. */
+  private avisarProgramacion(p: { startDate: unknown; endDate: unknown; kind?: unknown }, associateId: string) {
+    const dia = (d: unknown) => (d instanceof Date ? d.toISOString() : String(d)).slice(0, 10);
+    const motivo = p.kind === 'MEDICO' ? 'tiene una incapacidad médica' : 'tiene una ausencia registrada';
+    return this.scheduling.notifyAssociateUnavailable(associateId, motivo, dia(p.startDate), dia(p.endDate));
+  }
 
   async list(filters?: {
     kind?: AbsenteeismKind;
@@ -249,6 +258,7 @@ export class HrAbsenteeismService {
         documentNumber: associate.documentNumber,
       } as unknown as Record<string, unknown>,
     });
+    await this.avisarProgramacion(payload, associate.id);
     return this.findOne(saved.id);
   }
 
@@ -297,6 +307,7 @@ export class HrAbsenteeismService {
         documentNumber: associate.documentNumber,
       } as unknown as Record<string, unknown>,
     });
+    await this.avisarProgramacion(next, associate.id);
     return this.findOne(id);
   }
 

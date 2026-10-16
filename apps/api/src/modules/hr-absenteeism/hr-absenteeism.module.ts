@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuditModule } from '../audit/audit.module';
+import { SchedulingModule } from '../scheduling/scheduling.module';
 import { Associate } from '../associates/entities/associate.entity';
 import { AssociateAbsence } from './entities/associate-absence.entity';
 import { DiagnosisCie10 } from './entities/diagnosis-cie10.entity';
@@ -11,6 +12,7 @@ import { HrAbsenteeismService } from './hr-absenteeism.service';
   imports: [
     TypeOrmModule.forFeature([AssociateAbsence, DiagnosisCie10, Associate]),
     AuditModule,
+    SchedulingModule,
   ],
   controllers: [HrAbsenteeismController],
   providers: [HrAbsenteeismService],
