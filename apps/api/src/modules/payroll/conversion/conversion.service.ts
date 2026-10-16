@@ -114,7 +114,7 @@ function clasificarEncabezado(texto: string): Columna {
   const n = normalizar(t);
   if (!n) return { tipo: 'ignorar' };
   if (n.startsWith('BONIFICACION')) return { tipo: 'bonificacion' };
-  // VALOR AJUSTE JORNADA se suma al salario 001; COMPENSACIONEXTRAORDINARIA 011 no se convierte (el 011 sale solo de RECARGO 011).
+  // VALOR AJUSTE JORNADA se RESTA del salario 001 (Contabilidad, oct-2026); COMPENSACIONEXTRAORDINARIA 011 no se convierte (el 011 sale solo de RECARGO 011).
   if (n.startsWith('VALORAJUSTEJORNADA')) return { tipo: 'ajuste' };
   if (n.startsWith('COMPENSACIONEXTRAORDINARIA')) return { tipo: 'ignorar' };
   const m = /(?<!\d)(\d{3})$/.exec(t);
@@ -246,12 +246,14 @@ export class PayrollConversionService {
       ];
 
       for (const codigo of codigos) {
-        // 001 = SALARIOORDINARIO 001 + VALOR AJUSTE JORNADA (vacío o 0 no cambia nada)
-        const cols = [...(porCodigo.get(codigo) as number[]), ...(codigo === '001' ? colsAjuste : [])];
+        // 001 = SALARIOORDINARIO 001 - VALOR AJUSTE JORNADA (vacío o 0 no cambia nada)
+        const cols = porCodigo.get(codigo) as number[];
+        const restar = codigo === '001' ? colsAjuste : [];
         const dec = codigo === CODIGO_DECIMALES ? 2 : 0;
         for (const a of asociados) {
           let suma = 0;
           for (const c of cols) suma += valorRaw(a.fila, c);
+          for (const c of restar) suma -= valorRaw(a.fila, c);
           const valor = redondear(suma, dec);
           if (valor === 0) continue;
           if (valor < 0) negativos += 1;

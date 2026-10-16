@@ -71,7 +71,7 @@ async function consolidadoSintetico(): Promise<Buffer> {
     'COMPENSACIONEXTRAORDINARIA 011', //  ignorada: el 011 sale solo de RECARGO 011
     'SALARIOORDINARIO 001',
     'RECARGO 011', //            mismo código 011 → se suman
-    'VALOR AJUSTE JORNADA', //   se suma al 001
+    'VALOR AJUSTE JORNADA', //   se resta del 001
     'Deducción n+3', //          ignorado
     'ODONTOLOGIA520', //         código pegado al texto
   ];
@@ -127,7 +127,7 @@ describe('PayrollConversionService (consolidado sintético)', () => {
       '520:101',
     ]);
     // ZONA 04, 05, 07 y al final INCAPACITADOS (mismas reglas: 001 antes que 628)
-    expect(a.filas[0]).toEqual({ cedula: '100', codigo: '001', valor: 1077 });
+    expect(a.filas[0]).toEqual({ cedula: '100', codigo: '001', valor: 923 });
     const iZ5 = a.filas.findIndex((f) => f.cedula === '300');
     const iZ7 = a.filas.findIndex((f) => f.cedula === '200');
     const iInc = a.filas.findIndex((f) => f.cedula === '555');
@@ -135,16 +135,16 @@ describe('PayrollConversionService (consolidado sintético)', () => {
     expect(iZ7).toBeGreaterThan(iZ5);
     expect(iInc).toBeGreaterThan(iZ7);
     expect(a.filas.slice(iInc)).toEqual([
-      { cedula: '555', codigo: '001', valor: 123457 }, // 123456.2 + 0.4 = 123456.6 → 123457
+      { cedula: '555', codigo: '001', valor: 123456 }, // 123456.2 - 0.4 = 123455.8 → 123456
       { cedula: '555', codigo: '628', valor: 10 },
     ]);
   });
 
-  it('001 = SALARIOORDINARIO 001 + VALOR AJUSTE JORNADA (en todas las hojas, también INCAPACITADOS)', () => {
-    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '001')?.valor).toBe(1077); // 1000 + 77
-    expect(a.filas.find((f) => f.cedula === '101' && f.codigo === '001')?.valor).toBe(2002); // 2000 + 2
+  it('001 = SALARIOORDINARIO 001 - VALOR AJUSTE JORNADA (en todas las hojas, también INCAPACITADOS)', () => {
+    expect(a.filas.find((f) => f.cedula === '100' && f.codigo === '001')?.valor).toBe(923); // 1000 - 77
+    expect(a.filas.find((f) => f.cedula === '101' && f.codigo === '001')?.valor).toBe(1998); // 2000 - 2
     expect(a.filas.find((f) => f.cedula === '102' && f.codigo === '001')?.valor).toBe(3000); // ajuste en 0
-    expect(a.filas.find((f) => f.cedula === '200' && f.codigo === '001')?.valor).toBe(509); // ZONA 07: 500 + 9
+    expect(a.filas.find((f) => f.cedula === '200' && f.codigo === '001')?.valor).toBe(491); // ZONA 07: 500 - 9
     expect(a.filas.find((f) => f.cedula === '300' && f.codigo === '001')?.valor).toBe(4000); // ajuste vacío
   });
 
@@ -157,7 +157,7 @@ describe('PayrollConversionService (consolidado sintético)', () => {
       [[1, 'X', 100, 999, 0.5]],
     );
     const r = await svc.analizar(Buffer.from(await wb.xlsx.writeBuffer()));
-    expect(r.filas).toEqual([{ cedula: '1', codigo: '001', valor: 101 }]); // 100 + 0.5 → 101 (half-up), sin 011
+    expect(r.filas).toEqual([{ cedula: '1', codigo: '001', valor: 100 }]); // 100 - 0.5 = 99.5 → 100 (half-up), sin 011
     expect(r.advertencias).toEqual([]);
   });
 
@@ -260,7 +260,7 @@ conReales('consolidado real de septiembre 2026 y formato del BASE manual de agos
       '98601485|001|875453',
     ]);
     expect(a.filas[a.filas.length - 1]).toEqual({ cedula: '98601485', codigo: '538', valor: 262636 });
-    expect(tot('001')).toEqual({ codigo: '001', filas: 627, suma: 495739661 }); // incluye VALOR AJUSTE JORNADA
+    expect(tot('001')).toEqual({ codigo: '001', filas: 627, suma: 475166494 }); // 001 menos VALOR AJUSTE JORNADA (antes, sumado: 495739661)
     // 011 solo de RECARGO, con redondeo de Excel (15 cifras): 10 celdas x.xx5 con ruido binario suben 1 centavo
     expect(tot('011')).toEqual({ codigo: '011', filas: 573, suma: 79144115.42 });
     expect(tot('628')).toEqual({ codigo: '628', filas: 627, suma: 22583835 });
