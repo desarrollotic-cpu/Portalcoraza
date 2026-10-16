@@ -246,18 +246,8 @@ export class ActivityControlService {
       });
     }
 
-    // Control de radio: solo un sample reciente en memoria (evita OOM en Render).
-    // KPIs del área se completan abajo con agregados SQL.
-    const radioAuditCover = new Set(
-      events
-        .filter(
-          (e) =>
-            e.module === 'radio_control' &&
-            e.action === 'radio_control.check' &&
-            e.entityId,
-        )
-        .map((e) => e.entityId as string),
-    );
+    // Control de radio: solo conteos/actores por SQL. Las marcas individuales no se listan como
+    // eventos (no se guardan en historial); la lista reciente solo trae cierres de pasada.
     let radioDayCounts = new Map<string, number>();
     let radioActorsAgg: Array<{ userId: string; count: number; lastAt: Date }> = [];
     let radioActorsToday: Array<{ userId: string; count: number; lastAt: Date }> = [];
@@ -305,49 +295,6 @@ export class ActivityControlService {
           [todayStart.toISOString()],
         )
       ).map(mapActor);
-
-      const radioRecent = await this.rawQuery<{
-        id: string;
-        checked_by: string | null;
-        status: string;
-        notes: string | null;
-        checked_at: string | Date;
-        label: string;
-        callsign: string | null;
-        pass_number: number | null;
-      }>(
-        `SELECT c.id, c.checked_by, c.status, c.notes, c.updated_at AS checked_at,
-                r.label, r.callsign, p.pass_number
-         FROM radio_control_checks c
-         JOIN radio_control_roster r ON r.id = c.roster_id
-         LEFT JOIN radio_control_passes p ON p.id = c.pass_id
-         WHERE c.updated_at >= $1
-         ORDER BY c.updated_at DESC
-         LIMIT 40`,
-        [since.toISOString()],
-      );
-      for (const c of radioRecent) {
-        if (radioAuditCover.has(c.id)) continue;
-        const at =
-          c.checked_at instanceof Date ? c.checked_at : new Date(c.checked_at);
-        events.push({
-          id: `rc:${c.id}`,
-          userId: c.checked_by,
-          module: 'radio_control',
-          action: 'radio_control.check',
-          createdAt: at,
-          newValue: {
-            label: c.label,
-            callsign: c.callsign,
-            status: c.status,
-            notes: c.notes,
-            passNumber: c.pass_number,
-          },
-          oldValue: null,
-          entityType: 'radio_control_check',
-          entityId: c.id,
-        });
-      }
     } catch (err) {
       this.logger.warn(`activity-control radio: ${(err as Error).message}`);
     }
