@@ -290,6 +290,7 @@ export class AuditService {
    */
   async purgeOlderThanDays(days = AUDIT_RETENTION_DAYS): Promise<{
     auditLogs: number;
+    radioMarkAudit: number;
     associateHistory: number;
     radioChecks: number;
     radioPasses: number;
@@ -325,6 +326,27 @@ export class AuditService {
        RETURNING a.id`,
       [iso, batch],
     );
+
+    // Marcar/desmarcar/llenar radios ya no se audita (una fila por marca crecía sin límite):
+    // se borra lo que quedó de cualquier fecha. Idempotente: tras la primera purga no queda nada.
+    let radioMarkAudit = 0;
+    try {
+      radioMarkAudit = await deleteBatched(
+        `WITH doomed AS (
+           SELECT id FROM audit_logs
+           WHERE module = 'radio_control'
+             AND action IN ('radio_control.check', 'radio_control.uncheck', 'radio_control.fill')
+           LIMIT $1
+         )
+         DELETE FROM audit_logs a
+         USING doomed d
+         WHERE a.id = d.id
+         RETURNING a.id`,
+        [batch],
+      );
+    } catch (err) {
+      this.logger.warn(`Purga auditoria de marcas de radio omitida: ${(err as Error).message}`);
+    }
 
     let associateHistory = 0;
     try {
@@ -385,6 +407,6 @@ export class AuditService {
     }
 
     // Minutas operativas (Operaciones → Minutas) NO se borran aquí: son el registro del puesto.
-    return { auditLogs, associateHistory, radioChecks, radioPasses };
+    return { auditLogs, radioMarkAudit, associateHistory, radioChecks, radioPasses };
   }
 }

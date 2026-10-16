@@ -333,7 +333,7 @@ export class RadioControlService {
     const status = this.requireStatus(dto.status);
     const rosterId = String(dto.rosterId || '').trim();
     if (!rosterId) throw new BadRequestException('rosterId requerido');
-    const roster = await this.assertRoster(user.tenantId, rosterId);
+    await this.assertRoster(user.tenantId, rosterId);
 
     const pass = await this.getOrCreateOpenPass(user.tenantId, d);
     let at: Date;
@@ -360,22 +360,7 @@ export class RadioControlService {
       checkedTime: string;
       checkedAt: string;
     };
-    await this.audit.log({
-      userId: user.sub,
-      module: 'radio_control',
-      action: 'radio_control.check',
-      entityType: 'radio_control_check',
-      entityId: row.id,
-      newValue: {
-        date: d,
-        status,
-        notes,
-        label: roster.label,
-        callsign: roster.callsign,
-        passNumber: pass.pass_number,
-        checkedTime: row.checkedTime,
-      },
-    });
+    // Marcar un radio NO deja rastro en audit_logs (crecería sin límite); la marca vive en la pasada.
     return row;
   }
 
@@ -384,7 +369,7 @@ export class RadioControlService {
     const d = this.requireDate(date);
     const id = String(rosterId || '').trim();
     if (!id) throw new BadRequestException('rosterId requerido');
-    const roster = await this.assertRoster(user.tenantId, id);
+    await this.assertRoster(user.tenantId, id);
     // Misma pasada que usa el marcado (turno de noche: la del día anterior); no crea ninguna.
     const open = await this.findOpenPass(user.tenantId, d);
     if (!open) return { cleared: false };
@@ -394,16 +379,6 @@ export class RadioControlService {
        RETURNING id`,
       [user.tenantId, open.id, id],
     );
-    if (deleted.length) {
-      await this.audit.log({
-        userId: user.sub,
-        module: 'radio_control',
-        action: 'radio_control.uncheck',
-        entityType: 'radio_control_check',
-        entityId: deleted[0].id,
-        newValue: { date: d, label: roster.label, callsign: roster.callsign, passNumber: open.pass_number },
-      });
-    }
     return { cleared: deleted.length > 0 };
   }
 
@@ -433,19 +408,6 @@ export class RadioControlService {
       await this.insertCheck(user, pass.id, rosterId, d, at, status, null);
       n += 1;
     }
-    await this.audit.log({
-      userId: user.sub,
-      module: 'radio_control',
-      action: 'radio_control.fill',
-      entityType: 'radio_control_pass',
-      entityId: pass.id,
-      newValue: {
-        date: d,
-        status,
-        updated: n,
-        passNumber: pass.pass_number,
-      },
-    });
     return { updated: n, date: d, status, passId: pass.id };
   }
 
