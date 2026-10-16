@@ -65,6 +65,16 @@ function r(): CyclePosition {
     fin: null,
   };
 }
+/** Máximo común divisor — para saber cuántas fases distintas da un desfase. */
+function gcd(a: number, b: number): number {
+  let x = Math.abs(a);
+  let y = Math.abs(b);
+  while (y) {
+    [x, y] = [y, x % y];
+  }
+  return x || 1;
+}
+
 function nr(): CyclePosition {
   return {
     codigo: 'NR',
@@ -134,19 +144,43 @@ export class MotorTurnosService {
     return ((pos % total) + total) % total;
   }
 
-  getDefaultOffset(index: number, tipoCiclo: TipoCiclo, totalDays: number): number {
-    switch (tipoCiclo) {
-      case '2x2': // 2D -> 2N -> 2NR (totalDays = 6) -> desfase de 2 días por guardia
-        return (index * 2) % totalDays;
-      case '10x5': // 5D -> 5N -> 5Desc (totalDays = 15) -> desfase de 5 días
-        return (index * 5) % totalDays;
-      case '12x3': // 6D -> 6N -> 3Desc (totalDays = 15) -> desfase de 6 días
-        return (index * 6) % totalDays;
-      case '13x2': // 13D -> 2R -> 13N -> 2R (totalDays = 30) -> desfase de 15 días
-        return (index * 15) % totalDays;
-      default:
-        return (index * Math.floor(totalDays / 2)) % totalDays;
+  /**
+   * Desfase inicial de cada rol dentro del ciclo.
+   *
+   * `roleCount` evita colisiones: con 13x2 el desfase fijo de 15 hacía que el
+   * tercer rol arrancara en la misma fase que el primero (0, 15, 0), dejando
+   * sin cobertura los días de descanso compartidos. Cuando el desfase fijo no
+   * alcanza para los roles que hay, el ciclo se reparte en partes iguales.
+   */
+  getDefaultOffset(
+    index: number,
+    tipoCiclo: TipoCiclo,
+    totalDays: number,
+    roleCount?: number,
+  ): number {
+    const fixed = (() => {
+      switch (tipoCiclo) {
+        case '2x2': // 2D -> 2N -> 2NR (totalDays = 6) -> desfase de 2 días por guardia
+          return 2;
+        case '10x5': // 5D -> 5N -> 5Desc (totalDays = 15) -> desfase de 5 días
+          return 5;
+        case '12x3': // 6D -> 6N -> 3Desc (totalDays = 15) -> desfase de 6 días
+          return 6;
+        case '13x2': // 13D -> 2R -> 13N -> 2R (totalDays = 30) -> desfase de 15 días
+          return 15;
+        default:
+          return Math.floor(totalDays / 2);
+      }
+    })();
+
+    // `index * fixed` mod totalDays solo produce totalDays/gcd(fixed, totalDays)
+    // fases distintas; pasado ese número los roles empiezan a repetirse.
+    const distintas = totalDays / gcd(fixed, totalDays);
+    if (roleCount && roleCount > distintas) {
+      return Math.floor((index * totalDays) / roleCount) % totalDays;
     }
+
+    return (index * fixed) % totalDays;
   }
 
   /**
@@ -179,7 +213,8 @@ export class MotorTurnosService {
       const config = this.configs[cycleKey] ?? this.configs['12x3'];
       const len = config.totalDays;
       const baseOffset =
-        startPositions?.[role.rol] ?? this.getDefaultOffset(index, cycleKey, len);
+        startPositions?.[role.rol] ??
+        this.getDefaultOffset(index, cycleKey, len, generateRoles.length);
 
       for (let day = 1; day <= daysInMonth; day++) {
         const position = this.normalizePosition(baseOffset + (day - 1), cycleKey);
@@ -318,6 +353,7 @@ export class MotorTurnosService {
   endPositionsByRole(
     assignments: Array<{ day: number; role: string; codigo?: string | null; cyclePosition?: number | null }>,
     daysInMonth: number,
+    tipoCiclo: TipoCiclo = '12x3',
   ): Record<string, number> {
     const lastByRole: Record<string, number> = {};
     for (const a of assignments) {
@@ -328,7 +364,9 @@ export class MotorTurnosService {
     }
     const next: Record<string, number> = {};
     for (const [role, pos] of Object.entries(lastByRole)) {
-      next[role] = this.normalizePosition(pos + 1);
+      // Sin `tipoCiclo` esto normalizaba siempre mod 15 (12x3): para 13x2
+      // (30 fases) devolvía una fase equivocada.
+      next[role] = this.normalizePosition(pos + 1, tipoCiclo);
     }
     return next;
   }

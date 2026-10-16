@@ -57,6 +57,14 @@ export class ScheduleAssignment {
   @Column({ type: 'text', nullable: true })
   fin!: string | null;
 
+  /**
+   * Fase del ciclo del motor en esta celda (0..totalDays-1).
+   * -1 = cubierta por un relevante (no lleva ciclo propio).
+   * null = celda anterior a la migración 088, o editada sin fase conocida.
+   */
+  @Column({ name: 'cycle_position', type: 'int', nullable: true })
+  cyclePosition!: number | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt!: Date;
 
