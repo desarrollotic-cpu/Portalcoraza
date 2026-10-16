@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import compression = require('compression');
 import { AppModule } from './app.module';
 import { patchTypeOrmTenantFilter } from './common/tenant/patch-typeorm-tenant';
+import { validationErrorsEs } from './common/validation-es';
 
 // Render y otros hosts IPv4-only: priorizar IPv4 al resolver Supabase direct/pooler
 dns.setDefaultResultOrder('ipv4first');
@@ -22,6 +23,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
+      exceptionFactory: validationErrorsEs,
     }),
   );
 
