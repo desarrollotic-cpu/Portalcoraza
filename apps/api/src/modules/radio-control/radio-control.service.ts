@@ -421,7 +421,12 @@ export class RadioControlService {
     notes: string | null,
   ) {
     const [row] = await this.q(
-      `INSERT INTO radio_control_checks (
+      `-- Una sola fila por radio y pasada: volver a marcar reemplaza la anterior (sin historial de clics).
+       WITH reemplazadas AS (
+         DELETE FROM radio_control_checks
+         WHERE tenant_id = $1 AND pass_id = $3 AND roster_id = $2
+       )
+       INSERT INTO radio_control_checks (
          tenant_id, roster_id, pass_id, check_date, slot_time, checked_at, status, notes, checked_by, updated_at
        ) VALUES (
          $1, $2, $3, $4::date,
