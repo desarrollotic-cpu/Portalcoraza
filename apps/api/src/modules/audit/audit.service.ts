@@ -16,6 +16,9 @@ import { AuditLog } from './entities/audit-log.entity';
 /** Historial de movimientos / control de actividades: no se conserva más de 30 días. */
 export const AUDIT_RETENTION_DAYS = 30;
 
+/** Control de radio genera ~4.000 marcas por día: sus pasadas se conservan menos (15 días). */
+export const RADIO_RETENTION_DAYS = 15;
+
 export interface AuditEntry {
   userId?: string;
   module: string;
@@ -297,6 +300,9 @@ export class AuditService {
   }> {
     const cutoff = new Date(Date.now() - Math.max(1, days) * 86_400_000);
     const iso = cutoff.toISOString();
+    const radioIso = new Date(
+      Date.now() - Math.max(1, Math.min(days, RADIO_RETENTION_DAYS)) * 86_400_000,
+    ).toISOString();
     const batch = 2000;
 
     const deleteBatched = async (
@@ -380,7 +386,7 @@ export class AuditService {
          USING doomed d
          WHERE c.id = d.id
          RETURNING c.id`,
-        [iso, batch],
+        [radioIso, batch],
       );
     } catch (err) {
       this.logger.warn(`Purga radio_control_checks omitida: ${(err as Error).message}`);
@@ -400,7 +406,7 @@ export class AuditService {
          USING doomed d
          WHERE p.id = d.id
          RETURNING p.id`,
-        [iso, batch],
+        [radioIso, batch],
       );
     } catch (err) {
       this.logger.warn(`Purga radio_control_passes omitida: ${(err as Error).message}`);
