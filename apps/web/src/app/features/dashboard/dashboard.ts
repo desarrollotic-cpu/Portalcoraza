@@ -723,7 +723,7 @@ export class Dashboard implements OnInit {
   readonly programacion = computed(() => this.data()?.modules?.['programacion'] as any);
   readonly operaciones = computed(() => this.data()?.modules?.['operaciones'] as any);
   /** OCULTO TEMPORALMENTE (presentacion): poner en true para volver a mostrar el panel Documental. */
-  readonly showDocumental = false;
+  readonly showDocumental = true;
   readonly documental = computed(() =>
     this.showDocumental ? (this.data()?.modules?.['documental'] as any) : null,
   );

@@ -170,8 +170,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },
       { label: 'Programación', route: '/programacion', icon: LucideCalendarClock, permission: 'scheduling.view', children: PROGRAMACION_NAV },
       { label: 'Nómina', route: '/nomina', icon: LucideBriefcaseBusiness, permissions: ['payroll.view', 'payroll.convert'], children: NOMINA_NAV },
-      // OCULTO TEMPORALMENTE (presentacion): descomentar esta linea para volver a mostrar Documental en el menu.
-      // { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
+      { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
       { label: 'Recepción', route: '/recepcion', icon: LucideDoorOpen, permission: 'reception.view', children: RECEPCION_NAV },
       { label: 'SST / Salud y Seguridad', route: '/sst', icon: LucideShieldCheck, permission: 'sst.view', children: SST_NAV },
     ],
