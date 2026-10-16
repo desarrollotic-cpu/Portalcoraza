@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { ToastService } from '../../../shared/services/toast.service';
@@ -670,10 +670,13 @@ export class AssociateForm implements OnInit {
     const id = this.route.snapshot.paramMap.get('id');
     this.associateId.set(id);
 
+    // Cada lista es opcional: si el rol no puede verla (403), el asociado se carga igual.
     forkJoin({
-      positions: this.api.listJobPositions(),
-      workCenters: this.api.listWorkCenters(),
-      catalogs: this.api.listAllCatalogs(),
+      positions: this.api.listJobPositions().pipe(catchError(() => of([]))),
+      workCenters: this.api.listWorkCenters().pipe(catchError(() => of([]))),
+      catalogs: this.api
+        .listAllCatalogs()
+        .pipe(catchError(() => of({} as Record<CatalogKind, CatalogValue[]>))),
     }).subscribe({
       next: ({ positions, workCenters, catalogs }) => {
         this.positions.set(positions);
@@ -729,9 +732,13 @@ export class AssociateForm implements OnInit {
     this.form.patchValue(patch);
   }
 
+  /** false si el rol no puede ver los documentos: entonces no se tocan ni se exigen las credenciales. */
+  private credentialDatesLoaded = false;
+
   private patchCredentialDates(associateId: string): void {
     this.api.listAssociateDocuments(associateId).subscribe({
       next: (docs) => {
+        this.credentialDatesLoaded = true;
         const latest = (kind: AssociateDocumentKind) =>
           docs.find((d) => d.documentKind === kind);
         const day = (d?: AssociateDocumentItem) => d?.issuedDate?.slice(0, 10) ?? '';
@@ -804,6 +811,10 @@ export class AssociateForm implements OnInit {
       });
     } else if (raw.psychosensometricValid) {
       missing.push('examen médico ocupacional');
+    }
+    if (this.associateId() && !this.credentialDatesLoaded) {
+      credentials.length = 0;
+      missing.length = 0;
     }
     if (missing.length) {
       this.section.set(3);
