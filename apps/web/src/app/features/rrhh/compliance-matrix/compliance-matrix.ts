@@ -48,7 +48,7 @@ import type { ComplianceMatrixRow } from '../services/hr.types';
                 <th>Documento</th>
                 <th>Nombre</th>
                 <th>Cargo</th>
-                <th>Centro</th>
+                <th>Centro de trabajo</th>
                 <th class="cell-center">Curso</th>
                 <th class="cell-center">Psicofísico</th>
                 <th class="cell-center">Examen ocupacional</th>

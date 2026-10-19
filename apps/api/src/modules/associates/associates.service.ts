@@ -470,7 +470,8 @@ export class AssociatesService {
     associate.hireDate = dto.hireDate;
     associate.jobPositionId = dto.jobPositionId;
     if (dto.workCenterId !== undefined) associate.workCenterId = dto.workCenterId;
-    if (dto.folderNumber !== undefined) associate.folderNumber = dto.folderNumber;
+    // null = "no cambiar": un reingreso sin carpeta nueva no debe borrar la que ya tenía.
+    if (dto.folderNumber != null) associate.folderNumber = dto.folderNumber;
     associate.updatedBy = user.sub;
 
     const saved = await this.associatesRepo.save(associate);
@@ -480,7 +481,7 @@ export class AssociatesService {
         associateId: saved.id,
         jobPositionId: saved.jobPositionId!,
         workCenterId: saved.workCenterId,
-        changeReason: dto.reason ?? 'Reingreso',
+        changeReason: dto.reason?.trim() || 'Reingreso',
         changedBy: user.sub,
       }),
     );

@@ -176,7 +176,7 @@ export class HrDashboardService {
       .orderBy('total', 'DESC')
       .getRawMany<{ label: string; code: string; total: number }>();
     return rows.map((r) => ({
-      label: r.label ?? 'Sin asignar',
+      label: r.code ?? 'Sin asignar',
       code: r.code ?? '—',
       total: Number(r.total),
     }));
