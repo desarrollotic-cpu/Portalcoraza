@@ -36,7 +36,7 @@ const IGNORADOS = [
   /^DEDUCCION(N\+\d+)?$/,
   /^VALORAJUSTEJORNADA/,
 ];
-const MESES = [
+export const MESES = [
   'ENERO',
   'FEBRERO',
   'MARZO',
@@ -71,7 +71,7 @@ export function redondear(valor: number, decimales = 0): number {
   }
   return r === 0 ? 0 : r; // evita -0
 }
-function normalizar(texto: string): string {
+export function normalizar(texto: string): string {
   return texto
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -80,7 +80,7 @@ function normalizar(texto: string): string {
 }
 
 /** Valor calculado (cacheado) de la celda, nunca la fórmula. */
-function valorCelda(cell: ExcelJS.Cell): unknown {
+export function valorCelda(cell: ExcelJS.Cell): unknown {
   let v: unknown = cell.value;
   if (v && typeof v === 'object' && !(v instanceof Date)) {
     const o = v as Record<string, unknown>;
@@ -94,7 +94,7 @@ function valorCelda(cell: ExcelJS.Cell): unknown {
   return v;
 }
 
-function aNumero(v: unknown): number {
+export function aNumero(v: unknown): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0;
 }
 
