@@ -1680,10 +1680,18 @@ export class ScheduleBoard implements OnInit {
 
   /** Horas de este puesto por asociado: lo guardado y lo que hay en pantalla. */
   private readonly postHours = computed(() => {
-    const sum = (rows: Iterable<{ associateId: string | null; codigo: string | null }>) => {
+    const sum = (
+      rows: Iterable<{ associateId: string | null; codigo: string | null; inicio?: string | null; fin?: string | null }>,
+    ) => {
       const m = new Map<string, number>();
       for (const r of rows) {
-        const h = SHIFT_HOURS[(r.codigo ?? '').toUpperCase()];
+        let h = SHIFT_HOURS[(r.codigo ?? '').toUpperCase()];
+        // Horario propio de la celda (ej. 09:00–21:00): manda sobre el del código.
+        const i = /^(\d{1,2}):(\d{2})/.exec(r.inicio ?? '');
+        const f = /^(\d{1,2}):(\d{2})/.exec(r.fin ?? '');
+        if (h && i && f) {
+          h = ((((+f[1] * 60 + +f[2]) - (+i[1] * 60 + +i[2]) + 1440) % 1440) || 1440) / 60;
+        }
         if (!r.associateId || !h) continue;
         m.set(r.associateId, (m.get(r.associateId) ?? 0) + h);
       }

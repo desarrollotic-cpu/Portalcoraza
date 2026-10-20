@@ -1,4 +1,4 @@
-import { SHIFT_HOURS } from './monthly-alerts.compute';
+import { horarioDe, SHIFT_HOURS } from './monthly-alerts.compute';
 
 /**
  * Reparto legal de las horas de un turno, derivado de `SHIFT_HOURS`.
@@ -8,7 +8,7 @@ import { SHIFT_HOURS } from './monthly-alerts.compute';
  * cuadro —, D9, N9, D12, N12, 24H) caía en el `else` y se contaba como novedad
  * con 0 horas, aunque el panel de alertas sí lo contaba como hora trabajada.
  *
- * Franja nocturna: 21:00–06:00 (Ley 2101 de 2021).
+ * Franja nocturna: 19:00–06:00 (Ley 2466 de 2025, desde el 25-dic-2025; antes 21:00).
  * Jornada ordinaria del turno: las primeras 8 horas; el resto es extra.
  */
 export interface ShiftHoursSplit {
@@ -24,7 +24,7 @@ export interface ShiftHoursSplit {
   dom: number;
 }
 
-const NOCHE_DESDE = 21;
+const NOCHE_DESDE = 19;
 const NOCHE_HASTA = 6;
 const JORNADA_ORDINARIA = 8;
 
@@ -36,8 +36,11 @@ function esNocturna(hora: number): boolean {
 export function splitShiftHours(
   codigo: string | null | undefined,
   isFestivo: boolean,
+  /** Horario propio de la celda (HH:MM), p. ej. 09:00–21:00; si falta, el del código. */
+  inicio?: string | null,
+  fin?: string | null,
 ): ShiftHoursSplit | null {
-  const horario = SHIFT_HOURS[(codigo ?? '').toUpperCase()];
+  const horario = horarioDe({ codigo, inicio, fin });
   if (!horario) return null;
 
   const { start, hours } = horario;
@@ -47,18 +50,25 @@ export function splitShiftHours(
   let extD = 0;
   let extN = 0;
 
-  for (let i = 0; i < hours; i++) {
-    const nocturna = esNocturna((start + i) % 24);
-    const esExtra = i >= ordinarias;
+  // Por minuto: el turno puede arrancar y terminar en medias horas.
+  const totalMin = Math.round(hours * 60);
+  const startMin = Math.round(start * 60);
+  for (let m = 0; m < totalMin; m++) {
+    const nocturna = esNocturna(Math.floor(((startMin + m) / 60) % 24));
+    const esExtra = m >= ordinarias * 60;
 
     if (!esExtra) {
-      if (nocturna) recN += 1;
+      if (nocturna) recN += 1 / 60;
     } else if (nocturna) {
-      extN += 1;
+      extN += 1 / 60;
     } else {
-      extD += 1;
+      extD += 1 / 60;
     }
   }
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  recN = r2(recN);
+  extD = r2(extD);
+  extN = r2(extN);
 
   // En domingo o festivo el turno completo se liquida en esa bolsa; el recargo
   // nocturno de las horas ordinarias se sigue reportando aparte.

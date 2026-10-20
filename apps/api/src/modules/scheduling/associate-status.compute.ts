@@ -1,6 +1,6 @@
 import {
   DEFAULT_SCHEDULING_RULES,
-  SHIFT_HOURS,
+  horarioDe,
   SchedulingRules,
   isNovedad,
 } from './monthly-alerts.compute';
@@ -28,6 +28,8 @@ export interface StatusCellInput {
   day: number;
   role: string;
   codigo: string | null;
+  inicio?: string | null;
+  fin?: string | null;
   jornada?: string | null;
 }
 
@@ -140,7 +142,7 @@ function assignGaps(
         novedadDays.add(c.day);
         continue;
       }
-      const h = SHIFT_HOURS[(c.codigo ?? '').toUpperCase()];
+      const h = horarioDe(c);
       if (h) busy.push({ start: (c.day - 1) * 24 + h.start, end: (c.day - 1) * 24 + h.start + h.hours });
     }
     const ownPosts = new Set(row.puestos);
@@ -206,7 +208,7 @@ export function computeAssociatesStatus(args: {
         novedadDays.add(c.day);
         continue;
       }
-      const h = SHIFT_HOURS[(c.codigo ?? '').toUpperCase()];
+      const h = horarioDe(c);
       if (!h) continue;
       horas += h.hours;
       turnos += 1;

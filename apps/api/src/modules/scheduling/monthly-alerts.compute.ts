@@ -60,6 +60,27 @@ export const SHIFT_HOURS: Readonly<Record<string, { start: number; hours: number
   '24H': { start: 6, hours: 24 },
 };
 
+function minutosDe(hhmm: string | null | undefined): number | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(hhmm ?? '');
+  return m && +m[1] < 24 && +m[2] < 60 ? +m[1] * 60 + +m[2] : null;
+}
+
+/**
+ * Horario real de una celda: si trae inicio y fin propios (ej. 09:00–21:00) manda
+ * eso; si no, el del código. Fuente única para cruces, descansos, horas y liquidación.
+ */
+export function horarioDe(c: {
+  codigo?: string | null;
+  inicio?: string | null;
+  fin?: string | null;
+}): { start: number; hours: number } | undefined {
+  const base = SHIFT_HOURS[(c.codigo ?? '').toUpperCase()];
+  const i = minutosDe(c.inicio);
+  const f = minutosDe(c.fin);
+  if (!base || i === null || f === null) return base;
+  return { start: i / 60, hours: (((f - i + 1440) % 1440) || 1440) / 60 };
+}
+
 /** Misma persona en dos turnos que se cruzan o sin descanso entre ellos. */
 export function isDoubleBooking(type: AlertType): boolean {
   return type === 'conflicto_mismo_turno' || type === 'descanso_insuficiente';
@@ -83,6 +104,9 @@ export interface AlertCellInput {
   associateName: string | null;
   associateStatus: AssociateStatusCode | null;
   codigo: string | null;
+  /** Horario propio de la celda (HH:MM); si falta, se usa el del código. */
+  inicio?: string | null;
+  fin?: string | null;
   jornada?: string | null;
   documentNumber?: string | null;
 }
@@ -365,7 +389,7 @@ export function computeMonthlyAlerts(args: {
     }
     const hits = new Map<string, { ab: AbsenceInput; cell: AlertCellInput; days: number[] }>();
     for (const c of cells) {
-      if (!c.associateId || isNovedad(c) || !SHIFT_HOURS[(c.codigo ?? '').toUpperCase()]) continue;
+      if (!c.associateId || isNovedad(c) || !horarioDe(c)) continue;
       for (const ab of absByAssociate.get(c.associateId) ?? []) {
         if (c.day < ab.fromDay || c.day > ab.toDay) continue;
         const key = `${c.associateId}|${c.postId}|${ab.fromDay}|${ab.toDay}`;
@@ -402,7 +426,7 @@ export function computeMonthlyAlerts(args: {
   const shiftsByAssociate = new Map<string, Shift[]>();
   for (const c of cells) {
     if (!c.associateId || isNovedad(c)) continue;
-    const h = SHIFT_HOURS[(c.codigo ?? '').toUpperCase()];
+    const h = horarioDe(c);
     if (!h) continue;
     const start = (c.day - 1) * 24 + h.start;
     const list = shiftsByAssociate.get(c.associateId) ?? [];
@@ -450,11 +474,14 @@ export function computeMonthlyAlerts(args: {
   return alerts;
 }
 
-function shiftSpan(codigo: string | null): string {
-  const c = (codigo ?? '').toUpperCase();
-  const h = SHIFT_HOURS[c];
+function shiftSpan(cell: AlertCellInput): string {
+  const c = (cell.codigo ?? '').toUpperCase();
+  const h = horarioDe(cell);
   if (!h) return c;
-  const hh = (n: number) => `${String(n % 24).padStart(2, '0')}:00`;
+  const hh = (n: number) => {
+    const min = Math.round((n % 24) * 60);
+    return `${String(Math.floor(min / 60) % 24).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
+  };
   return `${c} (${hh(h.start)}–${hh(h.start + h.hours)})`;
 }
 
@@ -488,7 +515,7 @@ function conflictAlert(
     reason: 'turnos que se cruzan en horario',
     suggestedAction:
       'Déjelo en un solo puesto en ese horario; cubra el otro con otro vigilante o un relevo.',
-    message: `${personLabel(a)} está el ${weekdayLabel(month, a.day)} en ${shiftSpan(a.codigo)} ${where}. Una persona no puede cubrir dos turnos al mismo tiempo.`,
+    message: `${personLabel(a)} está el ${weekdayLabel(month, a.day)} en ${shiftSpan(a)} ${where}. Una persona no puede cubrir dos turnos al mismo tiempo.`,
   };
 }
 
@@ -501,8 +528,8 @@ function restAlert(
 ): ScheduleAlertItem {
   const p = prev.cell;
   const c = cur.cell;
-  const from = `«${p.postName}» (${shiftSpan(p.codigo)}, ${weekdayLabel(month, p.day)})`;
-  const to = `«${c.postName}» (${shiftSpan(c.codigo)}, ${weekdayLabel(month, c.day)})`;
+  const from = `«${p.postName}» (${shiftSpan(p)}, ${weekdayLabel(month, p.day)})`;
+  const to = `«${c.postName}» (${shiftSpan(c)}, ${weekdayLabel(month, c.day)})`;
   return {
     id: `descanso_insuficiente:${month}:${c.associateId}:${c.day}:${c.postId}:${c.role}`,
     type: 'descanso_insuficiente',
