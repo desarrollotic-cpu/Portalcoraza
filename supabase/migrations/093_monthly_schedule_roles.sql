@@ -72,6 +72,31 @@ ON CONFLICT (schedule_id, rol) DO NOTHING;
 COMMENT ON COLUMN monthly_schedules.personal IS
   'OBSOLETA: los roles viven en monthly_schedule_roles desde la migración 093. Se conserva solo para respaldo; se elimina en una migración posterior.';
 
-SELECT _mt_enable_rls('monthly_schedule_roles');
+-- Aislamiento por tenant, igual que el resto de las tablas de negocio. La
+-- política va escrita a mano porque el helper `_mt_enable_rls` de la migración
+-- 041 se borra al final de esa misma migración (es temporal).
+ALTER TABLE monthly_schedule_roles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE monthly_schedule_roles FORCE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS tenant_isolation_select ON monthly_schedule_roles;
+DROP POLICY IF EXISTS tenant_isolation_write ON monthly_schedule_roles;
+
+CREATE POLICY tenant_isolation_select ON monthly_schedule_roles
+  FOR SELECT
+  USING (
+    NULLIF(current_setting('app.tenant_id', true), '') IS NOT NULL
+    AND tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
+  );
+
+CREATE POLICY tenant_isolation_write ON monthly_schedule_roles
+  FOR ALL
+  USING (
+    NULLIF(current_setting('app.tenant_id', true), '') IS NOT NULL
+    AND tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
+  )
+  WITH CHECK (
+    NULLIF(current_setting('app.tenant_id', true), '') IS NOT NULL
+    AND tenant_id = NULLIF(current_setting('app.tenant_id', true), '')::uuid
+  );
 
 COMMIT;
