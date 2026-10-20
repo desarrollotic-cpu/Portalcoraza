@@ -1,21 +1,26 @@
 -- Cierra el acceso publico a los catalogos globales y a las dos tablas sin
--- tenant, sin tocar RLS.
+-- columna `tenant_id`.
 --
--- Por que no RLS aqui: la 041 dejo fuera a proposito a roles, permissions,
--- role_permissions, diagnosticos_cie10 y organizations porque se comparten
--- entre tenants; el codigo tambien los excluye del filtro
--- (GLOBAL_TENANT_SKIP_TABLES en patch-typeorm-tenant.ts). Ademas el login corre
--- SIN contexto de tenant -- el interceptor sale temprano cuando no hay usuario
--- autenticado --, asi que una politica que exija `app.tenant_id` podria dejar a
--- todo el mundo fuera del portal.
+-- Estas siete no pueden llevar la politica por tenant de la 094:
+--   * roles, permissions, role_permissions, diagnosticos_cie10, organizations
+--     se comparten entre tenants. La 041 las excluyo a proposito y el codigo
+--     tambien (GLOBAL_TENANT_SKIP_TABLES en patch-typeorm-tenant.ts).
+--   * hr_legacy_users y minuta_folio_counter no tienen `tenant_id`.
 --
--- Que hace en cambio: le quita el permiso a `anon` y `authenticated`, que son
--- los roles con los que entra la API de datos de Supabase usando la clave
--- publicable del portal. El API de NestJS se conecta como `postgres` por
--- conexion directa, asi que no se ve afectado.
+-- La politica de aqui no mira el tenant: exige unicamente que HAYA contexto de
+-- tenant. Con eso cada identidad queda donde debe:
 --
--- `hr_legacy_users` y `minuta_folio_counter` van aqui y no en la 094 porque no
--- tienen columna `tenant_id`: no hay por donde filtrarlas.
+--   coraza_app  (peticiones autenticadas del API) -> el interceptor hace
+--               SET LOCAL ROLE coraza_app y fija app.tenant_id -> PASA.
+--   anon/authenticated (API de datos de Supabase, con la clave publicable del
+--               portal) -> nunca fijan app.tenant_id -> BLOQUEADOS.
+--   postgres    (login y migraciones) -> tiene BYPASSRLS, no le afecta. Se
+--               comprueba solo: `users` ya tiene RLS desde la 041 y el login
+--               la lee sin fijar contexto, asi que hoy ya se la salta.
+--
+-- Se revocan ademas los permisos de anon/authenticated (defensa en profundidad:
+-- RLS y permisos son dos muros distintos) y se cierran los privilegios por
+-- defecto para que las tablas futuras no nazcan abiertas.
 
 BEGIN;
 
@@ -38,9 +43,22 @@ BEGIN
       CONTINUE;
     END IF;
 
+    EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('ALTER TABLE %I FORCE ROW LEVEL SECURITY', t);
+
+    EXECUTE format('DROP POLICY IF EXISTS catalogo_requiere_contexto ON %I', t);
+
+    -- Sin filtro por tenant: solo exige que la sesion tenga contexto.
+    EXECUTE format(
+      'CREATE POLICY catalogo_requiere_contexto ON %I
+         FOR ALL
+         USING (NULLIF(current_setting(''app.tenant_id'', true), '''') IS NOT NULL)
+         WITH CHECK (NULLIF(current_setting(''app.tenant_id'', true), '''') IS NOT NULL)', t);
+
     EXECUTE format('REVOKE ALL ON TABLE public.%I FROM anon', t);
     EXECUTE format('REVOKE ALL ON TABLE public.%I FROM authenticated', t);
-    RAISE NOTICE 'acceso publico revocado: %', t;
+
+    RAISE NOTICE 'cerrado al publico: %', t;
   END LOOP;
 END $$;
 
