@@ -7,6 +7,7 @@ import { SchedulingController } from './scheduling.controller';
 import { SchedulingService } from './scheduling.service';
 import { ShiftSchedule } from './entities/shift-schedule.entity';
 import { MonthlySchedule } from './entities/monthly-schedule.entity';
+import { MonthlyScheduleRole } from './entities/monthly-schedule-role.entity';
 import { ScheduleAssignment } from './entities/schedule-assignment.entity';
 import { ScheduleTemplate } from './entities/schedule-template.entity';
 import { MonthlySchedulingController } from './monthly-scheduling.controller';
@@ -18,6 +19,7 @@ import { MotorTurnosService } from './motor-turnos.service';
     TypeOrmModule.forFeature([
       ShiftSchedule,
       MonthlySchedule,
+      MonthlyScheduleRole,
       ScheduleAssignment,
       ScheduleTemplate,
       Post,

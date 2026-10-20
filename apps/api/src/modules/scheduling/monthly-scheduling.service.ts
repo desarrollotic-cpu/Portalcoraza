@@ -10,6 +10,8 @@ import {
 } from '../associates/entities/associate.entity';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Post, PostStatus } from '../posts/entities/post.entity';
+import { MonthlyScheduleRole } from './entities/monthly-schedule-role.entity';
+import { dedupePersonal, rolesToPersonal } from './roles-personal.map';
 import {
   MonthlySchedule,
   PersonalRole,
@@ -93,6 +95,8 @@ export class MonthlySchedulingService {
     private readonly assignmentsRepo: Repository<ScheduleAssignment>,
     @InjectRepository(ScheduleTemplate)
     private readonly templatesRepo: Repository<ScheduleTemplate>,
+    @InjectRepository(MonthlyScheduleRole)
+    private readonly rolesRepo: Repository<MonthlyScheduleRole>,
     private readonly dataSource: DataSource,
     private readonly auditService: AuditService,
     private readonly notificationsService: NotificationsService,
@@ -137,7 +141,7 @@ export class MonthlySchedulingService {
   async getOne(query: GetMonthlyScheduleDto): Promise<MonthlySchedule | null> {
     const schedule = await this.schedulesRepo.findOne({
       where: { postId: query.postId, year: query.year, month: query.month },
-      relations: { assignments: true },
+      relations: { assignments: true, roles: true },
     });
     if (!schedule) return null;
     return this.hydrateSchedule(schedule);
@@ -224,6 +228,22 @@ export class MonthlySchedulingService {
       bySchedule.set(a.scheduleId, list);
     }
 
+    // Los roles viven en su propia tabla desde la 093: se traen en bloque, igual
+    // que las celdas, para no hacer una consulta por cuadro.
+    const roleRows =
+      scheduleIds.length === 0
+        ? []
+        : await this.rolesRepo.find({
+            where: { scheduleId: In(scheduleIds) },
+            order: { orden: 'ASC' },
+          });
+    const rolesBySchedule = new Map<string, MonthlyScheduleRole[]>();
+    for (const r of roleRows) {
+      const list = rolesBySchedule.get(r.scheduleId) ?? [];
+      list.push(r);
+      rolesBySchedule.set(r.scheduleId, list);
+    }
+
     const postIds = [...new Set(schedules.map((s) => s.postId))];
     const postRows =
       postIds.length === 0
@@ -237,6 +257,7 @@ export class MonthlySchedulingService {
       const post = postMap.get(s.postId);
       return {
         ...s,
+        personal: rolesToPersonal(rolesBySchedule.get(s.id)),
         assignments: bySchedule.get(s.id) ?? [],
         post: post
           ? {
@@ -531,7 +552,34 @@ export class MonthlySchedulingService {
     };
   }
 
+  /**
+   * Reemplaza los roles del cuadro. Borra e inserta en vez de hacer diff: son
+   * pocas filas por cuadro y asi el orden queda exactamente como lo mando la UI.
+   */
+  private async replaceRoles(
+    manager: EntityManager,
+    schedule: Pick<MonthlySchedule, 'id' | 'tenantId'>,
+    personal: ReadonlyArray<PersonalRole>,
+  ): Promise<void> {
+    await manager.delete(MonthlyScheduleRole, { scheduleId: schedule.id });
+    if (!personal.length) return;
+
+    const filas = dedupePersonal(personal).map((p, orden) =>
+        manager.create(MonthlyScheduleRole, {
+          tenantId: schedule.tenantId,
+          scheduleId: schedule.id,
+          rol: p.rol,
+          associateId: p.associateId ?? null,
+          turnoId: p.turnoId ?? null,
+          displayName: p.displayName ?? null,
+          orden,
+        }),
+      );
+    await manager.save(filas);
+  }
+
   private async hydrateSchedule(schedule: MonthlySchedule): Promise<MonthlySchedule> {
+    schedule.personal = rolesToPersonal(schedule.roles);
     const ids = [
       ...new Set(
         [
@@ -1099,7 +1147,7 @@ export class MonthlySchedulingService {
   async createOrGet(dto: CreateMonthlyScheduleDto, userId: string) {
     const existing = await this.schedulesRepo.findOne({
       where: { postId: dto.postId, year: dto.year, month: dto.month },
-      relations: { assignments: true },
+      relations: { assignments: true, roles: true },
     });
     if (existing) {
       return this.hydrateSchedule(existing);
@@ -1113,11 +1161,14 @@ export class MonthlySchedulingService {
         year: dto.year,
         month: dto.month,
         status: ScheduleStatus.BORRADOR,
-        personal: inherited,
         createdBy: userId,
         updatedBy: userId,
       }),
     );
+
+    if (inherited.length) {
+      await this.runInTenantTx((manager) => this.replaceRoles(manager, saved, inherited));
+    }
 
     await this.auditService.log({
       userId,
@@ -1154,10 +1205,11 @@ export class MonthlySchedulingService {
 
     await this.runInTenantTx(async (manager) => {
       await manager.update(MonthlySchedule, id, {
-        personal: dto.personal as PersonalRole[],
         observaciones: dto.observaciones === undefined ? schedule.observaciones : dto.observaciones,
         updatedBy: userId,
       });
+
+      await this.replaceRoles(manager, schedule, dto.personal as PersonalRole[]);
 
       await manager.delete(ScheduleAssignment, { scheduleId: id });
 
@@ -1278,9 +1330,9 @@ export class MonthlySchedulingService {
     let personal = schedule.personal ?? [];
     if (dto.personal?.length) {
       personal = dto.personal as PersonalRole[];
-      await this.schedulesRepo.update(id, {
-        personal,
-        updatedBy: userId,
+      await this.runInTenantTx(async (manager) => {
+        await this.replaceRoles(manager, schedule, personal);
+        await manager.update(MonthlySchedule, id, { updatedBy: userId });
       });
     }
     if (dto.roles?.length) {
@@ -1871,7 +1923,7 @@ export class MonthlySchedulingService {
     const prevYear = month === 1 ? year - 1 : year;
     const previous = await this.schedulesRepo.findOne({
       where: { postId, year: prevYear, month: prevMonth },
-      relations: { assignments: true },
+      relations: { assignments: true, roles: true },
     });
 
     if (!previous?.assignments?.length) {
@@ -1929,7 +1981,7 @@ export class MonthlySchedulingService {
   private async getById(id: string): Promise<MonthlySchedule> {
     const schedule = await this.schedulesRepo.findOne({
       where: { id },
-      relations: { assignments: true },
+      relations: { assignments: true, roles: true },
     });
     if (!schedule) {
       throw new NotFoundException('Programación no encontrada');
@@ -1950,11 +2002,11 @@ export class MonthlySchedulingService {
 
     const previous = await this.schedulesRepo.findOne({
       where: { postId, year: prevYear, month: prevMonth },
+      relations: { roles: true },
     });
 
-    if (previous?.personal?.length) {
-      return previous.personal.map((p) => ({ ...p }));
-    }
+    const heredados = rolesToPersonal(previous?.roles);
+    if (heredados.length) return heredados;
 
     return DEFAULT_ROLES.map((r) => ({ ...r }));
   }
@@ -2750,11 +2802,12 @@ export class MonthlySchedulingService {
         .createQueryBuilder('s')
         .where('s.year = :year AND s.month = :month', { year, month })
         .andWhere(`s.status <> 'anulado'`)
-        .select('COUNT(*)::int', 'cuadros')
-        .addSelect(
-          `COALESCE(SUM(CASE WHEN jsonb_typeof(s.personal) = 'array' THEN jsonb_array_length(s.personal) ELSE 0 END), 0)::int`,
-          'roles',
-        )
+        // Antes los roles se contaban sobre el JSONB `s.personal`; desde la
+        // migración 093 viven en `monthly_schedule_roles`. El LEFT JOIN cuenta
+        // cuadros sin rol como 0 y no los pierde.
+        .leftJoin(MonthlyScheduleRole, 'r', 'r.schedule_id = s.id')
+        .select('COUNT(DISTINCT s.id)::int', 'cuadros')
+        .addSelect('COUNT(r.id)::int', 'roles')
         .getRawOne<{ cuadros: number | string; roles: number | string }>(),
     ]);
 

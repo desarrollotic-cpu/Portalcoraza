@@ -12,6 +12,7 @@ function setup(opts: { locked: number; assignments?: Row[] }) {
 
   jest.spyOn(service as never, 'getById' as never).mockResolvedValue({
     id: 'sched-1',
+    tenantId: 'tenant-1',
     postId: 'post-1',
     year: 2026,
     month: 8,
@@ -38,12 +39,23 @@ function setup(opts: { locked: number; assignments?: Row[] }) {
   };
 
   const saved: Row[] = [];
+  // Las filas de rol (`monthly_schedule_roles`, migración 093) se guardan por el
+  // mismo manager que las celdas; se separan por la forma de la fila.
+  const savedRoles: Array<{ rol: string; orden: number }> = [];
   (service as unknown as { dataSource: { transaction: jest.Mock } }).dataSource = {
     transaction: jest.fn(async (fn: (m: unknown) => Promise<void>) => {
       await fn({
         delete: jest.fn(),
         create: jest.fn((_e: unknown, row: unknown) => row),
-        save: jest.fn(async (rows: Row[]) => saved.push(...rows)),
+        save: jest.fn(async (rows: unknown) => {
+          for (const row of Array.isArray(rows) ? rows : [rows]) {
+            if (row && typeof row === 'object' && 'rol' in row) {
+              savedRoles.push(row as { rol: string; orden: number });
+            } else {
+              saved.push(row as Row);
+            }
+          }
+        }),
         update: jest.fn(),
       });
     }),
@@ -51,12 +63,12 @@ function setup(opts: { locked: number; assignments?: Row[] }) {
   (service as unknown as { auditService: { log: jest.Mock } }).auditService = { log: jest.fn() };
   (service as unknown as { reportCache: Map<string, unknown> }).reportCache = new Map();
 
-  return { service, update, generate, saved };
+  return { service, update, generate, saved, savedRoles };
 }
 
 describe('MonthlySchedulingService.generateWithMotor', () => {
-  it('persists dto.personal before generating so UI-added roles are not dropped', async () => {
-    const { service, update, generate } = setup({ locked: 0 });
+  it('graba dto.personal antes de generar, para no perder los roles que agrego la UI', async () => {
+    const { service, generate, savedRoles } = setup({ locked: 0 });
     const personal = [
       { rol: 'titular_a', associateId: null, turnoId: 'AM', displayName: 'Titular A' },
       { rol: 'titular_b', associateId: null, turnoId: 'PM', displayName: 'Titular B' },
@@ -65,10 +77,10 @@ describe('MonthlySchedulingService.generateWithMotor', () => {
 
     await service.generateWithMotor('sched-1', { tipoCiclo: '12x3', personal }, 'user-1');
 
-    expect(update).toHaveBeenCalledWith(
-      'sched-1',
-      expect.objectContaining({ personal, updatedBy: 'user-1' }),
-    );
+    // Antes se grababa en el JSONB `monthly_schedules.personal`; desde la
+    // migración 093 son filas de `monthly_schedule_roles`, con su orden.
+    expect(savedRoles.map((r) => r.rol)).toEqual(['titular_a', 'titular_b', 'relevante']);
+    expect(savedRoles.map((r) => r.orden)).toEqual([0, 1, 2]);
     expect(generate).toHaveBeenCalledWith(personal, 31, expect.anything(), '12x3');
   });
 

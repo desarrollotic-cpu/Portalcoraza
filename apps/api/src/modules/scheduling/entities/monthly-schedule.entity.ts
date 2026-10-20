@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { MonthlyScheduleRole } from './monthly-schedule-role.entity';
 import { ScheduleAssignment } from './schedule-assignment.entity';
 
 export enum ScheduleStatus {
@@ -47,7 +48,14 @@ export class MonthlySchedule {
   })
   status!: ScheduleStatus;
 
-  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  /**
+   * Roles del cuadro, en la forma que usan el API y el cuadro.
+   *
+   * **No es una columna.** Desde la migración 093 los roles viven en
+   * `monthly_schedule_roles`; esto se arma desde `roles` al leer y se traduce a
+   * filas al guardar. La columna `personal` sigue en la base pero sin uso, y se
+   * elimina en una migración posterior.
+   */
   personal!: PersonalRole[];
 
   /** Nota del puesto en este mes (planilla Excel: Observaciones). */
@@ -68,6 +76,9 @@ export class MonthlySchedule {
 
   @OneToMany(() => ScheduleAssignment, (assignment) => assignment.schedule)
   assignments!: ScheduleAssignment[];
+
+  @OneToMany(() => MonthlyScheduleRole, (role) => role.schedule)
+  roles!: MonthlyScheduleRole[];
 
   /** Solo respuesta API: vigilantes del cuadro para mostrar nombres sin lookup masivo. */
   resolvedAssociates?: Array<{
