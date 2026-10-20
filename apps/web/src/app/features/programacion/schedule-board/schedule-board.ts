@@ -22,6 +22,7 @@ import {
   Turno,
 } from '../monthly-scheduling-api.service';
 import { daysInCalendarMonth } from '../utils/calendar-month';
+import { nextRelevante, nextRonda, nextTitular } from '../utils/next-role';
 import { guardMetrics, type GuardMetrics } from '../utils/schedule-metrics';
 
 interface CodeConfig {
@@ -2408,11 +2409,10 @@ export class ScheduleBoard implements OnInit {
   }
 
   addRole(): void {
-    const rol = `turno_${Date.now()}`;
-    this.personal.update((list) => [
-      ...list,
-      { rol, associateId: null, turnoId: 'AM', displayName: `Titular ${list.length + 1}` },
-    ]);
+    this.personal.update((list) => {
+      const { rol, displayName } = nextTitular(list);
+      return [...list, { rol, associateId: null, turnoId: 'AM', displayName }];
+    });
     this.dirty.set(true);
   }
 
@@ -2421,27 +2421,18 @@ export class ScheduleBoard implements OnInit {
    * titulares ese dia. El tipo lo fija la clave `relevante_N`, no el rotulo.
    */
   addRelevante(): void {
-    const n = this.personal().filter((r) => /^relevante(_\d+)?$/i.test(r.rol)).length;
-    const rol = n === 0 ? 'relevante' : `relevante_${n + 1}`;
-    this.personal.update((list) => [
-      ...list,
-      {
-        rol,
-        associateId: null,
-        turnoId: 'AM',
-        displayName: n === 0 ? 'Relevante' : `Relevante ${n + 1}`,
-      },
-    ]);
+    this.personal.update((list) => {
+      const { rol, displayName } = nextRelevante(list);
+      return [...list, { rol, associateId: null, turnoId: 'AM', displayName }];
+    });
     this.dirty.set(true);
   }
 
   addRonda(): void {
-    const n = this.personal().filter((r) => /^ronda(_\d+)?$/i.test(r.rol)).length;
-    const rol = n === 0 ? 'ronda' : `ronda_${n + 1}`;
-    this.personal.update((list) => [
-      ...list,
-      { rol, associateId: null, turnoId: 'PM', displayName: n === 0 ? 'Ronda' : `Ronda ${n + 1}` },
-    ]);
+    this.personal.update((list) => {
+      const { rol, displayName } = nextRonda(list);
+      return [...list, { rol, associateId: null, turnoId: 'PM', displayName }];
+    });
     this.dirty.set(true);
   }
 
