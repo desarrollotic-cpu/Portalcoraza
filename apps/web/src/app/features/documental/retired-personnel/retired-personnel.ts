@@ -331,7 +331,8 @@ export class RetiredPersonnelScreen implements OnInit {
   }): void {
     this.model.idNumber = m.idNumber;
     this.model.fullName = m.fullName;
-    if (!this.model.retirementDate) this.model.retirementDate = this.todayIso();
+    // Fecha de baja de RRHH si existe; nunca "hoy" por defecto.
+    if (!this.model.retirementDate) this.model.retirementDate = m.retirementDate ?? '';
     this.model.personType = 'ASOCIADO';
     this.foundInRrhh.set(true);
     this.existingCode.set(m.existingCode);
@@ -438,18 +439,11 @@ export class RetiredPersonnelScreen implements OnInit {
     this.error.set(null);
   }
 
-  private todayIso(): string {
-    const d = new Date();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${d.getFullYear()}-${m}-${day}`;
-  }
-
   private emptyModel() {
     return {
       fullName: '',
       idNumber: '',
-      retirementDate: this.todayIso(),
+      retirementDate: '',
       personType: 'ASOCIADO',
       retirementReason: '',
       observations: '',

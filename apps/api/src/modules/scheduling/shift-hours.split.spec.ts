@@ -11,17 +11,28 @@ describe('splitShiftHours', () => {
   });
 
   it('corrige el turno nocturno de 12 h: eran 7 horas liquidables, son 12', () => {
-    // N 18–06: 18–21 diurnas + 21–06 nocturnas (9). De esas 9, las últimas 4 son
-    // extra. Ordinarias = 8, de las cuales 5 llevan recargo nocturno.
+    // N 18–06: 18–19 diurna + 19–06 nocturnas (11, desde Ley 2466/2025). Ordinarias = 8,
+    // de las cuales 7 llevan recargo nocturno; las últimas 4 son extra nocturnas.
     const n = splitShiftHours('N', false)!;
-    expect(n).toEqual({ ord: 8, extD: 0, recN: 5, extN: 4, dom: 0 });
+    expect(n).toEqual({ ord: 8, extD: 0, recN: 7, extN: 4, dom: 0 });
     expect(horasLiquidables(n)).toBe(12);
+  });
+
+  it('usa el horario propio de la celda (09:00–21:00) y la noche desde las 19:00', () => {
+    // 09–17 ordinarias; 17–19 extra diurnas; 19–21 extra nocturnas.
+    const s = splitShiftHours('D', false, '09:00', '21:00')!;
+    expect(s).toEqual({ ord: 8, extD: 2, recN: 0, extN: 2, dom: 0 });
+    expect(horasLiquidables(s)).toBe(12);
+    // Sin horario propio se comporta como el código.
+    expect(splitShiftHours('D', false, null, null)).toEqual(splitShiftHours('D', false));
+    // Medias horas: 08:30–17:00 = 8,5 h (8 ord + 0,5 extra diurna).
+    expect(splitShiftHours('D', false, '08:30', '17:00')).toEqual({ ord: 8, extD: 0.5, recN: 0, extN: 0, dom: 0 });
   });
 
   it('cuenta los códigos que antes caían como novedad con 0 horas', () => {
     // N10 20–06 — está en la barra de acciones rápidas del cuadro.
     const n10 = splitShiftHours('N10', false)!;
-    expect(n10).toEqual({ ord: 8, extD: 0, recN: 7, extN: 2, dom: 0 });
+    expect(n10).toEqual({ ord: 8, extD: 0, recN: 8, extN: 2, dom: 0 });
     expect(horasLiquidables(n10)).toBe(10);
 
     expect(horasLiquidables(splitShiftHours('D9', false)!)).toBe(9);
@@ -33,7 +44,7 @@ describe('splitShiftHours', () => {
 
   it('en festivo liquida el turno completo en la bolsa de dominicales', () => {
     expect(splitShiftHours('D', true)).toEqual({ ord: 0, extD: 0, recN: 0, extN: 0, dom: 12 });
-    expect(splitShiftHours('N', true)).toEqual({ ord: 0, extD: 0, recN: 5, extN: 0, dom: 12 });
+    expect(splitShiftHours('N', true)).toEqual({ ord: 0, extD: 0, recN: 7, extN: 0, dom: 12 });
     expect(splitShiftHours('D8', true)).toEqual({ ord: 0, extD: 0, recN: 0, extN: 0, dom: 8 });
     expect(splitShiftHours('N8', true)).toEqual({ ord: 0, extD: 0, recN: 8, extN: 0, dom: 8 });
     expect(horasLiquidables(splitShiftHours('N', true)!)).toBe(12);

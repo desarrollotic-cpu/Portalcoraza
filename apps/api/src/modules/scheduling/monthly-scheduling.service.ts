@@ -619,6 +619,8 @@ export class MonthlySchedulingService {
     role: string;
     associateId: string | null;
     codigo: string | null;
+    inicio?: string | null;
+    fin?: string | null;
     jornada?: string | null;
     associateStatus: AssociateStatus | null;
     documentNumber?: string | null;
@@ -643,6 +645,8 @@ export class MonthlySchedulingService {
         : null,
       associateStatus: (r.associateStatus as AssociateStatusCode | null) ?? null,
       codigo: r.codigo,
+      inicio: r.inicio ?? null,
+      fin: r.fin ?? null,
       jornada: r.jornada ?? null,
       documentNumber: r.documentNumber ?? null,
     };
@@ -721,6 +725,8 @@ export class MonthlySchedulingService {
         'a.role AS role',
         'a.associate_id AS "associateId"',
         'a.codigo AS codigo',
+        'a.inicio AS inicio',
+        'a.fin AS fin',
         'a.jornada AS jornada',
         'assoc.status AS "associateStatus"',
         'assoc.document_number AS "documentNumber"',
@@ -736,6 +742,8 @@ export class MonthlySchedulingService {
         role: string;
         associateId: string | null;
         codigo: string | null;
+        inicio: string | null;
+        fin: string | null;
         jornada: string | null;
         associateStatus: AssociateStatus | null;
         documentNumber: string | null;
@@ -766,6 +774,8 @@ export class MonthlySchedulingService {
         'a.role AS role',
         'a.associate_id AS "associateId"',
         'a.codigo AS codigo',
+        'a.inicio AS inicio',
+        'a.fin AS fin',
         'a.jornada AS jornada',
         'assoc.status AS "associateStatus"',
         'assoc.document_number AS "documentNumber"',
@@ -781,6 +791,8 @@ export class MonthlySchedulingService {
         role: string;
         associateId: string | null;
         codigo: string | null;
+        inicio: string | null;
+        fin: string | null;
         jornada: string | null;
         associateStatus: AssociateStatus | null;
         documentNumber: string | null;
@@ -854,6 +866,8 @@ export class MonthlySchedulingService {
         associateName: info?.name ?? null,
         associateStatus: (info?.status as AssociateStatusCode | undefined) ?? null,
         codigo: a.codigo ?? null,
+        inicio: a.inicio ?? null,
+        fin: a.fin ?? null,
         jornada: a.jornada ?? null,
         documentNumber: info?.documentNumber ?? null,
       };
@@ -2239,6 +2253,8 @@ export class MonthlySchedulingService {
         'a.associate_id AS "associateId"',
         'a.day AS day',
         'a.codigo AS codigo',
+        'a.inicio AS inicio',
+        'a.fin AS fin',
         's.post_id AS "postId"',
         `COALESCE(NULLIF(p.code, ''), '') AS "postCode"`,
         `COALESCE(NULLIF(p.name, ''), '') AS "postName"`,
@@ -2247,6 +2263,8 @@ export class MonthlySchedulingService {
         associateId: string;
         day: string | number;
         codigo: string | null;
+        inicio: string | null;
+        fin: string | null;
         postId: string;
         postCode: string;
         postName: string;
@@ -2298,7 +2316,12 @@ export class MonthlySchedulingService {
       {
         associateId: string;
         puestos: Set<string>;
-        assignments: Array<{ day: number; codigo: string | null }>;
+        assignments: Array<{
+          day: number;
+          codigo: string | null;
+          inicio: string | null;
+          fin: string | null;
+        }>;
       }
     >();
 
@@ -2312,7 +2335,12 @@ export class MonthlySchedulingService {
         };
         byAssociate.set(a.associateId, entry);
       }
-      entry.assignments.push({ day: Number(a.day), codigo: a.codigo });
+      entry.assignments.push({
+        day: Number(a.day),
+        codigo: a.codigo,
+        inicio: a.inicio,
+        fin: a.fin,
+      });
       const label = [a.postCode, a.postName].filter(Boolean).join(' - ');
       if (label) entry.puestos.add(label);
     }
@@ -2371,7 +2399,7 @@ export class MonthlySchedulingService {
 
         // Reparto derivado de SHIFT_HOURS: misma fuente que usan las alertas y
         // el estado de vigilantes, así que los tres reportes cuentan lo mismo.
-        const split = splitShiftHours(code, isFestivo);
+        const split = splitShiftHours(code, isFestivo, assign.inicio, assign.fin);
 
         if (split) {
           if (this.motor.isNightCode(code)) countN++;
@@ -2775,6 +2803,8 @@ export class MonthlySchedulingService {
           'a.day AS day',
           'a.role AS role',
           'a.codigo AS codigo',
+          'a.inicio AS inicio',
+          'a.fin AS fin',
           'a.jornada AS jornada',
         ])
         .getRawMany<{
@@ -2784,6 +2814,8 @@ export class MonthlySchedulingService {
           day: string | number;
           role: string;
           codigo: string | null;
+          inicio: string | null;
+          fin: string | null;
           jornada: string | null;
         }>(),
       this.assignmentsRepo

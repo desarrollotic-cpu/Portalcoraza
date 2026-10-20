@@ -152,7 +152,8 @@ export class RetirementForm implements OnInit {
 
   form: FormGroup = this.fb.nonNullable.group({
     associateId: ['', Validators.required],
-    retirementDate: [new Date().toISOString().slice(0, 10), Validators.required],
+    // Sin fecha por defecto: quien registra la baja debe escribirla a conciencia.
+    retirementDate: ['', Validators.required],
     reasonId: ['', Validators.required],
     causeId: ['', Validators.required],
     liquidationStatus: ['PENDIENTE'],
