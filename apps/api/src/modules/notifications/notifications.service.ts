@@ -5,6 +5,23 @@ import { UserPost } from '../users/entities/user-post.entity';
 import { User } from '../users/entities/user.entity';
 import { Notification } from './entities/notification.entity';
 
+/**
+ * Días que se conservan las notificaciones ya leídas.
+ *
+ * El listado no se purgaba nunca y crecía sin tope. Mismo criterio que la
+ * auditoría (`AUDIT_RETENTION_DAYS`): un cron diario borra lo viejo.
+ */
+export const NOTIFICATIONS_RETENTION_DAYS = 8;
+
+/**
+ * Días que se conservan las notificaciones SIN leer.
+ *
+ * Se les da más margen a propósito: alguien de vacaciones o incapacitado
+ * volvería sin haber visto nunca lo que le llegó. Para que caduquen igual que
+ * las leídas, baja este número a 8.
+ */
+export const NOTIFICATIONS_UNREAD_RETENTION_DAYS = 30;
+
 @Injectable()
 export class NotificationsService {
   constructor(
@@ -87,5 +104,32 @@ export class NotificationsService {
     }
 
     return notification;
+  }
+
+  /**
+   * Borra notificaciones viejas. Devuelve cuántas quitó de cada tipo.
+   *
+   * Las leídas caducan antes que las no leídas: una notificación que el
+   * programador ya vio no aporta nada, pero una sin leer todavía puede.
+   */
+  async purgeOld(
+    readDays = NOTIFICATIONS_RETENTION_DAYS,
+    unreadDays = NOTIFICATIONS_UNREAD_RETENTION_DAYS,
+  ): Promise<{ leidas: number; sinLeer: number }> {
+    const leidas = await this.notificationsRepo
+      .createQueryBuilder()
+      .delete()
+      .where('read_at IS NOT NULL')
+      .andWhere(`read_at < NOW() - (:readDays * INTERVAL '1 day')`, { readDays })
+      .execute();
+
+    const sinLeer = await this.notificationsRepo
+      .createQueryBuilder()
+      .delete()
+      .where('read_at IS NULL')
+      .andWhere(`created_at < NOW() - (:unreadDays * INTERVAL '1 day')`, { unreadDays })
+      .execute();
+
+    return { leidas: leidas.affected ?? 0, sinLeer: sinLeer.affected ?? 0 };
   }
 }
