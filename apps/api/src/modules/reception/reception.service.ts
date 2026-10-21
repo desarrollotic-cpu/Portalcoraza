@@ -516,7 +516,7 @@ export class ReceptionService {
     );
     const now = new Date();
 
-    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const finished = new Promise<Buffer>((resolve, reject) => {
@@ -542,20 +542,21 @@ export class ReceptionService {
     }
 
     const xName = 40;
-    const xCc = 400;
+    const xCc = 410;
+    const right = 572; // carta 612 pt menos margen
     const writeHeader = () => {
       const y = doc.y;
       doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
-      doc.text('Nombre completo', xName, y, { width: 340 });
-      doc.text('Cédula', xCc, y, { width: 155 });
-      doc.moveTo(xName, y + 16).lineTo(555, y + 16).strokeColor('#94a3b8').stroke();
+      doc.text('Nombre completo', xName, y, { width: 350 });
+      doc.text('Cédula', xCc, y, { width: 162 });
+      doc.moveTo(xName, y + 16).lineTo(right, y + 16).strokeColor('#94a3b8').stroke();
       doc.y = y + 22;
     };
     writeHeader();
 
     doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
     for (const v of rows) {
-      if (doc.y > 770) {
+      if (doc.y > 730) {
         doc.addPage();
         writeHeader();
         doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
@@ -563,8 +564,8 @@ export class ReceptionService {
       const y = doc.y;
       const name = this.displayName(v);
       const cc = (v.documentNumber ?? '').trim() || '—';
-      doc.text(name, xName, y, { width: 340 });
-      doc.text(cc, xCc, y, { width: 155 });
+      doc.text(name, xName, y, { width: 350 });
+      doc.text(cc, xCc, y, { width: 162 });
       doc.y = Math.max(doc.y, y + 16);
     }
 
