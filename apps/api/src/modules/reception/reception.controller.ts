@@ -39,6 +39,15 @@ export class ReceptionController {
     return new StreamableFile(buffer);
   }
 
+  @Get('reports/inside')
+  @RequirePermissions('reception.view')
+  @Header('Content-Type', 'application/pdf')
+  @Header('Content-Disposition', 'attachment; filename="visitantes-dentro.pdf"')
+  async insideReport() {
+    const buffer = await this.service.buildInsidePdf();
+    return new StreamableFile(buffer);
+  }
+
   @Get('visitors')
   @RequirePermissions('reception.view')
   list(

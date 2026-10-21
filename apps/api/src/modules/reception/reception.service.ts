@@ -508,6 +508,73 @@ export class ReceptionService {
     return finished;
   }
 
+  /** Todos los que están dentro ahora (sin salida), sin tope de página. */
+  async buildInsidePdf(): Promise<Buffer> {
+    const rows = await this.visitorsRepo.find({
+      where: { exitAt: IsNull() },
+      order: { entryAt: 'ASC' },
+    });
+    const now = new Date();
+
+    const doc = new PDFDocument({ margin: 40, size: 'A4' });
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const finished = new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    doc.fontSize(16).text('Portal Coraza — Recepción', { align: 'center' });
+    doc.moveDown(0.35);
+    doc.fontSize(13).text('Visitantes dentro', { align: 'center' });
+    doc
+      .fontSize(9)
+      .text(
+        `Generado: ${this.formatDateTime(now)} · Total: ${rows.length} persona(s) dentro`,
+        { align: 'center' },
+      );
+    doc.moveDown();
+
+    if (!rows.length) {
+      doc.fontSize(11).text('No hay visitantes dentro en este momento.');
+      doc.end();
+      return finished;
+    }
+
+    for (const v of rows) {
+      const dto = this.toDto(v);
+      doc.fontSize(11).fillColor('#0f172a').text(dto.displayName, { continued: false });
+      doc
+        .fontSize(9)
+        .fillColor('#334155')
+        .text(
+          [
+            dto.documentNumber ? `C.C. ${dto.documentNumber}` : null,
+            dto.isAssociate ? 'Tipo: Asociado' : 'Tipo: Visitante',
+            `Ingreso: ${this.formatDateTime(v.entryAt)}`,
+            `Permanencia: ${this.durationLabel(v.entryAt, now)}`,
+            dto.visitReason ? `Motivo: ${dto.visitReason}` : null,
+            dto.authorizedBy ? `Autorizado por: ${dto.authorizedBy}` : null,
+            dto.originPlace ? `Origen: ${dto.originPlace}` : null,
+            dto.transportMeans
+              ? `Desplazamiento: ${this.transportLabel(dto.transportMeans)}${
+                  dto.travelTimeMinutes != null ? ` (${dto.travelTimeMinutes} min)` : ''
+                }`
+              : null,
+            dto.notes ? `Notas: ${dto.notes}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · '),
+          { width: 515 },
+        );
+      doc.moveDown(0.55);
+      if (doc.y > 760) doc.addPage();
+    }
+
+    doc.end();
+    return finished;
+  }
+
   private bogotaBounds(now = new Date()) {
     const parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Bogota',

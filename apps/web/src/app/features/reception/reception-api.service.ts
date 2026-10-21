@@ -136,6 +136,10 @@ export class ReceptionApiService {
     });
   }
 
+  downloadInsidePdf(): Observable<Blob> {
+    return this.http.get(`${this.baseUrl}/reports/inside`, { responseType: 'blob' });
+  }
+
   triggerDownload(blob: Blob, filename: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
