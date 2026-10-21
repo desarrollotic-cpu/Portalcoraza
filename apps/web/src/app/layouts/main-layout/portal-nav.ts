@@ -110,7 +110,8 @@ export const PROGRAMACION_NAV: ModuleNavItem[] = [
 
 export const NOMINA_NAV: ModuleNavItem[] = [
   { label: 'Periodos y colillas', route: '/nomina', permission: 'payroll.view', exact: true, icon: LucideBriefcaseBusiness },
-  { label: 'Conversión de nómina', route: '/nomina/conversion', permission: 'payroll.convert', exact: true, icon: LucideFileSpreadsheet },
+  { label: 'Conversión de nómina operativa', route: '/nomina/conversion', permission: 'payroll.convert', exact: true, icon: LucideFileSpreadsheet },
+  { label: 'Conversión de nómina Admon', route: '/nomina/conversion-admon', permission: 'payroll.convert', exact: true, icon: LucideFileSpreadsheet },
 ];
 
 export const DOCUMENTAL_NAV: ModuleNavItem[] = [

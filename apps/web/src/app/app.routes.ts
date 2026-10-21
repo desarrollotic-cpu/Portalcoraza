@@ -103,6 +103,17 @@ export const routes: Routes = [
           ),
       },
       {
+        // Conversión de la compensación quincenal del personal administrativo.
+        // Formato de salida idéntico al de la conversión operativa.
+        path: 'nomina/conversion-admon',
+        canActivate: [permissionGuard],
+        data: { permission: 'payroll.convert' },
+        loadComponent: () =>
+          import('./features/payroll/conversion/conversion-admon').then(
+            (m) => m.ConversionAdmonComponent,
+          ),
+      },
+      {
         // Gestión Humana nativa del portal (NestJS + Supabase). Ya no abre la app externa en Render.
         path: 'rrhh',
         canActivate: [permissionGuard],
