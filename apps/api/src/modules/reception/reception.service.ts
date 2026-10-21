@@ -508,12 +508,12 @@ export class ReceptionService {
     return finished;
   }
 
-  /** Todos los que están dentro ahora (sin salida), sin tope de página. */
+  /** Listado de evacuación: solo quienes están dentro, nombre y cédula. */
   async buildInsidePdf(): Promise<Buffer> {
-    const rows = await this.visitorsRepo.find({
-      where: { exitAt: IsNull() },
-      order: { entryAt: 'ASC' },
-    });
+    const rows = await this.visitorsRepo.find({ where: { exitAt: IsNull() } });
+    rows.sort((a, b) =>
+      this.displayName(a).localeCompare(this.displayName(b), 'es', { sensitivity: 'base' }),
+    );
     const now = new Date();
 
     const doc = new PDFDocument({ margin: 40, size: 'A4' });
@@ -525,50 +525,47 @@ export class ReceptionService {
     });
 
     doc.fontSize(16).text('Portal Coraza — Recepción', { align: 'center' });
-    doc.moveDown(0.35);
-    doc.fontSize(13).text('Visitantes dentro', { align: 'center' });
+    doc.moveDown(0.25);
+    doc.fontSize(13).text('Listado de evacuación', { align: 'center' });
     doc
       .fontSize(9)
       .text(
-        `Generado: ${this.formatDateTime(now)} · Total: ${rows.length} persona(s) dentro`,
+        `Personas dentro ahora · ${this.formatDateTime(now)} · Total: ${rows.length}`,
         { align: 'center' },
       );
     doc.moveDown();
 
     if (!rows.length) {
-      doc.fontSize(11).text('No hay visitantes dentro en este momento.');
+      doc.fontSize(11).text('No hay personas dentro en este momento.');
       doc.end();
       return finished;
     }
 
+    const xName = 40;
+    const xCc = 400;
+    const writeHeader = () => {
+      const y = doc.y;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
+      doc.text('Nombre completo', xName, y, { width: 340 });
+      doc.text('Cédula', xCc, y, { width: 155 });
+      doc.moveTo(xName, y + 16).lineTo(555, y + 16).strokeColor('#94a3b8').stroke();
+      doc.y = y + 22;
+    };
+    writeHeader();
+
+    doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
     for (const v of rows) {
-      const dto = this.toDto(v);
-      doc.fontSize(11).fillColor('#0f172a').text(dto.displayName, { continued: false });
-      doc
-        .fontSize(9)
-        .fillColor('#334155')
-        .text(
-          [
-            dto.documentNumber ? `C.C. ${dto.documentNumber}` : null,
-            dto.isAssociate ? 'Tipo: Asociado' : 'Tipo: Visitante',
-            `Ingreso: ${this.formatDateTime(v.entryAt)}`,
-            `Permanencia: ${this.durationLabel(v.entryAt, now)}`,
-            dto.visitReason ? `Motivo: ${dto.visitReason}` : null,
-            dto.authorizedBy ? `Autorizado por: ${dto.authorizedBy}` : null,
-            dto.originPlace ? `Origen: ${dto.originPlace}` : null,
-            dto.transportMeans
-              ? `Desplazamiento: ${this.transportLabel(dto.transportMeans)}${
-                  dto.travelTimeMinutes != null ? ` (${dto.travelTimeMinutes} min)` : ''
-                }`
-              : null,
-            dto.notes ? `Notas: ${dto.notes}` : null,
-          ]
-            .filter(Boolean)
-            .join(' · '),
-          { width: 515 },
-        );
-      doc.moveDown(0.55);
-      if (doc.y > 760) doc.addPage();
+      if (doc.y > 770) {
+        doc.addPage();
+        writeHeader();
+        doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
+      }
+      const y = doc.y;
+      const name = this.displayName(v);
+      const cc = (v.documentNumber ?? '').trim() || '—';
+      doc.text(name, xName, y, { width: 340 });
+      doc.text(cc, xCc, y, { width: 155 });
+      doc.y = Math.max(doc.y, y + 16);
     }
 
     doc.end();
