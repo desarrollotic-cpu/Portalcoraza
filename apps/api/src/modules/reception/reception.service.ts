@@ -270,7 +270,8 @@ export class ReceptionService {
     } = {},
   ) {
     const page = Math.max(1, Number(params.page) || 1);
-    const limit = Math.min(Math.max(1, Number(params.limit) || 50), 100);
+    const cap = params.insideOnly ? 2000 : 100;
+    const limit = Math.min(Math.max(1, Number(params.limit) || 50), cap);
 
     const qb = this.visitorsRepo
       .createQueryBuilder('v')
@@ -516,7 +517,14 @@ export class ReceptionService {
     );
     const now = new Date();
 
-    const doc = new PDFDocument({ margin: 40, size: 'LETTER' });
+    // Carta Colombia = 8.5 × 11 in (no oficio 8.5 × 13 ni A4).
+    const carta: [number, number] = [612, 792];
+    const doc = new PDFDocument({ margin: 40, size: carta, layout: 'portrait' });
+    // pdfkit no tipa el catálogo; así la impresora no escala la carta a oficio.
+    (doc as unknown as { _root: { data: Record<string, unknown> } })._root.data.ViewerPreferences = {
+      PrintScaling: 'None',
+      PickTrayByPDFSize: true,
+    };
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     const finished = new Promise<Buffer>((resolve, reject) => {
@@ -557,7 +565,7 @@ export class ReceptionService {
     doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
     for (const v of rows) {
       if (doc.y > 730) {
-        doc.addPage();
+        doc.addPage({ size: carta, layout: 'portrait', margin: 40 });
         writeHeader();
         doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
       }
