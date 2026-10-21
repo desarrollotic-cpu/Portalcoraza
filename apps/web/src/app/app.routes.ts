@@ -113,6 +113,7 @@ export const routes: Routes = [
             'hr_alerts.view',
             'retirements.view',
             'absences.view',
+            'sanctions.view',
             'job_positions.view',
             'work_centers.view',
             'catalogs.view',
@@ -138,6 +139,13 @@ export const routes: Routes = [
               import('./features/rrhh/absenteeism-panel/absenteeism-panel').then(
                 (m) => m.AbsenteeismPanel,
               ),
+          },
+          {
+            path: 'sanciones',
+            canActivate: [permissionGuard],
+            data: { permission: 'sanctions.view' },
+            loadComponent: () =>
+              import('./features/rrhh/sanctions/sanctions-panel').then((m) => m.SanctionsPanel),
           },
           {
             path: 'asociados',

@@ -10,6 +10,7 @@ import {
   LucideCircleX,
   LucideDownload,
   LucideFileText,
+  LucideGavel,
   LucideHistory,
   LucideTrash2,
   LucideUpload,
@@ -23,6 +24,7 @@ import { ToastService } from '../../../shared/services/toast.service';
 import { printRotulo, rotuloFromAssociate } from '../../documental/rotulo-print';
 import { prorrogaReached180 } from '../absenteeism-panel/prorroga-180';
 import { HrApiService } from '../services/hr-api.service';
+import { AssociateSanctionsTab } from '../sanctions/associate-sanctions-tab';
 import type {
   Associate,
   AssociateAbsence,
@@ -44,7 +46,7 @@ const DOCUMENT_LABELS: Record<AssociateDocumentKind, string> = {
   OTRO: 'Otro',
 };
 
-type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
+type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'sanciones' | 'alertas';
 
 /**
  * Hoja de vida digital del asociado:
@@ -52,7 +54,7 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
  */
 @Component({
   selector: 'app-associate-detail',
-  imports: [CommonModule, FormsModule, RouterLink, Icon, FileStatusChip],
+  imports: [CommonModule, FormsModule, RouterLink, Icon, FileStatusChip, AssociateSanctionsTab],
   template: `
     <div class="hr-page">
       @if (loading()) {
@@ -148,6 +150,16 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
               (click)="tab.set('ausencias')"
             >
               <app-icon [icon]="icons.CalendarOff" [size]="16" /> Ausencias ({{ absences().length }})
+            </button>
+          }
+          @if (auth.hasPermission('sanctions.view')) {
+            <button
+              type="button"
+              class="hr-tab"
+              [class.active]="tab() === 'sanciones'"
+              (click)="tab.set('sanciones')"
+            >
+              <app-icon [icon]="icons.Gavel" [size]="16" /> Sanciones disciplinarias
             </button>
           }
           @if (auth.hasPermission('hr_alerts.view')) {
@@ -448,6 +460,11 @@ type TabId = 'personal' | 'laboral' | 'documentos' | 'ausencias' | 'alertas';
           </section>
         }
 
+        <!-- Sanciones disciplinarias -->
+        @if (tab() === 'sanciones') {
+          <app-associate-sanctions-tab [associateId]="a.id" (changed)="reload()" />
+        }
+
         <!-- Alertas y bitácora -->
         @if (tab() === 'alertas') {
           <section class="hr-tab-panel">
@@ -530,6 +547,7 @@ export class AssociateDetail implements OnInit {
     Download: LucideDownload,
     Trash: LucideTrash2,
     CalendarOff: LucideCalendarOff,
+    Gavel: LucideGavel,
   };
 
   readonly docKinds: { value: AssociateDocumentKind; label: string }[] = Object.entries(DOCUMENT_LABELS)
@@ -560,6 +578,12 @@ export class AssociateDetail implements OnInit {
       return;
     }
     this.load(id);
+  }
+
+  /** Recarga la ficha (p. ej. tras una sanción, que cambia el estado del asociado). */
+  reload(): void {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) this.load(id);
   }
 
   private load(id: string): void {
