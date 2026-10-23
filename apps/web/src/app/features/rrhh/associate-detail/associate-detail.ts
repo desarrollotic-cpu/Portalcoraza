@@ -9,8 +9,8 @@ import {
   LucideCircleCheck,
   LucideCircleX,
   LucideDownload,
+  LucideAlertTriangle,
   LucideFileText,
-  LucideGavel,
   LucideHistory,
   LucideTrash2,
   LucideUpload,
@@ -547,7 +547,7 @@ export class AssociateDetail implements OnInit {
     Download: LucideDownload,
     Trash: LucideTrash2,
     CalendarOff: LucideCalendarOff,
-    Gavel: LucideGavel,
+    Gavel: LucideAlertTriangle,
   };
 
   readonly docKinds: { value: AssociateDocumentKind; label: string }[] = Object.entries(DOCUMENT_LABELS)
