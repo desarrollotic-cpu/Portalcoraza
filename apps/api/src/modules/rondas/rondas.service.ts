@@ -395,15 +395,39 @@ export class RondasService {
     return row;
   }
 
+  /**
+   * Desactiva el punto y renumera los que quedan, sin huecos.
+   *
+   * El numero no es decorativo: en el sitio hay una marca fisica con ese
+   * numero, y el vigilante la busca en la lista. Si al borrar el 4 la lista
+   * salta del 3 al 5, el logo numero 4 que esta pegado en la pared no
+   * corresponde con nada.
+   */
   async eliminarPunto(user: JwtPayload, id: string) {
     const [row] = await this.q(
       `UPDATE rondas_puntos SET activo = false
        WHERE id = $1 AND tenant_id = $2 AND activo = true
-       RETURNING id`,
+       RETURNING id, ruta_id AS "rutaId"`,
       [id, user.tenantId],
     );
     if (!row) throw new BadRequestException('Punto no existe');
+    if (row.rutaId) await this.renumerar(row.rutaId, user.tenantId);
     return { ok: true, id: row.id };
+  }
+
+  /** Deja los puntos activos de la ronda en 1, 2, 3... respetando su orden. */
+  private async renumerar(rutaId: string, tenantId: string) {
+    await this.q(
+      `UPDATE rondas_puntos p
+          SET orden = nuevo.fila
+         FROM (
+           SELECT id, ROW_NUMBER() OVER (ORDER BY orden, created_at) AS fila
+             FROM rondas_puntos
+            WHERE ruta_id = $1 AND tenant_id = $2 AND activo = true
+         ) AS nuevo
+        WHERE p.id = nuevo.id AND p.orden <> nuevo.fila`,
+      [rutaId, tenantId],
+    );
   }
 
   async registrarLote(user: JwtPayload, marcaciones: MarcacionIn[]) {

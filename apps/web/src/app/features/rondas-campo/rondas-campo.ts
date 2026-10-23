@@ -22,6 +22,8 @@ const MARCAS_KEY = 'rondas_campo_marcas';
 const ALERTAS_KEY = 'rondas_campo_alertas';
 const PUNTOS_KEY = 'rondas_campo_puntos';
 const VIG_KEY = 'rondas_campo_vig';
+/** Marca si hay una ronda abierta en este telefono. */
+const RONDA_ABIERTA_KEY = 'rondas.abierta';
 
 type AlertaLocal = {
   uuid: string;
@@ -241,6 +243,18 @@ const TIPOS_ALERTA = [
           @if (!puntos().length) {
             <p class="nota">Aún no hay puntos de este puesto. Cuando Sistemas los tome y haya señal, aparecen aquí solos.</p>
           }
+
+          @if (!enRonda()) {
+            <button type="button" class="btn-grande iniciar" (click)="iniciarRonda()">
+              Iniciar ronda
+            </button>
+            <p class="nota">Pulsa para empezar. Hasta entonces no se marca ningún punto.</p>
+          } @else {
+            <button type="button" class="btn-grande terminar" (click)="pedirTerminar()">
+              Terminar ronda
+            </button>
+          }
+
           <ul class="puntos">
             @for (pt of puntos(); track pt.id) {
               <li [class.ok]="marcadoHoy(pt.id)">
@@ -264,7 +278,7 @@ const TIPOS_ALERTA = [
                     }
                   </small>
                 </div>
-                @if (!marcadoHoy(pt.id)) {
+                @if (enRonda() && !marcadoHoy(pt.id)) {
                   <button
                     type="button"
                     class="marcar"
@@ -309,7 +323,6 @@ const TIPOS_ALERTA = [
             }
           </p>
           <button type="button" class="alerta-btn" (click)="alertaAbierta.set(true)">Alerta</button>
-          <button type="button" class="link" (click)="pedirTerminar()">Terminar ronda</button>
         </footer>
       }
 
@@ -333,11 +346,16 @@ const TIPOS_ALERTA = [
     :host {
       display: block;
       min-height: 100dvh;
+      /* Pantalla de campo: se usa con una mano y a veces de noche. Nada debe
+         salirse a los lados ni obligar a desplazar horizontalmente. */
+      overflow-x: hidden;
       color: var(--text-primary);
       background: var(--gradient-page);
       font-family: var(--font-sans);
     }
     .campo {
+      width: 100%;
+      box-sizing: border-box;
       max-width: 480px;
       margin: 0 auto;
       min-height: 100dvh;
@@ -377,7 +395,11 @@ const TIPOS_ALERTA = [
       color: var(--text-primary);
     }
     input[readonly] { background: var(--primary-50); font-weight: 600; color: var(--primary-800); }
-    ul.sugerencias, ul { list-style: none; margin: 0.5rem 0 0; padding: 0; max-height: 40vh; overflow: auto; }
+    ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }
+    /* Solo el buscador de sugerencias se desplaza. Antes esta regla aplicaba a
+       TODAS las listas, incluida la de puntos: le metia alto maximo y scroll
+       propio, que en pantalla angosta salia tambien en horizontal. */
+    ul.sugerencias { max-height: 40vh; overflow-y: auto; overflow-x: hidden; }
     ul li { margin: 0 0 0.35rem; }
     ul button, .cta, .ghost, footer button {
       width: 100%; min-height: 48px; text-align: left; padding: 0.75rem; border: 0;
@@ -399,7 +421,8 @@ const TIPOS_ALERTA = [
     .aviso { background: var(--success-bg); color: var(--success-text); }
     .nota { background: var(--warning-bg); color: var(--warning-text); }
     .brujula-wrap {
-      position: relative; width: 220px; height: 220px; margin: 0.5rem auto 0.25rem;
+      overflow: hidden;
+      position: relative; width: min(220px, 70vw); height: min(220px, 70vw); margin: 0.5rem auto 0.25rem;
     }
     .notch {
       position: absolute; top: -6px; left: 50%; z-index: 2;
@@ -408,7 +431,7 @@ const TIPOS_ALERTA = [
       border-top: 12px solid var(--primary-600);
     }
     .brujula {
-      width: 220px; height: 220px; border-radius: 50%;
+      width: 100%; height: 100%; border-radius: 50%;
       background: var(--gradient-hero);
       border: 6px solid var(--primary-600);
       box-shadow: var(--shadow-sm);
@@ -462,6 +485,17 @@ const TIPOS_ALERTA = [
     }
     .puntos li.ok b { background: var(--success-600, #15803d); color: #fff; }
     .puntos small { display: block; color: var(--text-muted); }
+    /* min-width:0 deja que el texto largo se parta en vez de empujar la fila
+       y sacar scroll horizontal en pantallas angostas. */
+    .puntos li > div { flex: 1; min-width: 0; }
+    .puntos li strong, .puntos li small { overflow-wrap: anywhere; }
+    .btn-grande {
+      width: 100%; min-height: 52px; border: 0; border-radius: var(--radius-sm);
+      font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer;
+      color: #fff; margin: 0.3rem 0;
+    }
+    .btn-grande.iniciar { background: var(--success-600, #15803d); }
+    .btn-grande.terminar { background: var(--error-600, #b91c1c); }
     .puntos li > div { flex: 1; }
     .marcar {
       width: auto; min-height: 44px; padding: 0.5rem 1rem; border: 0;
@@ -525,6 +559,11 @@ export class RondasCampo implements OnDestroy {
   rondaNombre = '';
   rondaClave = '';
   readonly marcando = signal('');
+  /**
+   * Ronda en curso. Se guarda en el telefono: si la pantalla se recarga o se
+   * cierra sin querer a mitad del recorrido, la ronda sigue abierta.
+   */
+  readonly enRonda = signal(localStorage.getItem(RONDA_ABIERTA_KEY) === '1');
   entrando = signal(false);
   guardando = signal(false);
   sincronizando = signal(false);
@@ -1326,12 +1365,21 @@ export class RondasCampo implements OnDestroy {
   /** Confirma antes de cortar el GPS: terminar por error deja la ronda a medias. */
   readonly confirmarTerminar = signal(false);
 
+  iniciarRonda() {
+    this.enRonda.set(true);
+    localStorage.setItem(RONDA_ABIERTA_KEY, '1');
+    this.aviso.set('Ronda iniciada. Ve a cada punto y pulsa Marcar.');
+    this.iniciarGps();
+  }
+
   pedirTerminar() {
     this.confirmarTerminar.set(true);
   }
 
   salirRonda() {
     this.confirmarTerminar.set(false);
+    this.enRonda.set(false);
+    localStorage.removeItem(RONDA_ABIERTA_KEY);
     this.pararGps();
     this.api.clearCampoSesion();
     this.vista.set('inicio');
