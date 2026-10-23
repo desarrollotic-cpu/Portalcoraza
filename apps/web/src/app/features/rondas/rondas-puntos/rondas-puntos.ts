@@ -242,6 +242,8 @@ import { GpsError, leerGpsMejor } from '../rondas-gps';
       width: 100%; max-width: 100%;
       padding: 0.6rem 0.7rem; border: 1px solid var(--border, #d1d5db);
       border-radius: 0.4rem; font: inherit; font-weight: 400; min-height: 44px;
+      /* 16px: por debajo, Android amplia solo al tocar el campo. */
+      font-size: 16px;
     }
     .cta {
       min-height: 48px; border: 0; border-radius: 0.5rem;

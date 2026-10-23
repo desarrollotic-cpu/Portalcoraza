@@ -394,10 +394,14 @@ const TIPOS_ALERTA = [
     }
     .puesto-ok { margin: -0.4rem 0 0.8rem; font-size: 0.85rem; color: var(--primary-700); font-weight: 600; }
     label { display: block; font-size: 0.85rem; font-weight: 600; margin: 0.6rem 0; color: var(--text-primary); }
-    input, select {
+    input, select, textarea {
       width: 100%; margin-top: 0.25rem; padding: 0.75rem; border: 1px solid var(--border);
       border-radius: var(--radius-sm); font: inherit; box-sizing: border-box; background: var(--surface);
       color: var(--text-primary);
+      /* 16px exactos: por debajo de eso Android amplia solo al tocar el campo,
+         y con la pantalla ampliada aparece scroll lateral y el vigilante se
+         pierde. Heredaba 0.85rem del label. */
+      font-size: 16px;
     }
     input[readonly] { background: var(--primary-50); font-weight: 600; color: var(--primary-800); }
     ul { list-style: none; margin: 0.5rem 0 0; padding: 0; }
