@@ -30,6 +30,8 @@ type PuntoRow = {
 type MarcacionIn = {
   uuidCliente: string;
   puntoId: string;
+  /** Recorrido al que pertenece, si el telefono lo mando. */
+  sesionUuid?: string;
   latitud: number;
   longitud: number;
   precisionMetros?: number;
@@ -430,6 +432,46 @@ export class RondasService {
     );
   }
 
+  /**
+   * Abre o cierra el recorrido. Idempotente por `uuidCliente`: el telefono
+   * reenvia lo mismo cada vez que sincroniza, y la ronda puede haber empezado
+   * sin senal.
+   */
+  async registrarSesion(
+    user: JwtPayload,
+    dto: { uuidCliente: string; inicio: string; fin?: string | null; dispositivoId?: string },
+  ) {
+    if (!user.rutaId || !user.postId) {
+      throw new ForbiddenException('Sesión de campo inválida');
+    }
+    const inicio = new Date(dto.inicio);
+    if (Number.isNaN(inicio.getTime())) {
+      throw new BadRequestException('Hora de inicio inválida');
+    }
+    const fin = dto.fin ? new Date(dto.fin) : null;
+    if (fin && (Number.isNaN(fin.getTime()) || fin < inicio)) {
+      throw new BadRequestException('Hora de fin inválida');
+    }
+    const [row] = await this.q(
+      `INSERT INTO rondas_sesiones
+         (tenant_id, uuid_cliente, ruta_id, post_id, inicio, fin, dispositivo_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (uuid_cliente) DO UPDATE
+         SET fin = COALESCE(EXCLUDED.fin, rondas_sesiones.fin)
+       RETURNING id, inicio, fin`,
+      [
+        user.tenantId,
+        dto.uuidCliente,
+        user.rutaId,
+        user.postId,
+        inicio.toISOString(),
+        fin ? fin.toISOString() : null,
+        dto.dispositivoId || null,
+      ],
+    );
+    return row;
+  }
+
   async registrarLote(user: JwtPayload, marcaciones: MarcacionIn[]) {
     if (!user.rutaId || !user.postId) {
       throw new ForbiddenException('Sesión de campo inválida');
@@ -478,11 +520,21 @@ export class RondasService {
           continue;
         }
         const [dup] = await this.q(
-          `SELECT 1 AS ok FROM rondas_marcaciones
-           WHERE ruta_id = $1 AND punto_id = $2
-             AND fecha_hora > $3
-           LIMIT 1`,
-          [user.rutaId, punto.id, new Date(fecha.getTime() - ANTI_DUP_MS)],
+          // Dentro del mismo recorrido, un punto se marca una vez. Entre
+          // recorridos distintos no es duplicado: el vigilante hace varias
+          // rondas por turno y pasa por los mismos puntos.
+          `SELECT 1 AS ok FROM rondas_marcaciones m
+            WHERE m.punto_id = $2
+              AND (
+                ($4::uuid IS NOT NULL
+                  AND m.sesion_id = (SELECT id FROM rondas_sesiones WHERE uuid_cliente = $4))
+                OR
+                -- Sin recorrido (marca vieja o telefono que lo perdio) se
+                -- vuelve al criterio de tiempo, para no duplicar.
+                ($4::uuid IS NULL AND m.ruta_id = $1 AND m.fecha_hora > $3)
+              )
+            LIMIT 1`,
+          [user.rutaId, punto.id, new Date(fecha.getTime() - ANTI_DUP_MS), m.sesionUuid || null],
         );
         if (dup) {
           duplicadas.push(uuid);
@@ -492,8 +544,9 @@ export class RondasService {
           `INSERT INTO rondas_marcaciones
             (tenant_id, uuid_cliente, punto_id, ruta_id, post_id,
              latitud, longitud, precision_metros, distancia_al_punto, altitud,
-             fecha_hora, dispositivo_id, es_mock)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,false)
+             fecha_hora, dispositivo_id, es_mock, sesion_id)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,false,
+                   (SELECT id FROM rondas_sesiones WHERE uuid_cliente = $13))
            ON CONFLICT (uuid_cliente) DO NOTHING
            RETURNING id`,
           [
@@ -509,6 +562,7 @@ export class RondasService {
             m.altitud ?? null,
             fecha.toISOString(),
             m.dispositivoId || null,
+            m.sesionUuid || null,
           ],
         );
         if (info.length) aceptadas.push(uuid);

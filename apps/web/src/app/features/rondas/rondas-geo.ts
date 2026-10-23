@@ -74,6 +74,12 @@ export type MarcaLocal = {
   dispositivoId: string;
   estado: 'pendiente' | 'enviado';
   altitud?: number | null;
+  /**
+   * Recorrido al que pertenece. El vigilante hace varias rondas por turno y
+   * cada una empieza con todos los puntos sin marcar: si el estado fuera por
+   * dia, la segunda ronda saldria entera marcada.
+   */
+  sesionUuid?: string;
 };
 
 export function candidatoMarcacion(opts: {

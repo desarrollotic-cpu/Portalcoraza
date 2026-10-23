@@ -41,6 +41,17 @@ export class RondasController {
     return this.rondas.puntosDeRuta(user.rutaId, user.tenantId);
   }
 
+  /** Abre o cierra el recorrido. Idempotente: el telefono lo reenvia al sincronizar. */
+  @Post('campo/sesion')
+  @RequirePermissions('rondas.marcar')
+  sesionCampo(
+    @CurrentUser() user: JwtPayload,
+    @Body()
+    body: { uuidCliente: string; inicio: string; fin?: string | null; dispositivoId?: string },
+  ) {
+    return this.rondas.registrarSesion(user, body);
+  }
+
   @Post('campo/marcaciones')
   @RequirePermissions('rondas.marcar')
   marcar(

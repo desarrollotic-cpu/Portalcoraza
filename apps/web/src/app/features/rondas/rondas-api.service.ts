@@ -153,9 +153,24 @@ export class RondasApiService {
     });
   }
 
+  /** Abre o cierra el recorrido. Se reenvia al sincronizar: es idempotente. */
+  registrarSesion(body: {
+    uuidCliente: string;
+    inicio: string;
+    fin?: string | null;
+    dispositivoId?: string;
+  }): Observable<{ id: string; inicio: string; fin: string | null }> {
+    return this.http.post<{ id: string; inicio: string; fin: string | null }>(
+      `${this.base}/campo/sesion`,
+      body,
+      { headers: this.campoHeaders() },
+    );
+  }
+
   enviarMarcaciones(marcaciones: Array<{
     uuidCliente: string;
     puntoId: string;
+    sesionUuid?: string;
     latitud: number;
     longitud: number;
     precisionMetros: number;

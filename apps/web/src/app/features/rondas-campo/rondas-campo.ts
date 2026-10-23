@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { computed, inject, signal, Component, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
@@ -22,8 +22,19 @@ const MARCAS_KEY = 'rondas_campo_marcas';
 const ALERTAS_KEY = 'rondas_campo_alertas';
 const PUNTOS_KEY = 'rondas_campo_puntos';
 const VIG_KEY = 'rondas_campo_vig';
-/** Marca si hay una ronda abierta en este telefono. */
-const RONDA_ABIERTA_KEY = 'rondas.abierta';
+/** Recorrido en curso: su identificador y la hora en que empezo. */
+const RONDA_ABIERTA_KEY = 'rondas.sesion';
+
+type SesionLocal = { uuid: string; inicio: string };
+
+function leerSesion(): SesionLocal | null {
+  try {
+    const raw = localStorage.getItem(RONDA_ABIERTA_KEY);
+    return raw ? (JSON.parse(raw) as SesionLocal) : null;
+  } catch {
+    return null;
+  }
+}
 
 type AlertaLocal = {
   uuid: string;
@@ -578,7 +589,10 @@ export class RondasCampo implements OnDestroy {
    * Ronda en curso. Se guarda en el telefono: si la pantalla se recarga o se
    * cierra sin querer a mitad del recorrido, la ronda sigue abierta.
    */
-  readonly enRonda = signal(localStorage.getItem(RONDA_ABIERTA_KEY) === '1');
+  readonly sesion = signal<SesionLocal | null>(leerSesion());
+  /** Recorrido ya cerrado cuya hora de fin falta por enviar. */
+  private ultimaCerrada: (SesionLocal & { fin: string }) | null = null;
+  readonly enRonda = computed(() => this.sesion() !== null);
   entrando = signal(false);
   guardando = signal(false);
   sincronizando = signal(false);
@@ -1210,11 +1224,8 @@ export class RondasCampo implements OnDestroy {
       // distancia y el reporte la señala.
       const lejos = !dentroDelRadio(dist, radio);
 
-      const yaMarcado = this.marcas().some(
-        (m) => m.puntoId === pt.id && esHoyBogota(m.fechaHora),
-      );
-      if (yaMarcado) {
-        this.gpsNota.set(`${pt.nombre} ya está marcado hoy.`);
+      if (this.marcadoHoy(pt.id)) {
+        this.gpsNota.set(`${pt.nombre} ya está marcado en esta ronda.`);
         return;
       }
 
@@ -1229,6 +1240,7 @@ export class RondasCampo implements OnDestroy {
         dispositivoId: this.api.deviceId(),
         estado: 'pendiente',
         altitud: l.altitude ?? null,
+        sesionUuid: this.sesion()?.uuid,
       };
 
       const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
@@ -1261,8 +1273,15 @@ export class RondasCampo implements OnDestroy {
     }
   }
 
+  /**
+   * Marcado EN ESTE recorrido, no en el dia. El vigilante hace varias rondas
+   * por turno y cada una empieza en blanco; antes, la segunda salia entera
+   * marcada porque se miraba si habia marca del dia.
+   */
   marcadoHoy(puntoId: string) {
-    return this.marcas().some((m) => m.puntoId === puntoId && esHoyBogota(m.fechaHora));
+    const s = this.sesion();
+    if (!s) return false;
+    return this.marcas().some((m) => m.puntoId === puntoId && m.sesionUuid === s.uuid);
   }
 
   marcaDe(puntoId: string) {
@@ -1318,9 +1337,36 @@ export class RondasCampo implements OnDestroy {
   sincronizar(): Promise<void> {
     if (this.sincronizando() || !this.api.campoToken()) return Promise.resolve();
     this.sincronizando.set(true);
-    return this.flushMarcas()
+    return this.flushSesion()
+      .then(() => this.flushMarcas())
       .then(() => this.flushAlertas())
       .finally(() => this.sincronizando.set(false));
+  }
+
+  /**
+   * Manda el recorrido antes que las marcas, para que exista cuando se
+   * enlacen. Se reenvia en cada sincronizacion: es idempotente y asi la ronda
+   * queda registrada aunque haya empezado sin senal.
+   */
+  private flushSesion(): Promise<void> {
+    const s = this.sesion() ?? this.ultimaCerrada;
+    if (!s) return Promise.resolve();
+    return new Promise((resolve) => {
+      this.api
+        .registrarSesion({
+          uuidCliente: s.uuid,
+          inicio: s.inicio,
+          fin: this.sesion() ? null : (this.ultimaCerrada?.fin ?? null),
+          dispositivoId: this.api.deviceId(),
+        })
+        .subscribe({
+          next: () => {
+            if (!this.sesion()) this.ultimaCerrada = null;
+            resolve();
+          },
+          error: () => resolve(),
+        });
+    });
   }
 
   private flushMarcas(): Promise<void> {
@@ -1332,6 +1378,7 @@ export class RondasCampo implements OnDestroy {
           pend.map((m) => ({
             uuidCliente: m.uuid,
             puntoId: m.puntoId,
+            sesionUuid: m.sesionUuid,
             latitud: m.latitud,
             longitud: m.longitud,
             precisionMetros: m.precisionMetros,
@@ -1393,11 +1440,14 @@ export class RondasCampo implements OnDestroy {
   /** Confirma antes de cortar el GPS: terminar por error deja la ronda a medias. */
   readonly confirmarTerminar = signal(false);
 
+  /** Cada recorrido arranca con todos los puntos sin marcar. */
   iniciarRonda() {
-    this.enRonda.set(true);
-    localStorage.setItem(RONDA_ABIERTA_KEY, '1');
+    const s: SesionLocal = { uuid: crypto.randomUUID(), inicio: new Date().toISOString() };
+    this.sesion.set(s);
+    localStorage.setItem(RONDA_ABIERTA_KEY, JSON.stringify(s));
     this.aviso.set('Ronda iniciada. Ve a cada punto y pulsa Marcar.');
     this.iniciarGps();
+    void this.sincronizar();
   }
 
   pedirTerminar() {
@@ -1413,7 +1463,11 @@ export class RondasCampo implements OnDestroy {
    */
   terminarRonda() {
     this.confirmarTerminar.set(false);
-    this.enRonda.set(false);
+    const abierta = this.sesion();
+    if (abierta) {
+      this.ultimaCerrada = { ...abierta, fin: new Date().toISOString() };
+    }
+    this.sesion.set(null);
     localStorage.removeItem(RONDA_ABIERTA_KEY);
     this.pararGps();
     this.aviso.set('Ronda terminada. El GPS se apagó.');
