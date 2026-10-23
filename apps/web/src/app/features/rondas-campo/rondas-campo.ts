@@ -323,6 +323,7 @@ const TIPOS_ALERTA = [
             }
           </p>
           <button type="button" class="alerta-btn" (click)="alertaAbierta.set(true)">Alerta</button>
+          <button type="button" class="link" (click)="salirRonda()">Cambiar de ronda</button>
         </footer>
       }
 
@@ -336,7 +337,7 @@ const TIPOS_ALERTA = [
             }
             Al terminar se apaga el GPS y deja de gastar batería.
           </p>
-          <button type="button" class="cta" (click)="salirRonda()">Sí, terminar</button>
+          <button type="button" class="cta" (click)="terminarRonda()">Sí, terminar</button>
           <button type="button" class="ghost" (click)="confirmarTerminar.set(false)">Seguir en la ronda</button>
         </section>
       }
@@ -1403,11 +1404,25 @@ export class RondasCampo implements OnDestroy {
     this.confirmarTerminar.set(true);
   }
 
-  salirRonda() {
+  /**
+   * Termina el recorrido, no la sesión.
+   *
+   * El teléfono queda vinculado a la ronda: cerrar la sesión obligaría al
+   * vigilante a escribir nombre y clave en cada turno. Se apaga el GPS, que es
+   * lo que gasta batería, y queda listo para iniciar la siguiente.
+   */
+  terminarRonda() {
     this.confirmarTerminar.set(false);
     this.enRonda.set(false);
     localStorage.removeItem(RONDA_ABIERTA_KEY);
     this.pararGps();
+    this.aviso.set('Ronda terminada. El GPS se apagó.');
+    void this.sincronizar();
+  }
+
+  /** Desvincula el teléfono de la ronda. Solo si alguien lo pide a proposito. */
+  salirRonda() {
+    this.terminarRonda();
     this.api.clearCampoSesion();
     this.vista.set('inicio');
   }
