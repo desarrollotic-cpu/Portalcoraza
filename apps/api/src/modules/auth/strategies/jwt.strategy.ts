@@ -20,7 +20,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
   async validate(payload: JwtPayload): Promise<JwtPayload> {
     if (payload.roleCode === 'RONDAS_CAMPO') {
-      if (!payload.associateId || !payload.postId || !payload.tenantId) {
+      // La sesión de ronda no es un usuario del Portal: no hay a quién buscar
+      // en `users`. Desde que el celular entra como la ronda (y no como una
+      // persona), lo que debe traer el token es `rutaId`, no `associateId`.
+      if (!payload.rutaId || !payload.postId || !payload.tenantId) {
         throw new UnauthorizedException();
       }
       return payload;

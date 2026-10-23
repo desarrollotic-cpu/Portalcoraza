@@ -990,16 +990,25 @@ export class RondasCampo implements OnDestroy {
           );
         }
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         const post = this.post();
         const cached = post ? leerPuntos(post.id) : [];
         if (cached.length) {
           this.puntos.set(cached);
           return;
         }
-        if (!this.puntos().length) {
+        if (this.puntos().length) return;
+        // No todo fallo es falta de red: decirlo cuando el servidor rechazó
+        // manda a buscar señal donde no está el problema.
+        if (!navigator.onLine || err.status === 0) {
           this.gpsNota.set(
             'Sin red: no hay puntos en este teléfono. Entra con datos al menos una vez.',
+          );
+        } else if (err.status === 401 || err.status === 403) {
+          this.gpsNota.set('La sesión de la ronda no es válida. Vuelve a entrar.');
+        } else {
+          this.gpsNota.set(
+            `No se pudieron traer los puntos (error ${err.status}). Avisa a Sistemas.`,
           );
         }
       },
