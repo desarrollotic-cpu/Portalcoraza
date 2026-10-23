@@ -281,9 +281,11 @@ const TIPOS_ALERTA = [
           <ul class="puntos">
             @for (pt of puntos(); track pt.id) {
               <li [class.ok]="marcadoHoy(pt.id)">
-                <b>{{ marcadoHoy(pt.id) ? '✓' : pt.orden }}</b>
+                <b [attr.aria-label]="marcadoHoy(pt.id) ? 'Marcado' : 'Pendiente'">
+                  {{ marcadoHoy(pt.id) ? '✓' : '✗' }}
+                </b>
                 <div>
-                  <strong>{{ pt.nombre }}</strong>
+                  <strong>{{ pt.orden }}. {{ pt.nombre }}</strong>
                   <small>
                     @if (marcaDe(pt.id); as m) {
                       {{ horaBogota(m.fechaHora) }}
@@ -334,8 +336,23 @@ const TIPOS_ALERTA = [
             }
           </p>
           <button type="button" class="alerta-btn" (click)="alertaAbierta.set(true)">Alerta</button>
-          <button type="button" class="link" (click)="salirRonda()">Salir</button>
+          <button type="button" class="link" (click)="pedirTerminar()">Terminar ronda</button>
         </footer>
+      }
+
+      @if (confirmarTerminar()) {
+        <section class="card">
+          <h1>¿Terminar la ronda?</h1>
+          <p class="nota">
+            Vas {{ hechos() }} de {{ puntos().length }}.
+            @if (pendientes() || alertasPendientes()) {
+              Quedan {{ pendientes() + alertasPendientes() }} sin enviar: se mandan solas cuando haya datos.
+            }
+            Al terminar se apaga el GPS y deja de gastar batería.
+          </p>
+          <button type="button" class="cta" (click)="salirRonda()">Sí, terminar</button>
+          <button type="button" class="ghost" (click)="confirmarTerminar.set(false)">Seguir en la ronda</button>
+        </section>
       }
     </div>
   `,
@@ -463,11 +480,14 @@ const TIPOS_ALERTA = [
     .puntos li .mini.cta { background: var(--gradient-primary); color: var(--text-on-primary); text-align: center; margin: 0; }
     .puntos li .acciones { display: grid; gap: 0.2rem; flex-shrink: 0; }
     .puntos li .mini.malo { color: var(--error-text); }
+    /* Pendiente: X roja. Marcado: chulito verde. Se lee de un vistazo con el
+       telefono en la mano, sin tener que leer la hora ni la distancia. */
     .puntos b {
       width: 1.7rem; height: 1.7rem; border-radius: 99px; display: grid; place-items: center;
-      background: var(--surface-2); font-size: 0.8rem;
+      background: var(--error-600, #b91c1c); color: #fff; font-size: 0.95rem; font-weight: 800;
+      flex-shrink: 0;
     }
-    .puntos li.ok b { background: var(--primary-600); color: var(--text-on-primary); }
+    .puntos li.ok b { background: var(--success-600, #15803d); color: #fff; }
     .puntos small { display: block; color: var(--text-muted); }
     .hola { margin: 0 0 0.5rem; font-weight: 700; color: var(--text-primary); }
     .barra { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; }
@@ -1248,7 +1268,15 @@ export class RondasCampo implements OnDestroy {
     });
   }
 
+  /** Confirma antes de cortar el GPS: terminar por error deja la ronda a medias. */
+  readonly confirmarTerminar = signal(false);
+
+  pedirTerminar() {
+    this.confirmarTerminar.set(true);
+  }
+
   salirRonda() {
+    this.confirmarTerminar.set(false);
     this.pararGps();
     this.api.clearCampoSesion();
     this.vista.set('inicio');
