@@ -57,7 +57,9 @@ export type RondasHoy = {
     fechaHora: string;
     puntoNombre: string;
     puestoNombre: string;
-    vigilanteNombre: string;
+    rondaNombre?: string;
+    radioMetros?: number;
+    fueraDeRango?: boolean;
     distanciaAlPunto: number;
     desfaseReloj: boolean;
   }>;

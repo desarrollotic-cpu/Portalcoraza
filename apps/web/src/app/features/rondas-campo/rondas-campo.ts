@@ -1188,20 +1188,26 @@ export class RondasCampo implements OnDestroy {
 
     const radio = Math.round(Number(pt.radioMetros) || 10);
     try {
-      const l = await leerGpsMejor(radio, 12000, (lec) => {
-        this.accuracy.set(Math.round(lec.accuracy));
-        this.gpsNota.set(`Leyendo GPS: ±${Math.round(lec.accuracy)} m…`);
-      });
+      // `false`: se toma la mejor lectura que haya en los 12 s, alcance o no la
+      // precisión del radio. Fallar aquí dejaba al vigilante esperando en el
+      // punto sin poder seguir.
+      const l = await leerGpsMejor(
+        radio,
+        12000,
+        (lec) => {
+          this.accuracy.set(Math.round(lec.accuracy));
+          this.gpsNota.set(`Leyendo GPS: ±${Math.round(lec.accuracy)} m…`);
+        },
+        false,
+      );
 
       const dist = Math.round(
         distanciaMetros(l.latitude, l.longitude, Number(pt.latitud), Number(pt.longitud)),
       );
-      if (!dentroDelRadio(dist, radio)) {
-        this.gpsNota.set(
-          `Estás a ${dist} m de ${pt.nombre} y el punto llega hasta ${radio} m. Acércate y vuelve a marcar.`,
-        );
-        return;
-      }
+      // Se marca igual aunque esté lejos. Si no, el vigilante se queda
+      // esperando en el punto y la ronda no avanza. Queda constancia de la
+      // distancia y el reporte la señala.
+      const lejos = !dentroDelRadio(dist, radio);
 
       const yaMarcado = this.marcas().some(
         (m) => m.puntoId === pt.id && esHoyBogota(m.fechaHora),
@@ -1230,8 +1236,15 @@ export class RondasCampo implements OnDestroy {
       if (vig.id) guardarMarcas(vig.id, next);
 
       this.gpsNota.set('');
-      this.aviso.set(`Punto ${pt.orden} · ${pt.nombre} marcado.`);
-      navigator.vibrate?.([80, 40, 80]);
+      if (lejos) {
+        this.aviso.set(
+          `Punto ${pt.orden} · ${pt.nombre} marcado a ${dist} m (el punto llega hasta ${radio} m). Queda registrado con esa distancia.`,
+        );
+        navigator.vibrate?.([200]);
+      } else {
+        this.aviso.set(`Punto ${pt.orden} · ${pt.nombre} marcado.`);
+        navigator.vibrate?.([80, 40, 80]);
+      }
       void this.sincronizar();
     } catch (e) {
       const g = e as GpsError;
@@ -1240,7 +1253,7 @@ export class RondasCampo implements OnDestroy {
           ? 'Sin permiso de ubicación. Actívalo para poder marcar.'
           : g.motivo === 'sin-gps'
             ? 'Este teléfono no tiene GPS.'
-            : `${g.message} Sal a cielo abierto y vuelve a intentar.`,
+            : `${g.message} Vuelve a intentar; si sigue igual, marca igual y queda con la distancia.`,
       );
     } finally {
       this.marcando.set('');

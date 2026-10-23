@@ -83,7 +83,7 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
               <tr>
                 <th>Hora</th>
                 <th>Tipo</th>
-                <th>Vigilante</th>
+                <th>Ronda</th>
                 <th>Puesto</th>
                 <th>Detalle</th>
               </tr>
@@ -120,10 +120,16 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
               @for (m of h.marcaciones; track m.id) {
                 <tr>
                   <td>{{ m.fechaHora | date: 'HH:mm' }}</td>
-                  <td>{{ m.vigilanteNombre }}</td>
+                  <td>{{ m.rondaNombre }}</td>
                   <td>{{ m.puestoNombre }}</td>
                   <td>{{ m.puntoNombre }}</td>
-                  <td>{{ m.distanciaAlPunto }} m @if (m.desfaseReloj) { · reloj }</td>
+                  <td>
+                    {{ m.distanciaAlPunto }} m
+                    @if (m.fueraDeRango) {
+                      <b class="fuera" title="Marcó fuera del radio del punto">· fuera</b>
+                    }
+                    @if (m.desfaseReloj) { · reloj }
+                  </td>
                 </tr>
               } @empty {
                 <tr><td colspan="5">Aún no hay marcas hoy.</td></tr>
@@ -169,6 +175,9 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
     th, td { text-align: left; padding: 0.5rem 0.7rem; border-top: 1px solid var(--border); }
     thead th { background: var(--gradient-hero); color: var(--text-on-dark); border: 0; }
     .error { color: var(--error-text); }
+    /* Las marcas fuera del radio se guardan igual, para no trabar la ronda ni
+       esconder el dato. Se senalan aqui para que alguien las revise. */
+    .fuera { color: var(--error-text, #b91c1c); font-weight: 800; }
     tr.urgente td { background: color-mix(in srgb, var(--error-600, #b91c1c) 14%, var(--surface)); font-weight: 700; }
   `,
 })

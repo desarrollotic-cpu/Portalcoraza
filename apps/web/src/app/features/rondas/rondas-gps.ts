@@ -28,6 +28,16 @@ export function leerGpsMejor(
   precisionMinima: number,
   ms = 10000,
   onLectura?: (l: LecturaGps) => void,
+  /**
+   * `true` (por defecto) falla si no se alcanza la precisión pedida: es lo
+   * correcto al CREAR un punto, porque un punto mal puesto queda mal para
+   * siempre.
+   *
+   * `false` devuelve la mejor lectura que haya, aunque no alcance: es lo
+   * correcto al MARCAR, donde fallar deja al vigilante esperando y la ronda no
+   * avanza. La imprecisión queda guardada en la marca.
+   */
+  exigirPrecision = true,
 ): Promise<LecturaGps> {
   return new Promise((resolve, reject) => {
     if (!navigator.geolocation) {
@@ -54,7 +64,7 @@ export function leerGpsMejor(
 
     const terminar = () => {
       cerrar();
-      if (mejor && mejor.accuracy <= precisionMinima) {
+      if (mejor && (!exigirPrecision || mejor.accuracy <= precisionMinima)) {
         resolve(mejor);
         return;
       }

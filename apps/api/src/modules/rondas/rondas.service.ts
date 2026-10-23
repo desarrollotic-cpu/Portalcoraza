@@ -462,20 +462,16 @@ export class RondasService {
           Number(punto.latitud),
           Number(punto.longitud),
         );
-        if (dist > Number(punto.radio_metros)) {
-          rechazadas.push({ uuid, motivo: 'fuera-radio' });
-          continue;
-        }
+        // La marca SIEMPRE se guarda, aunque el vigilante no estuviera donde
+        // debia. Rechazarla trababa la ronda: el vigilante se quedaba esperando
+        // en el punto y la ronda nunca avanzaba ni terminaba. Y ademas escondia
+        // justo el dato que interesa vigilar -- una marca hecha a 200 m se ve
+        // en el reporte; una rechazada no deja rastro.
+        //
+        // La distancia, la precision y la altura quedan guardadas en la fila:
+        // el reporte compara contra el radio del punto y senala las dudosas.
         const precision = Number(m.precisionMetros ?? 0);
         const radio = Number(punto.radio_metros) || 8;
-        if (precision > Math.max(15, radio)) {
-          rechazadas.push({ uuid, motivo: 'precision' });
-          continue;
-        }
-        if (!alturaCoincide(punto.altitud, m.altitud)) {
-          rechazadas.push({ uuid, motivo: 'altura' });
-          continue;
-        }
         const fecha = new Date(m.fechaHora);
         if (Number.isNaN(fecha.getTime())) {
           rechazadas.push({ uuid, motivo: 'fecha' });
@@ -619,13 +615,17 @@ export class RondasService {
       `SELECT m.id, m.fecha_hora AS "fechaHora", m.latitud, m.longitud,
               m.distancia_al_punto AS "distanciaAlPunto",
               m.precision_metros AS "precisionMetros",
-              p.nombre AS "puntoNombre", pu.name AS "puestoNombre",
-              TRIM(CONCAT_WS(' ', a.first_name, a.first_last_name)) AS "vigilanteNombre",
+              p.nombre AS "puntoNombre", p.radio_metros AS "radioMetros",
+              pu.name AS "puestoNombre",
+              r.nombre AS "rondaNombre",
+              -- Las marcas fuera del radio SI se guardan: trabar la ronda era
+              -- peor y escondia el dato. Aqui se senalan para revisarlas.
+              (m.distancia_al_punto > p.radio_metros) AS "fueraDeRango",
               ABS(EXTRACT(EPOCH FROM (m.fecha_hora - m.created_at))) > 600 AS "desfaseReloj"
        FROM rondas_marcaciones m
        JOIN rondas_puntos p ON p.id = m.punto_id
        JOIN posts pu ON pu.id = m.post_id
-       JOIN associates a ON a.id = m.associate_id
+       LEFT JOIN rondas_rutas r ON r.id = m.ruta_id
        WHERE m.tenant_id = $1 AND m.fecha_hora >= $2 AND m.fecha_hora < $3${filtroPost}
        ORDER BY m.fecha_hora DESC
        LIMIT 200`,
