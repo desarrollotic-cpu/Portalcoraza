@@ -103,7 +103,7 @@ export interface Associate {
   secondName: string | null;
   firstLastName: string;
   secondLastName: string | null;
-  birthDate: string;
+  birthDate: string | null;
   sexAtBirth: AssociateSexAtBirth | null;
   maritalStatus: AssociateMaritalStatus | null;
 

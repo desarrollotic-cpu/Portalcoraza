@@ -52,8 +52,8 @@ export class CreateAssociateDto {
   @IsOptional() @IsString() @MaxLength(80)
   secondLastName?: string | null;
 
-  @IsDateString()
-  birthDate!: string;
+  @IsOptional() @IsDateString()
+  birthDate?: string | null;
 
   @IsOptional() @IsEnum(AssociateSexAtBirth)
   sexAtBirth?: AssociateSexAtBirth | null;

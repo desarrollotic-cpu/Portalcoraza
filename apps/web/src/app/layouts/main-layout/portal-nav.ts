@@ -101,6 +101,7 @@ export const RRHH_NAV: ModuleNavItem[] = [
   { label: 'Alertas', route: '/rrhh/alertas', permission: 'hr_alerts.view', icon: LucideBell },
   { label: 'Retiros', route: '/rrhh/retiros', permission: 'retirements.view', icon: LucideUserMinus },
   { label: 'Ausentismo', route: '/rrhh/ausentismo', permission: 'absences.view', icon: LucideCalendarOff },
+  { label: 'Sanciones', route: '/rrhh/sanciones', permission: 'sanctions.view', icon: LucideAlertTriangle },
   { label: 'Cargos', route: '/rrhh/admin/cargos', permission: 'job_positions.view', icon: LucideBriefcase },
   { label: 'Puestos / centros', route: '/rrhh/admin/centros', permission: 'work_centers.view', icon: LucideBuilding2 },
   { label: 'Catálogos', route: '/rrhh/admin/catalogos', permission: 'catalogs.view', icon: LucideBookMarked },

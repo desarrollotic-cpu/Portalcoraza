@@ -16,9 +16,19 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
           <h2>Visitantes dentro</h2>
           <p>Personas que tienen entrada registrada y aún no tienen salida.</p>
         </div>
-        <button type="button" class="ghost" (click)="reload()" [disabled]="loading()">
-          {{ loading() && visitors().length ? 'Actualizando…' : 'Actualizar' }}
-        </button>
+        <div class="head-actions">
+          <button
+            type="button"
+            class="primary"
+            (click)="downloadPdf()"
+            [disabled]="pdfSaving() || loading()"
+          >
+            {{ pdfSaving() ? 'Generando…' : 'Generar PDF' }}
+          </button>
+          <button type="button" class="ghost" (click)="reload()" [disabled]="loading()">
+            {{ loading() && visitors().length ? 'Actualizando…' : 'Actualizar' }}
+          </button>
+        </div>
       </header>
 
       <div class="filter">
@@ -130,13 +140,14 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
   `,
   styles: `
     .page { display: flex; flex-direction: column; gap: 1rem; }
-    .head, .filter {
+    .head, .filter, .head-actions {
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       flex-wrap: wrap;
       align-items: end;
     }
+    .head-actions { justify-content: flex-end; }
     .head h2 { margin: 0 0 0.3rem; color: var(--primary-dark); font-size: 1.25rem; }
     .head p { margin: 0; color: var(--text-secondary); font-size: 0.9rem; }
     label {
@@ -187,17 +198,24 @@ import { ReceptionApiService, ReceptionVisitor } from '../reception-api.service'
     .badge.associate { background: color-mix(in srgb, #13d856 14%, var(--surface)); color: #166534; }
     .badge.visitor { background: color-mix(in srgb, #2d5dbe 14%, var(--surface)); color: #4b5563; }
     .actions { text-align: right; }
-    .ghost {
+    .ghost, .primary {
       border-radius: 999px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.82rem;
+    }
+    .ghost {
       border: 1px solid color-mix(in srgb, var(--primary) 35%, var(--coraza-border));
       background: color-mix(in srgb, var(--primary) 8%, var(--surface));
       color: var(--primary-dark);
-      font-weight: 600;
-      cursor: pointer;
-      padding: 0.45rem 0.8rem;
-      font-size: 0.82rem;
     }
-    .ghost:disabled { opacity: 0.6; cursor: not-allowed; }
+    .primary {
+      border: 1px solid var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+    .ghost:disabled, .primary:disabled { opacity: 0.6; cursor: not-allowed; }
     .btn-sm {
       padding: 0.35rem 0.75rem;
       border-radius: 999px;
@@ -262,6 +280,7 @@ export class ReceptionInside implements OnInit {
   readonly search = signal('');
   readonly pendingExit = signal<ReceptionVisitor | null>(null);
   readonly exiting = signal(false);
+  readonly pdfSaving = signal(false);
 
   readonly filtered = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -285,10 +304,85 @@ export class ReceptionInside implements OnInit {
     this.reload();
   }
 
+  downloadPdf(): void {
+    if (this.pdfSaving()) return;
+    this.pdfSaving.set(true);
+    this.api.listVisitors({ insideOnly: true, page: 1, limit: 2000 }).subscribe({
+      next: (res) => {
+        this.pdfSaving.set(false);
+        this.visitors.set(res.items);
+        this.printCarta(res.items);
+      },
+      error: () => {
+        this.pdfSaving.set(false);
+        this.toast.error('No se pudo armar el listado');
+      },
+    });
+  }
+
+  /** Imprime / guarda PDF en hoja carta (21.6 × 27.9 cm), no oficio. */
+  private printCarta(rows: ReceptionVisitor[]): void {
+    const w = window.open('', '_blank');
+    if (!w) {
+      this.toast.error('Permite ventanas emergentes para generar el listado.');
+      return;
+    }
+    const esc = (v: unknown) =>
+      String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    const sorted = [...rows].sort((a, b) =>
+      a.displayName.localeCompare(b.displayName, 'es', { sensitivity: 'base' }),
+    );
+    const cuando = new Date().toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+    const body = sorted
+      .map(
+        (v) =>
+          `<tr><td>${esc(v.displayName)}</td><td>${esc((v.documentNumber ?? '').trim() || '—')}</td></tr>`,
+      )
+      .join('');
+    w.document.open();
+    w.document.write(`<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Listado de evacuación</title>
+  <style>
+    @page { size: 21.59cm 27.94cm; margin: 1.2cm; }
+    html, body { margin: 0; }
+    body { font: 12pt/1.35 Arial, Helvetica, sans-serif; color: #111; }
+    h1 { font-size: 16pt; margin: 0 0 4px; }
+    .meta { font-size: 10pt; margin: 0 0 14px; color: #333; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid #ccc; vertical-align: top; }
+    th { font-size: 10pt; border-bottom: 2px solid #333; }
+    td:last-child, th:last-child { width: 32%; }
+  </style>
+</head>
+<body>
+  <h1>Listado de evacuación</h1>
+  <p class="meta">Personas dentro ahora · ${esc(cuando)} · Total: ${sorted.length}</p>
+  <table>
+    <thead><tr><th>Nombre completo</th><th>Cédula</th></tr></thead>
+    <tbody>${body || '<tr><td colspan="2">No hay personas dentro.</td></tr>'}</tbody>
+  </table>
+</body>
+</html>`);
+    w.document.close();
+    w.onload = () => {
+      setTimeout(() => {
+        w.focus();
+        w.print();
+      }, 400);
+    };
+  }
+
   reload(): void {
     this.loading.set(true);
     this.error.set(null);
-    this.api.listVisitors({ insideOnly: true, page: 1, limit: 100 }).subscribe({
+    this.api.listVisitors({ insideOnly: true, page: 1, limit: 2000 }).subscribe({
       next: (res) => {
         this.visitors.set(res.items);
         this.loading.set(false);

@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { catchError, forkJoin, of } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { ConfirmDialog } from '../../../shared/components/confirm-dialog/confirm-dialog';
 import { HrPageHeader } from '../../../shared/components/hr-page-header/hr-page-header';
 import { ToastService } from '../../../shared/services/toast.service';
 import { HrApiService } from '../services/hr-api.service';
@@ -71,7 +72,7 @@ function cleanEmail(v: unknown): string | null {
  */
 @Component({
   selector: 'app-associate-form',
-  imports: [CommonModule, ReactiveFormsModule, HrPageHeader],
+  imports: [CommonModule, ReactiveFormsModule, HrPageHeader, ConfirmDialog],
   template: `
     <div class="hr-page">
       <app-hr-page-header [title]="associateId() ? 'Editar asociado' : 'Nuevo asociado'">
@@ -190,7 +191,7 @@ function cleanEmail(v: unknown): string | null {
               </div>
 
               <div class="hr-field">
-                <label>Fecha nacimiento *</label>
+                <label>Fecha nacimiento</label>
                 <input formControlName="birthDate" type="date" />
               </div>
               <div class="hr-field">
@@ -320,11 +321,11 @@ function cleanEmail(v: unknown): string | null {
               </div>
               @if (showCourseDates()) {
                 <div class="hr-field">
-                  <label>Inicio curso *</label>
+                  <label>Inicio curso</label>
                   <input formControlName="courseIssuedDate" type="date" />
                 </div>
                 <div class="hr-field">
-                  <label>Vencimiento curso *</label>
+                  <label>Vencimiento curso</label>
                   <input formControlName="courseExpirationDate" type="date" />
                 </div>
               }
@@ -350,11 +351,11 @@ function cleanEmail(v: unknown): string | null {
               </div>
               @if (form.get('psychophysicalValid')?.value) {
                 <div class="hr-field">
-                  <label>Inicio psicofísico *</label>
+                  <label>Inicio psicofísico</label>
                   <input formControlName="psychophysicalIssuedDate" type="date" />
                 </div>
                 <div class="hr-field">
-                  <label>Vencimiento psicofísico *</label>
+                  <label>Vencimiento psicofísico</label>
                   <input formControlName="psychophysicalExpirationDate" type="date" />
                 </div>
               }
@@ -366,11 +367,11 @@ function cleanEmail(v: unknown): string | null {
               </div>
               @if (form.get('psychosensometricValid')?.value) {
                 <div class="hr-field">
-                  <label>Inicio examen ocupacional *</label>
+                  <label>Inicio examen ocupacional</label>
                   <input formControlName="psychosensometricIssuedDate" type="date" />
                 </div>
                 <div class="hr-field">
-                  <label>Vencimiento examen ocupacional *</label>
+                  <label>Vencimiento examen ocupacional</label>
                   <input formControlName="psychosensometricExpirationDate" type="date" />
                 </div>
               }
@@ -538,6 +539,19 @@ function cleanEmail(v: unknown): string | null {
           }
         </form>
       }
+
+      <app-confirm-dialog
+        [open]="askIncomplete()"
+        title="Datos incompletos"
+        message="El asociado se encuentra con los datos incompletos."
+        detail="Puedes guardar ahora y completar el resto después."
+        confirmLabel="Guardar de todos modos"
+        cancelLabel="Revisar"
+        [busy]="saving()"
+        busyLabel="Guardando…"
+        (confirmed)="confirmIncomplete()"
+        (cancelled)="askIncomplete.set(false)"
+      />
     </div>
   `,
 })
@@ -554,6 +568,7 @@ export class AssociateForm implements OnInit {
   readonly saving = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly showErrors = signal(false);
+  readonly askIncomplete = signal(false);
   readonly section = signal<1 | 2 | 3 | 4>(1);
 
   readonly positions = signal<JobPosition[]>([]);
@@ -607,7 +622,7 @@ export class AssociateForm implements OnInit {
     secondName: [null],
     firstLastName: ['', Validators.required],
     secondLastName: [null],
-    birthDate: ['', Validators.required],
+    birthDate: [''],
     sexAtBirth: [null],
     maritalStatus: [null],
     actReference: [null],
@@ -770,11 +785,41 @@ export class AssociateForm implements OnInit {
       this.submitError.set(
         bad.length
           ? `Revisa: ${bad.join(', ')}.`
-          : 'Revisa los campos marcados en rojo en las pestañas.',
+          : 'Revisa cédula, primer nombre y primer apellido.',
       );
-      this.toast.warning('Formulario incompleto', bad.join(', ') || 'Hay campos por corregir.');
+      this.toast.warning('Faltan datos obligatorios', bad.join(', ') || 'Cédula, nombre y apellido.');
       return;
     }
+    if (this.fichaIncompleta()) {
+      this.askIncomplete.set(true);
+      return;
+    }
+    this.persist();
+  }
+
+  confirmIncomplete(): void {
+    this.askIncomplete.set(false);
+    this.persist();
+  }
+
+  /** Solo cédula, nombre y apellido son obligatorios; el resto avisa y se puede guardar. */
+  private fichaIncompleta(): boolean {
+    const raw = this.form.getRawValue();
+    const empty = (v: unknown) => !String(v ?? '').trim();
+    if (empty(raw.birthDate) || empty(raw.hireDate) || empty(raw.jobPositionId) || empty(raw.mobile)) {
+      return true;
+    }
+    if (this.showCourseDates() && !(raw.courseIssuedDate && raw.courseExpirationDate)) return true;
+    if (raw.psychophysicalValid && !(raw.psychophysicalIssuedDate && raw.psychophysicalExpirationDate)) {
+      return true;
+    }
+    if (raw.psychosensometricValid && !(raw.psychosensometricIssuedDate && raw.psychosensometricExpirationDate)) {
+      return true;
+    }
+    return false;
+  }
+
+  private persist(): void {
     const raw = this.form.getRawValue();
     const credentials: Array<{
       documentKind: AssociateDocumentKind;
@@ -783,7 +828,6 @@ export class AssociateForm implements OnInit {
       notes?: string;
     }> = [];
 
-    const missing: string[] = [];
     if (raw.courseIssuedDate && raw.courseExpirationDate) {
       credentials.push({
         documentKind: 'CERTIFICADO_CURSO',
@@ -791,8 +835,6 @@ export class AssociateForm implements OnInit {
         expirationDate: raw.courseExpirationDate,
         notes: [raw.courseCode, raw.courseCertificateNumber].filter(Boolean).join(' · ') || undefined,
       });
-    } else if (this.showCourseDates()) {
-      missing.push('curso');
     }
     if (raw.psychophysicalIssuedDate && raw.psychophysicalExpirationDate) {
       credentials.push({
@@ -800,8 +842,6 @@ export class AssociateForm implements OnInit {
         issuedDate: raw.psychophysicalIssuedDate,
         expirationDate: raw.psychophysicalExpirationDate,
       });
-    } else if (raw.psychophysicalValid) {
-      missing.push('psicofísico');
     }
     if (raw.psychosensometricIssuedDate && raw.psychosensometricExpirationDate) {
       credentials.push({
@@ -809,18 +849,9 @@ export class AssociateForm implements OnInit {
         issuedDate: raw.psychosensometricIssuedDate,
         expirationDate: raw.psychosensometricExpirationDate,
       });
-    } else if (raw.psychosensometricValid) {
-      missing.push('examen médico ocupacional');
     }
     if (this.associateId() && !this.credentialDatesLoaded) {
       credentials.length = 0;
-      missing.length = 0;
-    }
-    if (missing.length) {
-      this.section.set(3);
-      this.submitError.set(`Completa inicio y vencimiento de: ${missing.join(', ')}.`);
-      this.toast.warning('Fechas incompletas', 'Cada curso o examen marcado necesita ambas fechas.');
-      return;
     }
 
     this.saving.set(true);

@@ -270,7 +270,8 @@ export class ReceptionService {
     } = {},
   ) {
     const page = Math.max(1, Number(params.page) || 1);
-    const limit = Math.min(Math.max(1, Number(params.limit) || 50), 100);
+    const cap = params.insideOnly ? 2000 : 100;
+    const limit = Math.min(Math.max(1, Number(params.limit) || 50), cap);
 
     const qb = this.visitorsRepo
       .createQueryBuilder('v')
@@ -502,6 +503,78 @@ export class ReceptionService {
         );
       doc.moveDown(0.55);
       if (doc.y > 760) doc.addPage();
+    }
+
+    doc.end();
+    return finished;
+  }
+
+  /** Listado de evacuación: solo quienes están dentro, nombre y cédula. */
+  async buildInsidePdf(): Promise<Buffer> {
+    const rows = await this.visitorsRepo.find({ where: { exitAt: IsNull() } });
+    rows.sort((a, b) =>
+      this.displayName(a).localeCompare(this.displayName(b), 'es', { sensitivity: 'base' }),
+    );
+    const now = new Date();
+
+    // Carta Colombia = 8.5 × 11 in (no oficio 8.5 × 13 ni A4).
+    const carta: [number, number] = [612, 792];
+    const doc = new PDFDocument({ margin: 40, size: carta, layout: 'portrait' });
+    // pdfkit no tipa el catálogo; así la impresora no escala la carta a oficio.
+    (doc as unknown as { _root: { data: Record<string, unknown> } })._root.data.ViewerPreferences = {
+      PrintScaling: 'None',
+      PickTrayByPDFSize: true,
+    };
+    const chunks: Buffer[] = [];
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+    const finished = new Promise<Buffer>((resolve, reject) => {
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+    });
+
+    doc.fontSize(16).text('Portal Coraza — Recepción', { align: 'center' });
+    doc.moveDown(0.25);
+    doc.fontSize(13).text('Listado de evacuación', { align: 'center' });
+    doc
+      .fontSize(9)
+      .text(
+        `Personas dentro ahora · ${this.formatDateTime(now)} · Total: ${rows.length}`,
+        { align: 'center' },
+      );
+    doc.moveDown();
+
+    if (!rows.length) {
+      doc.fontSize(11).text('No hay personas dentro en este momento.');
+      doc.end();
+      return finished;
+    }
+
+    const xName = 40;
+    const xCc = 410;
+    const right = 572; // carta 612 pt menos margen
+    const writeHeader = () => {
+      const y = doc.y;
+      doc.font('Helvetica-Bold').fontSize(10).fillColor('#0f172a');
+      doc.text('Nombre completo', xName, y, { width: 350 });
+      doc.text('Cédula', xCc, y, { width: 162 });
+      doc.moveTo(xName, y + 16).lineTo(right, y + 16).strokeColor('#94a3b8').stroke();
+      doc.y = y + 22;
+    };
+    writeHeader();
+
+    doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
+    for (const v of rows) {
+      if (doc.y > 730) {
+        doc.addPage({ size: carta, layout: 'portrait', margin: 40 });
+        writeHeader();
+        doc.font('Helvetica').fontSize(11).fillColor('#0f172a');
+      }
+      const y = doc.y;
+      const name = this.displayName(v);
+      const cc = (v.documentNumber ?? '').trim() || '—';
+      doc.text(name, xName, y, { width: 350 });
+      doc.text(cc, xCc, y, { width: 162 });
+      doc.y = Math.max(doc.y, y + 16);
     }
 
     doc.end();

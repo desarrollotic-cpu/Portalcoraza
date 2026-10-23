@@ -84,8 +84,8 @@ export class Associate {
   @Column({ name: 'second_last_name', type: 'varchar', length: 80, nullable: true })
   secondLastName!: string | null;
 
-  @Column({ name: 'birth_date', type: 'date' })
-  birthDate!: string;
+  @Column({ name: 'birth_date', type: 'date', nullable: true })
+  birthDate!: string | null;
 
   @Column({
     name: 'sex_at_birth',
