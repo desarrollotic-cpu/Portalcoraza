@@ -239,6 +239,13 @@ export class RondasApiService {
     });
   }
 
+  informe(anio: number, mes: number): Observable<Blob> {
+    return this.http.get(`${this.base}/informe`, {
+      params: { anio: String(anio), mes: String(mes) },
+      responseType: 'blob',
+    });
+  }
+
   puntosAdmin(postId?: string): Observable<RondasPunto[]> {
     return this.http.get<RondasPunto[]>(`${this.base}/puntos`, {
       ...(postId ? { params: { postId } } : {}),

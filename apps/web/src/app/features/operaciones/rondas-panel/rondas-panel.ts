@@ -1,11 +1,12 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
 
 @Component({
   selector: 'app-rondas-panel',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, FormsModule, RouterLink],
   template: `
     <section class="page">
       <header class="head">
@@ -35,6 +36,20 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
       @if (error()) {
         <p class="error">{{ error() }}</p>
       }
+
+      <aside class="link-box">
+        <div>
+          <strong>Cumplimiento · informe mensual</strong>
+          <p>Por puesto: cuántas rondas, a qué hora empezó, cada punto y a qué hora cerró.</p>
+        </div>
+        <label class="mes">
+          Mes
+          <input type="month" [(ngModel)]="mesInforme" />
+        </label>
+        <button type="button" class="ghost" [disabled]="bajando()" (click)="descargarInforme()">
+          {{ bajando() ? 'Generando…' : 'Descargar informe' }}
+        </button>
+      </aside>
 
       @if (hoy(); as h) {
         <div class="kpis">
@@ -179,6 +194,8 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
        esconder el dato. Se senalan aqui para que alguien las revise. */
     .fuera { color: var(--error-text, #b91c1c); font-weight: 800; }
     tr.urgente td { background: color-mix(in srgb, var(--error-600, #b91c1c) 14%, var(--surface)); font-weight: 700; }
+    .mes { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
+    .mes input { min-height: 40px; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; }
   `,
 })
 export class RondasPanel implements OnInit {
@@ -187,6 +204,12 @@ export class RondasPanel implements OnInit {
   hoy = signal<RondasHoy | null>(null);
   error = signal('');
   copiado = signal('');
+  bajando = signal(false);
+  mesInforme = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bogota',
+    year: 'numeric',
+    month: '2-digit',
+  }).format(new Date());
 
   ngOnInit(): void {
     this.cargar();
@@ -197,6 +220,32 @@ export class RondasPanel implements OnInit {
     this.api.hoy().subscribe({
       next: (h: RondasHoy) => this.hoy.set(h),
       error: () => this.error.set('No se pudo cargar el cumplimiento.'),
+    });
+  }
+
+  descargarInforme() {
+    const [ys, ms] = this.mesInforme.split('-');
+    const anio = Number(ys);
+    const mes = Number(ms);
+    if (!anio || !mes) {
+      this.error.set('Elige el mes del informe.');
+      return;
+    }
+    this.bajando.set(true);
+    this.api.informe(anio, mes).subscribe({
+      next: (blob) => {
+        const a = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = `Informe_Rondas_Coraza_${this.mesInforme}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.bajando.set(false);
+      },
+      error: () => {
+        this.bajando.set(false);
+        this.error.set('No se pudo generar el informe.');
+      },
     });
   }
 

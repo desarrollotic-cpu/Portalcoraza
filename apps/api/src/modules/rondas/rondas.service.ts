@@ -10,6 +10,15 @@ import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runne
 import { AuthService } from '../auth/auth.service';
 import { JwtPayload } from '../auth/interfaces/jwt-payload.interface';
 import { alturaCoincide, digitsOnly, distanciaMetros } from './rondas-geo';
+import {
+  armarRondas,
+  fmtFechaHoraBogota,
+  MarcaSesion,
+  minutosEntre,
+  rangoMesBogota,
+  SesionInforme,
+} from './rondas-informe';
+import * as ExcelJS from 'exceljs';
 
 const ANTI_DUP_MS = 5 * 60 * 1000;
 
@@ -757,6 +766,161 @@ export class RondasService {
       marcaciones,
       alertas,
     };
+  }
+
+  async informeExcel(user: JwtPayload, anio: number, mes: number, postId?: string) {
+    if (!Number.isInteger(anio) || anio < 2020 || anio > 2035) {
+      throw new BadRequestException('Año inválido');
+    }
+    if (!Number.isInteger(mes) || mes < 1 || mes > 12) {
+      throw new BadRequestException('Mes inválido');
+    }
+    const { inicio, fin } = rangoMesBogota(anio, mes);
+    const params: unknown[] = [user.tenantId, inicio, fin];
+    let filtro = '';
+    if (postId) {
+      filtro = ' AND s.post_id = $4';
+      params.push(postId);
+    }
+    const sesionesRaw = await this.q(
+      `SELECT s.id, s.ruta_id AS "rutaId", s.post_id AS "postId",
+              s.inicio, s.fin, pu.name AS "puestoNombre", r.nombre AS "rondaNombre"
+       FROM rondas_sesiones s
+       JOIN posts pu ON pu.id = s.post_id
+       JOIN rondas_rutas r ON r.id = s.ruta_id
+       WHERE s.tenant_id = $1 AND s.inicio >= $2 AND s.inicio < $3${filtro}
+       ORDER BY pu.name, r.nombre, s.inicio`,
+      params,
+    );
+    const sesiones: SesionInforme[] = sesionesRaw.map((s: SesionInforme) => ({
+      ...s,
+      inicio: new Date(s.inicio).toISOString(),
+      fin: s.fin ? new Date(s.fin).toISOString() : null,
+    }));
+    const ids = sesiones.map((s) => s.id);
+    let marcas: MarcaSesion[] = [];
+    if (ids.length) {
+      const marcasRaw = await this.q(
+        `SELECT m.sesion_id AS "sesionId", m.punto_id AS "puntoId",
+                p.nombre AS "puntoNombre", p.orden AS "puntoOrden",
+                m.fecha_hora AS "fechaHora"
+         FROM rondas_marcaciones m
+         JOIN rondas_puntos p ON p.id = m.punto_id
+         WHERE m.tenant_id = $1 AND m.sesion_id = ANY($2::uuid[])
+         ORDER BY m.fecha_hora`,
+        [user.tenantId, ids],
+      );
+      marcas = marcasRaw.map((m: MarcaSesion) => ({
+        ...m,
+        fechaHora: new Date(m.fechaHora).toISOString(),
+      }));
+    }
+    const ptsParams: unknown[] = [user.tenantId];
+    let ptsFiltro = '';
+    if (postId) {
+      ptsFiltro = ' AND post_id = $2';
+      ptsParams.push(postId);
+    }
+    const pts = await this.q(
+      `SELECT ruta_id AS "rutaId", id
+       FROM rondas_puntos WHERE tenant_id = $1 AND activo = true AND ruta_id IS NOT NULL${ptsFiltro}`,
+      ptsParams,
+    );
+    const esperados = new Map<string, string[]>();
+    for (const p of pts as Array<{ rutaId: string; id: string }>) {
+      const list = esperados.get(p.rutaId) ?? [];
+      list.push(p.id);
+      esperados.set(p.rutaId, list);
+    }
+    const rondas = armarRondas(sesiones, marcas, esperados);
+    const wb = new ExcelJS.Workbook();
+    wb.creator = 'Portal Coraza';
+    const mesLabel = `${anio}-${String(mes).padStart(2, '0')}`;
+
+    const resumen = wb.addWorksheet('Resumen');
+    resumen.addRow(['CORAZA SEGURIDAD C.T.A. — Informe mensual de rondas']);
+    resumen.addRow([
+      `Mes ${mesLabel} · ${rondas.length} recorridos · generado ${fmtFechaHoraBogota(new Date().toISOString())}`,
+    ]);
+    resumen.addRow([]);
+    resumen.addRow(['Puesto', 'Ronda', 'Recorridos', 'Completos', 'Incompletos', 'Puntos del circuito']);
+    const porClave = new Map<string, typeof rondas>();
+    for (const r of rondas) {
+      const k = `${r.postId}|${r.rondaNombre}`;
+      const list = porClave.get(k) ?? [];
+      list.push(r);
+      porClave.set(k, list);
+    }
+    for (const group of porClave.values()) {
+      const first = group[0];
+      resumen.addRow([
+        first.puestoNombre,
+        first.rondaNombre,
+        group.length,
+        group.filter((x) => x.completa).length,
+        group.filter((x) => !x.completa).length,
+        first.esperados,
+      ]);
+    }
+    if (!rondas.length) resumen.addRow(['Sin recorridos en ese mes']);
+
+    const hoja = wb.addWorksheet('Rondas');
+    hoja.addRow([
+      'Puesto',
+      'Ronda',
+      'Fecha',
+      'Ronda del día',
+      'Inicio',
+      'Fin',
+      'Minutos',
+      'Estado',
+      'Puntos marcados',
+      'Puntos del circuito',
+    ]);
+    for (const r of rondas) {
+      hoja.addRow([
+        r.puestoNombre,
+        r.rondaNombre,
+        r.fecha,
+        r.numeroDia,
+        fmtFechaHoraBogota(r.inicio),
+        r.abierta ? 'En curso' : fmtFechaHoraBogota(r.fin),
+        r.abierta ? '' : minutosEntre(r.inicio, r.fin),
+        r.abierta ? 'Abierta' : r.completa ? 'Completa' : 'Incompleta',
+        r.puntos.length,
+        r.esperados,
+      ]);
+    }
+
+    const detalle = wb.addWorksheet('Puntos');
+    detalle.addRow([
+      'Puesto',
+      'Ronda',
+      'Fecha',
+      'Ronda del día',
+      'Inicio de la ronda',
+      'Fin de la ronda',
+      'Orden',
+      'Punto',
+      'Hora de la marca',
+    ]);
+    for (const r of rondas) {
+      for (const p of r.puntos) {
+        detalle.addRow([
+          r.puestoNombre,
+          r.rondaNombre,
+          r.fecha,
+          r.numeroDia,
+          fmtFechaHoraBogota(r.inicio),
+          r.abierta ? 'En curso' : fmtFechaHoraBogota(r.fin),
+          p.puntoOrden,
+          p.puntoNombre,
+          fmtFechaHoraBogota(p.fechaHora),
+        ]);
+      }
+    }
+
+    return Buffer.from(await wb.xlsx.writeBuffer());
   }
 
   async puntosTodos(user: JwtPayload, postId?: string) {

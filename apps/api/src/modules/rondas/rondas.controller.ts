@@ -8,8 +8,10 @@ import {
   Post,
   Delete,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { RequirePermissions } from '../../common/decorators/permissions.decorator';
@@ -106,6 +108,30 @@ export class RondasController {
   @RequirePermissions('rondas.view')
   hoy(@CurrentUser() user: JwtPayload, @Query('postId') postId?: string) {
     return this.rondas.hoy(user, postId);
+  }
+
+  @Get('informe')
+  @RequirePermissions('rondas.view')
+  async informe(
+    @CurrentUser() user: JwtPayload,
+    @Query('anio') anio: string,
+    @Query('mes') mes: string,
+    @Query('postId') postId: string | undefined,
+    @Res() res: Response,
+  ) {
+    const y = parseInt(anio, 10);
+    const m = parseInt(mes, 10);
+    const buffer = await this.rondas.informeExcel(user, y, m, postId);
+    const stamp = `${y}-${String(m).padStart(2, '0')}`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="Informe_Rondas_Coraza_${stamp}.xlsx"`,
+    );
+    res.status(200).end(buffer);
   }
 
   @Get('rutas')
