@@ -8,6 +8,12 @@ import { DeliveriesService } from './deliveries.service';
 import { getDotacionEncabezadoBuffer } from './dotacion-pdf-assets';
 import { DeliveryDetail } from './entities/delivery-detail.entity';
 import { Delivery, DeliveryStatus } from './entities/delivery.entity';
+import {
+  agruparPorTallaGenero,
+  etiquetaGenero,
+  totalGeneral,
+  totalesPorGenero,
+} from './item-report.resumen';
 
 type PdfDoc = InstanceType<typeof PDFDocument>;
 
@@ -112,22 +118,61 @@ export class DeliveriesReportsService {
         return;
       }
 
-      let total = 0;
+      // Desglose por talla + género + color: lo que pide la administración.
+      const filas = agruparPorTallaGenero(
+        lines.map((l) => ({
+          talla: l.variant.talla,
+          genero: l.variant.genero,
+          color: l.variant.color,
+          sku: l.variant.sku,
+          cantidad: l.quantity,
+        })),
+      );
+
+      doc.fontSize(12).fillColor('#0f172a').text('Resumen por talla, género y color', { underline: true });
+      doc.moveDown(0.5);
+      for (const f of filas) {
+        const partes = [`Talla ${f.talla}`, f.genero, f.color !== '—' ? f.color : null]
+          .filter(Boolean)
+          .join(' · ');
+        doc
+          .fontSize(10)
+          .fillColor('#0f172a')
+          .text(`• ${partes} (SKU ${f.sku}): ${f.cantidad} unidad${f.cantidad === 1 ? '' : 'es'}`);
+      }
+
+      doc.moveDown(0.8);
+      doc.fontSize(11).fillColor('#0f172a').text('Totales por género', { underline: true });
+      doc.moveDown(0.3);
+      for (const t of totalesPorGenero(filas)) {
+        doc.fontSize(10).fillColor('#0f172a').text(`• ${t.genero}: ${t.cantidad} unidad${t.cantidad === 1 ? '' : 'es'}`);
+      }
+
+      doc.moveDown(0.8);
+      doc.fontSize(12).fillColor('#0f172a').text('Detalle de entregas', { underline: true });
+      doc.moveDown(0.3);
       for (const line of lines) {
-        total += line.quantity;
         const date = line.delivery.deliveredAt ?? line.delivery.createdAt;
         const associate = line.delivery.associate
           ? this.formatAssociate(line.delivery.associate)
           : 'Puesto / sin asociado';
+        const talla = (line.variant.talla ?? '').trim() || '—';
+        const genero = etiquetaGenero(line.variant.genero);
+        const color = (line.variant.color ?? '').trim();
+        const extras = [`Talla ${talla}`, genero, color || null].filter(Boolean).join(' · ');
         doc
           .fontSize(10)
           .fillColor('#0f172a')
           .text(
-            `${this.formatDate(date)} | ${associate} | ${line.variant.sku} | Cant: ${line.quantity}`,
+            `${this.formatDate(date)} | ${associate} | ${extras} | SKU ${line.variant.sku} | Cant: ${line.quantity}`,
           );
       }
+
       doc.moveDown();
-      doc.fontSize(11).fillColor('#0f172a').text(`Total entregado: ${total} unidades`);
+      doc
+        .fontSize(11)
+        .fillColor('#0f172a')
+        .text(`Total entregado: ${totalGeneral(filas)} unidades`);
     });
   }
 
