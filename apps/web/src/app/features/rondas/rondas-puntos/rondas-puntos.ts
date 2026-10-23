@@ -218,7 +218,11 @@ import { GpsError, leerGpsMejor } from '../rondas-gps';
     </section>
   `,
   styles: `
+    /* Se usa desde el celular, parado en el punto: nada debe salirse a los
+       lados ni obligar a desplazar horizontalmente. */
+    :host { display: block; overflow-x: hidden; }
     .page { display: flex; flex-direction: column; gap: 1rem; max-width: 640px; }
+    .page * { box-sizing: border-box; }
     .head h2 { margin: 0 0 0.25rem; font-size: 1.15rem; }
     .head p, .nota { margin: 0; color: var(--text-muted, #6b7280); font-size: 0.9rem; }
     .aviso {
@@ -231,10 +235,11 @@ import { GpsError, leerGpsMejor } from '../rondas-gps';
       border: 1px solid var(--border, #e5e7eb); border-radius: 0.5rem; background: var(--surface);
     }
     .card h3 { margin: 0; font-size: 1rem; }
-    .fila-titulo { display: flex; gap: 0.75rem; align-items: center; justify-content: space-between; }
-    .campo { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; }
+    .fila-titulo { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; justify-content: space-between; }
+    .campo { display: flex; flex-direction: column; gap: 0.3rem; font-size: 0.85rem; font-weight: 600; min-width: 0; }
     .campo.corto { max-width: 8rem; }
     .campo input {
+      width: 100%; max-width: 100%;
       padding: 0.6rem 0.7rem; border: 1px solid var(--border, #d1d5db);
       border-radius: 0.4rem; font: inherit; font-weight: 400; min-height: 44px;
     }
@@ -254,13 +259,15 @@ import { GpsError, leerGpsMejor } from '../rondas-gps';
     .ojo { color: var(--error-text, #b91c1c); }
     ul.lista { list-style: none; margin: 0; padding: 0; }
     .lista li {
-      display: flex; gap: 0.75rem; align-items: center;
+      display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center;
       padding: 0.6rem 0; border-top: 1px solid var(--border, #e5e7eb);
     }
     .lista li:first-child { border-top: 0; }
     .lista li.vacio { color: var(--text-muted, #6b7280); font-size: 0.9rem; }
     .lista.sugerencias { max-height: 40vh; overflow: auto; }
-    .crece { flex: 1; }
+    /* min-width:0 deja que el nombre largo se parta en vez de empujar la fila. */
+    .crece { flex: 1; min-width: 0; }
+    .crece strong, .crece small { overflow-wrap: anywhere; }
     .lista b {
       width: 1.8rem; height: 1.8rem; border-radius: 99px; display: grid; place-items: center;
       background: var(--surface-2, #f3f4f6); font-size: 0.8rem; flex-shrink: 0;

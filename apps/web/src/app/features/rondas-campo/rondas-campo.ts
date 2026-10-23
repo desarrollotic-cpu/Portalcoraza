@@ -349,6 +349,11 @@ const TIPOS_ALERTA = [
       /* Pantalla de campo: se usa con una mano y a veces de noche. Nada debe
          salirse a los lados ni obligar a desplazar horizontalmente. */
       overflow-x: hidden;
+      /* Sin pellizco para acercar: el vigilante se desorienta si la pantalla
+         queda ampliada, y el zoom saca scroll lateral. Se deja el
+         desplazamiento vertical normal. Va aqui y no en el index para no
+         quitarle el zoom al resto del portal, donde si hace falta. */
+      touch-action: pan-x pan-y;
       color: var(--text-primary);
       background: var(--gradient-page);
       font-family: var(--font-sans);
