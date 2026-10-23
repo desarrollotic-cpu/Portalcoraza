@@ -28,6 +28,17 @@ export type RondasPunto = {
   puestoNombre?: string;
 };
 
+export type RondasRuta = {
+  id: string;
+  postId: string;
+  nombre: string;
+  activo: boolean;
+  puestoNombre?: string;
+  puntos?: number;
+  /** Quedó sin clave al migrar: hay que ponerle una antes de usarla. */
+  sinClave?: boolean;
+};
+
 export type RondasHoy = {
   fecha: string;
   cumplimientoPct: number;
@@ -217,8 +228,33 @@ export class RondasApiService {
     });
   }
 
+  rutas(postId?: string): Observable<RondasRuta[]> {
+    return this.http.get<RondasRuta[]>(`${this.base}/rutas`, {
+      ...(postId ? { params: { postId } } : {}),
+    });
+  }
+
+  puntosDeRuta(rutaId: string): Observable<RondasPunto[]> {
+    return this.http.get<RondasPunto[]>(`${this.base}/rutas/${rutaId}/puntos`);
+  }
+
+  crearRuta(body: { postId: string; nombre: string; clave: string }): Observable<RondasRuta> {
+    return this.http.post<RondasRuta>(`${this.base}/rutas`, body);
+  }
+
+  actualizarRuta(
+    id: string,
+    body: { nombre?: string; clave?: string; activo?: boolean },
+  ): Observable<RondasRuta> {
+    return this.http.patch<RondasRuta>(`${this.base}/rutas/${id}`, body);
+  }
+
+  eliminarRuta(id: string): Observable<{ ok: boolean; id: string }> {
+    return this.http.delete<{ ok: boolean; id: string }>(`${this.base}/rutas/${id}`);
+  }
+
   crearPunto(body: {
-    postId: string;
+    rutaId: string;
     nombre: string;
     latitud: number;
     longitud: number;

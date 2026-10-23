@@ -920,47 +920,24 @@ export class RondasCampo implements OnDestroy {
     return Math.round(v);
   }
 
+  /**
+   * Los puntos ya no se crean desde el celular del vigilante: se crean en el
+   * portal, en Rondas -> Rondas y puntos, donde además se les pone nombre,
+   * clave y puesto. Esta pantalla quedó solo para hacer la ronda.
+   *
+   * La vista `sistemas` y su ruta `/rondas/puntos` quedaron sin uso; se
+   * retiran en un cambio aparte para no tocar el flujo de ronda sin probarlo.
+   */
   private crearPuntoGps(
-    lat: number,
-    lng: number,
-    nombre: string,
-    altitud?: number | null,
-    precisionMetros?: number,
+    _lat: number,
+    _lng: number,
+    _nombre: string,
+    _altitud?: number | null,
+    _precisionMetros?: number,
   ) {
-    if (!this.setupPostId || this.guardando()) return;
-    const radio = this.radioEntero();
-    const acc = precisionMetros ?? this.accuracy() ?? 99;
-    if (acc > radio) {
-      this.aviso.set(`No se guarda: GPS ±${Math.round(acc)} m supera el radio de ${radio} m.`);
-      return;
-    }
-    this.guardando.set(true);
-    this.api
-      .crearPunto({
-        postId: this.setupPostId,
-        nombre,
-        latitud: lat,
-        longitud: lng,
-        altitud: altitud ?? this.altitud(),
-        radioMetros: radio,
-        precisionMetros: acc,
-        orden: this.puntosSetup().length + 1,
-      })
-      .subscribe({
-        next: (pt) => {
-          this.puntosSetup.set([...this.puntosSetup(), pt]);
-          this.guardando.set(false);
-          this.puntoNombre = '';
-          this.aviso.set(
-            `${nombre} guardado (${this.radioEntero()} m): ${Number(pt.latitud).toFixed(6)}, ${Number(pt.longitud).toFixed(6)}`,
-          );
-          navigator.vibrate?.([60, 30, 60]);
-        },
-        error: (e: HttpErrorResponse) => {
-          this.guardando.set(false);
-          this.aviso.set(msg(e, 'No se pudo guardar el punto'));
-        },
-      });
+    this.aviso.set(
+      'Los puntos se crean en el portal: Rondas → Rondas y puntos. Esta pantalla es solo para hacer la ronda.',
+    );
   }
 
   private async pedirRumbo() {

@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
 import { TenantQueryRunnerContext } from '../../common/tenant/tenant-query-runner.context';
 import { AuthService } from '../auth/auth.service';
@@ -120,6 +121,149 @@ export class RondasService {
     };
   }
 
+  /**
+   * Rondas configuradas, con cuántos puntos tiene cada una.
+   *
+   * Nunca devuelve `clave_hash`: la clave solo se escribe, no se lee.
+   */
+  async listarRutas(tenantId: string, postId?: string) {
+    const filtro = postId ? ' AND r.post_id = $2' : '';
+    const params: unknown[] = postId ? [tenantId, postId] : [tenantId];
+    return this.q(
+      `SELECT r.id, r.post_id AS "postId", r.nombre, r.activo,
+              pu.name AS "puestoNombre",
+              (SELECT COUNT(*) FROM rondas_puntos p
+                WHERE p.ruta_id = r.id AND p.activo = true)::int AS "puntos",
+              (r.clave_hash = '!sin-clave') AS "sinClave"
+         FROM rondas_rutas r
+         JOIN posts pu ON pu.id = r.post_id
+        WHERE r.tenant_id = $1${filtro}
+        ORDER BY r.nombre`,
+      params,
+    );
+  }
+
+  /** Crea la ronda. El nombre es con lo que se entra desde el celular. */
+  async crearRuta(
+    user: JwtPayload,
+    dto: { postId: string; nombre: string; clave: string },
+  ) {
+    const nombre = (dto.nombre || '').trim();
+    if (nombre.length < 3) {
+      throw new BadRequestException('El nombre de la ronda debe tener al menos 3 caracteres.');
+    }
+    this.assertClave(dto.clave);
+
+    const post = await this.postActivo(dto.postId);
+    if (post.tenant_id !== user.tenantId) throw new ForbiddenException();
+
+    const [repetido] = await this.q(
+      `SELECT 1 FROM rondas_rutas WHERE tenant_id = $1 AND LOWER(nombre) = LOWER($2)`,
+      [user.tenantId, nombre],
+    );
+    if (repetido) {
+      throw new BadRequestException(
+        `Ya existe una ronda llamada «${nombre}». El nombre es con lo que se entra, así que no puede repetirse.`,
+      );
+    }
+
+    const [row] = await this.q(
+      `INSERT INTO rondas_rutas (tenant_id, post_id, nombre, clave_hash, created_by)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING id, post_id AS "postId", nombre, activo`,
+      [user.tenantId, post.id, nombre, await bcrypt.hash(dto.clave, 12), user.sub],
+    );
+    return { ...row, puestoNombre: post.name, puntos: 0, sinClave: false };
+  }
+
+  /** Renombrar, cambiar la clave o desactivar. La clave solo si viene. */
+  async actualizarRuta(
+    user: JwtPayload,
+    id: string,
+    dto: { nombre?: string; clave?: string; activo?: boolean },
+  ) {
+    const ruta = await this.rutaDe(id, user.tenantId);
+    const sets: string[] = [];
+    const params: unknown[] = [];
+
+    if (dto.nombre !== undefined) {
+      const nombre = dto.nombre.trim();
+      if (nombre.length < 3) {
+        throw new BadRequestException('El nombre de la ronda debe tener al menos 3 caracteres.');
+      }
+      const [repetido] = await this.q(
+        `SELECT 1 FROM rondas_rutas
+          WHERE tenant_id = $1 AND LOWER(nombre) = LOWER($2) AND id <> $3`,
+        [user.tenantId, nombre, id],
+      );
+      if (repetido) throw new BadRequestException(`Ya existe una ronda llamada «${nombre}».`);
+      params.push(nombre);
+      sets.push(`nombre = $${params.length}`);
+    }
+    if (dto.clave !== undefined) {
+      this.assertClave(dto.clave);
+      params.push(await bcrypt.hash(dto.clave, 12));
+      sets.push(`clave_hash = $${params.length}`);
+    }
+    if (dto.activo !== undefined) {
+      params.push(!!dto.activo);
+      sets.push(`activo = $${params.length}`);
+    }
+    if (!sets.length) return ruta;
+
+    params.push(id, user.tenantId);
+    const [row] = await this.q(
+      `UPDATE rondas_rutas SET ${sets.join(', ')}
+        WHERE id = $${params.length - 1} AND tenant_id = $${params.length}
+        RETURNING id, post_id AS "postId", nombre, activo`,
+      params,
+    );
+    return row;
+  }
+
+  /** Borra la ronda y, en cascada, sus puntos. Las marcaciones no se tocan. */
+  async eliminarRuta(user: JwtPayload, id: string) {
+    await this.rutaDe(id, user.tenantId);
+    await this.q(`DELETE FROM rondas_rutas WHERE id = $1 AND tenant_id = $2`, [
+      id,
+      user.tenantId,
+    ]);
+    return { ok: true, id };
+  }
+
+  async puntosDeRuta(rutaId: string, tenantId: string) {
+    return this.q(
+      `SELECT p.id, p.ruta_id AS "rutaId", p.post_id AS "postId", p.nombre,
+              p.latitud, p.longitud, p.altitud, p.radio_metros AS "radioMetros",
+              p.orden, p.activo
+         FROM rondas_puntos p
+        WHERE p.tenant_id = $1 AND p.ruta_id = $2 AND p.activo = true
+        ORDER BY p.orden, p.nombre`,
+      [tenantId, rutaId],
+    );
+  }
+
+  private async rutaDe(id: string, tenantId: string) {
+    const [row] = await this.q(
+      `SELECT r.id, r.post_id AS "postId", r.nombre, r.activo
+         FROM rondas_rutas r WHERE r.id = $1 AND r.tenant_id = $2`,
+      [id, tenantId],
+    );
+    if (!row) throw new BadRequestException('La ronda no existe.');
+    return row;
+  }
+
+  /** Corta la ronda si se entra desde el celular; por eso no puede ser trivial. */
+  private assertClave(clave: string) {
+    const v = (clave || '').trim();
+    if (v.length < 4) {
+      throw new BadRequestException('La clave debe tener al menos 4 caracteres.');
+    }
+    if (v.length > 64) {
+      throw new BadRequestException('La clave es demasiado larga.');
+    }
+  }
+
   async puntosDePost(postId: string, tenantId: string, incluirInactivos = false) {
     const filtro = incluirInactivos ? '' : ' AND p.activo = true';
     return this.q(
@@ -137,7 +281,8 @@ export class RondasService {
   async crearPunto(
     user: JwtPayload,
     dto: {
-      postId: string;
+      /** Ronda a la que pertenece. El puesto sale de ella. */
+      rutaId: string;
       nombre: string;
       latitud: number;
       longitud: number;
@@ -157,29 +302,38 @@ export class RondasService {
         `GPS ±${Math.round(precision)} m es peor que el radio ${radio} m. No se guarda.`,
       );
     }
-    const post = await this.postActivo(dto.postId);
+    const ruta = await this.rutaDe(dto.rutaId, user.tenantId);
+    const post = await this.postActivo(ruta.postId);
     if (post.tenant_id !== user.tenantId) {
       throw new ForbiddenException();
     }
+    // El orden lo pone el servidor: van quedando en el orden en que se toman.
+    const [{ siguiente }] = await this.q(
+      `SELECT COALESCE(MAX(orden), 0) + 1 AS siguiente
+         FROM rondas_puntos WHERE ruta_id = $1`,
+      [ruta.id],
+    );
     const altitud =
       dto.altitud == null || !Number.isFinite(Number(dto.altitud))
         ? null
         : Number(dto.altitud);
     const [row] = await this.q(
       `INSERT INTO rondas_puntos
-        (tenant_id, post_id, nombre, latitud, longitud, altitud, radio_metros, orden, created_by)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
-       RETURNING id, post_id AS "postId", nombre, latitud, longitud, altitud,
-                 radio_metros AS "radioMetros", orden, activo`,
+        (tenant_id, ruta_id, post_id, nombre, latitud, longitud, altitud,
+         radio_metros, orden, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING id, ruta_id AS "rutaId", post_id AS "postId", nombre, latitud,
+                 longitud, altitud, radio_metros AS "radioMetros", orden, activo`,
       [
         user.tenantId,
+        ruta.id,
         post.id,
         nombre,
         dto.latitud,
         dto.longitud,
         altitud,
         radio,
-        dto.orden ?? 1,
+        dto.orden ?? siguiente,
         user.sub,
       ],
     );

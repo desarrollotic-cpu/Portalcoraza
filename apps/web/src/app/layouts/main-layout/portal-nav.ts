@@ -65,7 +65,7 @@ const RONDAS_NAV: ModuleNavItem[] = [
     exact: true,
   },
   {
-    label: 'Puestos y puntos',
+    label: 'Rondas y puntos',
     route: '/control-rondas/puntos',
     permission: 'rondas.setup',
     icon: LucideMapPin,

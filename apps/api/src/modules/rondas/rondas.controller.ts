@@ -110,6 +110,43 @@ export class RondasController {
     return this.rondas.hoy(user, postId);
   }
 
+  @Get('rutas')
+  @RequirePermissions('rondas.view')
+  rutas(@CurrentUser() user: JwtPayload, @Query('postId') postId?: string) {
+    return this.rondas.listarRutas(user.tenantId, postId);
+  }
+
+  @Get('rutas/:id/puntos')
+  @RequirePermissions('rondas.view')
+  puntosDeRuta(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.rondas.puntosDeRuta(id, user.tenantId);
+  }
+
+  @Post('rutas')
+  @RequirePermissions('rondas.setup')
+  crearRuta(
+    @CurrentUser() user: JwtPayload,
+    @Body() body: { postId: string; nombre: string; clave: string },
+  ) {
+    return this.rondas.crearRuta(user, body);
+  }
+
+  @Patch('rutas/:id')
+  @RequirePermissions('rondas.setup')
+  actualizarRuta(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+    @Body() body: { nombre?: string; clave?: string; activo?: boolean },
+  ) {
+    return this.rondas.actualizarRuta(user, id, body);
+  }
+
+  @Delete('rutas/:id')
+  @RequirePermissions('rondas.setup')
+  eliminarRuta(@CurrentUser() user: JwtPayload, @Param('id') id: string) {
+    return this.rondas.eliminarRuta(user, id);
+  }
+
   @Get('puntos')
   @RequirePermissions('rondas.view')
   puntos(@CurrentUser() user: JwtPayload, @Query('postId') postId?: string) {
@@ -122,7 +159,7 @@ export class RondasController {
     @CurrentUser() user: JwtPayload,
     @Body()
     body: {
-      postId: string;
+      rutaId: string;
       nombre: string;
       latitud: number;
       longitud: number;

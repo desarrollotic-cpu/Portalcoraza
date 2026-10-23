@@ -135,9 +135,9 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
 
       <aside class="link-box">
         <div>
-          <strong>Puntos de ronda</strong>
-          <p>Los puntos de cada puesto se crean y se editan en Rondas → Puestos y puntos.</p>
-          <a routerLink="/control-rondas/puntos">Ir a Puestos y puntos</a>
+          <strong>Rondas y puntos</strong>
+          <p>Las rondas y sus puntos se crean y se editan en Rondas → Rondas y puntos.</p>
+          <a routerLink="/control-rondas/puntos">Ir a Rondas y puntos</a>
         </div>
       </aside>
     </section>
