@@ -116,21 +116,27 @@ export class RondasController {
     @CurrentUser() user: JwtPayload,
     @Query('anio') anio: string,
     @Query('mes') mes: string,
-    @Query('postId') postId: string | undefined,
+    @Query('postId') postId: string,
     @Res() res: Response,
   ) {
     const y = parseInt(anio, 10);
     const m = parseInt(mes, 10);
-    const buffer = await this.rondas.informeExcel(user, y, m, postId);
+    const buffer = await this.rondas.informePDF(user, y, m, postId);
     const stamp = `${y}-${String(m).padStart(2, '0')}`;
-    res.setHeader(
-      'Content-Type',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    );
+    // ASCII seguro para el filename (sin tildes ni ñ); evita problemas de
+    // encoding en Content-Disposition entre proxys / navegadores viejos.
+    const safe = (s: string) =>
+      s
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Za-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '') || 'Puesto';
+    res.setHeader('Content-Type', 'application/pdf');
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="Informe_Rondas_Coraza_${stamp}.xlsx"`,
+      `attachment; filename="Informe_Rondas_${safe('Coraza')}_${stamp}.pdf"`,
     );
+    // El nombre bonito con el puesto va en el frontend al guardar.
     res.status(200).end(buffer);
   }
 

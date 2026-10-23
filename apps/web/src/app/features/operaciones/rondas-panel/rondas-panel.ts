@@ -2,7 +2,7 @@ import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
+import { RondasApiService, RondasHoy, RondasPost } from '../../rondas/rondas-api.service';
 
 @Component({
   selector: 'app-rondas-panel',
@@ -39,15 +39,29 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
 
       <aside class="link-box">
         <div>
-          <strong>Cumplimiento · informe mensual</strong>
-          <p>Por puesto: cuántas rondas, a qué hora empezó, cada punto y a qué hora cerró.</p>
+          <strong>Cumplimiento · informe mensual (PDF)</strong>
+          <p>Un PDF por puesto: cuántas rondas, a qué hora empezó, cada punto y a qué hora cerró.</p>
         </div>
+        <label class="mes">
+          Puesto
+          <select [(ngModel)]="puestoInforme">
+            <option value="">— elige el puesto —</option>
+            @for (p of puestos(); track p.id) {
+              <option [value]="p.id">{{ p.name }}</option>
+            }
+          </select>
+        </label>
         <label class="mes">
           Mes
           <input type="month" [(ngModel)]="mesInforme" />
         </label>
-        <button type="button" class="ghost" [disabled]="bajando()" (click)="descargarInforme()">
-          {{ bajando() ? 'Generando…' : 'Descargar informe' }}
+        <button
+          type="button"
+          class="ghost"
+          [disabled]="bajando() || !puestoInforme"
+          (click)="descargarInforme()"
+        >
+          {{ bajando() ? 'Generando…' : 'Descargar PDF' }}
         </button>
       </aside>
 
@@ -194,17 +208,19 @@ import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
        esconder el dato. Se senalan aqui para que alguien las revise. */
     .fuera { color: var(--error-text, #b91c1c); font-weight: 800; }
     tr.urgente td { background: color-mix(in srgb, var(--error-600, #b91c1c) 14%, var(--surface)); font-weight: 700; }
-    .mes { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); }
-    .mes input { min-height: 40px; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; }
+    .mes { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); min-width: 180px; }
+    .mes input, .mes select { min-height: 40px; padding: 0.35rem 0.5rem; border: 1px solid var(--border); border-radius: var(--radius-sm); font: inherit; background: var(--surface); color: inherit; }
   `,
 })
 export class RondasPanel implements OnInit {
   private readonly api = inject(RondasApiService);
   readonly campoUrl = `${location.origin}/rondas`;
   hoy = signal<RondasHoy | null>(null);
+  puestos = signal<RondasPost[]>([]);
   error = signal('');
   copiado = signal('');
   bajando = signal(false);
+  puestoInforme = '';
   mesInforme = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Bogota',
     year: 'numeric',
@@ -213,6 +229,7 @@ export class RondasPanel implements OnInit {
 
   ngOnInit(): void {
     this.cargar();
+    this.cargarPuestos();
     setInterval(() => this.cargar(), 15000);
   }
 
@@ -220,6 +237,15 @@ export class RondasPanel implements OnInit {
     this.api.hoy().subscribe({
       next: (h: RondasHoy) => this.hoy.set(h),
       error: () => this.error.set('No se pudo cargar el cumplimiento.'),
+    });
+  }
+
+  private cargarPuestos() {
+    this.api.puestosSetup().subscribe({
+      next: (ps) => this.puestos.set(ps),
+      // No bloquea el panel: si no cargan, el select queda vacío y el botón
+      // deshabilitado, que es lo correcto.
+      error: () => {},
     });
   }
 
@@ -231,13 +257,23 @@ export class RondasPanel implements OnInit {
       this.error.set('Elige el mes del informe.');
       return;
     }
+    if (!this.puestoInforme) {
+      this.error.set('Elige el puesto del informe.');
+      return;
+    }
+    const puesto = this.puestos().find((p) => p.id === this.puestoInforme);
+    const nombre = (puesto?.name || 'puesto')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
     this.bajando.set(true);
-    this.api.informe(anio, mes).subscribe({
+    this.api.informe(anio, mes, this.puestoInforme).subscribe({
       next: (blob) => {
         const a = document.createElement('a');
         const url = URL.createObjectURL(blob);
         a.href = url;
-        a.download = `Informe_Rondas_Coraza_${this.mesInforme}.xlsx`;
+        a.download = `Informe_Rondas_${nombre}_${this.mesInforme}.pdf`;
         a.click();
         URL.revokeObjectURL(url);
         this.bajando.set(false);

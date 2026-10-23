@@ -239,9 +239,9 @@ export class RondasApiService {
     });
   }
 
-  informe(anio: number, mes: number): Observable<Blob> {
+  informe(anio: number, mes: number, postId: string): Observable<Blob> {
     return this.http.get(`${this.base}/informe`, {
-      params: { anio: String(anio), mes: String(mes) },
+      params: { anio: String(anio), mes: String(mes), postId },
       responseType: 'blob',
     });
   }
