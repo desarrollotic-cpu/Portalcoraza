@@ -3,6 +3,7 @@ import { Component, OnDestroy, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { GpsError, leerGpsMejor } from '../rondas/rondas-gps';
 import { RondasApiService, RondasPunto } from '../rondas/rondas-api.service';
 import {
   MarcaLocal,
@@ -263,6 +264,16 @@ const TIPOS_ALERTA = [
                     }
                   </small>
                 </div>
+                @if (!marcadoHoy(pt.id)) {
+                  <button
+                    type="button"
+                    class="marcar"
+                    [disabled]="marcando() === pt.id"
+                    (click)="marcarPunto(pt)"
+                  >
+                    {{ marcando() === pt.id ? '…' : 'Marcar' }}
+                  </button>
+                }
               </li>
             }
           </ul>
@@ -451,6 +462,14 @@ const TIPOS_ALERTA = [
     }
     .puntos li.ok b { background: var(--success-600, #15803d); color: #fff; }
     .puntos small { display: block; color: var(--text-muted); }
+    .puntos li > div { flex: 1; }
+    .marcar {
+      width: auto; min-height: 44px; padding: 0.5rem 1rem; border: 0;
+      border-radius: var(--radius-sm); background: var(--gradient-primary);
+      color: var(--text-on-primary); font: inherit; font-weight: 700;
+      cursor: pointer; flex-shrink: 0;
+    }
+    .marcar:disabled { opacity: 0.6; }
     .hola { margin: 0 0 0.5rem; font-weight: 700; color: var(--text-primary); }
     .barra { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; }
     .track { height: 8px; background: var(--neutral-200); border-radius: 99px; overflow: hidden; margin: 0.4rem 0 0.8rem; }
@@ -505,6 +524,7 @@ export class RondasCampo implements OnDestroy {
   /** Credenciales de la ronda: el celular entra como la ronda, no como persona. */
   rondaNombre = '';
   rondaClave = '';
+  readonly marcando = signal('');
   entrando = signal(false);
   guardando = signal(false);
   sincronizando = signal(false);
@@ -1094,6 +1114,84 @@ export class RondasCampo implements OnDestroy {
     void this.sincronizar().finally(() => {
       this.lock = false;
     });
+  }
+
+  /**
+   * Marca un punto porque el vigilante lo pidió, no porque pasó cerca.
+   *
+   * Es más confiable que la marcación automática por dos razones: el vigilante
+   * dice QUÉ punto está marcando —  así no hay que adivinar entre dos que estén
+   * juntos o uno encima del otro, que es donde la altitud del GPS falla —  y
+   * queda constancia de que alguien estuvo ahí y actuó, no solo de que un
+   * teléfono pasó cerca.
+   *
+   * El GPS sigue mandando: si no está dentro del radio, no marca.
+   */
+  async marcarPunto(pt: RondasPunto) {
+    if (this.marcando()) return;
+    this.marcando.set(pt.id);
+    this.aviso.set('');
+    this.gpsNota.set('');
+
+    const radio = Math.round(Number(pt.radioMetros) || 10);
+    try {
+      const l = await leerGpsMejor(radio, 12000, (lec) => {
+        this.accuracy.set(Math.round(lec.accuracy));
+        this.gpsNota.set(`Leyendo GPS: ±${Math.round(lec.accuracy)} m…`);
+      });
+
+      const dist = Math.round(
+        distanciaMetros(l.latitude, l.longitude, Number(pt.latitud), Number(pt.longitud)),
+      );
+      if (!dentroDelRadio(dist, radio)) {
+        this.gpsNota.set(
+          `Estás a ${dist} m de ${pt.nombre} y el punto llega hasta ${radio} m. Acércate y vuelve a marcar.`,
+        );
+        return;
+      }
+
+      const yaMarcado = this.marcas().some(
+        (m) => m.puntoId === pt.id && esHoyBogota(m.fechaHora),
+      );
+      if (yaMarcado) {
+        this.gpsNota.set(`${pt.nombre} ya está marcado hoy.`);
+        return;
+      }
+
+      const marca: MarcaLocal = {
+        uuid: crypto.randomUUID(),
+        puntoId: pt.id,
+        puntoNombre: pt.nombre,
+        latitud: l.latitude,
+        longitud: l.longitude,
+        precisionMetros: Math.round(l.accuracy * 10) / 10,
+        fechaHora: new Date().toISOString(),
+        dispositivoId: this.api.deviceId(),
+        estado: 'pendiente',
+        altitud: l.altitude ?? null,
+      };
+
+      const vig = JSON.parse(localStorage.getItem(VIG_KEY) || '{}') as { id?: string };
+      const next = [marca, ...this.marcas()];
+      this.marcas.set(next);
+      if (vig.id) guardarMarcas(vig.id, next);
+
+      this.gpsNota.set('');
+      this.aviso.set(`Punto ${pt.orden} · ${pt.nombre} marcado.`);
+      navigator.vibrate?.([80, 40, 80]);
+      void this.sincronizar();
+    } catch (e) {
+      const g = e as GpsError;
+      this.gpsNota.set(
+        g.motivo === 'sin-permiso'
+          ? 'Sin permiso de ubicación. Actívalo para poder marcar.'
+          : g.motivo === 'sin-gps'
+            ? 'Este teléfono no tiene GPS.'
+            : `${g.message} Sal a cielo abierto y vuelve a intentar.`,
+      );
+    } finally {
+      this.marcando.set('');
+    }
   }
 
   marcadoHoy(puntoId: string) {
