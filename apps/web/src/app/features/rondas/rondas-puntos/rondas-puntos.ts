@@ -54,7 +54,15 @@ import { GpsError, leerGpsMejor } from '../rondas-gps';
                     @if (r.sinClave) { · <b class="ojo">sin clave</b> }
                   </small>
                 </div>
-                <button type="button" class="mini" (click)="abrir(r)">Abrir</button>
+                @if (rutaPorBorrar() === r.id) {
+                  <button type="button" class="mini malo" (click)="borrarRuta(r)">Confirmar</button>
+                  <button type="button" class="mini" (click)="rutaPorBorrar.set('')">No</button>
+                } @else {
+                  <button type="button" class="mini" (click)="abrir(r)">Abrir</button>
+                  <button type="button" class="mini malo" (click)="rutaPorBorrar.set(r.id)">
+                    Eliminar
+                  </button>
+                }
               </li>
             } @empty {
               <li class="vacio">Todavía no hay rondas. Crea la primera con el botón de arriba.</li>
@@ -281,6 +289,7 @@ export class RondasPuntos implements OnInit {
   readonly aviso = signal('');
   readonly esError = signal(false);
   readonly porBorrar = signal('');
+  readonly rutaPorBorrar = signal('');
   readonly puestoElegido = signal<RondasPost | null>(null);
 
   nombreRuta = '';
@@ -432,6 +441,22 @@ export class RondasPuntos implements OnInit {
             : `${g.message} Sal a cielo abierto o sube el radio del punto.`,
       );
     }
+  }
+
+  /** Borra la ronda y sus puntos. Las marcaciones ya hechas no se tocan. */
+  borrarRuta(r: RondasRuta) {
+    this.rutaPorBorrar.set('');
+    this.api.eliminarRuta(r.id).subscribe({
+      next: () => {
+        this.ok(`Ronda «${r.nombre}» eliminada con sus puntos.`);
+        if (this.rutaAbierta()?.id === r.id) {
+          this.rutaAbierta.set(null);
+          this.puntos.set([]);
+        }
+        this.cargarRutas();
+      },
+      error: (e) => this.fallo(this.mensaje(e, 'No se pudo eliminar la ronda.')),
+    });
   }
 
   borrarPunto(p: RondasPunto) {

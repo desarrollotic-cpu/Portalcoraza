@@ -61,76 +61,38 @@ const TIPOS_ALERTA = [
       }
 
       @if (vista() === 'inicio' && !modoPuntos) {
-        @if (!post()) {
-          <section class="card">
-            <h1>¿En qué puesto estás?</h1>
+        <section class="card">
+          <h1>Entrar a la ronda</h1>
+          <p class="nota">
+            Escribe el nombre de la ronda y la clave que te dio Sistemas.
+          </p>
+          <label>
+            Nombre de la ronda
             <input
-              type="search"
-              [(ngModel)]="filtroPuesto"
-              placeholder="Buscar puesto"
-              (ngModelChange)="filtrarPuestos()"
+              type="text"
+              [(ngModel)]="rondaNombre"
+              autocomplete="off"
+              placeholder="Ronda Coraza"
             />
-            <ul>
-              @for (p of puestosVisibles(); track p.id) {
-                <li>
-                  <button type="button" (click)="elegirPuestoVigilante(p)">{{ p.name }}</button>
-                </li>
-              }
-            </ul>
-            @if (!puestos().length) {
-              <p class="nota">Cargando puestos…</p>
-            }
-          </section>
-        } @else {
-          <section class="card">
-            <button type="button" class="back" (click)="cambiarPuesto()">← Cambiar puesto</button>
-            <h1>¿Quién da la ronda?</h1>
-            <p class="puesto-ok">Puesto: {{ post()?.name }}</p>
-
-            @if (!elegido()) {
-              <label>
-                Tu nombre
-                <input
-                  type="text"
-                  autocomplete="off"
-                  autocapitalize="words"
-                  [(ngModel)]="filtro"
-                  placeholder="Escribe apellido o nombre"
-                  (ngModelChange)="filtrar()"
-                />
-              </label>
-              <ul class="sugerencias">
-                @for (a of visibles(); track a.id) {
-                  <li>
-                    <button type="button" (click)="elegir(a)">{{ a.nombre }}</button>
-                  </li>
-                }
-              </ul>
-              @if (filtro.trim() && !visibles().length) {
-                <p class="nota">No hay coincidencias. Prueba con el apellido.</p>
-              }
-            } @else {
-              <label>
-                Nombre
-                <input type="text" [value]="elegido()!.nombre" readonly />
-              </label>
-              <button type="button" class="ghost" (click)="cambiarNombre()">Elegir otro nombre</button>
-              <label>
-                Número de documento
-                <input
-                  type="text"
-                  inputmode="numeric"
-                  autocomplete="off"
-                  [(ngModel)]="cedula"
-                  placeholder="Cédula"
-                />
-              </label>
-              <button type="button" class="cta" [disabled]="entrando()" (click)="entrar()">
-                {{ entrando() ? 'Entrando…' : 'Iniciar ronda' }}
-              </button>
-            }
-          </section>
-        }
+          </label>
+          <label>
+            Clave
+            <input
+              type="password"
+              [(ngModel)]="rondaClave"
+              autocomplete="off"
+              placeholder="Clave de la ronda"
+            />
+          </label>
+          <button
+            type="button"
+            class="cta"
+            [disabled]="entrando() || !rondaNombre.trim() || !rondaClave.trim()"
+            (click)="entrar()"
+          >
+            {{ entrando() ? 'Entrando…' : 'Entrar' }}
+          </button>
+        </section>
       }
 
       @if (vista() === 'sistemas') {
@@ -540,6 +502,9 @@ export class RondasCampo implements OnDestroy {
   altitud = signal<number | null>(null);
   tomandoGps = signal(false);
   vigNombre = signal('');
+  /** Credenciales de la ronda: el celular entra como la ronda, no como persona. */
+  rondaNombre = '';
+  rondaClave = '';
   entrando = signal(false);
   guardando = signal(false);
   sincronizando = signal(false);
@@ -977,29 +942,35 @@ export class RondasCampo implements OnDestroy {
   };
 
   entrar() {
-    const post = this.post();
-    const e = this.elegido();
-    if (!post || !e) return;
+    const nombre = this.rondaNombre.trim();
+    const clave = this.rondaClave.trim();
+    if (!nombre || !clave || this.entrando()) return;
     this.entrando.set(true);
-    this.api.entrar(post.id, e.id, this.cedula).subscribe({
+    this.aviso.set('');
+    this.api.entrar(nombre, clave).subscribe({
       next: (res) => {
         this.entrando.set(false);
         this.api.setCampoSesion(res.accessToken);
-        this.vigNombre.set(res.vigilante.nombre);
-        localStorage.setItem(VIG_KEY, JSON.stringify(res.vigilante));
-        this.marcas.set(leerMarcas(res.vigilante.id));
-        this.alertas.set(leerAlertas(res.vigilante.id));
-        const cached = leerPuntos(post.id);
+        this.rondaClave = '';
+        // El titulo de la ronda hace las veces de saludo: no hay persona.
+        this.vigNombre.set(res.ronda.nombre);
+        this.post.set(res.post);
+        this.api.vincularPost(res.post);
+        localStorage.setItem(VIG_KEY, JSON.stringify(res.ronda));
+        this.marcas.set(leerMarcas(res.ronda.id));
+        this.alertas.set(leerAlertas(res.ronda.id));
+        const cached = leerPuntos(res.post.id);
         if (cached.length) this.puntos.set(cached);
         this.vista.set('ronda');
         this.cargarPuntosYGps();
       },
       error: (err: HttpErrorResponse) => {
         this.entrando.set(false);
-        this.aviso.set(msg(err, 'Documento no coincide'));
+        this.aviso.set(msg(err, 'Nombre de ronda o clave incorrectos'));
       },
     });
   }
+
 
   cargarPuntosYGps() {
     this.iniciarGps();

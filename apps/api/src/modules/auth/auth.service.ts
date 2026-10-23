@@ -172,17 +172,17 @@ export class AuthService {
 
   /** Token de 7 días para el celular del vigilante (cola offline). */
   async signCampoAccess(input: {
-    associateId: string;
+    rutaId: string;
     postId: string;
     tenantId: string;
   }): Promise<string> {
     const payload: JwtPayload = {
-      sub: input.associateId,
-      email: `rondas:${input.associateId}`,
+      sub: input.rutaId,
+      email: `rondas:${input.rutaId}`,
       roleCode: 'RONDAS_CAMPO',
       permissions: ['rondas.marcar'],
       tenantId: input.tenantId,
-      associateId: input.associateId,
+      rutaId: input.rutaId,
       postId: input.postId,
     };
     return this.jwtService.signAsync(payload, {

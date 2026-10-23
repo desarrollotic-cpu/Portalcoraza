@@ -129,20 +129,20 @@ export class RondasApiService {
     }>(`${this.base}/campo/asociados`, { params: { postId } });
   }
 
+  /** Nombre de la ronda y su clave. Rondas no identifica al vigilante. */
   entrar(
-    postId: string,
-    associateId: string,
-    documentNumber: string,
+    nombre: string,
+    clave: string,
   ): Observable<{
     accessToken: string;
-    vigilante: { id: string; nombre: string };
+    ronda: { id: string; nombre: string };
     post: { id: string; name: string };
   }> {
     return this.http.post<{
       accessToken: string;
-      vigilante: { id: string; nombre: string };
+      ronda: { id: string; nombre: string };
       post: { id: string; name: string };
-    }>(`${this.base}/campo/entrar`, { postId, associateId, documentNumber });
+    }>(`${this.base}/campo/entrar`, { nombre, clave });
   }
 
   puntosCampo(): Observable<RondasPunto[]> {

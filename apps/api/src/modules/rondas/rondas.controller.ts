@@ -26,32 +26,19 @@ export class RondasController {
 
   @Public()
   @UseGuards(AuthRateLimitGuard)
-  @Get('campo/puestos')
-  puestosCampo() {
-    return this.rondas.puestosCampo();
-  }
-
-  @Public()
-  @UseGuards(AuthRateLimitGuard)
-  @Get('campo/asociados')
-  asociados(@Query('postId') postId: string) {
-    return this.rondas.asociadosCampo(postId);
-  }
-
+  /** Entrada desde el celular: nombre de la ronda y clave. Sin datos del vigilante. */
   @Public()
   @UseGuards(AuthRateLimitGuard)
   @Post('campo/entrar')
-  entrar(
-    @Body() body: { postId: string; associateId: string; documentNumber: string },
-  ) {
+  entrar(@Body() body: { nombre: string; clave: string }) {
     return this.rondas.entrarCampo(body);
   }
 
   @Get('campo/puntos')
   @RequirePermissions('rondas.marcar')
   puntosCampo(@CurrentUser() user: JwtPayload) {
-    if (!user.postId) throw new ForbiddenException('Sesión de campo inválida');
-    return this.rondas.puntosDePost(user.postId, user.tenantId);
+    if (!user.rutaId) throw new ForbiddenException('Sesión de campo inválida');
+    return this.rondas.puntosDeRuta(user.rutaId, user.tenantId);
   }
 
   @Post('campo/marcaciones')

@@ -86,38 +86,51 @@ export class RondasService {
     return { post: { id: post.id, name: post.name }, asociados: rows };
   }
 
-  async entrarCampo(dto: {
-    postId: string;
-    associateId: string;
-    documentNumber: string;
-  }) {
-    const cedula = digitsOnly(dto.documentNumber);
-    if (cedula.length < 5) {
-      throw new UnauthorizedException('Cédula inválida');
+  /**
+   * Entrada desde el celular: nombre de la ronda y su clave.
+   *
+   * Rondas no identifica al vigilante —  ni le hace falta a la central, que
+   * solo necesita saber si el puesto hizo la ronda. Antes se pedia nombre y
+   * cedula del asociado; ahora el celular entra como la ronda.
+   */
+  async entrarCampo(dto: { nombre: string; clave: string }) {
+    const nombre = (dto.nombre || '').trim();
+    const clave = (dto.clave || '').trim();
+    if (!nombre || !clave) {
+      throw new UnauthorizedException('Escribe el nombre de la ronda y la clave.');
     }
-    const post = await this.postActivo(dto.postId);
-    const [aso] = await this.q(
-      `SELECT id, tenant_id, document_number,
-              TRIM(CONCAT_WS(' ', first_name, second_name, first_last_name, second_last_name)) AS nombre,
-              status
-       FROM associates WHERE id = $1`,
-      [dto.associateId],
+
+    const [ruta] = await this.q(
+      `SELECT r.id, r.tenant_id, r.post_id, r.nombre, r.clave_hash, r.activo,
+              pu.name AS post_name, pu.status AS post_status
+         FROM rondas_rutas r
+         JOIN posts pu ON pu.id = r.post_id
+        WHERE LOWER(r.nombre) = LOWER($1)`,
+      [nombre],
     );
-    if (!aso || aso.status !== 'ACTIVO' || aso.tenant_id !== post.tenant_id) {
-      throw new UnauthorizedException('Asociado no válido');
+
+    // Mismo mensaje exista o no la ronda: no se le dice a nadie que nombres hay.
+    const generico = new UnauthorizedException('Nombre de ronda o clave incorrectos.');
+    if (!ruta || !ruta.activo) throw generico;
+    if (ruta.clave_hash === '!sin-clave') {
+      throw new UnauthorizedException(
+        'Esta ronda todavia no tiene clave. Pidele a Sistemas que le ponga una.',
+      );
     }
-    if (digitsOnly(aso.document_number) !== cedula) {
-      throw new UnauthorizedException('El documento no coincide');
+    if (!(await bcrypt.compare(clave, ruta.clave_hash))) throw generico;
+    if (ruta.post_status === 'INACTIVO') {
+      throw new UnauthorizedException('El puesto de esta ronda esta inactivo.');
     }
+
     const accessToken = await this.auth.signCampoAccess({
-      associateId: aso.id,
-      postId: post.id,
-      tenantId: post.tenant_id,
+      rutaId: ruta.id,
+      postId: ruta.post_id,
+      tenantId: ruta.tenant_id,
     });
     return {
       accessToken,
-      vigilante: { id: aso.id, nombre: aso.nombre },
-      post: { id: post.id, name: post.name },
+      ronda: { id: ruta.id, nombre: ruta.nombre },
+      post: { id: ruta.post_id, name: ruta.post_name },
     };
   }
 
@@ -394,7 +407,7 @@ export class RondasService {
   }
 
   async registrarLote(user: JwtPayload, marcaciones: MarcacionIn[]) {
-    if (!user.associateId || !user.postId) {
+    if (!user.rutaId || !user.postId) {
       throw new ForbiddenException('Sesión de campo inválida');
     }
     if (!Array.isArray(marcaciones) || !marcaciones.length) {
@@ -446,10 +459,10 @@ export class RondasService {
         }
         const [dup] = await this.q(
           `SELECT 1 AS ok FROM rondas_marcaciones
-           WHERE associate_id = $1 AND punto_id = $2
+           WHERE ruta_id = $1 AND punto_id = $2
              AND fecha_hora > $3
            LIMIT 1`,
-          [user.associateId, punto.id, new Date(fecha.getTime() - ANTI_DUP_MS)],
+          [user.rutaId, punto.id, new Date(fecha.getTime() - ANTI_DUP_MS)],
         );
         if (dup) {
           duplicadas.push(uuid);
@@ -457,7 +470,7 @@ export class RondasService {
         }
         const info = await this.q(
           `INSERT INTO rondas_marcaciones
-            (tenant_id, uuid_cliente, punto_id, associate_id, post_id,
+            (tenant_id, uuid_cliente, punto_id, ruta_id, post_id,
              latitud, longitud, precision_metros, distancia_al_punto, altitud,
              fecha_hora, dispositivo_id, es_mock)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,false)
@@ -467,7 +480,7 @@ export class RondasService {
             user.tenantId,
             uuid,
             punto.id,
-            user.associateId,
+            user.rutaId,
             user.postId,
             m.latitud,
             m.longitud,
@@ -500,7 +513,7 @@ export class RondasService {
       dispositivoId?: string;
     }>,
   ) {
-    if (!user.associateId || !user.postId) {
+    if (!user.rutaId || !user.postId) {
       throw new ForbiddenException('Sesión de campo inválida');
     }
     const tipos = new Set(['EMERGENCIA', 'INCIDENTE', 'APOYO', 'NOVEDAD']);
@@ -527,7 +540,7 @@ export class RondasService {
       try {
         const info = await this.q(
           `INSERT INTO rondas_alertas
-            (tenant_id, uuid_cliente, post_id, associate_id, tipo, mensaje,
+            (tenant_id, uuid_cliente, post_id, ruta_id, tipo, mensaje,
              latitud, longitud, fecha_hora, dispositivo_id)
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
            ON CONFLICT (uuid_cliente) DO NOTHING
@@ -536,7 +549,7 @@ export class RondasService {
             user.tenantId,
             uuid,
             user.postId,
-            user.associateId,
+            user.rutaId,
             tipo,
             mensaje,
             a.latitud ?? null,
@@ -563,10 +576,10 @@ export class RondasService {
               m.fecha_hora AS "fechaHora", m.created_at AS "creadoEn"
        FROM rondas_marcaciones m
        JOIN rondas_puntos p ON p.id = m.punto_id
-       WHERE m.associate_id = $1 AND m.post_id = $2
+       WHERE m.ruta_id = $1 AND m.post_id = $2
        ORDER BY m.fecha_hora DESC
        LIMIT 500`,
-      [user.associateId, user.postId],
+      [user.rutaId, user.postId],
     );
   }
 
