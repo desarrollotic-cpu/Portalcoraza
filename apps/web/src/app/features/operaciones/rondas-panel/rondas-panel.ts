@@ -1,10 +1,11 @@
 import { DatePipe } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-api.service';
+import { RouterLink } from '@angular/router';
+import { RondasApiService, RondasHoy } from '../../rondas/rondas-api.service';
 
 @Component({
   selector: 'app-rondas-panel',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   template: `
     <section class="page">
       <header class="head">
@@ -19,18 +20,11 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
 
       <aside class="link-box">
         <div>
-          <strong>1. Crear puntos GPS (ustedes)</strong>
-          <p>En el puesto, párate donde el cliente pidió el punto, ponle nombre y toca <b>Tomar punto</b>. Eso guarda las coordenadas. No uses “iniciar ronda”.</p>
-          <a [href]="puntosUrl" target="_blank" rel="noopener">{{ puntosUrl }}</a>
-        </div>
-        <button type="button" class="ghost" (click)="copiar(puntosUrl)">
-          {{ copiado() === puntosUrl ? 'Copiado' : 'Copiar' }}
-        </button>
-      </aside>
-      <aside class="link-box">
-        <div>
-          <strong>2. App del vigilante</strong>
-          <p>Elige puesto, su nombre, cédula e inicia ronda. No crea puntos.</p>
+          <strong>App del vigilante</strong>
+          <p>
+            Esta dirección es solo para el vigilante: elige puesto, su nombre y cédula, e inicia
+            la ronda. No crea puntos. Los puntos se toman abajo, desde aquí.
+          </p>
           <a [href]="campoUrl" target="_blank" rel="noopener">{{ campoUrl }}</a>
         </div>
         <button type="button" class="ghost" (click)="copiar(campoUrl)">
@@ -139,31 +133,13 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
         </div>
       }
 
-      <h3>Puntos GPS</h3>
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Puesto</th>
-              <th>Orden</th>
-              <th>Punto</th>
-              <th>Radio</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of puntos(); track p.id) {
-              <tr>
-                <td>{{ p.puestoNombre }}</td>
-                <td>{{ p.orden }}</td>
-                <td>{{ p.nombre }}</td>
-                <td>{{ p.radioMetros }} m</td>
-              </tr>
-            } @empty {
-              <tr><td colspan="4">Nadie ha plantado puntos todavía. Usa la URL del celular.</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      <aside class="link-box">
+        <div>
+          <strong>Puntos de ronda</strong>
+          <p>Los puntos de cada puesto se crean y se editan en Rondas → Puestos y puntos.</p>
+          <a routerLink="/control-rondas/puntos">Ir a Puestos y puntos</a>
+        </div>
+      </aside>
     </section>
   `,
   styles: `
@@ -199,9 +175,7 @@ import { RondasApiService, RondasHoy, RondasPunto } from '../../rondas/rondas-ap
 export class RondasPanel implements OnInit {
   private readonly api = inject(RondasApiService);
   readonly campoUrl = `${location.origin}/rondas`;
-  readonly puntosUrl = `${location.origin}/rondas/puntos`;
   hoy = signal<RondasHoy | null>(null);
-  puntos = signal<RondasPunto[]>([]);
   error = signal('');
   copiado = signal('');
 
@@ -214,10 +188,6 @@ export class RondasPanel implements OnInit {
     this.api.hoy().subscribe({
       next: (h: RondasHoy) => this.hoy.set(h),
       error: () => this.error.set('No se pudo cargar el cumplimiento.'),
-    });
-    this.api.puntosAdmin().subscribe({
-      next: (p: RondasPunto[]) => this.puntos.set(p),
-      error: () => undefined,
     });
   }
 

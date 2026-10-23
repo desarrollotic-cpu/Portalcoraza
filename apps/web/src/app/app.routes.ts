@@ -422,6 +422,23 @@ export const routes: Routes = [
         ],
       },
       {
+        // Rondas: módulo propio. El panel de cumplimiento y la gestión de
+        // puestos y puntos. La pantalla del vigilante vive aparte, en `/rondas`,
+        // porque se abre sin iniciar sesión en el portal.
+        path: 'control-rondas',
+        canActivate: [permissionGuard],
+        data: { permissions: ['rondas.view', 'operations.view'], permissionMode: 'any' },
+        loadComponent: () =>
+          import('./features/operaciones/rondas-panel/rondas-panel').then((m) => m.RondasPanel),
+      },
+      {
+        path: 'control-rondas/puntos',
+        canActivate: [permissionGuard],
+        data: { permission: 'rondas.setup' },
+        loadComponent: () =>
+          import('./features/rondas/rondas-puntos/rondas-puntos').then((m) => m.RondasPuntos),
+      },
+      {
         // Gestión Documental nativa (SGD Coraza sobre NestJS + Supabase).
         path: 'documental',
         canActivate: [permissionGuard],

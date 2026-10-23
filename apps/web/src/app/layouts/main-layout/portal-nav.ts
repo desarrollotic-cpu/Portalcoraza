@@ -56,12 +56,28 @@ export interface PortalNavGroup {
 
 export { visibleModuleNav };
 
+const RONDAS_NAV: ModuleNavItem[] = [
+  {
+    label: 'Cumplimiento',
+    route: '/control-rondas',
+    permissions: ['rondas.view', 'operations.view'],
+    icon: LucideActivity,
+    exact: true,
+  },
+  {
+    label: 'Puestos y puntos',
+    route: '/control-rondas/puntos',
+    permission: 'rondas.setup',
+    icon: LucideMapPin,
+    exact: true,
+  },
+];
+
 export const OPERACIONES_NAV: ModuleNavItem[] = [
   { label: 'Panel', route: '/operaciones', permission: 'operations.view', icon: LucideBriefcaseBusiness, exact: true },
   { label: 'Puestos de trabajo', route: '/operaciones/puestos', permission: 'operations.view', icon: LucideMapPin, exact: true },
   { label: 'Fichas de puestos', route: '/operaciones/puestos/fichas', permissions: ['operations.view', 'posts.view'], icon: LucideFileText },
   { label: 'Minutas', route: '/operaciones/minutas', permission: 'operations.view', icon: LucideClipboardList, exact: true },
-  { label: 'Rondas', route: '/operaciones/rondas', permissions: ['rondas.view', 'operations.view'], icon: LucideActivity, exact: true },
   {
     label: 'Inspección patineta eléctrica',
     route: '/operaciones/patineta',
@@ -169,6 +185,7 @@ export const PORTAL_NAV_GROUPS: PortalNavGroup[] = [
       { label: 'Operaciones', route: '/operaciones', icon: LucideBriefcaseBusiness, permission: 'operations.view', children: OPERACIONES_NAV },
       { label: 'Recursos Humanos', route: '/rrhh', icon: LucideUsersRound, permissions: ['associates.view', 'hr_dashboard.view'], children: RRHH_NAV },
       { label: 'Dotación', route: '/dotacion', icon: LucideBoxes, permission: 'inventory.view', children: DOTACION_NAV },
+      { label: 'Rondas', route: '/control-rondas', icon: LucideActivity, permissions: ['rondas.view', 'operations.view'], children: RONDAS_NAV },
       { label: 'Programación', route: '/programacion', icon: LucideCalendarClock, permission: 'scheduling.view', children: PROGRAMACION_NAV },
       { label: 'Nómina', route: '/nomina', icon: LucideBriefcaseBusiness, permissions: ['payroll.view', 'payroll.convert'], children: NOMINA_NAV },
       { label: 'Documental', route: '/documental', icon: LucideClipboardList, permissions: ['documental.view', 'documental.loans'], children: DOCUMENTAL_NAV },
