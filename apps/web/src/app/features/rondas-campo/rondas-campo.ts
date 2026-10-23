@@ -349,11 +349,10 @@ const TIPOS_ALERTA = [
       /* Pantalla de campo: se usa con una mano y a veces de noche. Nada debe
          salirse a los lados ni obligar a desplazar horizontalmente. */
       overflow-x: hidden;
-      /* Sin pellizco para acercar: el vigilante se desorienta si la pantalla
-         queda ampliada, y el zoom saca scroll lateral. Se deja el
-         desplazamiento vertical normal. Va aqui y no en el index para no
-         quitarle el zoom al resto del portal, donde si hace falta. */
-      touch-action: pan-x pan-y;
+      /* El pellizco para acercar se deja habilitado a proposito. Lo que
+         molestaba era el zoom AUTOMATICO al tocar un campo, y eso se corrige en
+         la raiz poniendo los campos en 16px. Bloquear el pellizco ademas le
+         quitaria la posibilidad de acercar a quien no ve bien de cerca. */
       color: var(--text-primary);
       background: var(--gradient-page);
       font-family: var(--font-sans);
@@ -475,7 +474,7 @@ const TIPOS_ALERTA = [
       display: block; font-size: 1.15rem; letter-spacing: 0.02em; color: var(--text-primary);
     }
     .coords small { display: block; margin-top: 0.35rem; color: var(--text-muted); font-size: 0.78rem; }
-    .puntos li { display: flex; gap: 0.75rem; align-items: center; padding: 0.55rem 0; border-top: 1px solid var(--border); }
+    .puntos li { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: center; padding: 0.55rem 0; border-top: 1px solid var(--border); }
     .puntos li .edit { flex: 1; display: grid; gap: 0.35rem; }
     .puntos li .edit input { margin: 0; }
     .puntos li .mini {
@@ -497,7 +496,9 @@ const TIPOS_ALERTA = [
     /* min-width:0 deja que el texto largo se parta en vez de empujar la fila
        y sacar scroll horizontal en pantallas angostas. */
     .puntos li > div { flex: 1; min-width: 0; }
-    .puntos li strong, .puntos li small { overflow-wrap: anywhere; }
+    /* break-word parte solo si la palabra no cabe; "anywhere" la partia
+       siempre que el contenedor fuera estrecho, letra por letra. */
+    .puntos li strong, .puntos li small { overflow-wrap: break-word; }
     .btn-grande {
       width: 100%; min-height: 52px; border: 0; border-radius: var(--radius-sm);
       font: inherit; font-size: 1.05rem; font-weight: 800; cursor: pointer;
@@ -505,14 +506,18 @@ const TIPOS_ALERTA = [
     }
     .btn-grande.iniciar { background: var(--success-600, #15803d); }
     .btn-grande.terminar { background: var(--error-600, #b91c1c); }
-    .puntos li > div { flex: 1; }
-    .marcar {
-      width: auto; min-height: 44px; padding: 0.5rem 1rem; border: 0;
-      border-radius: var(--radius-sm); background: var(--gradient-primary);
+    /* La regla "ul button" de mas arriba pone width:100%. Angular anade un
+       atributo a cada selector para aislar el componente, lo que iguala el peso
+       de las clases y deja que los dos elementos desempaten a su favor. Por eso
+       el boton se llevaba toda la fila y el nombre quedaba en una columna de un
+       caracter. Este selector es mas especifico a proposito. */
+    .puntos li button.marcar {
+      width: auto; flex: 0 0 auto; min-height: 44px; padding: 0.5rem 1rem;
+      border: 0; border-radius: var(--radius-sm); background: var(--gradient-primary);
       color: var(--text-on-primary); font: inherit; font-weight: 700;
-      cursor: pointer; flex-shrink: 0;
+      text-align: center; cursor: pointer; white-space: nowrap;
     }
-    .marcar:disabled { opacity: 0.6; }
+    .puntos li button.marcar:disabled { opacity: 0.6; }
     .hola { margin: 0 0 0.5rem; font-weight: 700; color: var(--text-primary); }
     .barra { display: flex; justify-content: space-between; font-size: 0.9rem; font-weight: 600; }
     .track { height: 8px; background: var(--neutral-200); border-radius: 99px; overflow: hidden; margin: 0.4rem 0 0.8rem; }
