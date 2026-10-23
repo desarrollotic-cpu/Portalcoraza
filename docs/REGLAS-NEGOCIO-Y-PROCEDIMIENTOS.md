@@ -170,9 +170,17 @@ Paginación de a 50. Ficha “completa” = celular + fecha ingreso + cargo.
 
 | Regla                      | Detalle                                              |
 | -------------------------- | ---------------------------------------------------- |
+| Obligatorios en el alta    | Solo **cédula, nombre y apellido**. El resto (nacimiento, cursos, psicofísico, examen ocupacional, etc.) se puede dejar vacío |
+| Ficha incompleta           | Si falta algo distinto de esos tres, un diálogo avisa: «El asociado se encuentra con los datos incompletos» y permite guardar |
 | Documento único            | Una cédula = una persona                             |
 | Datos sensibles (Ley 1581) | Solo con `hr_sensitive.view` (GERENCIA/RRHH típicos) |
 | Dotación                   | Solo `ACTIVO` o `VACACIONES`                         |
+| `birth_date`               | Nullable (`098_associate_optional_birth_date.sql`)   |
+
+
+#### Sanciones
+
+La fecha de inicio se guarda como **solo fecha** (sin hora). El formulario muestra la fecha en español («23 de octubre de 2026») y no acepta un año fuera de **2025–2030**.
 
 
 
@@ -239,6 +247,19 @@ Usuario de almacén debe tener `warehouse_id`. Tras cambiar sede/permisos: **rel
 | Stock        | Descuenta del almacén del almacenista              |
 | Firma        | Confirma entrega; imagen en bucket privado vía API |
 
+
+### Reportes PDF (panel de almacén)
+
+En `/dotacion/panel`, usuario de almacén:
+
+| Reporte | Qué trae |
+| ------- | -------- |
+| General por elementos | Totales y detalle de entregas confirmadas |
+| **Por elemento** | Del ítem elegido: desglose por **talla, género y color** (la variante), totales por género, y cada entrega con asociado, talla, género, color, SKU y cantidad. El total general se mantiene |
+| Individual de asociado | Entregas del semestre |
+
+
+El desglose sale de `inventory_variants.talla`, `.genero` y `.color` (`item-report.resumen.ts`). Género se muestra como Hombre / Mujer / Unisex.
 
 ---
 
@@ -348,7 +369,8 @@ El módulo Contabilidad / PUC / comprobantes **ya no forma parte del producto**.
 
 - Catálogo operativo de **puestos** (incluye flag `tiene_patineta_electrica`).
 - Supervisión de minutas: historial / PDF por puesto y mes; enlace a Minuta Web.
-- Rondas GPS y **inspección patineta eléctrica** (consulta de formularios PESV).
+- Rondas GPS: cumplimiento del día e **informe mensual PDF de un solo puesto** (se elige el puesto; no sale un archivo con todos).
+- **Inspección patineta eléctrica** (consulta de formularios PESV).
 
 Detalle: `[OPERACIONES.md](OPERACIONES.md)`.
 

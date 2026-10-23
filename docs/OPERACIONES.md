@@ -1,6 +1,6 @@
 # Módulo Operaciones
 
-**Fecha:** 2026-10-07 (antes 2026-10-05)
+**Fecha:** 2026-10-23 (antes 2026-10-07)
 
 ## Alcance
 
@@ -19,7 +19,7 @@ Operaciones gestiona el **catálogo de puestos** (`posts`), la **supervisión de
 | `/operaciones/puestos` | `operations.view` | CRUD de puestos |
 | `/operaciones/puestos/fichas` | `operations.view` / `posts.view` | Fichas de puestos |
 | `/operaciones/minutas` | `operations.view` | Historial / PDF por puesto + mes; enlace Minuta Web |
-| `/operaciones/rondas` | `rondas.view` / `operations.view` | Cumplimiento de rondas GPS |
+| `/operaciones/rondas` | `rondas.view` / `operations.view` | Cumplimiento de rondas GPS e informe mensual PDF por puesto |
 | `/operaciones/patineta` | `scooter.view` / `operations.view` | Inspecciones preoperacionales de patineta (solo lectura) |
 | `/operaciones/control-radio` | `radio_control.view` / `operations.view` | Historial de pasadas del Control de radio (solo lectura) |
 | `/control` | `radio_control.view` / `operations.view` | Pantalla de trabajo de Control (marcar radios) |
@@ -37,9 +37,22 @@ Crear / editar puestos: `posts.create` / `posts.edit`.
 - Migración: `079_scooter_inspections.sql`.
 - Spec: [`superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`](superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md).
 
-## Rondas de campo (acceso público)
+## Rondas GPS
 
-`GET campo/puestos`, `GET campo/asociados` y `POST campo/entrar` son públicos (app de campo) y llevan `AuthRateLimitGuard` (10 intentos/min por IP, en memoria por instancia). Pendiente conocido: `campo/asociados` aún lista nombres sin sesión; cerrarlo exige cambiar el login de campo a puesto + cédula.
+Cada recorrido es una **sesión** (`rondas_sesiones`: hora de inicio y de fin). Las marcas (`rondas_marcaciones`) cuelgan de esa sesión (`sesion_id`). El vigilante entra a la app de campo con **nombre de la ronda y clave** (`POST /rondas/campo/entrar`); Rondas no identifica al vigilante.
+
+`POST campo/entrar` es público y lleva `AuthRateLimitGuard` (10 intentos/min por IP, en memoria por instancia).
+
+### Informe mensual (PDF, un puesto)
+
+En Cumplimiento (`/operaciones/rondas`) se elige **puesto** y **mes** y se descarga un PDF. Un archivo = un puesto: si hay diez puestos, se generan diez informes, cada uno del puesto que pida administración.
+
+- API: `GET /api/v1/rondas/informe?anio=&mes=&postId=` (`rondas.view`). `postId` es obligatorio.
+- Contenido: resumen del mes (recorridos, completos, incompletos, en curso) y, por ronda, cada recorrido con inicio, fin, minutos y la hora de cada punto.
+- Archivo: `Informe_Rondas_<puesto>_YYYY-MM.pdf`.
+- Código: `rondas-informe.ts` (arma las rondas) y `rondas-informe-pdf.ts` (PDF).
+
+Las marcaciones son inmutables (`trg_rondas_marc_inmutable`): no se editan ni se borran desde la app.
 
 ## Control de radio
 
@@ -82,4 +95,4 @@ El formulario de puesto incluye, además de código/nombre/tipo/estado/cliente/d
 - Layout: `apps/web/src/app/features/operaciones/`
 - Menú: `OPERACIONES_NAV` en `portal-nav.ts`
 - Patineta: `scooter-inspections-panel/`
-- Minutas: `minutas-list/` · Rondas: `rondas-panel/`
+- Minutas: `minutas-list/` · Rondas: `rondas-panel/` (selector de puesto + mes → PDF)

@@ -1,7 +1,16 @@
 # Estado del Proyecto — Portal Coraza
 
-> **Última actualización**: 2026-09-11  
+> **Última actualización**: 2026-10-23  
 > **Documento maestro**: fuente única de verdad del avance actual. Cualquier información en otros documentos (`HANDOFF-IA.md`, `CONTINUAR-DESARROLLO.md`, `ARCHITECTURE.md`, etc.) que contradiga a este archivo, este archivo prevalece.
+>
+> ### Parche de continuidad (2026-10-23) — no reescribe el cuerpo histórico
+>
+> - **Alta de asociado:** solo cédula, nombre y apellido son obligatorios. Lo demás avisa «datos incompletos» y deja guardar. `birth_date` nullable (migración `098`).
+> - **Sanciones:** la fecha de inicio es solo fecha; el formulario la muestra en español y limita el año a 2025–2030.
+> - **Dotación:** el PDF «Reporte por elemento» desglosa por talla, género y color.
+> - **Rondas:** informe mensual en **PDF, un puesto por archivo** (`GET /rondas/informe?postId=`). El vigilante entra con nombre de ronda y clave. Cada recorrido es una sesión (`rondas_sesiones`).
+> - Detalle vivo: [`OPERACIONES.md`](OPERACIONES.md) y [`REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md`](REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md).
+> - Grafo: `python -m graphify update . --force` → `graphify-out/` (no va a git; en otro equipo hay que regenerarlo).
 >
 > ### Parche de continuidad (2026-09-11) — no reescribe el cuerpo histórico de julio
 >
@@ -338,6 +347,7 @@ Cada módulo se documenta con:
 **Reglas**:
 
 - Estados: `ACTIVO`, `INACTIVO`, `SUSPENDIDO`, `VACACIONES`, `RETIRADO`
+- Alta (2026-10-23): obligatorios solo cédula, nombre y apellido; el resto avisa ficha incompleta y permite guardar
 - Historial en `associate_history`
 - **No** debe existir botón "Entregar dotación" en RRHH — se removió por decisión del usuario (la entrega la hace el `ALMACENISTA` desde su módulo)
 - Ausentismo: ver detalle en `docs/MODULO_AUSENTISMO.md`
@@ -382,7 +392,7 @@ Cada módulo se documenta con:
 3. Las entregas solo son válidas para asociados con estado **`ACTIVO`** o **`VACACIONES`**.
 4. La vista "Retirados / sin dotación 7+ meses" es una **pestaña dentro del módulo Dotación**, no una consulta suelta.
 
-**Estado**: **módulo completo** (panel, inventario, entregas + firma, movimientos y reporte sin dotación).
+**Estado**: **módulo completo** (panel, inventario, entregas + firma, movimientos, reporte sin dotación y PDF por elemento con talla, género y color).
 
 ---
 

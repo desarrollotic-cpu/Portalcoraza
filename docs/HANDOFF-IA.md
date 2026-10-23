@@ -4,6 +4,8 @@ Documento para continuar el desarrollo con otra IA o desarrollador.
 
 > **Inicio rápido para compañeros:** [`docs/CONTINUAR-DESARROLLO.md`](CONTINUAR-DESARROLLO.md) — mensaje listo para copiar al agente de Cursor.
 
+**Corte 2026-10-23:** Alta de asociado con solo cédula, nombre y apellido obligatorios (migración `098`). Sanciones: fecha solo-día, texto en español, años 2025–2030. Dotación: reporte por elemento con talla, género y color. Rondas: informe mensual **PDF por puesto** (`GET /rondas/informe`, `postId` obligatorio); entrada de campo = nombre de ronda + clave; sesiones en `rondas_sesiones`. Docs: [`OPERACIONES.md`](OPERACIONES.md), [`REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md`](REGLAS-NEGOCIO-Y-PROCEDIMIENTOS.md). Grafo local (no está en git): `python -m graphify update . --force`.
+
 **Corte 2026-10-05:** Inspección preoperacional **patineta eléctrica** (PESV): Minuta `/patineta` + Operaciones `/operaciones/patineta`; flag `posts.tiene_patineta_electrica`; migración `079`; módulo API `scooter-inspections`. Spec: [`superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md`](superpowers/specs/2026-10-05-inspeccion-patineta-electrica-design.md). Docs: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md).
 
 **Corte 2026-09-11:** Minuta = app `apps/minuta-web` (https://portalcoraza-minuta.onrender.com). Docs vivos: [`MINUTA-VIRTUAL.md`](MINUTA-VIRTUAL.md), [`OPERACIONES.md`](OPERACIONES.md), [`MINUTA-WEB-DEPLOY-HANDOFF.md`](MINUTA-WEB-DEPLOY-HANDOFF.md). Grafo local: `graphify-out/` (rebuild `graphify update . --force`). Coordinar pushes a `main` — ver `.cursor/rules/deploy-con-companero.mdc`.

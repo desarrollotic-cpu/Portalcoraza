@@ -2,6 +2,8 @@
 
 Guía para que **cualquier compañero** retome el proyecto sin contexto previo, pidiéndole al agente de Cursor que revise el estado y continúe.
 
+**Corte 2026-10-23 (producción, `main`):** alta de asociado solo exige cédula, nombre y apellido; reporte de dotación por elemento trae talla, género y color; informe de rondas es un PDF por puesto. Leer [`OPERACIONES.md`](OPERACIONES.md) y el parche del 2026-10-23 en [`ESTADO_PROYECTO.md`](ESTADO_PROYECTO.md). En otro equipo, el grafo no viene en el clone: `python -m graphify update . --force`.
+
 ---
 
 ## Mensaje para copiar y pegar al agente
